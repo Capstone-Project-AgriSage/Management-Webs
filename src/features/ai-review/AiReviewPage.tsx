@@ -19,14 +19,14 @@ import type { AiCaseStatus, AiReviewDecision } from '../../types'
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: '', label: 'Tất cả trạng thái' },
-  { value: 'Chờ duyệt', label: 'Chờ duyệt' },
+  { value: 'Đang chờ đại lý thẩm định', label: 'Đang chờ đại lý thẩm định' },
   { value: 'Đã phê duyệt', label: 'Đã phê duyệt' },
   { value: 'Đã từ chối', label: 'Đã từ chối' },
   { value: 'Chưa đủ chắc chắn', label: 'Chưa đủ chắc chắn' },
 ]
 
 const STATUS_BADGES: Record<AiCaseStatus, { label: string; className: string; dotClassName: string }> = {
-  'Chờ duyệt': { label: 'Chờ duyệt', className: 'bg-amber-100 text-amber-800 border border-amber-300', dotClassName: 'bg-amber-600' },
+  'Đang chờ đại lý thẩm định': { label: 'Đang chờ đại lý thẩm định', className: 'bg-amber-100 text-amber-800 border border-amber-300', dotClassName: 'bg-amber-600' },
   'Đã phê duyệt': { label: 'Đã phê duyệt', className: 'bg-emerald-100 text-emerald-800 border border-emerald-300', dotClassName: 'bg-emerald-600' },
   'Đã từ chối': { label: 'Đã từ chối', className: 'bg-slate-200 text-slate-700 border border-slate-300', dotClassName: 'bg-slate-500' },
   'Chưa đủ chắc chắn': { label: 'Chưa đủ chắc chắn', className: 'bg-orange-100 text-orange-800 border border-orange-300', dotClassName: 'bg-orange-600' },
@@ -71,7 +71,7 @@ function AiReviewContent() {
     clearFilters: handleClearFilters,
   } = useFilteredList(
     cases,
-    'Chờ duyệt',
+    'Đang chờ đại lý thẩm định',
     (item, keyword, status) =>
       (!keyword || item.id.toLowerCase().includes(keyword) || item.farmerName.toLowerCase().includes(keyword) || item.diseaseLabel.toLowerCase().includes(keyword)) &&
       (!status || item.status === status),
@@ -80,7 +80,7 @@ function AiReviewContent() {
 
   const { page, totalPages, paginated: paginatedCases, startIndex, endIndex, totalCount, goPrev, goNext, setPage } = usePagination(filteredCases, 8)
 
-  const pendingCount = cases.filter((c) => c.status === 'Chờ duyệt').length
+  const pendingCount = cases.filter((c) => c.status === 'Đang chờ đại lý thẩm định').length
 
   const openCase = (id: string) => {
     const target = cases.find((c) => c.id === id)
@@ -196,7 +196,7 @@ function AiReviewContent() {
               <tr className="bg-slate-50/50 border-b border-slate-100 text-[11px] font-semibold uppercase tracking-wider text-slate-500 select-none">
                 <th className="py-3 px-4" scope="col">Mã ca</th>
                 <th className="py-3 px-3" scope="col">Nông dân &amp; Thửa</th>
-                <th className="py-3 px-3" scope="col">Bệnh AI chẩn đoán</th>
+                <th className="py-3 px-3" scope="col">Chẩn đoán AI đề xuất</th>
                 <th className="py-3 px-3 text-center" scope="col">Độ tin cậy</th>
                 <th className="py-3 px-3 text-center" scope="col">Trạng thái</th>
                 <th className="py-3 px-4 text-center w-20" scope="col">Thao tác</th>
@@ -277,7 +277,7 @@ function AiReviewContent() {
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                  <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Bệnh AI chẩn đoán</div>
+                  <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Chẩn đoán AI đề xuất</div>
                   <div className="font-bold text-slate-900 text-base mt-1">{selected.diseaseLabel}</div>
                   <div className="text-xs text-slate-500 italic mt-0.5">{selected.diseaseSubLabel}</div>
 
@@ -343,7 +343,7 @@ function AiReviewContent() {
 
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-[13px] font-bold text-slate-900">Quyết định thẩm định</span>
+                    <span className="text-[13px] font-bold text-slate-900">Kết luận sau thẩm định</span>
                     <button
                       type="button"
                       onClick={() => setIsCorrecting((v) => !v)}

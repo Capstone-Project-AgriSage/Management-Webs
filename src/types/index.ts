@@ -83,7 +83,7 @@ export interface DebtPaymentRequest {
 
 /** Order fulfillment status — the underlying value shown by both `statusBadge` and
  * `panelBadge`, which are just two differently-styled renderings of the same status. */
-export type OrderStatus = 'Chờ xác nhận' | 'Đã xác nhận' | 'Đang chuẩn bị' | 'Hoàn thành' | 'Đã hủy'
+export type OrderStatus = 'Chờ xác nhận' | 'Đã xác nhận' | 'Đang chuẩn bị' | 'Đang giao hàng' | 'Chờ giao lại' | 'Giao thất bại' | 'Hoàn thành' | 'Đã hủy'
 
 /** How the order is being paid — distinct from OrderStatus (fulfillment progress). */
 export type OrderPaymentMethod = 'Tiền mặt tại quầy' | 'VietQR' | 'Cọc 50%' | 'Gối nợ vụ mùa'
@@ -280,7 +280,7 @@ export interface ProductSuggestion {
   reasoning: string
 }
 
-export type AiCaseStatus = 'Chờ duyệt' | 'Đã phê duyệt' | 'Đã từ chối' | 'Chưa đủ chắc chắn'
+export type AiCaseStatus = 'Đang chờ đại lý thẩm định' | 'Đã phê duyệt' | 'Đã từ chối' | 'Chưa đủ chắc chắn'
 
 export type AiReviewDecision = 'CONFIRM' | 'CORRECT' | 'INCONCLUSIVE'
 

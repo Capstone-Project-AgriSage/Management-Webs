@@ -2,7 +2,7 @@ import type { AiCase } from '../types'
 import type { RowAction } from '../components/ui/RowActionsMenu'
 
 const STATUS_BADGES: Record<AiCase['status'], { label: string; className: string; dotClassName: string }> = {
-  'Chờ duyệt': { label: 'Chờ duyệt', className: 'bg-amber-100 text-amber-800 border border-amber-300', dotClassName: 'bg-amber-600' },
+  'Đang chờ đại lý thẩm định': { label: 'Đang chờ đại lý thẩm định', className: 'bg-amber-100 text-amber-800 border border-amber-300', dotClassName: 'bg-amber-600' },
   'Đã phê duyệt': { label: 'Đã phê duyệt', className: 'bg-emerald-100 text-emerald-800 border border-emerald-300', dotClassName: 'bg-emerald-600' },
   'Đã từ chối': { label: 'Đã từ chối', className: 'bg-slate-200 text-slate-700 border border-slate-300', dotClassName: 'bg-slate-500' },
   'Chưa đủ chắc chắn': { label: 'Chưa đủ chắc chắn', className: 'bg-orange-100 text-orange-800 border border-orange-300', dotClassName: 'bg-orange-600' },
@@ -28,8 +28,8 @@ export const aiCases: AiCase[] = [
     diseaseSubLabel: 'Pyricularia oryzae',
     confidencePercent: 94,
     confidenceNote: 'Độ tin cậy cao',
-    status: 'Chờ duyệt',
-    statusBadge: STATUS_BADGES['Chờ duyệt'],
+    status: 'Đang chờ đại lý thẩm định',
+    statusBadge: STATUS_BADGES['Đang chờ đại lý thẩm định'],
     field: {
       farmerName: 'Trần Văn Hải',
       farmerPhone: '0918.234.567',
@@ -56,8 +56,8 @@ export const aiCases: AiCase[] = [
     diseaseSubLabel: 'Rhizoctonia solani',
     confidencePercent: 86,
     confidenceNote: 'Phù hợp',
-    status: 'Chờ duyệt',
-    statusBadge: STATUS_BADGES['Chờ duyệt'],
+    status: 'Đang chờ đại lý thẩm định',
+    statusBadge: STATUS_BADGES['Đang chờ đại lý thẩm định'],
     field: {
       farmerName: 'Lê Thị Bảy',
       farmerPhone: '0939.812.456',
@@ -137,8 +137,8 @@ export const aiCases: AiCase[] = [
     diseaseSubLabel: 'Bipolaris oryzae',
     confidencePercent: 88,
     confidenceNote: 'Phù hợp',
-    status: 'Chờ duyệt',
-    statusBadge: STATUS_BADGES['Chờ duyệt'],
+    status: 'Đang chờ đại lý thẩm định',
+    statusBadge: STATUS_BADGES['Đang chờ đại lý thẩm định'],
     field: {
       farmerName: 'Võ Thị Hạnh',
       farmerPhone: '0988.552.147',
@@ -165,8 +165,8 @@ export const aiCases: AiCase[] = [
     diseaseSubLabel: 'Nilaparvata lugens',
     confidencePercent: 79,
     confidenceNote: 'Phù hợp',
-    status: 'Chờ duyệt',
-    statusBadge: STATUS_BADGES['Chờ duyệt'],
+    status: 'Đang chờ đại lý thẩm định',
+    statusBadge: STATUS_BADGES['Đang chờ đại lý thẩm định'],
     field: {
       farmerName: 'Đặng Thị Kim',
       farmerPhone: '0912.445.678',
@@ -244,8 +244,8 @@ export const aiCases: AiCase[] = [
     diseaseSubLabel: 'Nilaparvata lugens',
     confidencePercent: 73,
     confidenceNote: 'Phù hợp',
-    status: 'Chờ duyệt',
-    statusBadge: STATUS_BADGES['Chờ duyệt'],
+    status: 'Đang chờ đại lý thẩm định',
+    statusBadge: STATUS_BADGES['Đang chờ đại lý thẩm định'],
     field: {
       farmerName: 'Trịnh Văn Hòa',
       farmerPhone: '0933.556.789',

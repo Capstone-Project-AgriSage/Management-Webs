@@ -29,6 +29,9 @@ const STATUS_OPTIONS: ('Tất cả trạng thái' | OrderStatus)[] = [
   'Chờ xác nhận',
   'Đã xác nhận',
   'Đang chuẩn bị',
+  'Đang giao hàng',
+  'Chờ giao lại',
+  'Giao thất bại',
   'Hoàn thành',
   'Đã hủy',
 ]
@@ -40,6 +43,9 @@ const STATUS_VISUALS: Record<OrderStatus, { className: string; dotClassName: str
   'Chờ xác nhận': { className: 'bg-amber-100 text-amber-800 border-amber-300', dotClassName: 'bg-amber-600' },
   'Đã xác nhận': { className: 'bg-sky-100 text-sky-800 border-sky-300', dotClassName: 'bg-sky-600' },
   'Đang chuẩn bị': { className: 'bg-indigo-100 text-indigo-800 border-indigo-300', dotClassName: 'bg-indigo-600' },
+  'Đang giao hàng': { className: 'bg-blue-100 text-blue-800 border-blue-300', dotClassName: 'bg-blue-600' },
+  'Chờ giao lại': { className: 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-300', dotClassName: 'bg-fuchsia-600' },
+  'Giao thất bại': { className: 'bg-rose-100 text-rose-800 border-rose-300', dotClassName: 'bg-rose-600' },
   'Hoàn thành': { className: 'bg-emerald-100 text-emerald-800 border-emerald-300', dotClassName: 'bg-emerald-600' },
   'Đã hủy': { className: 'bg-slate-100 text-slate-800 border-slate-300', dotClassName: 'bg-slate-500' },
 }
@@ -47,22 +53,28 @@ const STATUS_VISUALS: Record<OrderStatus, { className: string; dotClassName: str
 const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
   'Chờ xác nhận': 'Đã xác nhận',
   'Đã xác nhận': 'Đang chuẩn bị',
-  'Đang chuẩn bị': 'Hoàn thành',
+  'Đang chuẩn bị': 'Đang giao hàng',
+  'Đang giao hàng': 'Hoàn thành',
+  'Chờ giao lại': 'Đang giao hàng',
 }
 
 const NEXT_ACTION_LABEL: Partial<Record<OrderStatus, string>> = {
   'Chờ xác nhận': 'Xác nhận',
   'Đã xác nhận': 'Cập nhật chuẩn bị',
-  'Đang chuẩn bị': 'Hoàn tất đơn',
+  'Đang chuẩn bị': 'Giao cho shipper',
+  'Đang giao hàng': 'Xác nhận đã giao',
+  'Chờ giao lại': 'Giao lại',
 }
 
 const NEXT_ACTION_ICON: Partial<Record<OrderStatus, string>> = {
   'Chờ xác nhận': 'check_circle',
   'Đã xác nhận': 'inventory_2',
-  'Đang chuẩn bị': 'task_alt',
+  'Đang chuẩn bị': 'local_shipping',
+  'Đang giao hàng': 'task_alt',
+  'Chờ giao lại': 'replay',
 }
 
-const CANCELABLE_STATUSES: OrderStatus[] = ['Chờ xác nhận', 'Đã xác nhận', 'Đang chuẩn bị']
+const CANCELABLE_STATUSES: OrderStatus[] = ['Chờ xác nhận', 'Đã xác nhận', 'Đang chuẩn bị', 'Chờ giao lại', 'Giao thất bại']
 
 // The state machine's only legal moves: each cancelable status can advance one step forward
 // (NEXT_STATUS) or be cancelled; 'Hoàn thành' and 'Đã hủy' are terminal and have no entry here,
@@ -70,13 +82,22 @@ const CANCELABLE_STATUSES: OrderStatus[] = ['Chờ xác nhận', 'Đã xác nh�
 const VALID_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus[]>> = {
   'Chờ xác nhận': ['Đã xác nhận', 'Đã hủy'],
   'Đã xác nhận': ['Đang chuẩn bị', 'Đã hủy'],
-  'Đang chuẩn bị': ['Hoàn thành', 'Đã hủy'],
+  'Đang chuẩn bị': ['Đang giao hàng', 'Hoàn thành', 'Đã hủy'],
+  'Đang giao hàng': ['Hoàn thành', 'Giao thất bại', 'Chờ giao lại'],
+  'Chờ giao lại': ['Đang giao hàng', 'Đã hủy'],
+  'Giao thất bại': ['Chờ giao lại', 'Đã hủy'],
 }
 
 function buildActions(status: OrderStatus): RowAction[] {
   const actions: RowAction[] = [{ label: 'Xem', icon: 'visibility' }]
   const nextLabel = NEXT_ACTION_LABEL[status]
   if (nextLabel) actions.push({ label: nextLabel, icon: NEXT_ACTION_ICON[status] ?? 'check_circle', tone: 'primary' })
+  if (status === 'Đang giao hàng') {
+    actions.push({ label: 'Giao thất bại', icon: 'error', tone: 'danger' })
+  }
+  if (status === 'Giao thất bại') {
+    actions.push({ label: 'Yêu cầu giao lại', icon: 'assignment_return', tone: 'primary' })
+  }
   if (CANCELABLE_STATUSES.includes(status)) actions.push({ label: 'Hủy đơn', icon: 'cancel', tone: 'danger' })
   return actions
 }
@@ -132,6 +153,14 @@ export default function OrdersPage() {
     }
     if (label === 'Hủy đơn') {
       setOrderStatus(id, 'Đã hủy')
+      return
+    }
+    if (label === 'Giao thất bại') {
+      setOrderStatus(id, 'Giao thất bại')
+      return
+    }
+    if (label === 'Yêu cầu giao lại') {
+      setOrderStatus(id, 'Chờ giao lại')
       return
     }
     const order = orders.find((o) => o.id === id)
