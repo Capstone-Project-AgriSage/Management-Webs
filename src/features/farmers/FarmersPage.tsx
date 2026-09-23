@@ -140,18 +140,18 @@ export default function FarmersPage() {
         <div className="overflow-x-auto flex-1 custom-scrollbar">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/50 border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                <th className="py-3 px-4">Farmer</th>
-                <th className="py-3 px-3">Số điện thoại</th>
-                <th className="py-3 px-3">Khu vực</th>
-                <th className="py-3 px-3">Đơn gần nhất</th>
-                <th className="py-3 px-3 text-center">Tổng mua</th>
-                <th className="py-3 px-3 text-center">Công nợ</th>
-                <th className="py-3 px-3 text-center">Trạng thái</th>
-                <th className="py-3 px-4 text-center">Thao tác</th>
+              <tr className="border-b border-slate-100 text-slate-900 text-[13px] font-bold">
+                <th className="py-4 px-4">Farmer</th>
+                <th className="py-4 px-3">Số điện thoại</th>
+                <th className="py-4 px-3">Khu vực</th>
+                <th className="py-4 px-3">Đơn gần nhất</th>
+                <th className="py-4 px-3 text-center">Tổng mua</th>
+                <th className="py-4 px-3 text-center">Công nợ</th>
+                <th className="py-4 px-3 text-center">Trạng thái</th>
+                <th className="py-4 px-4"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-sm font-normal">
+            <tbody className="divide-y divide-slate-50 text-sm font-normal">
               {filteredFarmers.length === 0 ? (
                 <EmptyTableRow colSpan={8} message="Không tìm thấy Farmer phù hợp với bộ lọc." className="text-slate-400" />
               ) : null}
@@ -162,11 +162,11 @@ export default function FarmersPage() {
                     key={farmer.id}
                     onClick={() => setSelectedId(farmer.id)}
                     className={`transition-colors cursor-pointer ${
-                      isSelected ? 'bg-emerald-50/50 border-l-2 border-l-emerald-500 hover:bg-emerald-50' : 'hover:bg-slate-50 border-l-2 border-transparent'
+                      isSelected ? 'bg-emerald-50/50 border-l-2 border-l-emerald-500 hover:bg-emerald-50' : 'hover:bg-slate-50/50 border-l-2 border-transparent'
                     }`}
                   >
-                    <td className="py-3.5 px-4">
-                      <div className="font-semibold text-slate-900 flex items-center gap-1.5">
+                    <td className="py-4.5 px-4">
+                      <div className="font-medium text-slate-900 flex items-center gap-1.5">
                         <span>{farmer.name}</span>
                         {farmer.verified ? (
                           <span title="Đã xác thực">
@@ -176,20 +176,20 @@ export default function FarmersPage() {
                       </div>
                       <div className="text-[11px] text-slate-500">#{farmer.id}</div>
                     </td>
-                    <td className="py-3.5 px-3 font-medium text-slate-700 text-xs">{farmer.phone}</td>
+                    <td className="py-4.5 px-3 font-medium text-slate-700 text-xs">{farmer.phone}</td>
                     <td className="py-3.5 px-3 text-slate-600 truncate max-w-[130px] text-xs" title={farmer.areaTitle}>
                       {farmer.areaShort}
                     </td>
-                    <td className="py-3.5 px-3">
+                    <td className="py-4.5 px-3">
                       <span className="font-medium text-slate-900 text-xs">{farmer.lastOrderId}</span>
                       <span className="block text-[11px] text-slate-500">{farmer.lastOrderAgo}</span>
                     </td>
-                    <td className="py-3.5 px-3 text-center font-semibold text-slate-900 text-xs tabular-nums">{farmer.totalPurchaseLabel}</td>
-                    <td className="py-3.5 px-3 text-center">
+                    <td className="py-4.5 px-3 text-center font-medium text-slate-900 text-xs tabular-nums">{farmer.totalPurchaseLabel}</td>
+                    <td className="py-4.5 px-3 text-center">
                       {farmer.hasDebt ? (
                         <>
                           <span
-                            className={`font-semibold px-2 py-0.5 rounded text-[11px] ${
+                            className={`font-medium px-2 py-0.5 rounded text-[11px] ${
                               farmer.debtOverdue
                                 ? 'text-rose-700 bg-rose-50 border border-rose-200'
                                 : 'text-amber-800 bg-amber-50 border border-amber-200'
@@ -207,10 +207,10 @@ export default function FarmersPage() {
                         <span className="font-medium text-slate-400 text-xs">{farmer.debtLabel}</span>
                       )}
                     </td>
-                    <td className="py-3.5 px-3 text-center">
+                    <td className="py-4.5 px-3 text-center">
                       <StatusBadge label={farmer.statusBadge.label} className={farmer.statusBadge.className} minWidthClassName="min-w-[120px]" />
                     </td>
-                    <td className="py-3.5 px-4 text-center">
+                    <td className="py-4.5 px-4 text-center">
                       <div className="flex items-center justify-center">
                         <RowActionsMenu
                           triggerLabel={`Thao tác ${farmer.name}`}

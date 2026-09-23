@@ -66,7 +66,7 @@ export default function PendingPaymentRequestsPanel({ requests, onConfirm, onRej
         <h2 className="text-sm font-bold text-slate-900">Yêu cầu xác nhận trả nợ</h2>
         <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold text-xs">{requests.length} khoản chờ khớp</span>
       </div>
-      <div className="divide-y divide-slate-100">
+      <div className="divide-y divide-slate-50">
         {requests.map((pr) => (
           <div key={pr.id} className="p-3.5 flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-[200px]">

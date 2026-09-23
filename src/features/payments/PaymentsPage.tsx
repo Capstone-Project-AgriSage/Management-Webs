@@ -277,7 +277,7 @@ export default function PaymentsPage() {
         </nav>
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
+            className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50/50 transition-colors shadow-sm"
             type="button"
             onClick={handleExportPayments}
           >
@@ -366,7 +366,7 @@ export default function PaymentsPage() {
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+      <div className="bg-white rounded-xl flex flex-col pt-2 shadow-sm border border-slate-100">
         <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-slate-900">Danh sách giao dịch thanh toán</span>
@@ -376,18 +376,19 @@ export default function PaymentsPage() {
         <div className="flex-1 overflow-auto">
           <table className="w-full text-left border-collapse text-sm">
             <thead>
-              <tr className="bg-slate-50/50 border-b border-slate-100 text-slate-500 text-xs font-semibold uppercase tracking-wider">
-                <th className="py-3 pl-4 px-3">Mã TT / Đơn</th>
-                <th className="py-3 px-3">Khách hàng</th>
-                <th className="py-3 px-3 text-center">Tổng đơn</th>
-                <th className="py-3 px-3 text-center">Đã thu</th>
-                <th className="py-3 px-3 text-center">Còn lại</th>
-                <th className="py-3 px-3 text-center">Phương thức</th>
-                <th className="py-3 px-3 text-center">Trạng thái</th>
-                <th className="py-3 pr-4 pl-3 text-center">Thao tác</th>
+              <tr className="border-b border-slate-100 text-slate-900 text-[13px] font-bold">
+                <th className="py-4 pl-4 px-3">Mã TT / Đơn</th>
+                <th className="py-4 px-3">Khách hàng</th>
+                <th className="py-4 px-3 text-center">Tổng đơn</th>
+                <th className="py-4 px-3 text-center">Đã thu</th>
+                <th className="py-4 px-3 text-center">Còn lại</th>
+                <th className="py-4 px-3 text-center">Phương thức</th>
+                <th className="py-4 px-3 text-center">Trạng thái</th>
+                <th className="py-4 pr-4 pl-3"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-50 text-sm font-normal">
+
               {filteredPayments.length === 0 ? <EmptyTableRow colSpan={8} message="Không tìm thấy giao dịch nào." /> : null}
               {paginatedPayments.map((item) => {
                 const isSelected = item.id === selectedId
@@ -396,30 +397,30 @@ export default function PaymentsPage() {
                     key={item.id}
                     onClick={() => setSelectedId(item.id)}
                     className={`transition-colors cursor-pointer group ${
-                      isSelected ? 'bg-emerald-50/50 hover:bg-emerald-50 border-l-2 border-l-emerald-500' : 'hover:bg-slate-50'
+                      isSelected ? 'bg-emerald-50/50 hover:bg-emerald-50 border-l-2 border-l-emerald-500' : 'hover:bg-slate-50/50'
                     }`}
                   >
-                    <td className="py-3 pl-4 px-3">
-                      <div className="font-bold font-mono text-xs text-slate-900">{item.id}</div>
+                    <td className="py-4 pl-4 px-3">
+                      <div className="font-medium font-mono text-xs text-slate-900">{item.id}</div>
                       <div className="text-[11px] text-slate-500 font-mono mt-0.5">{item.orderId}</div>
                     </td>
-                    <td className="py-3 px-3">
-                      <div className="font-semibold text-slate-900 text-sm">{item.customerName}</div>
+                    <td className="py-4 px-3">
+                      <div className="font-medium text-slate-900 text-sm">{item.customerName}</div>
                       <div className="text-xs text-slate-500 mt-0.5">{item.customerPhone}</div>
                     </td>
-                    <td className="py-3 px-3 text-center font-mono font-semibold text-slate-900">{item.totalAmount}</td>
-                    <td className={`py-3 px-3 text-center font-mono font-semibold ${item.paidAmountClassName}`}>{item.paidAmount}</td>
-                    <td className={`py-3 px-3 text-center font-mono font-bold ${item.remainingAmountClassName}`}>{item.remainingAmount}</td>
-                    <td className="py-3 px-3 text-center whitespace-nowrap">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${item.methodClassName}`}>
+                    <td className="py-4 px-3 text-center font-mono font-medium text-slate-900">{item.totalAmount}</td>
+                    <td className={`py-3 px-3 text-center font-mono font-medium ${item.paidAmountClassName}`}>{item.paidAmount}</td>
+                    <td className={`py-3 px-3 text-center font-mono font-medium ${item.remainingAmountClassName}`}>{item.remainingAmount}</td>
+                    <td className="py-4 px-3 text-center whitespace-nowrap">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium ${item.methodClassName}`}>
                         <span className="material-symbols-outlined text-[14px]">{item.methodIcon}</span>
                         {item.methodLabel}
                       </span>
                     </td>
-                    <td className="py-3 px-3 text-center whitespace-nowrap">
+                    <td className="py-4 px-3 text-center whitespace-nowrap">
                       <StatusBadge label={item.statusBadge.label} className={item.statusBadge.className} minWidthClassName="min-w-[120px]" />
                     </td>
-                    <td className="py-3 pr-4 pl-3 text-center whitespace-nowrap">
+                    <td className="py-4 pr-4 pl-3 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center">
                         <RowActionsMenu
                           triggerLabel={`Thao tác giao dịch ${item.id}`}
@@ -515,7 +516,7 @@ export default function PaymentsPage() {
 
             <div className="p-5 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-3 rounded-b-xl">
               <button
-                className="px-4 py-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-[13px] font-bold rounded-lg shadow-sm"
+                className="px-4 py-2 border border-slate-300 bg-white hover:bg-slate-50/50 text-slate-700 text-[13px] font-bold rounded-lg shadow-sm"
                 type="button"
                 onClick={() => setSelectedId(null)}
               >

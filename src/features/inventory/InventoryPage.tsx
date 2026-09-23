@@ -210,11 +210,11 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+      <div className="bg-white rounded-xl flex flex-col pt-2 shadow-sm border border-slate-100">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/50 border-b border-slate-100 text-[11px] font-semibold uppercase tracking-wider text-slate-500 select-none">
+              <tr className="border-b border-slate-100 text-slate-900 text-[13px] font-bold">
                 <th className="py-3 px-4" scope="col">Sản phẩm</th>
                 <th className="py-3 px-3" scope="col">SKU</th>
                 <th className="py-3 px-3 text-center" scope="col">Danh mục</th>
@@ -224,7 +224,7 @@ export default function InventoryPage() {
                 <th className="py-3 px-4 text-center w-20" scope="col">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-sm text-slate-900">
+            <tbody className="divide-y divide-slate-50 text-sm text-slate-900">
               {paginated.length === 0 ? <EmptyTableRow colSpan={7} message="Không tìm thấy sản phẩm phù hợp với bộ lọc." /> : null}
               {paginated.map((item) => {
                 const isSelected = item.id === selectedId
@@ -233,33 +233,33 @@ export default function InventoryPage() {
                     key={item.id}
                     onClick={() => setSelectedId(item.id)}
                     className={`transition-colors cursor-pointer group ${
-                      isSelected ? 'bg-emerald-50/50 hover:bg-emerald-50 border-l-2 border-l-emerald-500' : 'hover:bg-slate-50'
+                      isSelected ? 'bg-emerald-50/50 hover:bg-emerald-50 border-l-2 border-l-emerald-500' : 'hover:bg-slate-50/50'
                     }`}
                   >
-                    <td className="py-3.5 px-4">
-                      <span className="font-semibold text-sm text-slate-900 group-hover:text-emerald-600 transition-colors">{item.name}</span>
+                    <td className="py-4.5 px-4">
+                      <span className="font-medium text-sm text-slate-900 group-hover:text-emerald-600 transition-colors">{item.name}</span>
                     </td>
-                    <td className="py-3.5 px-3 font-mono text-xs text-slate-500 font-medium">{item.sku}</td>
-                    <td className="py-3.5 px-3 text-center">
-                      <span className="inline-flex items-center justify-center min-w-[100px] px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-slate-50 text-slate-700 border-slate-200">
+                    <td className="py-4.5 px-3 font-mono text-xs text-slate-500 font-medium">{item.sku}</td>
+                    <td className="py-4.5 px-3 text-center">
+                      <span className="inline-flex items-center justify-center min-w-[100px] px-2 py-0.5 rounded-full text-[10px] font-medium border bg-slate-50 text-slate-700 border-slate-200">
                         {item.categoryLabel}
                       </span>
                     </td>
-                    <td className="py-3.5 px-3 text-center">
-                      <span className="font-semibold font-mono text-slate-900">
+                    <td className="py-4.5 px-3 text-center">
+                      <span className="font-medium font-mono text-slate-900">
                         {item.stockQuantity} <span className="font-sans font-normal text-xs text-slate-500">{item.unit}</span>
                       </span>
                     </td>
-                    <td className="py-3.5 px-3 text-center">
+                    <td className="py-4.5 px-3 text-center">
                       <StatusBadge label={item.stockLabel} className={item.stockClassName} minWidthClassName="min-w-[100px]" />
                     </td>
-                    <td className="py-3.5 px-3">
+                    <td className="py-4.5 px-3">
                       <div className="flex flex-col text-[11px]">
                         <span className="text-slate-900 font-medium">{item.updatedAgo}</span>
                         <span className="text-slate-500">{item.updatedBy}</span>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 text-center">
+                    <td className="py-4.5 px-4 text-center">
                       <div className="flex items-center justify-center">
                         <RowActionsMenu
                           triggerLabel={`Thao tác ${item.name}`}
@@ -318,7 +318,7 @@ export default function InventoryPage() {
               {itemMovements.length === 0 ? (
                 <p className="text-xs text-slate-400">Chưa có biến động nào được ghi nhận cho sản phẩm này.</p>
               ) : (
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-slate-50">
                   {itemMovements.map((m) => (
                     <div key={m.id} className="py-2 flex items-start justify-between gap-3 text-xs">
                       <div className="flex items-start gap-2">

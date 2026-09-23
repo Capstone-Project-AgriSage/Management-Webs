@@ -134,15 +134,15 @@ export default function ProductsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/50 border-b border-slate-100 text-[11px] font-semibold uppercase tracking-wider text-slate-500 select-none">
-                <th className="py-3 pl-4 px-3 min-w-[280px]">Sản phẩm &amp; Hoạt chất</th>
-                <th className="py-3 px-3 min-w-[130px] text-center">Danh mục</th>
-                <th className="py-3 px-3 min-w-[120px] text-center">Giá bán</th>
-                <th className="py-3 px-3 min-w-[170px] text-center">Tồn kho khả dụng</th>
-                <th className="py-3 pr-4 pl-3 w-28 text-center">Thao tác</th>
+              <tr className="border-b border-slate-100 text-slate-900 text-[13px] font-bold">
+                <th className="py-4 pl-4 px-3 min-w-[280px]">Sản phẩm &amp; Hoạt chất</th>
+                <th className="py-4 px-3 min-w-[130px] text-center">Danh mục</th>
+                <th className="py-4 px-3 min-w-[120px] text-center">Giá bán</th>
+                <th className="py-4 px-3 min-w-[170px] text-center">Tồn kho khả dụng</th>
+                <th className="py-4 pr-4 pl-3 w-10"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-sm text-slate-900">
+            <tbody className="divide-y divide-slate-50 text-sm text-slate-900">
               {paginated.length === 0 ? (
                 <EmptyTableRow colSpan={5} message="Không tìm thấy sản phẩm phù hợp với bộ lọc." />
               ) : null}
@@ -153,21 +153,21 @@ export default function ProductsPage() {
                     key={product.id}
                     onClick={() => setSelectedId(product.id)}
                     className={`transition-colors cursor-pointer group ${
-                      isSelected ? 'bg-emerald-50/50 hover:bg-emerald-50 border-l-2 border-l-emerald-500' : 'hover:bg-slate-50'
+                      isSelected ? 'bg-emerald-50/50 hover:bg-emerald-50 border-l-2 border-l-emerald-500' : 'hover:bg-slate-50/50'
                     }`}
                   >
-                    <td className="py-3.5 pl-4 px-3">
-                      <div className="font-semibold text-sm text-slate-900 group-hover:text-emerald-600 transition-colors">{product.name}</div>
+                    <td className="py-4.5 pl-4 px-3">
+                      <div className="font-medium text-sm text-slate-900 group-hover:text-emerald-600 transition-colors">{product.name}</div>
                       <div className="text-xs text-slate-500 mt-0.5">{product.description}</div>
                     </td>
-                    <td className="py-3.5 px-3 text-center">
-                      <span className={`inline-flex items-center justify-center min-w-[110px] px-2 py-0.5 rounded-full text-[10px] font-semibold border ${product.categoryClassName}`}>
+                    <td className="py-4.5 px-3 text-center">
+                      <span className={`inline-flex items-center justify-center min-w-[110px] px-2 py-0.5 rounded-full text-[10px] font-medium border ${product.categoryClassName}`}>
                         {product.categoryLabel}
                       </span>
                     </td>
-                    <td className="py-3.5 px-3 text-center font-semibold font-mono text-slate-900">{product.price}</td>
-                    <td className="py-3.5 px-3 text-center font-semibold font-mono text-slate-900">{product.stockQuantity}</td>
-                    <td className="py-3.5 pr-4 pl-3 text-center">
+                    <td className="py-4.5 px-3 text-center font-medium font-mono text-slate-900">{product.price}</td>
+                    <td className="py-4.5 px-3 text-center font-medium font-mono text-slate-900">{product.stockQuantity}</td>
+                    <td className="py-4.5 pr-4 pl-3 text-center">
                       <div className="flex items-center justify-center">
                         <RowActionsMenu
                           triggerLabel={`Thao tác ${product.name}`}

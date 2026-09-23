@@ -225,7 +225,7 @@ export default function DebtsPage() {
         </button>
       </section>
 
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+      <div className="bg-white rounded-xl flex flex-col pt-2 shadow-sm border border-slate-100">
         <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center gap-2">
           <h2 className="text-sm font-bold text-slate-900">Danh sách công nợ khách hàng</h2>
           <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 text-xs font-semibold">{filteredCustomers.length} nông hộ</span>
@@ -233,17 +233,17 @@ export default function DebtsPage() {
         <div className="flex-1 overflow-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/50 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                <th className="py-3 px-4">Khách hàng &amp; SĐT</th>
-                <th className="py-3 px-3 text-center">Tổng mua</th>
-                <th className="py-3 px-3 text-center">Đã trả</th>
-                <th className="py-3 px-3 text-center font-bold text-slate-900">Còn nợ</th>
-                <th className="py-3 px-3 text-center">Hạn trả</th>
-                <th className="py-3 px-3 text-center">Trạng thái</th>
-                <th className="py-3 px-4 text-center">Thao tác</th>
+              <tr className="border-b border-slate-100 text-slate-900 text-[13px] font-bold">
+                <th className="py-4 px-4">Khách hàng &amp; SĐT</th>
+                <th className="py-4 px-3 text-center">Tổng mua</th>
+                <th className="py-4 px-3 text-center">Đã trả</th>
+                <th className="py-4 px-3 text-center font-bold text-slate-900">Còn nợ</th>
+                <th className="py-4 px-3 text-center">Hạn trả</th>
+                <th className="py-4 px-3 text-center">Trạng thái</th>
+                <th className="py-4 px-4"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-xs sm:text-sm">
+            <tbody className="divide-y divide-slate-50 text-xs sm:text-sm">
               {filteredCustomers.length === 0 ? (
                 <EmptyTableRow colSpan={7} message="Không tìm thấy khách hàng phù hợp với bộ lọc." className="text-slate-400" />
               ) : null}
@@ -259,17 +259,17 @@ export default function DebtsPage() {
                         ? 'bg-emerald-50 border-l-4 border-l-emerald-600'
                         : customer.isDisputed
                           ? 'bg-rose-50/60 hover:bg-rose-50'
-                          : 'hover:bg-slate-50'
+                          : 'hover:bg-slate-50/50'
                     }`}
                   >
-                    <td className="py-3 px-4">
-                      <div className="font-semibold text-slate-900 flex items-center gap-1.5">
+                    <td className="py-4 px-4">
+                      <div className="font-medium text-slate-900 flex items-center gap-1.5">
                         <span>{customer.name}</span>
                         {customer.cropBadge && (
-                          <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] rounded font-bold">{customer.cropBadge}</span>
+                          <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] rounded font-medium">{customer.cropBadge}</span>
                         )}
                         {customer.isDisputed && (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-rose-100 text-rose-700 text-[10px] rounded font-bold border border-rose-200">
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-rose-100 text-rose-700 text-[10px] rounded font-medium border border-rose-200">
                             <AlertTriangle size={11} /> Tranh chấp
                           </span>
                         )}
@@ -278,18 +278,18 @@ export default function DebtsPage() {
                         {customer.phone} · {customer.addressShort}
                       </div>
                     </td>
-                    <td className="py-3 px-3 text-center font-mono text-slate-600">{customer.totalPurchase}</td>
-                    <td className="py-3 px-3 text-center font-mono text-emerald-700 font-medium">{customer.paidAmount}</td>
-                    <td className={`py-3 px-3 text-center font-mono font-bold ${remainingAmount > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>
+                    <td className="py-4 px-3 text-center font-mono text-slate-600">{customer.totalPurchase}</td>
+                    <td className="py-4 px-3 text-center font-mono text-emerald-700 font-medium">{customer.paidAmount}</td>
+                    <td className={`py-3 px-3 text-center font-mono font-medium ${remainingAmount > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>
                       {customer.remaining}
                     </td>
                     <td className={`py-3 px-3 text-center font-mono text-xs ${STATUS_ROW_HIGHLIGHT[customer.status] ?? 'text-slate-700'}`}>
                       {customer.dueDate}
                     </td>
-                    <td className="py-3 px-3 text-center">
+                    <td className="py-4 px-3 text-center">
                       <StatusBadge label={customer.statusBadge.label} className={customer.statusBadge.className} minWidthClassName="min-w-[110px]" />
                     </td>
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-4 px-4 text-center">
                       <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
                         <RowActionsMenu
                           triggerLabel={`Thao tác công nợ ${customer.name}`}

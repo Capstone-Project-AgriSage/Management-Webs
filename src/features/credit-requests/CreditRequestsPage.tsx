@@ -144,7 +144,7 @@ export default function CreditRequestsPage() {
         </button>
       </section>
 
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+      <div className="bg-white rounded-xl flex flex-col pt-2 shadow-sm border border-slate-100">
         <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center gap-2">
           <h2 className="text-sm font-bold text-slate-900">Danh sách yêu cầu mua chịu</h2>
           <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 text-xs font-semibold">{filteredRequests.length} yêu cầu</span>
@@ -152,17 +152,18 @@ export default function CreditRequestsPage() {
         <div className="flex-1 overflow-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/50 font-semibold text-slate-600 uppercase tracking-wider">
-                <th className="py-3 px-4">Mã YC / Đơn hàng</th>
-                <th className="py-3 px-4">Nông dân &amp; SĐT</th>
-                <th className="py-3 px-3">Vụ mùa</th>
-                <th className="py-3 px-3 text-center">Số tiền đề nghị</th>
-                <th className="py-3 px-3 text-center">Hạn mức / Còn lại</th>
-                <th className="py-3 px-3 text-center">Trạng thái</th>
-                <th className="py-3 px-4 text-center">Thao tác</th>
+              <tr className="border-b border-slate-100 text-slate-900 text-[13px] font-bold">
+                <th className="py-4 px-4">Mã YC / Đơn hàng</th>
+                <th className="py-4 px-4">Nông dân &amp; SĐT</th>
+                <th className="py-4 px-3">Vụ mùa</th>
+                <th className="py-4 px-3 text-center">Số tiền đề nghị</th>
+                <th className="py-4 px-3 text-center">Hạn mức / Còn lại</th>
+                <th className="py-4 px-3 text-center">Trạng thái</th>
+                <th className="py-4 px-4"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-50 text-sm font-normal">
+
               {filteredRequests.length === 0 ? (
                 <EmptyTableRow colSpan={7} message="Không tìm thấy yêu cầu phù hợp với bộ lọc." className="text-slate-400" />
               ) : null}
@@ -173,26 +174,26 @@ export default function CreditRequestsPage() {
                   <tr
                     key={cr.id}
                     onClick={() => setSelectedId(cr.id)}
-                    className={`transition-colors cursor-pointer ${isSelected ? 'bg-emerald-50 border-l-4 border-l-emerald-600' : 'hover:bg-slate-50'}`}
+                    className={`transition-colors cursor-pointer ${isSelected ? 'bg-emerald-50 border-l-4 border-l-emerald-600' : 'hover:bg-slate-50/50'}`}
                   >
-                    <td className="py-3.5 px-4 font-mono">
-                      <div className="font-bold text-slate-900">{cr.id}</div>
+                    <td className="py-4.5 px-4 font-mono">
+                      <div className="font-medium text-slate-900">{cr.id}</div>
                       <div className="text-slate-500 text-[11px]">{cr.orderCode}</div>
                     </td>
-                    <td className="py-3.5 px-4">
-                      <div className="font-semibold text-slate-900">{cr.farmerName}</div>
+                    <td className="py-4.5 px-4">
+                      <div className="font-medium text-slate-900">{cr.farmerName}</div>
                       <div className="text-slate-500 font-mono text-[11px]">{cr.farmerPhone}</div>
                     </td>
-                    <td className="py-3.5 px-3 font-medium text-slate-700">{cr.cropSeason}</td>
-                    <td className="py-3.5 px-3 text-center font-mono font-bold text-emerald-700 text-sm">{formatVnd(cr.requestedAmount)}</td>
-                    <td className="py-3.5 px-3 text-center font-mono text-[11px]">
+                    <td className="py-4.5 px-3 font-medium text-slate-700">{cr.cropSeason}</td>
+                    <td className="py-4.5 px-3 text-center font-mono font-medium text-emerald-700 text-sm">{formatVnd(cr.requestedAmount)}</td>
+                    <td className="py-4.5 px-3 text-center font-mono text-[11px]">
                       <div>HM: {formatVnd(cr.seasonalLimit)}</div>
-                      <div className="text-emerald-700 font-semibold">Còn lại: {formatVnd(cr.remainingLimit)}</div>
+                      <div className="text-emerald-700 font-medium">Còn lại: {formatVnd(cr.remainingLimit)}</div>
                     </td>
-                    <td className="py-3.5 px-3 text-center">
+                    <td className="py-4.5 px-3 text-center">
                       <StatusBadge label={STATUS_LABEL[cr.status]} className={STATUS_BADGE_CLASS[cr.status]} minWidthClassName="min-w-[90px]" />
                     </td>
-                    <td className="py-3.5 px-4 text-center">
+                    <td className="py-4.5 px-4 text-center">
                       <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
                         <RowActionsMenu
                           triggerLabel={`Thao tác yêu cầu ${cr.id}`}

@@ -189,11 +189,11 @@ function AiReviewContent() {
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+      <div className="bg-white rounded-xl flex flex-col pt-2 shadow-sm border border-slate-100">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/50 border-b border-slate-100 text-[11px] font-semibold uppercase tracking-wider text-slate-500 select-none">
+              <tr className="border-b border-slate-100 text-slate-900 text-[13px] font-bold">
                 <th className="py-3 px-4" scope="col">Mã ca</th>
                 <th className="py-3 px-3" scope="col">Nông dân &amp; Thửa</th>
                 <th className="py-3 px-3" scope="col">Chẩn đoán AI đề xuất</th>
@@ -202,7 +202,7 @@ function AiReviewContent() {
                 <th className="py-3 px-4 text-center w-20" scope="col">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-sm text-slate-900">
+            <tbody className="divide-y divide-slate-50 text-sm text-slate-900">
               {paginatedCases.length === 0 ? <EmptyTableRow colSpan={6} message="Không tìm thấy ca phù hợp với bộ lọc." /> : null}
               {paginatedCases.map((item) => {
                 const isSelected = item.id === selectedId
@@ -211,28 +211,28 @@ function AiReviewContent() {
                     key={item.id}
                     onClick={() => openCase(item.id)}
                     className={`transition-colors cursor-pointer group ${
-                      isSelected ? 'bg-emerald-50/50 hover:bg-emerald-50 border-l-2 border-l-emerald-500' : 'hover:bg-slate-50'
+                      isSelected ? 'bg-emerald-50/50 hover:bg-emerald-50 border-l-2 border-l-emerald-500' : 'hover:bg-slate-50/50'
                     }`}
                   >
-                    <td className="py-3.5 px-4">
-                      <span className="font-mono font-bold text-slate-900">#{item.id}</span>
+                    <td className="py-4.5 px-4">
+                      <span className="font-mono font-medium text-slate-900">#{item.id}</span>
                     </td>
-                    <td className="py-3.5 px-3">
-                      <div className="font-semibold text-slate-900">{item.farmerName}</div>
+                    <td className="py-4.5 px-3">
+                      <div className="font-medium text-slate-900">{item.farmerName}</div>
                       <div className="text-xs text-slate-500 mt-0.5">{item.farmerLocationLine}</div>
                     </td>
-                    <td className="py-3.5 px-3">
-                      <div className="font-semibold text-slate-900">{item.diseaseLabel}</div>
+                    <td className="py-4.5 px-3">
+                      <div className="font-medium text-slate-900">{item.diseaseLabel}</div>
                       <div className="text-xs text-slate-500 italic">{item.diseaseSubLabel}</div>
                     </td>
-                    <td className="py-3.5 px-3 text-center">
-                      <span className="font-bold text-xs tabular-nums text-slate-900">{item.confidencePercent}%</span>
+                    <td className="py-4.5 px-3 text-center">
+                      <span className="font-medium text-xs tabular-nums text-slate-900">{item.confidencePercent}%</span>
                       <div className="text-[11px] text-slate-500">{item.confidenceNote}</div>
                     </td>
-                    <td className="py-3.5 px-3 text-center">
+                    <td className="py-4.5 px-3 text-center">
                       <StatusBadge label={item.statusBadge.label} className={item.statusBadge.className} minWidthClassName="min-w-[130px]" />
                     </td>
-                    <td className="py-3.5 px-4 text-center">
+                    <td className="py-4.5 px-4 text-center">
                       <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
                         <RowActionsMenu
                           triggerLabel={`Thao tác ca ${item.id}`}
@@ -396,7 +396,7 @@ function AiReviewContent() {
                         }
                         applyDecision(selected.id, 'CORRECT', reviewNoteDraft)
                       }}
-                      className="py-2.5 px-3 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-[13px] font-bold flex items-center justify-center gap-2 transition-colors shadow-sm"
+                      className="py-2.5 px-3 rounded-lg bg-white border border-slate-300 hover:bg-slate-50/50 text-slate-700 text-[13px] font-bold flex items-center justify-center gap-2 transition-colors shadow-sm"
                     >
                       <Pencil size={16} />
                       <span>Điều chỉnh</span>

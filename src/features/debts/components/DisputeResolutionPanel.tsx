@@ -29,7 +29,7 @@ export default function DisputeResolutionPanel({ customer, onKeep, onAdjust, onC
         <button
           type="button"
           onClick={onKeep}
-          className="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold text-xs transition-colors flex items-center gap-1.5"
+          className="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50/50 font-semibold text-xs transition-colors flex items-center gap-1.5"
         >
           <ShieldCheck size={14} />
           <span>Giữ nguyên khoản nợ</span>
