@@ -63,7 +63,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="bg-white -m-4 lg:-m-6 p-4 lg:p-8 min-h-[calc(100vh-4rem)] text-slate-900">
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       
       {/* Breadcrumb */}
       <div className="text-[13px] text-slate-500 font-medium mb-6">
@@ -108,7 +108,7 @@ export default function SettingsPage() {
 
         <div className="flex items-center gap-2 sm:pt-2">
           <button
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50/50 text-slate-700 rounded-md text-[13px] font-semibold transition-colors shadow-sm"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-md text-[13px] font-semibold transition-colors shadow-sm"
             onClick={() => showToast('Mở trình soạn email')}
           >
             <Mail size={15} />
@@ -121,7 +121,7 @@ export default function SettingsPage() {
             <Pencil size={14} />
             <span>Chỉnh sửa hồ sơ</span>
           </button>
-          <button onClick={() => showToast('Tính năng Thay đổi ảnh đại diện đang được phát triển')} className="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 hover:bg-slate-50/50 rounded-md text-slate-600 shadow-sm transition-colors">
+          <button onClick={() => showToast('Tính năng Thay đổi ảnh đại diện đang được phát triển')} className="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 hover:bg-slate-50 rounded-md text-slate-600 shadow-sm transition-colors">
             <MoreHorizontal size={16} />
           </button>
         </div>
@@ -206,7 +206,7 @@ export default function SettingsPage() {
               <div className="pb-8 border-b border-slate-200">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-[15px] font-bold text-slate-900">Tuyến báo cáo</h3>
-                  <button onClick={() => showToast('Chức năng Xem sơ đồ tổ chức đang được phát triển')} className="inline-flex items-center gap-1.5 px-3 py-1 border border-slate-200 rounded-md text-[13px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50/50 transition-colors">
+                  <button onClick={() => showToast('Chức năng Xem sơ đồ tổ chức đang được phát triển')} className="inline-flex items-center gap-1.5 px-3 py-1 border border-slate-200 rounded-md text-[13px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition-colors">
                     <Network size={14} />
                     <span>Sơ đồ tổ chức</span>
                   </button>
@@ -245,7 +245,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="pt-4">
                     <button className="px-4 py-2 bg-slate-900 text-white rounded-md text-[13px] font-semibold hover:bg-slate-800" onClick={handleSaveProfile}>Lưu thay đổi</button>
-                    <button className="px-4 py-2 bg-transparent text-slate-600 rounded-md text-[13px] font-semibold ml-2 hover:bg-slate-50/50" onClick={handleCancelProfile}>Hủy</button>
+                    <button className="px-4 py-2 bg-transparent text-slate-600 rounded-md text-[13px] font-semibold ml-2 hover:bg-slate-50" onClick={handleCancelProfile}>Hủy</button>
                   </div>
                 </div>
               </div>
@@ -266,7 +266,7 @@ export default function SettingsPage() {
                     <input type="password" placeholder="Nhập lại mật khẩu mới..." className="w-full text-[13px] border border-slate-300 rounded-md px-3 py-2 outline-none focus:border-slate-500" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
                   </div>
                   <div className="pt-2">
-                    <button className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-md text-[13px] font-semibold hover:bg-slate-50/50 shadow-sm" onClick={handleChangePassword}>Cập nhật mật khẩu</button>
+                    <button className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-md text-[13px] font-semibold hover:bg-slate-50 shadow-sm" onClick={handleChangePassword}>Cập nhật mật khẩu</button>
                   </div>
                 </div>
               </div>

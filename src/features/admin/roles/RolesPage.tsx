@@ -41,7 +41,7 @@ export default function RolesPage() {
   }
 
   return (
-    <>
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-space-md">
         {roleList.map((role) => (
           <button
@@ -141,6 +141,6 @@ export default function RolesPage() {
           </table>
         </div>
       </div>
-    </>
+    </div>
   )
 }

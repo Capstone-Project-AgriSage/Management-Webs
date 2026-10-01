@@ -268,16 +268,16 @@ export default function PaymentsPage() {
   const partialCount = payments.filter((p) => p.status === 'Thanh toán 1 phần').length
 
   return (
-    <>
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <nav className="flex items-center gap-1 text-[12px] text-slate-500" aria-label="Breadcrumb">
+        <nav className="flex items-center gap-1 text-body-sm text-slate-500" aria-label="Breadcrumb">
           <Link className="hover:text-slate-900 transition-colors" to="/">Bảng điều khiển</Link>
           <ChevronRight size={14} />
           <span className="text-slate-900 font-medium">Thanh toán</span>
         </nav>
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50/50 transition-colors shadow-sm"
+            className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
             type="button"
             onClick={handleExportPayments}
           >
@@ -370,13 +370,13 @@ export default function PaymentsPage() {
         <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-slate-900">Danh sách giao dịch thanh toán</span>
-            <span className="text-[10px] font-mono bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">{filteredPayments.length} bản ghi</span>
+            <span className="text-label-sm font-mono bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">{filteredPayments.length} bản ghi</span>
           </div>
         </div>
         <div className="flex-1 overflow-auto">
           <table className="w-full text-left border-collapse text-sm">
             <thead>
-              <tr className="border-b border-slate-100 text-slate-900 text-[13px] font-bold">
+              <tr className="border-b border-slate-100 text-slate-900 text-label-md font-bold">
                 <th className="py-4 pl-4 px-3">Mã TT / Đơn</th>
                 <th className="py-4 px-3">Khách hàng</th>
                 <th className="py-4 px-3 text-center">Tổng đơn</th>
@@ -397,12 +397,12 @@ export default function PaymentsPage() {
                     key={item.id}
                     onClick={() => setSelectedId(item.id)}
                     className={`transition-colors cursor-pointer group ${
-                      isSelected ? 'bg-emerald-50/50 hover:bg-emerald-50 border-l-2 border-l-emerald-500' : 'hover:bg-slate-50/50'
+                      isSelected ? 'bg-emerald-50/50 hover:bg-emerald-50 border-l-2 border-l-emerald-500' : 'hover:bg-slate-50'
                     }`}
                   >
                     <td className="py-4 pl-4 px-3">
                       <div className="font-medium font-mono text-xs text-slate-900">{item.id}</div>
-                      <div className="text-[11px] text-slate-500 font-mono mt-0.5">{item.orderId}</div>
+                      <div className="text-label-sm text-slate-500 font-mono mt-0.5">{item.orderId}</div>
                     </td>
                     <td className="py-4 px-3">
                       <div className="font-medium text-slate-900 text-sm">{item.customerName}</div>
@@ -412,8 +412,8 @@ export default function PaymentsPage() {
                     <td className={`py-3 px-3 text-center font-mono font-medium ${item.paidAmountClassName}`}>{item.paidAmount}</td>
                     <td className={`py-3 px-3 text-center font-mono font-medium ${item.remainingAmountClassName}`}>{item.remainingAmount}</td>
                     <td className="py-4 px-3 text-center whitespace-nowrap">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium ${item.methodClassName}`}>
-                        <span className="material-symbols-outlined text-[14px]">{item.methodIcon}</span>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-label-sm font-medium ${item.methodClassName}`}>
+                        <span className="material-symbols-outlined text-title-md">{item.methodIcon}</span>
                         {item.methodLabel}
                       </span>
                     </td>
@@ -465,22 +465,22 @@ export default function PaymentsPage() {
             <div className="p-5 space-y-5">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Khách hàng</span>
+                  <span className="text-label-sm font-bold text-slate-400 uppercase tracking-wider block">Khách hàng</span>
                   <div className="font-bold text-slate-900 mt-1">{selectedPayment.customerName}</div>
                   <div className="text-xs text-slate-500">{selectedPayment.customerPhone}</div>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Phương thức</span>
-                  <span className={`inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${selectedPayment.methodClassName}`}>
-                    <span className="material-symbols-outlined text-[14px]">{selectedPayment.methodIcon}</span>
+                  <span className="text-label-sm font-bold text-slate-400 uppercase tracking-wider block">Phương thức</span>
+                  <span className={`inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md text-label-sm font-bold ${selectedPayment.methodClassName}`}>
+                    <span className="material-symbols-outlined text-title-md">{selectedPayment.methodIcon}</span>
                     {selectedPayment.methodLabel}
                   </span>
                 </div>
               </div>
 
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Thông tin tài chính</span>
-                <div className="space-y-2 text-[13px]">
+                <span className="text-label-sm font-bold text-slate-400 uppercase tracking-wider block mb-2">Thông tin tài chính</span>
+                <div className="space-y-2 text-label-md">
                   <div className="flex justify-between">
                     <span className="text-slate-600">Tổng đơn:</span>
                     <span className="font-mono font-bold text-slate-900">{selectedPayment.totalAmount}</span>
@@ -497,16 +497,16 @@ export default function PaymentsPage() {
               </div>
 
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Lịch sử thanh toán</span>
+                <span className="text-label-sm font-bold text-slate-400 uppercase tracking-wider block mb-2">Lịch sử thanh toán</span>
                 <div className="space-y-2">
                   {selectedPayment.paymentHistory.map((entry, i) => (
                     <div key={i} className={`p-3 rounded-lg ${entry.cardClassName}`}>
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-[13px] font-semibold text-slate-900">{entry.title}</p>
-                          <p className="text-[11px] text-slate-500 mt-0.5">{entry.note}</p>
+                          <p className="text-label-md font-semibold text-slate-900">{entry.title}</p>
+                          <p className="text-label-sm text-slate-500 mt-0.5">{entry.note}</p>
                         </div>
-                        <span className={`font-mono font-bold text-[13px] whitespace-nowrap ${entry.amountClassName}`}>{entry.amountLabel}</span>
+                        <span className={`font-mono font-bold text-label-md whitespace-nowrap ${entry.amountClassName}`}>{entry.amountLabel}</span>
                       </div>
                     </div>
                   ))}
@@ -516,7 +516,7 @@ export default function PaymentsPage() {
 
             <div className="p-5 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-3 rounded-b-xl">
               <button
-                className="px-4 py-2 border border-slate-300 bg-white hover:bg-slate-50/50 text-slate-700 text-[13px] font-bold rounded-lg shadow-sm"
+                className="px-4 py-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-label-md font-bold rounded-lg shadow-sm"
                 type="button"
                 onClick={() => setSelectedId(null)}
               >
@@ -524,7 +524,7 @@ export default function PaymentsPage() {
               </button>
               {selectedPayment.status !== 'Đã thanh toán' ? (
                 <button
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold rounded-lg shadow-sm flex items-center gap-1.5"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-label-md font-bold rounded-lg shadow-sm flex items-center gap-1.5"
                   type="button"
                   onClick={() => markPaymentPaid(selectedPayment.id)}
                 >
@@ -547,6 +547,6 @@ export default function PaymentsPage() {
         onSubmit={handleCreatePayment}
         submitLabel="Lưu giao dịch"
       />
-    </>
+    </div>
   )
 }

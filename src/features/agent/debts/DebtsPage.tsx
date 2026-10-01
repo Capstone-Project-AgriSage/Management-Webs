@@ -209,7 +209,7 @@ export default function DebtsPage() {
   const totalCollected = customers.reduce((sum, c) => sum + parseVnd(c.paidAmount), 0)
 
   return (
-    <>
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       {/* PAGE HEADER */}
       <section className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
         <div className="flex items-center gap-2 text-slate-500 text-sm">
@@ -219,7 +219,7 @@ export default function DebtsPage() {
         </div>
         <div className="flex items-center gap-2.5 self-start md:self-auto">
           <button
-            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-300 text-slate-700 font-semibold text-sm rounded-lg hover:bg-slate-50/50 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-300 text-slate-700 font-semibold text-sm rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
             type="button"
             onClick={handleExportDebts}
           >
@@ -227,7 +227,7 @@ export default function DebtsPage() {
             <span className="">Xuất báo cáo</span>
           </button>
           <button
-            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-300 text-slate-700 font-semibold text-sm rounded-lg hover:bg-slate-50/50 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-300 text-slate-700 font-semibold text-sm rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
             type="button"
             onClick={handlePrintDebts}
           >
@@ -317,7 +317,7 @@ export default function DebtsPage() {
               </div>
             </div>
 
-            <div className="bg-white border border-amber-200 rounded-xl p-4 shadow-sm flex flex-col justify-between">
+            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col justify-between">
               <div className="flex items-center justify-between text-amber-700 mb-1">
                 <span className="text-xs uppercase tracking-wider font-bold">Đến Hạn &amp; Quá Hạn</span>
                 <AlarmClock className="text-amber-600" size={20} />
@@ -439,7 +439,7 @@ export default function DebtsPage() {
                         className={`transition-colors cursor-pointer ${
                           isSelected
                             ? 'bg-emerald-50 border-l-4 border-l-emerald-600'
-                            : 'hover:bg-slate-50/50'
+                            : 'hover:bg-slate-50'
                         }`}
                       >
                         <td className="py-4 px-4">
@@ -533,7 +533,7 @@ export default function DebtsPage() {
                 const isRejected = cr.status === 'REJECTED'
 
                 return (
-                  <tr key={cr.id} className="hover:bg-slate-50/50/70 transition-colors">
+                  <tr key={cr.id} className="hover:bg-slate-50/70 transition-colors">
                     <td className="py-4.5 px-4 font-mono">
                       <div className="font-bold text-slate-900">{cr.id}</div>
                       <div className="text-slate-500 text-[11px]">{cr.orderCode}</div>
@@ -641,7 +641,7 @@ export default function DebtsPage() {
                 const isRejected = pr.status === 'REJECTED'
 
                 return (
-                  <tr key={pr.id} className="hover:bg-slate-50/50/70 transition-colors">
+                  <tr key={pr.id} className="hover:bg-slate-50/70 transition-colors">
                     <td className="py-4.5 px-4 font-mono">
                       <div className="font-bold text-slate-900">{pr.id}</div>
                       <div className="text-slate-500 text-[11px]">{pr.orderCode}</div>
@@ -721,6 +721,6 @@ export default function DebtsPage() {
       </div>
     </div>
   )}
-</>
+</div>
   )
 }

@@ -79,7 +79,7 @@ export default function StaffManagementPage() {
   const aiReviewersCount = staff.filter((s) => s.can_review_ai).length
 
   return (
-    <>
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       <section className="space-y-3">
         <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-slate-500">
           <Link className="hover:text-slate-900 transition-colors" to="/">Bảng điều khiển</Link>
@@ -189,7 +189,7 @@ export default function StaffManagementPage() {
                 }
                 const isLocked = person.status === 'Đã khóa'
                 return (
-                  <tr key={person.id} className={`hover:bg-slate-50/50 transition-colors ${isLocked ? 'opacity-60' : ''}`}>
+                  <tr key={person.id} className={`hover:bg-slate-50 transition-colors ${isLocked ? 'opacity-60' : ''}`}>
                     <td className="py-4 pl-4 px-3 font-mono text-slate-500">{person.id}</td>
                     <td className="py-4 px-3">
                       <div className="font-semibold text-slate-900">{person.name}</div>
@@ -245,6 +245,6 @@ export default function StaffManagementPage() {
           setPage={setPage}
         />
       </section>
-    </>
+    </div>
   )
 }

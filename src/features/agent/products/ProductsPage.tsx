@@ -215,7 +215,7 @@ export default function ProductsPage() {
   const categoryCount = new Set(products.map((p) => p.categoryLabel)).size
 
   return (
-    <>
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       {/* 1. BREADCRUMBS & PAGE HEADER */}
       <section className="space-y-3">
         <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-slate-500">
@@ -226,7 +226,7 @@ export default function ProductsPage() {
         <div className="flex justify-end">
           <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
             <button
-              className="flex items-center gap-2 h-9 px-3 bg-white hover:bg-slate-50/50 border border-slate-200 rounded-lg text-slate-700 text-sm font-medium transition-colors shadow-sm"
+              className="flex items-center gap-2 h-9 px-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-slate-700 text-sm font-medium transition-colors shadow-sm"
               onClick={handleExportProducts}
               type="button"
             >
@@ -354,7 +354,7 @@ export default function ProductsPage() {
                     className={`transition-colors cursor-pointer group ${
                       isSelected
                         ? 'bg-emerald-50/50 hover:bg-emerald-50 border-l-2 border-l-emerald-500'
-                        : `hover:bg-slate-50/50 ${product.rowClassName ?? ''}`
+                        : `hover:bg-slate-50 ${product.rowClassName ?? ''}`
                     }`}
                   >
                     <td className="py-4.5 pl-4 px-3">
@@ -495,6 +495,6 @@ export default function ProductsPage() {
         onSubmit={handleConfirmRestock}
         submitLabel="Xác nhận nhập kho"
       />
-    </>
+    </div>
   )
 }

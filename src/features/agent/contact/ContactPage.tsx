@@ -128,7 +128,7 @@ export default function ContactPage() {
   }
 
   return (
-    <>
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       {/* BREADCRUMB */}
       <nav className="flex items-center gap-1.5 text-sm text-slate-500 mb-4">
         <Link className="hover:text-emerald-700 transition-colors" to="/">Bảng điều khiển</Link>
@@ -218,7 +218,7 @@ export default function ContactPage() {
                     key={request.id}
                     onClick={() => setSelectedId(request.id)}
                     className={`transition-colors cursor-pointer group ${
-                      isSelected ? 'bg-emerald-50 hover:bg-emerald-50 border-l-4 border-l-emerald-600' : 'hover:bg-slate-50/50/80'
+                      isSelected ? 'bg-emerald-50 hover:bg-emerald-50 border-l-4 border-l-emerald-600' : 'hover:bg-slate-50'
                     }`}
                   >
                     <td className="py-4 px-4">
@@ -305,13 +305,13 @@ export default function ContactPage() {
             <div className="flex flex-col gap-2.5 pt-3 border-t border-slate-100">
               <a
                 href={`tel:${selected.senderPhone.replace(/\./g, '')}`}
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-white border border-slate-300 hover:bg-slate-50/50 text-slate-700 rounded-xl text-sm font-bold transition-colors shadow-sm"
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-sm font-bold transition-colors shadow-sm"
               >
                 <Phone size={18} className="text-emerald-700" />
                 Gọi cho nông dân
               </a>
               <button
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-white border border-slate-300 hover:bg-slate-50/50 text-slate-700 rounded-xl text-sm font-bold transition-colors shadow-sm"
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-sm font-bold transition-colors shadow-sm"
                 type="button"
                 onClick={() => showToast(`Đã gửi phản hồi qua Zalo/SMS cho ${selected.senderName}`)}
               >
@@ -345,6 +345,6 @@ export default function ContactPage() {
           </div>
         ) : null}
       </DetailModal>
-    </>
+    </div>
   )
 }

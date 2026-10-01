@@ -8,6 +8,18 @@ import { formatDateLabel, isToday } from '@/utils/date'
 
 type TabKey = 'active' | 'today' | 'redeliver'
 
+function getStatusLabel(status: string) {
+  switch (status) {
+    case 'ASSIGNED': return 'Chờ giao'
+    case 'OUT_FOR_DELIVERY': return 'Đang giao'
+    case 'DELIVERED': return 'Đã giao'
+    case 'FAILED': return 'Giao thất bại'
+    case 'CANCELLED': return 'Đã hủy'
+    default: return status
+  }
+}
+
+
 const TABS: { key: TabKey; label: string; icon: string }[] = [
   { key: 'active', label: 'Được phân công', icon: 'assignment' },
   { key: 'today', label: 'Lịch giao hôm nay', icon: 'today' },
@@ -51,7 +63,7 @@ export default function DeliveriesPage() {
   )
 
   return (
-    <div className="space-y-space-md">
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       <div className="flex gap-2 overflow-x-auto pb-1">
         {TABS.map((t) => (
           <button
@@ -119,7 +131,7 @@ export default function DeliveriesPage() {
                   {order.deliveryAddress}
                 </p>
               </div>
-              <StatusBadge status={order.status} />
+              <StatusBadge label={getStatusLabel(order.status)} className="" />
             </div>
             <div className="flex items-center justify-between mt-space-sm pt-space-sm border-t border-outline-variant/60">
               <span className="font-label-md text-label-md text-on-surface-variant flex items-center gap-1">

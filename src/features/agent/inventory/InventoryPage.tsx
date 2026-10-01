@@ -357,7 +357,7 @@ export default function InventoryPage() {
         {/* Major Operational Action Buttons */}
         <div className="flex items-center gap-2.5 flex-wrap">
           <button
-            className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50/50 transition-colors shadow-sm"
+            className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
             type="button"
             onClick={activeTab === 'stock' ? handleExportInventory : handleExportLedger}
           >
@@ -549,7 +549,7 @@ export default function InventoryPage() {
                         className={`transition-colors cursor-pointer group ${
                           isSelected
                             ? 'bg-emerald-50/50 hover:bg-emerald-50 border-l-2 border-l-emerald-500'
-                            : `hover:bg-slate-50/50 ${item.rowClassName ?? ''}`
+                            : `hover:bg-slate-50 ${item.rowClassName ?? ''}`
                         }`}
                       >
                         <td className="py-4.5 px-4">
@@ -651,7 +651,7 @@ export default function InventoryPage() {
                     </div>
                   </div>
                   <button
-                    className="shrink-0 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50/50 text-slate-700 text-xs font-medium transition-colors"
+                    className="shrink-0 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium transition-colors"
                     type="button"
                     onClick={() => showToast('Đã tạo đề nghị nhập: Thuốc Trừ Bệnh Beam 75WP')}
                   >
@@ -670,7 +670,7 @@ export default function InventoryPage() {
                     </div>
                   </div>
                   <button
-                    className="shrink-0 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50/50 text-slate-700 text-xs font-medium transition-colors"
+                    className="shrink-0 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium transition-colors"
                     type="button"
                     onClick={() => showToast('Đã tạo đề nghị nhập: Phân NPK Đầu Trâu 20-20-15+TE')}
                   >
@@ -855,7 +855,7 @@ export default function InventoryPage() {
                   {paginatedMovements.map((m) => {
                     const isPositive = m.quantityChange > 0
                     return (
-                      <tr key={m.id} className="hover:bg-slate-50/50 transition-colors">
+                      <tr key={m.id} className="hover:bg-slate-50 transition-colors">
                         <td className="py-4 px-4">
                           <div className="flex flex-col">
                             <span className="font-mono text-xs font-bold text-slate-900">{m.id}</span>
@@ -1073,7 +1073,7 @@ export default function InventoryPage() {
                     className={`px-3 py-2.5 rounded-xl border text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${
                       adjustChangeType === 'decrease'
                         ? 'border-rose-200 bg-rose-50 text-rose-600'
-                        : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50/50'
+                        : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
                     }`}
                   >
                     <TrendingDown size={18} />
@@ -1085,7 +1085,7 @@ export default function InventoryPage() {
                     className={`px-3 py-2.5 rounded-xl border text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${
                       adjustChangeType === 'increase'
                         ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                        : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50/50'
+                        : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
                     }`}
                   >
                     <Plus size={18} />
@@ -1172,7 +1172,7 @@ export default function InventoryPage() {
               <button
                 type="button"
                 onClick={() => setAdjustOpen(false)}
-                className="px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50/50 text-sm font-medium transition-colors shadow-sm"
+                className="px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm font-medium transition-colors shadow-sm"
               >
                 Hủy bỏ
               </button>

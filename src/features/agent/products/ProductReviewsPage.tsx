@@ -1,259 +1,97 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, FilterX, MessageSquare, Star, EyeOff } from 'lucide-react'
+import { ChevronRight, Star, RefreshCw } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { useToast } from '@/context/ToastContext'
-import RowActionsMenu from '@/components/ui/RowActionsMenu'
-import Pagination from '@/components/ui/Pagination'
-import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import SearchInput from '@/components/ui/SearchInput'
 import FilterSelect from '@/components/ui/FilterSelect'
-import StatusBadge from '@/components/ui/StatusBadge'
-import FormModal from '@/components/ui/FormModal'
+import Pagination from '@/components/ui/Pagination'
+import EmptyTableRow from '@/components/ui/EmptyTableRow'
+import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import { usePagination } from '@/hooks/usePagination'
 import { productReviews as INITIAL_REVIEWS } from '@/features/agent/data/mockReviews'
-import { useFormValues } from '@/hooks/useFormValues'
-import type { ReviewStatus } from '@/features/agent/data/mockReviews'
 
-const STATUS_OPTIONS = ['Tất cả trạng thái', 'Đang hiển thị', 'Đã ẩn']
-
-const mapStatusToOption = (status: ReviewStatus) => {
-  switch (status) {
-    case 'VISIBLE': return 'Đang hiển thị'
-    case 'HIDDEN': return 'Đã ẩn'
-    default: return ''
-  }
-}
+const STATUS_OPTIONS = ['Tất cả trạng thái', 'VISIBLE', 'HIDDEN']
 
 export default function ProductReviewsPage() {
-  usePageHeader({
-    title: 'Đánh giá sản phẩm',
-  })
-
+  usePageHeader({ title: 'Đánh giá sản phẩm', subtitle: 'Phản hồi từ nông dân' })
   const { showToast } = useToast()
-  const [reviews, setReviews] = useState(INITIAL_REVIEWS)
+  const [reviews] = useState(INITIAL_REVIEWS)
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState(STATUS_OPTIONS[0])
-  const [replyRevId, setReplyRevId] = useState<string | null>(null)
-
-  const { values: replyForm, update: updateReplyForm } = useFormValues({ reply: '' })
+  const [statusFilter, setStatusFilter] = useState('Tất cả trạng thái')
 
   const keyword = search.trim().toLowerCase()
-  const filteredReviews = reviews.filter(
-    (r) =>
-      (!keyword || r.productName.toLowerCase().includes(keyword) || r.farmerName.toLowerCase().includes(keyword) || r.comment.toLowerCase().includes(keyword)) &&
-      (statusFilter === STATUS_OPTIONS[0] || mapStatusToOption(r.status) === statusFilter)
-  )
+  const filtered = reviews.filter((r) => {
+    const matchesSearch = !keyword || r.productName.toLowerCase().includes(keyword) || r.farmerName.toLowerCase().includes(keyword)
+    const matchesStatus = statusFilter === 'Tất cả trạng thái' || r.status === statusFilter
+    return matchesSearch && matchesStatus
+  })
 
-  const handleClearFilters = () => {
-    setSearch('')
-    setStatusFilter(STATUS_OPTIONS[0])
-  }
-
-  const { page, totalPages, paginated, startIndex, endIndex, totalCount: pageTotalCount, goPrev, goNext, setPage } =
-    usePagination(filteredReviews, 10)
-
-  const handleAction = (id: string, label: string) => {
-    const rev = reviews.find(r => r.id === id)
-    if (!rev) return
-
-    if (label === 'Phản hồi' || label === 'Sửa phản hồi') {
-      setReplyRevId(id)
-      updateReplyForm('reply', rev.reply || '')
-    } else if (label === 'Ẩn bình luận') {
-      setReviews(prev => prev.map(r => r.id === id ? {
-        ...r,
-        status: 'HIDDEN' as ReviewStatus,
-        actions: [{ label: 'Hiển thị bình luận', icon: 'visibility' }]
-      } : r))
-      showToast(`Đã ẩn bình luận của ${rev.farmerName}`)
-    } else if (label === 'Hiển thị bình luận') {
-      setReviews(prev => prev.map(r => r.id === id ? {
-        ...r,
-        status: 'VISIBLE' as ReviewStatus,
-        actions: [{ label: r.reply ? 'Sửa phản hồi' : 'Phản hồi', icon: r.reply ? 'edit' : 'reply' }, { label: 'Ẩn bình luận', icon: 'visibility_off' }]
-      } : r))
-      showToast(`Đã hiển thị lại bình luận của ${rev.farmerName}`)
-    } else {
-      showToast(`Đã thực hiện "${label}"`)
-    }
-  }
-
-  const handleConfirmReply = () => {
-    if (!replyRevId) return
-    setReviews(prev => prev.map(r => r.id === replyRevId ? {
-      ...r,
-      reply: replyForm.reply,
-      repliedAt: new Date().toISOString(),
-      actions: r.actions.map(a => a.label === 'Phản hồi' ? { ...a, label: 'Sửa phản hồi', icon: 'edit' } : a)
-    } : r))
-    showToast(`Đã lưu phản hồi cho bình luận ${replyRevId}`)
-    setReplyRevId(null)
-  }
-
-  const totalCount = reviews.length
-  const visibleCount = reviews.filter(r => r.status === 'VISIBLE').length
-  const hiddenCount = reviews.filter(r => r.status === 'HIDDEN').length
-
-  const getStatusBadgeProps = (status: ReviewStatus) => {
-    switch (status) {
-      case 'VISIBLE': return { label: 'Đang hiển thị', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
-      case 'HIDDEN': return { label: 'Đã ẩn', className: 'bg-slate-100 text-slate-700 border-slate-200' }
-    }
-  }
+  const { page, totalPages, paginated, startIndex, endIndex, totalCount, goPrev, goNext, setPage } = usePagination(filtered, 10)
 
   return (
-    <>
-      <section className="space-y-3">
-        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-slate-500">
-          <Link className="hover:text-slate-900 transition-colors" to="/">Bảng điều khiển</Link>
-          <ChevronRight size={14} />
-          <Link className="hover:text-slate-900 transition-colors" to="/products">Sản phẩm</Link>
-          <ChevronRight size={14} />
-          <span className="text-slate-900 font-medium">Đánh giá</span>
-        </nav>
-      </section>
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
+      <nav className="flex items-center gap-1.5 text-xs text-slate-500">
+        <Link className="hover:text-slate-900 transition-colors" to="/agent">Bảng điều khiển</Link>
+        <ChevronRight size={14} />
+        <span className="text-slate-900 font-medium">Đánh giá sản phẩm</span>
+      </nav>
 
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-start justify-between">
-          <div className="space-y-1">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
+          <div className="flex items-start justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Tổng đánh giá</span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-900 tabular-nums">{totalCount}</span>
-            </div>
+            <Star size={20} className="text-amber-500" />
           </div>
-          <div className="p-2.5 bg-slate-100 rounded-lg text-slate-600">
-            <MessageSquare size={20} />
-          </div>
+          <div className="mt-3 text-2xl font-bold text-slate-900 tabular-nums">{reviews.length}</div>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-start justify-between">
-          <div className="space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Đang hiển thị</span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-emerald-700 tabular-nums">{visibleCount}</span>
-            </div>
-          </div>
-          <div className="p-2.5 bg-emerald-50 rounded-lg text-emerald-600">
-            <Star size={20} />
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-start justify-between">
-          <div className="space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Đã ẩn</span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-700 tabular-nums">{hiddenCount}</span>
-            </div>
-          </div>
-          <div className="p-2.5 bg-slate-100 rounded-lg text-slate-500">
-            <EyeOff size={20} />
-          </div>
-        </div>
-      </section>
+      </div>
 
-      <section className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4 mt-4">
-        <div className="flex flex-wrap items-center gap-3 flex-1">
-          <SearchInput value={search} onChange={setSearch} placeholder="Tìm sản phẩm, nội dung..." className="relative flex-1 min-w-[300px]" />
-          <FilterSelect value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} className="relative min-w-[200px]" />
-          <button
-            className="h-9 px-3 text-slate-500 hover:text-slate-900 text-xs font-medium flex items-center gap-1 transition-colors"
-            onClick={handleClearFilters}
-            type="button"
-          >
-            <FilterX size={14} />
-            <span>Xóa tìm kiếm</span>
-          </button>
-        </div>
-      </section>
+      <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+        <SearchInput value={search} onChange={setSearch} placeholder="Tìm sản phẩm, nông dân..." className="relative flex-1 max-w-md" />
+        <FilterSelect value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} className="relative min-w-[200px]" />
+      </div>
 
-      <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col mt-4">
+      <div className="bg-white rounded-xl flex flex-col pt-2 shadow-sm border border-slate-100">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 text-slate-900 text-[13px] font-bold">
-                <th className="py-4 pl-4 px-3 min-w-[150px]">Khách hàng</th>
-                <th className="py-4 px-3 min-w-[200px]">Sản phẩm</th>
-                <th className="py-4 px-3 min-w-[100px]">Đánh giá</th>
-                <th className="py-4 px-3 min-w-[250px]">Nội dung & Phản hồi</th>
-                <th className="py-4 px-3 min-w-[130px]">Trạng thái</th>
-                <th className="py-4 pr-4 pl-3 w-10 "></th>
+                <th className="py-3 px-4" scope="col">Sản phẩm / Nông dân</th>
+                <th className="py-3 px-3" scope="col">Đánh giá</th>
+                <th className="py-3 px-3" scope="col">Nội dung</th>
+                <th className="py-3 px-3 text-center" scope="col">Trạng thái</th>
+                <th className="py-3 px-4 text-center w-28" scope="col">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 text-sm text-slate-900">
-              {paginated.length === 0 ? (
-                <EmptyTableRow colSpan={6} message="Không tìm thấy đánh giá nào." />
-              ) : null}
-              {paginated.map((rev) => {
-                const badge = getStatusBadgeProps(rev.status)
-                const isHidden = rev.status === 'HIDDEN'
-                return (
-                  <tr key={rev.id} className={`hover:bg-slate-50/50 transition-colors ${isHidden ? 'opacity-60' : ''}`}>
-                    <td className="py-4 pl-4 px-3">
-                      <div className="font-semibold text-slate-900">{rev.farmerName}</div>
-                      <div className="text-xs text-slate-500 mt-0.5">{new Date(rev.createdAt).toLocaleDateString('vi-VN')}</div>
-                    </td>
-                    <td className="py-4 px-3">
-                      <div className="font-medium text-slate-900">{rev.productName}</div>
-                    </td>
-                    <td className="py-4 px-3">
-                      <div className="flex items-center gap-1 text-amber-400">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star key={i} size={14} fill={i < rev.rating ? 'currentColor' : 'none'} className={i >= rev.rating ? 'text-slate-300' : ''} />
-                        ))}
-                      </div>
-                    </td>
-                    <td className="py-4 px-3">
-                      <div className="text-sm text-slate-800">{rev.comment}</div>
-                      {rev.reply && (
-                        <div className="mt-2 bg-slate-50 p-2 rounded border border-slate-100">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase">Cửa hàng phản hồi:</span>
-                          <p className="text-xs text-slate-700 mt-1">{rev.reply}</p>
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-4 px-3">
-                      <StatusBadge label={badge.label} className={badge.className} />
-                    </td>
-                    <td className="py-4 pr-4 pl-3 text-center">
-                      <RowActionsMenu
-                        triggerLabel={`Thao tác ${rev.id}`}
-                        actions={rev.actions.map(a => ({
-                          ...a,
-                          onClick: () => handleAction(rev.id, a.label)
-                        }))}
-                      />
-                    </td>
-                  </tr>
-                )
-              })}
+              {paginated.length === 0 ? <EmptyTableRow colSpan={5} message="Không có đánh giá nào." /> : null}
+              {paginated.map((r) => (
+                <tr key={r.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="py-4 px-4">
+                    <div className="font-semibold text-slate-900">{r.productName}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">{r.farmerName}</div>
+                  </td>
+                  <td className="py-4 px-3 flex text-amber-500">
+                    {[...Array(5)].map((_, i) => <Star key={i} size={14} fill={i < r.rating ? 'currentColor' : 'none'} />)}
+                  </td>
+                  <td className="py-4 px-3">
+                    <div className="text-slate-700">{r.comment}</div>
+                    {r.reply && <div className="mt-1 text-xs text-emerald-700 bg-emerald-50 p-2 rounded line-clamp-2">{r.reply}</div>}
+                  </td>
+                  <td className="py-4 px-3 text-center">
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold ${r.status === 'VISIBLE' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{r.status}</span>
+                  </td>
+                  <td className="py-4 px-4 text-center">
+                    <RowActionsMenu triggerLabel="Thao tác" actions={r.actions.map(a => ({ ...a, onClick: () => showToast(`Đã thực hiện: ${a.label}`) }))} />
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          startIndex={startIndex}
-          endIndex={endIndex}
-          totalCount={pageTotalCount}
-          unitLabel="đánh giá"
-          goPrev={goPrev}
-          goNext={goNext}
-          setPage={setPage}
-        />
-      </section>
-
-      {/* REPLY MODAL */}
-      <FormModal
-        open={replyRevId !== null}
-        onClose={() => setReplyRevId(null)}
-        title="Phản hồi đánh giá"
-        fields={[
-          { key: 'reply', label: 'Nội dung phản hồi *', type: 'text', placeholder: 'Nhập nội dung phản hồi của cửa hàng...' }
-        ]}
-        values={replyForm}
-        onChange={updateReplyForm}
-        onSubmit={handleConfirmReply}
-        submitLabel="Lưu phản hồi"
-      />
-    </>
+        <Pagination page={page} totalPages={totalPages} startIndex={startIndex} endIndex={endIndex} totalCount={totalCount} unitLabel="đánh giá" goPrev={goPrev} goNext={goNext} setPage={setPage} />
+      </div>
+    </div>
   )
 }

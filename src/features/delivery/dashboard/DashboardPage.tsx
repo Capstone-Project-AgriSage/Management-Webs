@@ -27,7 +27,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       {cards.map((card) => (
         <Link
           key={card.label}

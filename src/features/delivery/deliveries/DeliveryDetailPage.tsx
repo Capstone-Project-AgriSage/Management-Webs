@@ -75,7 +75,7 @@ export default function DeliveryDetailPage() {
   }
 
   return (
-    <div className="space-y-space-md pb-24">
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       <button
         type="button"
         onClick={() => navigate('/deliveries')}

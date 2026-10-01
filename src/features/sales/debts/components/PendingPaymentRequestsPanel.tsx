@@ -36,14 +36,14 @@ export default function PendingPaymentRequestsPanel({ requests, onConfirm, onRej
                 <button
                   type="button"
                   onClick={() => onConfirm(pr.id)}
-                  className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] transition-colors"
+                  className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-label-sm transition-colors"
                 >
                   Xác nhận
                 </button>
                 <button
                   type="button"
                   onClick={() => onReject(pr.id)}
-                  className="px-2.5 py-1 rounded-lg border border-rose-300 text-rose-700 hover:bg-rose-50 font-semibold text-[11px] transition-colors"
+                  className="px-2.5 py-1 rounded-lg border border-rose-300 text-rose-700 hover:bg-rose-50 font-semibold text-label-sm transition-colors"
                 >
                   Từ chối
                 </button>

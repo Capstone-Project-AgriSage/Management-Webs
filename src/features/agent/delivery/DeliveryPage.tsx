@@ -265,7 +265,7 @@ export default function DeliveryPage() {
   }
 
   return (
-    <>
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       {/* 1. BREADCRUMB & PAGE HEADER WITH ONLY ONE MAIN CTA */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div className="flex items-center gap-1.5 text-sm text-slate-500">
@@ -275,7 +275,7 @@ export default function DeliveryPage() {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50/50 text-slate-700 rounded-lg text-sm font-semibold shadow-sm transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-semibold shadow-sm transition-colors"
             type="button"
             onClick={handleExportTrips}
           >
@@ -283,7 +283,7 @@ export default function DeliveryPage() {
             <span className="">Xuất danh sách</span>
           </button>
           <button
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50/50 text-slate-700 rounded-lg text-sm font-semibold shadow-sm transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-semibold shadow-sm transition-colors"
             type="button"
             onClick={handlePrintTrips}
           >
@@ -432,7 +432,7 @@ export default function DeliveryPage() {
                     onClick={() => setSelectedId(trip.id)}
                     className={`transition-colors cursor-pointer ${isSelected
                       ? 'bg-emerald-50 hover:bg-emerald-50 border-l-4 border-l-emerald-600'
-                      : `hover:bg-slate-50/50/80 ${trip.rowClassName ?? ''}`
+                      : `hover:bg-slate-50 ${trip.rowClassName ?? ''}`
                       }`}
                   >
                     <td className="py-4 px-4">
@@ -654,14 +654,14 @@ export default function DeliveryPage() {
               </button>
               <div className="grid grid-cols-2 gap-3">
                 <a
-                  className="py-2.5 px-3 bg-white border border-slate-300 hover:bg-slate-50/50 text-slate-700 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors shadow-sm"
+                  className="py-2.5 px-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors shadow-sm"
                   href={`tel:${selectedTrip.driverPhone.replace(/\./g, '')}`}
                 >
                   <Phone size={16} className="text-emerald-700" />
                   <span className="">Gọi tài xế</span>
                 </a>
                 <button
-                  className="py-2.5 px-3 bg-white border border-slate-300 hover:bg-slate-50/50 text-slate-700 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors shadow-sm"
+                  className="py-2.5 px-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors shadow-sm"
                   type="button"
                   onClick={() => {
                     showToast(`Đang in phiếu giao cho chuyến #${selectedTrip.id}`)
@@ -699,6 +699,6 @@ export default function DeliveryPage() {
         onSubmit={handleCreateTrip}
         submitLabel="Tạo chuyến giao"
       />
-    </>
+    </div>
   )
 }

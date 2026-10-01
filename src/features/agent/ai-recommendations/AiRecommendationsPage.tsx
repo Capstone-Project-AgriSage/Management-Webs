@@ -272,7 +272,7 @@ export default function AiRecommendationsPage() {
   ]
 
   return (
-    <div className="bg-white -m-4 lg:-m-6 p-4 lg:p-8 min-h-[calc(100vh-4rem)] text-slate-900">
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
 
       {/* Title & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
@@ -282,7 +282,7 @@ export default function AiRecommendationsPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50/50 text-slate-700 rounded-md text-[13px] font-semibold transition-colors shadow-sm"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-md text-[13px] font-semibold transition-colors shadow-sm"
             onClick={() => showToast('Đang xuất báo cáo JSON')}
           >
             <Download size={15} />
@@ -383,7 +383,7 @@ export default function AiRecommendationsPage() {
             {Object.entries(groupedCases).map(([groupName, groupCases]) => (
               <tbody key={groupName} className="divide-y divide-slate-50 text-[13px]">
                 {/* GROUP SUBHEADER */}
-                <tr className="bg-slate-50/80 border-b border-slate-200">
+                <tr className="bg-slate-50 border-b border-slate-200">
                   <td colSpan={7} className="py-2 px-4">
                     <div className="flex items-center gap-2">
                       <span className="text-[13px] font-bold text-slate-700">{groupName}</span>
@@ -401,7 +401,7 @@ export default function AiRecommendationsPage() {
                       onClick={() => { setSelectedId(item.id); setIsCorrecting(false) }}
                       className={`transition-colors cursor-pointer group ${isSelected
                         ? 'border-l-2 border-l-emerald-600 bg-emerald-50 hover:bg-emerald-50'
-                        : `hover:bg-slate-50/50 border-l-2 border-l-transparent ${item.rowClassName ?? ''}`
+                        : `hover:bg-slate-50 border-l-2 border-l-transparent ${item.rowClassName ?? ''}`
                         }`}
                     >
                       <td className="py-4 px-4">
@@ -449,7 +449,7 @@ export default function AiRecommendationsPage() {
                           <span className="text-[11px] text-emerald-700 font-bold">Đã duyệt</span>
                         ) : (
                           <button
-                            className="px-2.5 py-1.5 rounded-md bg-white border border-slate-300 hover:bg-slate-50/50 text-slate-700 text-[11px] font-bold transition-colors shadow-sm"
+                            className="px-2.5 py-1.5 rounded-md bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-[11px] font-bold transition-colors shadow-sm"
                             onClick={(e) => {
                               e.stopPropagation()
                               requestFieldSurvey(item.id, item.farmerName)

@@ -43,7 +43,7 @@ const MinimalBadge = ({ label, type }: { label: string, type: 'status' | 'billin
   }
   
   return (
-    <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[11px] font-medium border border-slate-200 text-slate-600 bg-white min-w-[100px]">
+    <span className="inline-flex items-center text-[12px] font-medium text-slate-700">
       {icon}
       {label}
     </span>
@@ -243,7 +243,7 @@ export default function OrdersPage() {
   const completedCount = orders.filter((o) => o.statusBadge.label === 'Hoàn thành').length
 
   return (
-    <>
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       {/* PAGE TITLE & ACTIONS ZONE */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <nav className="flex items-center gap-1 text-[12px] text-slate-500" aria-label="Breadcrumb">
@@ -253,7 +253,7 @@ export default function OrdersPage() {
         </nav>
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50/50 transition-colors shadow-sm"
+            className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
             type="button"
             onClick={handleExportOrders}
           >
@@ -261,7 +261,7 @@ export default function OrdersPage() {
             <span>Xuất Excel</span>
           </button>
           <button
-            className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50/50 transition-colors shadow-sm"
+            className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
             type="button"
             onClick={handlePrintOrders}
           >
@@ -300,7 +300,7 @@ export default function OrdersPage() {
         </div>
 
         {/* KPI 2 */}
-        <div className="bg-white rounded-xl border border-amber-200 p-4 shadow-sm flex flex-col justify-between">
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Chờ xác nhận</span>
             <Clock size={20} className="text-amber-500" />
@@ -352,8 +352,10 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      {/* FILTER & SEARCH BAR */}
-      <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+      {/* MAIN CONTENT AREA: Filter & Table */}
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col">
+        {/* FILTER & SEARCH BAR */}
+        <div className="p-3 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-1 flex-wrap">
           <SearchInput
             value={search}
@@ -377,7 +379,7 @@ export default function OrdersPage() {
       </div>
 
       {/* MAIN TABLE */}
-      <div className="bg-white rounded-xl flex flex-col pt-2">
+      <div className="flex flex-col pt-2">
           <div className="px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-slate-900">Danh sách đơn xuất kho trạm #04</span>
@@ -429,7 +431,7 @@ export default function OrdersPage() {
                       className={`transition-colors cursor-pointer group border-b border-slate-50 ${
                         isSelected
                           ? 'bg-slate-50'
-                          : `hover:bg-slate-50/50 ${order.rowAttentionClassName ?? ''}`
+                          : `hover:bg-slate-50 ${order.rowAttentionClassName ?? ''}`
                       }`}
                     >
                       <td className="py-4 pl-4 pr-3">
@@ -491,6 +493,7 @@ export default function OrdersPage() {
             setPage={setPage}
           />
         </div>
+      </div>
 
       {/* DETAIL MODAL: CHI TIẾT ĐƠN HÀNG */}
       <DetailModal open={selectedOrder !== null} onClose={() => setSelectedId(null)}>
@@ -563,7 +566,7 @@ export default function OrdersPage() {
             <div className="p-4 bg-slate-50 rounded-b-xl space-y-2">
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50/50 text-slate-700 rounded-lg text-xs font-semibold transition-colors shadow-sm"
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold transition-colors shadow-sm"
                   type="button"
                   onClick={() => {
                     showToast(`Đang in phiếu giao hàng cho đơn #${selectedOrder.id}`)
@@ -588,7 +591,7 @@ export default function OrdersPage() {
                 </button>
               </div>
               <button
-                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 border border-slate-200 bg-white hover:bg-slate-50/50 text-slate-600 rounded-lg text-xs font-medium transition-colors shadow-sm"
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-medium transition-colors shadow-sm"
                 type="button"
                 onClick={() => showToast(`Đã gửi SMS cập nhật cho ${selectedOrder.customerName}`)}
               >
@@ -611,6 +614,6 @@ export default function OrdersPage() {
         onSubmit={handleCreateOrder}
         submitLabel="Tạo đơn hàng"
       />
-    </>
+    </div>
   )
 }

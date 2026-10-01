@@ -1,150 +1,145 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, Plus, FilterX, Building2 } from 'lucide-react'
+import { ChevronRight, Plus, Building2, CheckCircle2, Phone, Mail, MapPin } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { useToast } from '@/context/ToastContext'
-import RowActionsMenu from '@/components/ui/RowActionsMenu'
+import SearchInput from '@/components/ui/SearchInput'
 import Pagination from '@/components/ui/Pagination'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
-import SearchInput from '@/components/ui/SearchInput'
-import StatusBadge from '@/components/ui/StatusBadge'
+import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import { usePagination } from '@/hooks/usePagination'
 import { suppliers as INITIAL_SUPPLIERS } from '@/features/agent/data/mockPurchases'
 
 export default function SuppliersPage() {
-  usePageHeader({
-    title: 'Quản lý Nhà cung cấp',
-  })
+  usePageHeader({ title: 'Nhà cung cấp', subtitle: 'Danh sách và đánh giá đối tác cung ứng' })
 
   const { showToast } = useToast()
-  const [suppliers, setSuppliers] = useState(INITIAL_SUPPLIERS)
+  const [suppliers] = useState(INITIAL_SUPPLIERS)
   const [search, setSearch] = useState('')
 
   const keyword = search.trim().toLowerCase()
-  const filteredSuppliers = suppliers.filter(
-    (s) =>
-      (!keyword || s.name.toLowerCase().includes(keyword) || s.phone.includes(keyword) || s.contactName.toLowerCase().includes(keyword))
+  const filtered = suppliers.filter((s) =>
+    !keyword ||
+    s.name.toLowerCase().includes(keyword) ||
+    s.contactName.toLowerCase().includes(keyword) ||
+    s.phone.toLowerCase().includes(keyword)
   )
 
-  const handleClearFilters = () => {
-    setSearch('')
-  }
-
-  const { page, totalPages, paginated, startIndex, endIndex, totalCount: pageTotalCount, goPrev, goNext, setPage } =
-    usePagination(filteredSuppliers, 10)
+  const { page, totalPages, paginated, startIndex, endIndex, totalCount, goPrev, goNext, setPage } =
+    usePagination(filtered, 10)
 
   const handleAction = (id: string, label: string) => {
-    const supplier = suppliers.find(s => s.id === id)
-    if (!supplier) return
-
-    if (label === 'Ngừng hợp tác') {
-      setSuppliers(prev => prev.map(s => s.id === id ? { ...s, status: 'Ngừng hợp tác' as const, actions: s.actions.map(a => a.label === 'Ngừng hợp tác' ? { ...a, label: 'Tiếp tục hợp tác', icon: 'check_circle' } : a) } : s))
-      showToast(`Đã ngừng hợp tác với nhà cung cấp ${supplier.name}`)
-    } else if (label === 'Tiếp tục hợp tác') {
-      setSuppliers(prev => prev.map(s => s.id === id ? { ...s, status: 'Đang hợp tác' as const, actions: s.actions.map(a => a.label === 'Tiếp tục hợp tác' ? { ...a, label: 'Ngừng hợp tác', icon: 'block' } : a) } : s))
-      showToast(`Đã mở lại hợp tác với nhà cung cấp ${supplier.name}`)
-    } else {
-      showToast(`Đã thực hiện "${label}" cho ${supplier.name}`)
-    }
+    showToast(`Đã thực hiện: ${label} cho NCC ${id}`)
   }
 
-  const totalCount = suppliers.length
-
   return (
-    <>
-      <section className="space-y-3">
-        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-slate-500">
-          <Link className="hover:text-slate-900 transition-colors" to="/">Bảng điều khiển</Link>
-          <ChevronRight size={14} />
-          <span className="text-slate-900 font-medium">Nhà cung cấp</span>
-        </nav>
-        <div className="flex justify-end">
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <nav className="flex items-center gap-1.5 text-xs text-slate-500">
+            <Link className="hover:text-slate-900 transition-colors" to="/agent">Bảng điều khiển</Link>
+            <ChevronRight size={14} />
+            <span className="text-slate-900 font-medium">Nhà cung cấp</span>
+          </nav>
+        </div>
+        <div className="flex items-center gap-2.5 flex-wrap">
           <button
-            className="flex items-center gap-2 h-9 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
-            onClick={() => showToast('Tính năng thêm nhà cung cấp đang phát triển')}
+            className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
             type="button"
+            onClick={() => showToast('Mở form thêm NCC mới')}
           >
             <Plus size={16} />
             <span>Thêm nhà cung cấp</span>
           </button>
         </div>
-      </section>
+      </div>
 
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-start justify-between">
-          <div className="space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Tổng nhà cung cấp</span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-900 tabular-nums">{totalCount}</span>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div className="flex items-start justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Tổng đối tác</span>
+            <div className="p-2.5 bg-slate-100 rounded-lg text-emerald-600">
+              <Building2 size={20} />
             </div>
           </div>
-          <div className="p-2.5 bg-slate-100 rounded-lg text-slate-600">
-            <Building2 size={20} />
+          <div className="mt-3">
+            <div className="text-2xl font-bold text-slate-900 tabular-nums">{suppliers.length}</div>
           </div>
         </div>
-      </section>
-
-      <section className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4 mt-4">
-        <div className="flex flex-wrap items-center gap-3 flex-1">
-          <SearchInput value={search} onChange={setSearch} placeholder="Tìm theo tên, SĐT, Người liên hệ..." className="relative flex-1 min-w-[300px]" />
-          <button
-            className="h-9 px-3 text-slate-500 hover:text-slate-900 text-xs font-medium flex items-center gap-1 transition-colors"
-            onClick={handleClearFilters}
-            type="button"
-          >
-            <FilterX size={14} />
-            <span>Xóa tìm kiếm</span>
-          </button>
+        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div className="flex items-start justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Đang hợp tác</span>
+            <div className="p-2.5 bg-emerald-50 rounded-lg text-emerald-600">
+              <CheckCircle2 size={20} />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-bold text-emerald-600 tabular-nums">{suppliers.filter(s => s.status === 'Đang hợp tác').length}</div>
+          </div>
         </div>
-      </section>
+      </div>
 
-      <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col mt-4">
+      <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+        <SearchInput value={search} onChange={setSearch} placeholder="Tìm tên NCC, người liên hệ, số điện thoại..." className="relative flex-1 max-w-md" />
+      </div>
+
+      <div className="bg-white rounded-xl flex flex-col pt-2 shadow-sm border border-slate-100">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 text-slate-900 text-[13px] font-bold">
-                <th className="py-4 pl-4 px-3 w-24">Mã NCC</th>
-                <th className="py-4 px-3 min-w-[220px]">Nhà cung cấp</th>
-                <th className="py-4 px-3 min-w-[180px]">Liên hệ</th>
-                <th className="py-4 px-3 min-w-[130px]">Trạng thái</th>
-                <th className="py-4 pr-4 pl-3 w-10 "></th>
+                <th className="py-3 px-4" scope="col">Tên / Mã NCC</th>
+                <th className="py-3 px-3" scope="col">Liên hệ</th>
+                <th className="py-3 px-3" scope="col">Địa chỉ</th>
+                <th className="py-3 px-3 text-center" scope="col">Trạng thái</th>
+                <th className="py-3 px-4 text-center w-28" scope="col">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 text-sm text-slate-900">
               {paginated.length === 0 ? (
-                <EmptyTableRow colSpan={5} message="Không tìm thấy nhà cung cấp phù hợp." />
+                <EmptyTableRow colSpan={5} message="Không tìm thấy nhà cung cấp nào." />
               ) : null}
-              {paginated.map((supplier) => {
-                const isInactive = supplier.status === 'Ngừng hợp tác'
-                return (
-                  <tr key={supplier.id} className={`hover:bg-slate-50/50 transition-colors ${isInactive ? 'opacity-60' : ''}`}>
-                    <td className="py-4 pl-4 px-3 font-mono text-slate-500">{supplier.id}</td>
-                    <td className="py-4 px-3">
-                      <div className="font-semibold text-slate-900">{supplier.name}</div>
-                      <div className="text-xs text-slate-500 mt-0.5 max-w-[250px] truncate" title={supplier.address}>{supplier.address}</div>
-                    </td>
-                    <td className="py-4 px-3">
-                      <div className="font-medium text-slate-700">{supplier.contactName}</div>
-                      <div className="text-xs text-slate-500 mt-0.5">{supplier.phone} - {supplier.email}</div>
-                    </td>
-                    <td className="py-4 px-3">
-                      <StatusBadge 
-                        label={supplier.status} 
-                        className={isInactive ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}
-                      />
-                    </td>
-                    <td className="py-4 pr-4 pl-3 text-center">
-                      <RowActionsMenu
-                        triggerLabel={`Thao tác ${supplier.name}`}
-                        actions={supplier.actions.map(a => ({
-                          ...a,
-                          onClick: () => handleAction(supplier.id, a.label)
-                        }))}
-                      />
-                    </td>
-                  </tr>
-                )
-              })}
+              {paginated.map((s) => (
+                <tr key={s.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="py-4 px-4">
+                    <div className="font-semibold text-slate-900">{s.name}</div>
+                    <div className="font-mono text-xs text-slate-500 mt-0.5">{s.id}</div>
+                  </td>
+                  <td className="py-4 px-3">
+                    <div className="font-medium text-slate-700">{s.contactName}</div>
+                    <div className="flex items-center gap-1 mt-1 text-xs text-slate-500 font-mono">
+                      <Phone size={12} /> {s.phone}
+                    </div>
+                    {s.email && (
+                      <div className="flex items-center gap-1 mt-0.5 text-xs text-slate-500">
+                        <Mail size={12} /> {s.email}
+                      </div>
+                    )}
+                  </td>
+                  <td className="py-4 px-3">
+                    <div className="flex items-start gap-1 text-slate-600">
+                      <MapPin size={14} className="mt-0.5 shrink-0 text-slate-400" />
+                      <span className="line-clamp-2 max-w-[250px]" title={s.address}>{s.address}</span>
+                    </div>
+                  </td>
+                  <td className="py-4 px-3 text-center">
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                      s.status === 'Đang hợp tác' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {s.status}
+                    </span>
+                  </td>
+                  <td className="py-4 px-4 text-center">
+                    <RowActionsMenu
+                      triggerLabel={`Thao tác ${s.name}`}
+                      actions={s.actions.map(a => ({
+                        ...a,
+                        onClick: () => handleAction(s.id, a.label)
+                      }))}
+                    />
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -153,13 +148,13 @@ export default function SuppliersPage() {
           totalPages={totalPages}
           startIndex={startIndex}
           endIndex={endIndex}
-          totalCount={pageTotalCount}
+          totalCount={totalCount}
           unitLabel="nhà cung cấp"
           goPrev={goPrev}
           goNext={goNext}
           setPage={setPage}
         />
-      </section>
-    </>
+      </div>
+    </div>
   )
 }

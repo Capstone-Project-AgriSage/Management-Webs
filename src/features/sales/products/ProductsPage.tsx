@@ -69,7 +69,7 @@ export default function ProductsPage() {
   const outOfStockCount = PRODUCTS.filter((p) => p.stockLabel === 'Hết hàng').length
 
   return (
-    <>
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       {/* SUMMARY METRIC CARDS */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
@@ -134,7 +134,7 @@ export default function ProductsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-100 text-slate-900 text-[13px] font-bold">
+              <tr className="border-b border-slate-100 text-slate-900 text-label-md font-bold">
                 <th className="py-4 pl-4 px-3 min-w-[280px]">Sản phẩm &amp; Hoạt chất</th>
                 <th className="py-4 px-3 min-w-[130px] text-center">Danh mục</th>
                 <th className="py-4 px-3 min-w-[120px] text-center">Giá bán</th>
@@ -153,7 +153,7 @@ export default function ProductsPage() {
                     key={product.id}
                     onClick={() => setSelectedId(product.id)}
                     className={`transition-colors cursor-pointer group ${
-                      isSelected ? 'bg-emerald-50/50 hover:bg-emerald-50 border-l-2 border-l-emerald-500' : 'hover:bg-slate-50/50'
+                      isSelected ? 'bg-emerald-50/50 hover:bg-emerald-50 border-l-2 border-l-emerald-500' : 'hover:bg-slate-50'
                     }`}
                   >
                     <td className="py-4.5 pl-4 px-3">
@@ -161,7 +161,7 @@ export default function ProductsPage() {
                       <div className="text-xs text-slate-500 mt-0.5">{product.description}</div>
                     </td>
                     <td className="py-4.5 px-3 text-center">
-                      <span className={`inline-flex items-center justify-center min-w-[110px] px-2 py-0.5 rounded-full text-[10px] font-medium border ${product.categoryClassName}`}>
+                      <span className={`inline-flex items-center justify-center min-w-[110px] px-2 py-0.5 rounded-full text-label-sm font-medium border ${product.categoryClassName}`}>
                         {product.categoryLabel}
                       </span>
                     </td>
@@ -232,6 +232,6 @@ export default function ProductsPage() {
           </div>
         ) : null}
       </DetailModal>
-    </>
+    </div>
   )
 }

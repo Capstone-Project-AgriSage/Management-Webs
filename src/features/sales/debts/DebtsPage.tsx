@@ -175,7 +175,7 @@ export default function DebtsPage() {
   const pendingPaymentRequests = paymentRequests.filter((pr) => pr.status === 'PENDING_STAFF_CONFIRMATION')
 
   return (
-    <>
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 shrink-0">
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between text-slate-500 mb-1">
@@ -186,7 +186,7 @@ export default function DebtsPage() {
           <div className="text-xs text-slate-500 pt-1 border-t border-slate-100">Tổng nợ của {customers.length} nông hộ</div>
         </div>
 
-        <div className="bg-white border border-amber-200 rounded-xl p-4 shadow-sm flex flex-col justify-between">
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between text-amber-700 mb-1">
             <span className="text-xs uppercase tracking-wider font-bold">Đến hạn &amp; quá hạn</span>
             <AlarmClock className="text-amber-600" size={20} />
@@ -233,7 +233,7 @@ export default function DebtsPage() {
         <div className="flex-1 overflow-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-100 text-slate-900 text-[13px] font-bold">
+              <tr className="border-b border-slate-100 text-slate-900 text-label-md font-bold">
                 <th className="py-4 px-4">Khách hàng &amp; SĐT</th>
                 <th className="py-4 px-3 text-center">Tổng mua</th>
                 <th className="py-4 px-3 text-center">Đã trả</th>
@@ -256,20 +256,20 @@ export default function DebtsPage() {
                     onClick={() => setSelectedId(customer.id)}
                     className={`transition-colors cursor-pointer ${
                       isSelected
-                        ? 'bg-emerald-50 border-l-4 border-l-emerald-600'
+                        ? 'bg-primary-container border-l-2 border-primary'
                         : customer.isDisputed
-                          ? 'bg-rose-50/60 hover:bg-rose-50'
-                          : 'hover:bg-slate-50/50'
+                          ? 'bg-error-container/60 hover:bg-error-container'
+                          : 'hover:bg-surface-container-low'
                     }`}
                   >
                     <td className="py-4 px-4">
                       <div className="font-medium text-slate-900 flex items-center gap-1.5">
                         <span>{customer.name}</span>
                         {customer.cropBadge && (
-                          <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] rounded font-medium">{customer.cropBadge}</span>
+                          <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-label-sm rounded font-medium">{customer.cropBadge}</span>
                         )}
                         {customer.isDisputed && (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-rose-100 text-rose-700 text-[10px] rounded font-medium border border-rose-200">
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-rose-100 text-rose-700 text-label-sm rounded font-medium border border-rose-200">
                             <AlertTriangle size={11} /> Tranh chấp
                           </span>
                         )}
@@ -346,7 +346,7 @@ export default function DebtsPage() {
                   <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                     <span>{selected.name}</span>
                     {selected.cropBadge && (
-                      <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] rounded font-bold">{selected.cropBadge}</span>
+                      <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-label-sm rounded font-bold">{selected.cropBadge}</span>
                     )}
                   </h2>
                   <p className="text-xs text-slate-500 font-mono mt-1">
@@ -403,9 +403,9 @@ export default function DebtsPage() {
                     <div key={order.id} className="p-3 border border-slate-200 rounded-lg">
                       <div className="flex items-center justify-between">
                         <span className="font-mono font-semibold text-slate-900 text-xs">{order.id}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${order.statusClassName}`}>{order.status}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-label-sm font-bold ${order.statusClassName}`}>{order.status}</span>
                       </div>
-                      {order.dateNote && <div className="text-[11px] text-slate-400 mt-1">{order.dateNote}</div>}
+                      {order.dateNote && <div className="text-label-sm text-slate-400 mt-1">{order.dateNote}</div>}
                       <div className="flex items-center justify-between mt-1.5 text-xs">
                         <span className="text-slate-600">{order.totalNote}</span>
                         <span className={`font-semibold ${order.remainingClassName}`}>{order.remainingLabel}</span>
@@ -422,7 +422,7 @@ export default function DebtsPage() {
                     <div key={i} className="flex items-center justify-between text-xs p-2.5 border border-slate-100 rounded-lg bg-slate-50">
                       <div>
                         <div className="font-semibold text-slate-900">{entry.title}</div>
-                        <div className="text-slate-400 text-[11px] mt-0.5">{entry.dateNote}</div>
+                        <div className="text-slate-400 text-label-sm mt-0.5">{entry.dateNote}</div>
                       </div>
                       <span className={`font-mono font-bold ${entry.amountClassName}`}>{entry.amountLabel}</span>
                     </div>
@@ -433,6 +433,6 @@ export default function DebtsPage() {
           </>
         ) : null}
       </DetailModal>
-    </>
+    </div>
   )
 }

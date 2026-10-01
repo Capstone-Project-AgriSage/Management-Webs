@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePageHeaderValue } from '@/context/PageHeaderContext'
 import { useAuth } from '@/context/AuthContext'
@@ -16,6 +16,25 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
   const [searchQuery, setSearchQuery] = useState('')
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(true)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        searchInputRef.current?.focus()
+      } else if (
+        e.key === '/' &&
+        document.activeElement?.tagName !== 'INPUT' &&
+        document.activeElement?.tagName !== 'TEXTAREA'
+      ) {
+        e.preventDefault()
+        searchInputRef.current?.focus()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   const handleLogout = () => {
     logout()
@@ -77,12 +96,16 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         <form className="relative hidden lg:block w-72" onSubmit={handleSearchSubmit}>
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-outline">search</span>
           <input
-            className="w-full h-8 pl-9 pr-3 text-sm bg-surface-container-low border border-outline-variant/60 rounded focus:border-primary focus:ring-1 focus:ring-primary focus:bg-white text-on-surface transition-all placeholder:text-outline font-body-md"
+            ref={searchInputRef}
+            className="w-full h-8 pl-9 pr-14 text-sm bg-surface-container-low border border-outline-variant/60 rounded focus:border-primary focus:ring-1 focus:ring-primary focus:bg-white text-on-surface transition-all placeholder:text-outline font-body-md"
             placeholder={searchPlaceholder}
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+          <div className="absolute right-1.5 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 pointer-events-none text-outline">
+            <kbd className="font-sans text-label-sm bg-surface-container-highest px-1.5 py-0.5 rounded border border-outline-variant shadow-sm leading-none flex items-center justify-center h-5 tracking-tighter">Ctrl K</kbd>
+          </div>
         </form>
         <div className="flex items-center gap-1">
           {currentRole === 'agent' ? (

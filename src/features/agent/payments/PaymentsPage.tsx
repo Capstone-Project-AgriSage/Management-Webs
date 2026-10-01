@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { useToast } from '@/context/ToastContext'
 import RowActionsMenu from '@/components/ui/RowActionsMenu'
@@ -56,7 +57,7 @@ const CREATE_PAYMENT_FIELDS: FormFieldSpec[] = [
 ]
 
 export default function PaymentsPage() {
-  usePageHeader({ title: '' }) // Flat layout
+  usePageHeader({ title: 'Quản lý thanh toán', subtitle: 'Theo dõi dòng tiền và giao dịch' })
 
   const [payments, setPayments] = useState(INITIAL_PAYMENTS)
   const { showToast } = useToast()
@@ -263,39 +264,19 @@ export default function PaymentsPage() {
   const [quickAmount, setQuickAmount] = useState('')
 
   return (
-    <div className="bg-white -m-4 lg:-m-6 p-4 lg:p-8 min-h-[calc(100vh-4rem)] text-slate-900">
-      {/* 1. Header & Tabs */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Quản lý thanh toán</h1>
-          <p className="text-[13px] text-slate-500 mt-1 font-medium capitalize">{dateStr}</p>
-          <div className="mt-8 flex items-center gap-6">
-            <button 
-              className={`pb-2.5 text-[13px] font-bold border-b-2 transition-colors ${activeTab === 'overview' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-              onClick={() => setActiveTab('overview')}
-            >
-              Tổng quan
-            </button>
-            <button 
-              className={`pb-2.5 text-[13px] font-bold border-b-2 transition-colors ${activeTab === 'transactions' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-              onClick={() => setActiveTab('transactions')}
-            >
-              Giao dịch
-            </button>
-            <button 
-              className={`pb-2.5 text-[13px] font-bold border-b-2 transition-colors ${activeTab === 'debts' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-              onClick={() => setActiveTab('debts')}
-            >
-              Công nợ
-            </button>
-          </div>
-        </div>
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <nav className="flex items-center gap-1.5 text-xs text-slate-500">
+          <Link className="hover:text-slate-900 transition-colors" to="/agent">Bảng điều khiển</Link>
+          <ChevronRight size={14} />
+          <span className="text-slate-900 font-medium">Quản lý thanh toán</span>
+        </nav>
         <div className="flex items-center gap-3 pb-2 shrink-0">
           <span className="text-[11px] text-slate-500 flex items-center gap-1.5 font-medium mr-2">
             <RefreshCw size={12} /> Cập nhật 5 phút trước
           </span>
           <button 
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-md text-[13px] font-bold hover:bg-slate-50/50 shadow-sm text-slate-700 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-md text-[13px] font-bold hover:bg-slate-50 shadow-sm text-slate-700 transition-colors bg-white"
             onClick={handleExportPayments}
           >
             <Download size={14} /> Xuất dữ liệu
@@ -308,11 +289,9 @@ export default function PaymentsPage() {
           </button>
         </div>
       </div>
-      <div className="border-b border-slate-200 -mt-[1px]"></div>
-
       {/* 2. KPIs Row (Like "Net worth" / "Available cash") */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-8">
-         <div className="p-4 rounded-xl border border-slate-200 shadow-sm">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+         <div className="p-4 rounded-xl border border-slate-200 shadow-sm bg-white">
             <h3 className="text-xs font-semibold text-slate-500 mb-1">Tổng thu trong kỳ</h3>
             <div className="flex items-end justify-between">
                <span className="text-3xl font-bold text-slate-900 tabular-nums tracking-tight">40.8M</span>
@@ -321,7 +300,7 @@ export default function PaymentsPage() {
             <p className="text-[11px] text-slate-400 mt-2">+2.4M so với tháng trước</p>
          </div>
 
-         <div className="p-4 rounded-xl border border-slate-200 shadow-sm">
+         <div className="p-4 rounded-xl border border-slate-200 shadow-sm bg-white">
             <h3 className="text-xs font-semibold text-slate-500 mb-1">Tiền mặt khả dụng</h3>
             <div className="flex items-end justify-between">
                <span className="text-3xl font-bold text-slate-900 tabular-nums tracking-tight">12.8M</span>
@@ -330,7 +309,7 @@ export default function PaymentsPage() {
             <p className="text-[11px] text-slate-400 mt-2">+1.2M trên trung bình 30 ngày</p>
          </div>
 
-         <div className="p-4 rounded-xl border border-slate-200 shadow-sm hidden xl:block">
+         <div className="p-4 rounded-xl border border-slate-200 shadow-sm hidden xl:block bg-white">
             <h3 className="text-xs font-semibold text-slate-500 mb-1">Tỷ lệ thu hồi nợ</h3>
             <div className="flex items-end justify-between">
                <span className="text-3xl font-bold text-slate-900 tabular-nums tracking-tight">28%</span>
@@ -339,28 +318,37 @@ export default function PaymentsPage() {
             <p className="text-[11px] text-slate-400 mt-2">Tăng từ 25.6% tháng trước</p>
          </div>
 
-         <div className="p-4 rounded-xl border border-slate-200 shadow-sm lg:col-span-1 xl:col-span-1 flex flex-col justify-between">
-            <h3 className="text-xs font-semibold text-slate-500 mb-2">Cơ cấu nguồn thu</h3>
-            <div className="flex items-center gap-1 w-full h-3 rounded-full overflow-hidden">
-               <div className="bg-emerald-600 h-full w-[60%]"></div>
-               <div className="bg-emerald-400 h-full w-[25%]"></div>
-               <div className="bg-emerald-100 h-full w-[15%]"></div>
-            </div>
-            <div className="flex justify-between text-[10px] font-semibold text-slate-500 mt-3">
-               <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-600 block"></span> Tiền mặt (60%)</div>
-               <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-400 block"></span> VietQR (25%)</div>
-               <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-100 block"></span> Khác (15%)</div>
-            </div>
          </div>
-      </div>
 
       {/* 3. Main Layout: Table + Sidebar */}
-      <div className="flex flex-col lg:flex-row mt-8 gap-8">
+      <div className="flex flex-col lg:flex-row gap-8">
          
          {/* Left Side: Table Area */}
          <div className="flex-1 min-w-0">
             {/* Filter Bar */}
-            <div className="flex flex-wrap items-center gap-3 mb-4">
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-4">
+              <div className="flex bg-slate-100/80 p-1 rounded-lg border border-slate-200 w-full xl:w-auto overflow-x-auto shrink-0">
+                <button 
+                  className={`px-4 py-1.5 text-[13px] font-bold rounded-md whitespace-nowrap transition-colors ${activeTab === 'overview' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  onClick={() => setActiveTab('overview')}
+                >
+                  Tổng quan
+                </button>
+                <button 
+                  className={`px-4 py-1.5 text-[13px] font-bold rounded-md whitespace-nowrap transition-colors ${activeTab === 'transactions' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  onClick={() => setActiveTab('transactions')}
+                >
+                  Giao dịch
+                </button>
+                <button 
+                  className={`px-4 py-1.5 text-[13px] font-bold rounded-md whitespace-nowrap transition-colors ${activeTab === 'debts' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  onClick={() => setActiveTab('debts')}
+                >
+                  Công nợ
+                </button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
               <div className="relative max-w-sm flex-1 min-w-[240px]">
                 <SearchInput
                   value={search}
@@ -381,6 +369,7 @@ export default function PaymentsPage() {
                   <span>Xóa lọc</span>
                 </button>
               )}
+              </div>
             </div>
 
             {/* Table */}
@@ -391,9 +380,7 @@ export default function PaymentsPage() {
                     <tr className="border-b border-slate-100 text-slate-900 text-[13px] font-bold">
                       <th className="py-4 px-4 w-32">Mã TT / Đơn</th>
                       <th className="py-4 px-4">Khách hàng</th>
-                      <th className="py-4 px-4 text-center">Tổng đơn</th>
-                      <th className="py-4 px-4 text-center">Đã thu</th>
-                      <th className="py-4 px-4 text-center">Còn lại</th>
+                      <th className="py-4 px-4 text-right">Số tiền (₫)</th>
                       <th className="py-4 px-4 text-center">Phương thức</th>
                       <th className="py-4 px-4 text-center">Trạng thái</th>
                       <th className="py-4 px-4 w-10 "></th>
@@ -411,8 +398,8 @@ export default function PaymentsPage() {
                           onClick={() => setSelectedId(item.id)}
                           className={`transition-colors cursor-pointer group ${
                             isSelected
-                              ? 'bg-slate-50/80 border-l-2 border-l-slate-900'
-                              : 'hover:bg-slate-50/50 border-l-2 border-l-transparent'
+                              ? 'bg-slate-50 border-l-2 border-l-slate-900'
+                              : 'hover:bg-slate-50 border-l-2 border-l-transparent'
                           }`}
                         >
                           <td className="py-4 px-4">
@@ -423,10 +410,13 @@ export default function PaymentsPage() {
                             <div className="font-semibold text-slate-900">{item.customerName}</div>
                             <div className="text-[11px] text-slate-500 mt-0.5">{item.customerPhone}</div>
                           </td>
-                          <td className="py-4 px-4 text-center font-mono font-semibold text-slate-900">{item.totalAmount}</td>
-                          <td className={`py-3 px-4 text-center font-mono font-semibold ${item.paidAmountClassName}`}>{item.paidAmount}</td>
-                          <td className={`py-3 px-4 text-center font-mono font-bold ${item.remainingAmountClassName}`}>
-                            {item.remainingAmount}
+                          <td className="py-4 px-4 text-right">
+                            <div className="font-mono font-bold text-slate-900">{item.totalAmount}</div>
+                            {item.hasRemaining ? (
+                              <div className="text-[11px] font-mono font-semibold text-rose-600 mt-1 bg-rose-50 inline-block px-1.5 py-0.5 rounded">Nợ: {item.remainingAmount}</div>
+                            ) : (
+                              <div className="text-[11px] font-mono font-semibold text-emerald-600 mt-1 bg-emerald-50 inline-block px-1.5 py-0.5 rounded">Đã thu đủ</div>
+                            )}
                           </td>
                           <td className="py-4 px-4 text-center">
                             <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border border-slate-200 ${item.methodClassName}`}>
@@ -467,111 +457,6 @@ export default function PaymentsPage() {
                 />
               </div>
             </div>
-         </div>
-
-         {/* Right Side: Sidebar */}
-         <div className="lg:w-[320px] shrink-0 space-y-6">
-            
-            {/* Quick Transfer Box */}
-            <div className="border border-slate-200 rounded-xl p-5 shadow-sm bg-white">
-               <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center justify-between">
-                 Ghi nhận nhanh
-                 <span className="text-[10px] text-slate-400 font-medium">TIỀN MẶT</span>
-               </h3>
-               <div className="flex items-center gap-2">
-                 <div className="relative flex-1">
-                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₫</span>
-                   <input 
-                     type="text" 
-                     placeholder="0"
-                     value={quickAmount}
-                     onChange={(e) => setQuickAmount(e.target.value)}
-                     className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 py-2 text-slate-900 font-mono font-bold focus:border-slate-400 focus:bg-white outline-none transition-colors"
-                   />
-                 </div>
-                 <button 
-                   className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-[13px] font-bold hover:bg-emerald-700 transition-colors"
-                   onClick={() => {
-                     if (quickAmount) {
-                       showToast(`Ghi nhận thu tiền mặt: ${quickAmount} đ`)
-                       setQuickAmount('')
-                     } else {
-                       showToast('Vui lòng nhập số tiền')
-                     }
-                   }}
-                 >
-                   Lưu
-                 </button>
-               </div>
-            </div>
-
-            {/* Shortcuts Box */}
-            <div className="border border-slate-200 rounded-xl p-5 shadow-sm bg-white">
-               <h3 className="text-sm font-bold text-slate-900 mb-4">Lối tắt (Shortcuts)</h3>
-               <div className="grid grid-cols-3 gap-4">
-                  <button onClick={() => showToast('Chức năng Quét QR đang được phát triển')} className="flex flex-col items-center gap-2 group">
-                    <div className="w-12 h-12 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-600 group-hover:bg-slate-100 group-hover:border-slate-300 transition-all">
-                      <ScanLine size={20} />
-                    </div>
-                    <span className="text-[11px] font-semibold text-slate-600 group-hover:text-slate-900">Quét QR</span>
-                  </button>
-                  <button onClick={() => showToast('Chức năng Đối soát đang được phát triển')} className="flex flex-col items-center gap-2 group">
-                    <div className="w-12 h-12 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-600 group-hover:bg-slate-100 group-hover:border-slate-300 transition-all">
-                      <RefreshCw size={20} />
-                    </div>
-                    <span className="text-[11px] font-semibold text-slate-600 group-hover:text-slate-900">Đối soát</span>
-                  </button>
-                  <button onClick={() => showToast('Chức năng Nhắc nợ đang được phát triển')} className="flex flex-col items-center gap-2 group">
-                    <div className="w-12 h-12 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-600 group-hover:bg-slate-100 group-hover:border-slate-300 transition-all">
-                      <MessageCircle size={20} />
-                    </div>
-                    <span className="text-[11px] font-semibold text-slate-600 group-hover:text-slate-900">Nhắc nợ</span>
-                  </button>
-                  <button onClick={() => showToast('Chức năng Lịch sử đang được phát triển')} className="flex flex-col items-center gap-2 group">
-                    <div className="w-12 h-12 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-600 group-hover:bg-slate-100 group-hover:border-slate-300 transition-all">
-                      <History size={20} />
-                    </div>
-                    <span className="text-[11px] font-semibold text-slate-600 group-hover:text-slate-900">Lịch sử</span>
-                  </button>
-                  <button onClick={() => showToast('Chức năng KH nợ đang được phát triển')} className="flex flex-col items-center gap-2 group">
-                    <div className="w-12 h-12 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-600 group-hover:bg-slate-100 group-hover:border-slate-300 transition-all">
-                      <User size={20} />
-                    </div>
-                    <span className="text-[11px] font-semibold text-slate-600 group-hover:text-slate-900">KH nợ</span>
-                  </button>
-                  <button onClick={() => showToast('Các chức năng khác đang được phát triển')} className="flex flex-col items-center gap-2 group">
-                    <div className="w-12 h-12 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-600 group-hover:bg-slate-100 group-hover:border-slate-300 transition-all">
-                      <MoreHorizontal size={20} />
-                    </div>
-                    <span className="text-[11px] font-semibold text-slate-600 group-hover:text-slate-900">Thêm</span>
-                  </button>
-               </div>
-            </div>
-
-            {/* Upcoming / Alerts */}
-            <div className="border border-slate-200 rounded-xl p-5 shadow-sm bg-white">
-               <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center justify-between">
-                 Nhắc nhở
-                 <span className="w-5 h-5 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center text-[10px] font-bold">2</span>
-               </h3>
-               <div className="space-y-3">
-                 <div className="p-3 border border-slate-100 rounded-lg bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors">
-                   <div className="flex justify-between items-start">
-                     <span className="text-[13px] font-bold text-slate-900">Thu nợ Nguyễn Văn Hùng</span>
-                     <ChevronRight size={16} className="text-slate-400" />
-                   </div>
-                   <div className="text-[11px] text-slate-500 mt-1">Đến hạn hôm nay • 1.270.000 đ</div>
-                 </div>
-                 <div className="p-3 border border-slate-100 rounded-lg bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors">
-                   <div className="flex justify-between items-start">
-                     <span className="text-[13px] font-bold text-slate-900">Đối soát lệnh VietQR</span>
-                     <ChevronRight size={16} className="text-slate-400" />
-                   </div>
-                   <div className="text-[11px] text-slate-500 mt-1">2 giao dịch đang chờ khớp lệnh</div>
-                 </div>
-               </div>
-            </div>
-
          </div>
       </div>
 
@@ -639,7 +524,7 @@ export default function PaymentsPage() {
             
             <div className="p-5 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-3">
               <button 
-                className="px-4 py-2 border border-slate-300 bg-white hover:bg-slate-50/50 text-slate-700 text-[13px] font-bold rounded-lg shadow-sm"
+                className="px-4 py-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-[13px] font-bold rounded-lg shadow-sm"
                 onClick={() => setSelectedId(null)}
               >
                 Đóng

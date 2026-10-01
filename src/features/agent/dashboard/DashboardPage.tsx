@@ -85,7 +85,7 @@ export default function DashboardPage() {
 
 
   return (
-    <div className="space-y-4 pb-12">
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       {/* 1. TOP METRICS ROW */}
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {/* Card 1: New Leads -> Đơn hàng hôm nay */}
@@ -195,8 +195,8 @@ export default function DashboardPage() {
           <h3 className="text-sm font-semibold text-slate-900">Nguồn Khách Hàng</h3>
           <LeadsBySourceChart />
           <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100">
-             <button onClick={() => setIsLeadDetailOpen(true)} className="flex-1 py-1.5 text-xs font-semibold border border-slate-200 rounded-md text-slate-700 hover:bg-slate-50/50">Xem Chi Tiết</button>
-             <button onClick={handleDownloadLeadCSV} className="flex-1 py-1.5 text-xs font-semibold border border-slate-200 rounded-md text-slate-700 hover:bg-slate-50/50">Tải CSV</button>
+             <button onClick={() => setIsLeadDetailOpen(true)} className="flex-1 py-1.5 text-xs font-semibold border border-slate-200 rounded-md text-slate-700 hover:bg-slate-50">Xem Chi Tiết</button>
+             <button onClick={handleDownloadLeadCSV} className="flex-1 py-1.5 text-xs font-semibold border border-slate-200 rounded-md text-slate-700 hover:bg-slate-50">Tải CSV</button>
           </div>
         </div>
 
@@ -288,17 +288,17 @@ export default function DashboardPage() {
           </div>
           <div className="flex gap-2">
              <div className="relative">
-               <button onClick={() => setViewModeOpen(!viewModeOpen)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold border border-slate-200 rounded-md text-slate-700 hover:bg-slate-50/50">
+               <button onClick={() => setViewModeOpen(!viewModeOpen)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold border border-slate-200 rounded-md text-slate-700 hover:bg-slate-50">
                  <ChevronDown size={14} /> Chế Độ Xem
                </button>
                {viewModeOpen && (
                  <div className="absolute right-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-lg z-10 py-1 text-left">
-                   <button onClick={() => { setViewMode('table'); setViewModeOpen(false); }} className={`w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50/50 text-left font-semibold ${viewMode === 'table' ? 'text-emerald-600' : ''}`}>Mặc định (Bảng)</button>
-                   <button onClick={() => { setViewMode('grid'); setViewModeOpen(false); }} className={`w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50/50 text-left font-semibold ${viewMode === 'grid' ? 'text-emerald-600' : ''}`}>Dạng Lưới</button>
+                   <button onClick={() => { setViewMode('table'); setViewModeOpen(false); }} className={`w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 text-left font-semibold ${viewMode === 'table' ? 'text-emerald-600' : ''}`}>Mặc định (Bảng)</button>
+                   <button onClick={() => { setViewMode('grid'); setViewModeOpen(false); }} className={`w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 text-left font-semibold ${viewMode === 'grid' ? 'text-emerald-600' : ''}`}>Dạng Lưới</button>
                  </div>
                )}
              </div>
-             <button onClick={handleExportRecentOrders} className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold border border-slate-200 rounded-md text-slate-700 hover:bg-slate-50/50">
+             <button onClick={handleExportRecentOrders} className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold border border-slate-200 rounded-md text-slate-700 hover:bg-slate-50">
                <Download size={14} /> Xuất File
              </button>
           </div>
@@ -323,7 +323,7 @@ export default function DashboardPage() {
               </thead>
               <tbody className="divide-y divide-slate-50 text-xs">
                 {ALL_ORDERS.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((order) => (
-                  <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
+                  <tr key={order.id} className="hover:bg-slate-50 transition-colors">
                     <td className="py-4 px-4">
                       <input type="checkbox" className="rounded border-slate-300" />
                     </td>
@@ -361,8 +361,8 @@ export default function DashboardPage() {
                       </button>
                       {optionsMenuOpenId === order.id && (
                         <div className="absolute right-10 top-2 mt-1 w-32 bg-white border border-slate-200 rounded-lg shadow-lg z-10 py-1 text-left">
-                          <button onClick={() => { showToast('Đang tải chi tiết đơn hàng...'); setOptionsMenuOpenId(null); }} className="w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50/50 text-left">Xem chi tiết</button>
-                          <button onClick={() => { showToast('Đang in hóa đơn...'); setOptionsMenuOpenId(null); }} className="w-full px-3 py-1.5 text-slate-700 hover:bg-slate-50/50 text-left">In hóa đơn</button>
+                          <button onClick={() => { showToast('Đang tải chi tiết đơn hàng...'); setOptionsMenuOpenId(null); }} className="w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 text-left">Xem chi tiết</button>
+                          <button onClick={() => { showToast('Đang in hóa đơn...'); setOptionsMenuOpenId(null); }} className="w-full px-3 py-1.5 text-slate-700 hover:bg-slate-50 text-left">In hóa đơn</button>
                           <button onClick={() => { showToast('Đã thêm đơn hàng vào danh sách Hủy'); setOptionsMenuOpenId(null); }} className="w-full px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 text-left">Hủy đơn</button>
                         </div>
                       )}
@@ -388,8 +388,8 @@ export default function DashboardPage() {
                        </button>
                        {optionsMenuOpenId === order.id && (
                          <div className="absolute right-0 top-6 mt-1 w-32 bg-white border border-slate-200 rounded-lg shadow-lg z-10 py-1 text-left">
-                           <button onClick={() => { showToast('Đang tải chi tiết đơn hàng...'); setOptionsMenuOpenId(null); }} className="w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50/50 text-left">Xem chi tiết</button>
-                           <button onClick={() => { showToast('Đang in hóa đơn...'); setOptionsMenuOpenId(null); }} className="w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50/50 text-left">In hóa đơn</button>
+                           <button onClick={() => { showToast('Đang tải chi tiết đơn hàng...'); setOptionsMenuOpenId(null); }} className="w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 text-left">Xem chi tiết</button>
+                           <button onClick={() => { showToast('Đang in hóa đơn...'); setOptionsMenuOpenId(null); }} className="w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 text-left">In hóa đơn</button>
                            <button onClick={() => { showToast('Đã thêm đơn hàng vào danh sách Hủy'); setOptionsMenuOpenId(null); }} className="w-full px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 text-left">Hủy đơn</button>
                          </div>
                        )}
@@ -482,22 +482,22 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody className="text-sm">
-              <tr className="border-b border-slate-100 hover:bg-slate-50/50">
+              <tr className="border-b border-slate-100 hover:bg-slate-50">
                 <td className="py-4 px-3 font-medium text-slate-900">Mua trực tiếp</td>
                 <td className="py-4 px-3 text-center">65</td>
                 <td className="py-4 px-3 text-right text-emerald-600 font-semibold">70%</td>
               </tr>
-              <tr className="border-b border-slate-100 hover:bg-slate-50/50">
+              <tr className="border-b border-slate-100 hover:bg-slate-50">
                 <td className="py-4 px-3 font-medium text-slate-900">Gọi điện</td>
                 <td className="py-4 px-3 text-center">45</td>
                 <td className="py-4 px-3 text-right text-emerald-600 font-semibold">60%</td>
               </tr>
-              <tr className="border-b border-slate-100 hover:bg-slate-50/50">
+              <tr className="border-b border-slate-100 hover:bg-slate-50">
                 <td className="py-4 px-3 font-medium text-slate-900">Zalo/FB</td>
                 <td className="py-4 px-3 text-center">35</td>
                 <td className="py-4 px-3 text-right text-amber-600 font-semibold">40%</td>
               </tr>
-              <tr className="hover:bg-slate-50/50">
+              <tr className="hover:bg-slate-50">
                 <td className="py-4 px-3 font-medium text-slate-900">Nông dân giới thiệu</td>
                 <td className="py-4 px-3 text-center">25</td>
                 <td className="py-4 px-3 text-right text-emerald-600 font-semibold">85%</td>
@@ -506,7 +506,7 @@ export default function DashboardPage() {
           </table>
         </div>
         <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
-          <button onClick={() => setIsLeadDetailOpen(false)} className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50/50 shadow-sm">
+          <button onClick={() => setIsLeadDetailOpen(false)} className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 shadow-sm">
             Đóng
           </button>
         </div>

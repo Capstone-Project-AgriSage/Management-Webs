@@ -89,12 +89,12 @@ export default function FarmersPage() {
   const aiLogCount = FARMERS.reduce((sum, f) => sum + f.aiLogs.length, 0)
 
   return (
-    <>
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       {/* Utility Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4 pb-4">
         <div className="flex items-center gap-2.5">
           <button
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50/50 text-sm font-medium shadow-sm transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 text-sm font-medium shadow-sm transition-colors"
             onClick={handleExportFarmers}
           >
             <Download size={16} />
@@ -215,7 +215,7 @@ export default function FarmersPage() {
                       key={farmer.id}
                       onClick={() => setSelectedId(farmer.id)}
                       className={`transition-colors cursor-pointer ${
-                        isSelected ? 'bg-emerald-50/50 border-l-2 border-l-emerald-500 hover:bg-emerald-50' : 'hover:bg-slate-50/50 border-l-2 border-transparent'
+                        isSelected ? 'bg-emerald-50/50 border-l-2 border-l-emerald-500 hover:bg-emerald-50' : 'hover:bg-slate-50 border-l-2 border-transparent'
                       }`}
                     >
                       <td className="py-4.5 px-4">
@@ -278,7 +278,7 @@ export default function FarmersPage() {
                           className={
                             isSelected
                               ? 'px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors shadow-sm'
-                              : 'px-3 py-1.5 text-xs font-medium bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50/50 transition-colors'
+                              : 'px-3 py-1.5 text-xs font-medium bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors'
                           }
                         >
                           Chi tiết
@@ -516,6 +516,6 @@ export default function FarmersPage() {
           </div>
         ) : null}
       </DetailModal>
-    </>
+    </div>
   )
 }

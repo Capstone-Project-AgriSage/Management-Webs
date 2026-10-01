@@ -75,7 +75,7 @@ export default function FarmersPage() {
   const totalDebtAmount = inDebtFarmers.reduce((sum, f) => sum + parseVnd(f.debtLabel), 0)
 
   return (
-    <>
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       {/* KPI TILES OVERVIEW */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <KpiCard
@@ -140,7 +140,7 @@ export default function FarmersPage() {
         <div className="overflow-x-auto flex-1 custom-scrollbar">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-100 text-slate-900 text-[13px] font-bold">
+              <tr className="border-b border-slate-100 text-slate-900 text-label-md font-bold">
                 <th className="py-4 px-4">Farmer</th>
                 <th className="py-4 px-3">Số điện thoại</th>
                 <th className="py-4 px-3">Khu vực</th>
@@ -162,7 +162,7 @@ export default function FarmersPage() {
                     key={farmer.id}
                     onClick={() => setSelectedId(farmer.id)}
                     className={`transition-colors cursor-pointer ${
-                      isSelected ? 'bg-emerald-50/50 border-l-2 border-l-emerald-500 hover:bg-emerald-50' : 'hover:bg-slate-50/50 border-l-2 border-transparent'
+                      isSelected ? 'bg-emerald-50/50 border-l-2 border-l-emerald-500 hover:bg-emerald-50' : 'hover:bg-slate-50 border-l-2 border-transparent'
                     }`}
                   >
                     <td className="py-4.5 px-4">
@@ -174,7 +174,7 @@ export default function FarmersPage() {
                           </span>
                         ) : null}
                       </div>
-                      <div className="text-[11px] text-slate-500">#{farmer.id}</div>
+                      <div className="text-label-sm text-slate-500">#{farmer.id}</div>
                     </td>
                     <td className="py-4.5 px-3 font-medium text-slate-700 text-xs">{farmer.phone}</td>
                     <td className="py-3.5 px-3 text-slate-600 truncate max-w-[130px] text-xs" title={farmer.areaTitle}>
@@ -182,14 +182,14 @@ export default function FarmersPage() {
                     </td>
                     <td className="py-4.5 px-3">
                       <span className="font-medium text-slate-900 text-xs">{farmer.lastOrderId}</span>
-                      <span className="block text-[11px] text-slate-500">{farmer.lastOrderAgo}</span>
+                      <span className="block text-label-sm text-slate-500">{farmer.lastOrderAgo}</span>
                     </td>
                     <td className="py-4.5 px-3 text-center font-medium text-slate-900 text-xs tabular-nums">{farmer.totalPurchaseLabel}</td>
                     <td className="py-4.5 px-3 text-center">
                       {farmer.hasDebt ? (
                         <>
                           <span
-                            className={`font-medium px-2 py-0.5 rounded text-[11px] ${
+                            className={`font-medium px-2 py-0.5 rounded text-label-sm ${
                               farmer.debtOverdue
                                 ? 'text-rose-700 bg-rose-50 border border-rose-200'
                                 : 'text-amber-800 bg-amber-50 border border-amber-200'
@@ -198,7 +198,7 @@ export default function FarmersPage() {
                             {farmer.debtLabel}
                           </span>
                           {farmer.debtNote ? (
-                            <span className={`block text-[10px] mt-1 ${farmer.debtOverdue ? 'text-rose-600' : 'text-slate-500'}`}>
+                            <span className={`block text-label-sm mt-1 ${farmer.debtOverdue ? 'text-rose-600' : 'text-slate-500'}`}>
                               {farmer.debtNote}
                             </span>
                           ) : null}
@@ -248,7 +248,7 @@ export default function FarmersPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg text-slate-900 font-bold">{selectedFarmer.name}</h3>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold border border-slate-200">
+                  <span className="text-label-sm px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold border border-slate-200">
                     #{selectedFarmer.id}
                   </span>
                 </div>
@@ -261,7 +261,7 @@ export default function FarmersPage() {
             </div>
             <div className="p-4 space-y-4 overflow-y-auto custom-scrollbar flex-1 text-xs">
               <div className="border border-slate-200 rounded-xl p-3 bg-white shadow-sm">
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
+                <div className="flex items-center gap-1.5 text-label-sm font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                   <MapPin size={16} className="text-slate-400" />
                   <span>Thông tin cư trú</span>
                 </div>
@@ -278,26 +278,26 @@ export default function FarmersPage() {
               </div>
               <div className="border border-slate-200 rounded-xl p-3 bg-slate-50/50">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  <div className="flex items-center gap-1.5 text-label-sm font-semibold text-slate-500 uppercase tracking-wider">
                     <Activity size={16} className="text-slate-400" />
                     <span>Tổng quan giao dịch</span>
                   </div>
-                  <span className="text-[11px] text-slate-500">
+                  <span className="text-label-sm text-slate-500">
                     Tổng: <strong className="text-slate-800">{selectedFarmer.totalOrdersCount}</strong>
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 mt-2">
                   <div className="bg-white p-2 border border-slate-200 rounded-lg shadow-sm">
-                    <div className="text-[11px] text-slate-500">Tổng giá trị mua hàng</div>
+                    <div className="text-label-sm text-slate-500">Tổng giá trị mua hàng</div>
                     <div className="text-sm font-bold text-slate-900 mt-0.5">{selectedFarmer.totalPurchaseValue}</div>
                   </div>
                   <div className="bg-white p-2 border border-slate-200 rounded-lg shadow-sm">
-                    <div className="text-[11px] text-slate-500">{selectedFarmer.lastOrderDateNote}</div>
+                    <div className="text-label-sm text-slate-500">{selectedFarmer.lastOrderDateNote}</div>
                     <div className="text-sm font-bold text-slate-900 mt-0.5">{selectedFarmer.lastOrderValue}</div>
                   </div>
                 </div>
                 <div className="mt-3 pt-3 border-t border-slate-200">
-                  <div className="flex justify-between text-[11px] mb-1.5">
+                  <div className="flex justify-between text-label-sm mb-1.5">
                     <span className="text-slate-600">
                       Đã thanh toán: <strong className="text-emerald-600">{selectedFarmer.paidAmount}</strong> ({selectedFarmer.paidPercent})
                     </span>
@@ -313,7 +313,7 @@ export default function FarmersPage() {
               </div>
               <div className="border border-slate-200 rounded-xl p-3 bg-white shadow-sm">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  <div className="flex items-center gap-1.5 text-label-sm font-semibold text-slate-500 uppercase tracking-wider">
                     <FileText size={16} className="text-slate-400" />
                     <span>Đơn hàng gần đây</span>
                   </div>
@@ -323,13 +323,13 @@ export default function FarmersPage() {
                     <div key={order.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
                       <div>
                         <div className="font-semibold text-slate-800">{order.id}</div>
-                        <div className="text-[11px] text-slate-500">
+                        <div className="text-label-sm text-slate-500">
                           {order.date} - {order.note}
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="font-semibold text-slate-900">{order.amount}</div>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${order.statusClassName}`}>{order.statusLabel}</span>
+                        <span className={`text-label-sm px-1.5 py-0.5 rounded font-medium ${order.statusClassName}`}>{order.statusLabel}</span>
                       </div>
                     </div>
                   ))}
@@ -348,6 +348,6 @@ export default function FarmersPage() {
           </div>
         ) : null}
       </DetailModal>
-    </>
+    </div>
   )
 }

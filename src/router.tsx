@@ -33,6 +33,16 @@ import AgentProductsPage from '@/features/agent/products/ProductsPage'
 import AgentInventoryPage from '@/features/agent/inventory/InventoryPage'
 import AgentFarmersPage from '@/features/agent/farmers/FarmersPage'
 import AgentDebtsPage from '@/features/agent/debts/DebtsPage'
+import AgentInventoryMovementsPage from '@/features/agent/inventory/InventoryMovementsPage'
+import AgentStocktakePage from '@/features/agent/inventory/StocktakePage'
+import AgentDeliveriesPage from '@/features/agent/deliveries/DeliveriesPage'
+import AgentSuppliersPage from '@/features/agent/purchases/SuppliersPage'
+import AgentPurchaseOrdersPage from '@/features/agent/purchases/PurchaseOrdersPage'
+import AgentSeasonalCreditPage from '@/features/agent/debts/SeasonalCreditPage'
+import AgentProductReviewsPage from '@/features/agent/products/ProductReviewsPage'
+import AgentStaffPage from '@/features/agent/staff/StaffPage'
+import AgentActivityLogPage from '@/features/agent/system/ActivityLogPage'
+import AgentSettingsPage from '@/features/agent/system/SettingsPage'
 
 // =======================
 // SALES FEATURES
@@ -43,6 +53,10 @@ import SalesProductsPage from '@/features/sales/products/ProductsPage'
 import SalesOrdersPage from '@/features/sales/orders/OrdersPage'
 import SalesPaymentsPage from '@/features/sales/payments/PaymentsPage'
 import SalesDebtsPage from '@/features/sales/debts/DebtsPage'
+import SalesCreditRequestsPage from '@/features/sales/credit-requests/CreditRequestsPage'
+import SalesInventoryPage from '@/features/sales/inventory/InventoryPage'
+import SalesAiReviewPage from '@/features/sales/ai-review/AiReviewPage'
+import SalesSettingsPage from '@/features/sales/settings/SettingsPage'
 
 // =======================
 // DELIVERY FEATURES
@@ -161,43 +175,43 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/inventory/movements',
-            element: <RequireRole role="agent"><PlaceholderPage title="Biến động kho" /></RequireRole>,
+            element: <RequireRole role="agent"><AgentInventoryMovementsPage /></RequireRole>,
           },
           {
             path: 'agent/inventory/stocktake',
-            element: <RequireRole role="agent"><PlaceholderPage title="Kiểm kê kho" /></RequireRole>,
+            element: <RequireRole role="agent"><AgentStocktakePage /></RequireRole>,
           },
           {
             path: 'agent/deliveries',
-            element: <RequireRole role="agent"><PlaceholderPage title="Quản lý giao hàng" /></RequireRole>,
+            element: <RequireRole role="agent"><AgentDeliveriesPage /></RequireRole>,
           },
           {
             path: 'agent/purchases/suppliers',
-            element: <RequireRole role="agent"><PlaceholderPage title="Nhà cung cấp" /></RequireRole>,
+            element: <RequireRole role="agent"><AgentSuppliersPage /></RequireRole>,
           },
           {
             path: 'agent/purchases/orders',
-            element: <RequireRole role="agent"><PlaceholderPage title="Phiếu nhập hàng" /></RequireRole>,
+            element: <RequireRole role="agent"><AgentPurchaseOrdersPage /></RequireRole>,
           },
           {
             path: 'agent/debts/seasonal-credit',
-            element: <RequireRole role="agent"><PlaceholderPage title="Mua chịu (Seasonal)" /></RequireRole>,
+            element: <RequireRole role="agent"><AgentSeasonalCreditPage /></RequireRole>,
           },
           {
             path: 'agent/products/reviews',
-            element: <RequireRole role="agent"><PlaceholderPage title="Đánh giá sản phẩm" /></RequireRole>,
+            element: <RequireRole role="agent"><AgentProductReviewsPage /></RequireRole>,
           },
           {
             path: 'agent/staff',
-            element: <RequireRole role="agent"><PlaceholderPage title="Quản lý nhân sự" /></RequireRole>,
+            element: <RequireRole role="agent"><AgentStaffPage /></RequireRole>,
           },
           {
             path: 'agent/activity-log',
-            element: <RequireRole role="agent"><PlaceholderPage title="Nhật ký hoạt động" /></RequireRole>,
+            element: <RequireRole role="agent"><AgentActivityLogPage /></RequireRole>,
           },
           {
             path: 'agent/settings',
-            element: <RequireRole role="agent"><PlaceholderPage title="Cài đặt hệ thống" /></RequireRole>,
+            element: <RequireRole role="agent"><AgentSettingsPage /></RequireRole>,
           },
 
           // --- SALES ROUTES ---
@@ -227,19 +241,19 @@ export const router = createBrowserRouter([
           },
           {
             path: 'sales/credit-requests',
-            element: <RequireRole role="sales_staff"><PlaceholderPage title="Yêu cầu mua chịu" /></RequireRole>,
+            element: <RequireRole role="sales_staff"><SalesCreditRequestsPage /></RequireRole>,
           },
           {
             path: 'sales/inventory',
-            element: <RequireRole role="sales_staff"><PlaceholderPage title="Xem tồn kho" /></RequireRole>,
+            element: <RequireRole role="sales_staff"><SalesInventoryPage /></RequireRole>,
           },
           {
             path: 'sales/ai-review',
-            element: <RequireRole role="sales_staff"><PlaceholderPage title="Đánh giá AI" /></RequireRole>,
+            element: <RequireRole role="sales_staff"><SalesAiReviewPage /></RequireRole>,
           },
           {
             path: 'sales/settings',
-            element: <RequireRole role="sales_staff"><PlaceholderPage title="Cài đặt" /></RequireRole>,
+            element: <RequireRole role="sales_staff"><SalesSettingsPage /></RequireRole>,
           },
 
           // --- DELIVERY ROUTES ---

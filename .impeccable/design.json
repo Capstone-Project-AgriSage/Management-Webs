@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-02T00:29:00Z",
+  "title": "Design System: AgriSage Management",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Agri-Green", "canonical": "#16a34a", "tonalRamp": ["#14532d", "#166534", "#15803d", "#16a34a", "#22c55e", "#4ade80", "#86efac", "#dcfce7"] },
+      "surface": { "role": "neutral", "displayName": "Mint Paper", "canonical": "#f8fcf8", "tonalRamp": ["#d7ecd7", "#e2f6e2", "#ebf9eb", "#f2fbf2", "#f8fcf8", "#ffffff", "#ffffff", "#ffffff"] },
+      "on-surface": { "role": "neutral", "displayName": "Pine Dark", "canonical": "#173318", "tonalRamp": ["#000000", "#173318", "#2c472d", "#465a46", "#758a75", "#c3dac3", "#eeffee", "#ffffff"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Dành cho các tiêu đề lớn nhất (Dashboard heroes)." }
+    },
+    "shadows": [],
+    "motion": [],
+    "breakpoints": [
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Sidebar Menu Item",
+      "kind": "nav",
+      "refersTo": "sidebar",
+      "description": "Menu điều hướng trên sidebar với trạng thái active/inactive.",
+      "html": "<a href=\"#\" class=\"ds-nav-item is-active\"><span class=\"ds-nav-icon\">dashboard</span><span class=\"ds-nav-text\">Tổng quan</span></a>",
+      "css": ".ds-nav-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.25rem; font-size: 13px; font-weight: 500; color: #465a46; text-decoration: none; transition: background-color 0.2s, color 0.2s; } .ds-nav-item:hover { background-color: #f2fbf2; color: #173318; } .ds-nav-item.is-active { background-color: #ebf9eb; color: #16a34a; font-weight: 700; border-left: 2px solid #16a34a; border-radius: 0 0.25rem 0.25rem 0; }"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Nút bấm chính sử dụng cho các Call To Action.",
+      "html": "<button class=\"ds-btn-primary\">LƯU THAY ĐỔI</button>",
+      "css": ".ds-btn-primary { background: var(--color-primary, #16a34a); color: #ffffff; padding: 0.5rem 1rem; font-weight: 500; font-size: 14px; border: none; border-radius: 0.25rem; cursor: pointer; transition: background-color 0.2s; } .ds-btn-primary:hover { background-color: #15803d; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Organic Command Center",
+    "overview": "Thiết kế mang lại cảm giác tự nhiên, dễ chịu nhưng vẫn cực kỳ chuyên nghiệp (Tự nhiên nhờ tone màu xanh nông nghiệp, chuyên nghiệp qua bố cục chặt chẽ). Hệ thống được tối ưu hóa sự thực dụng và đáng tin cậy. Mọi chi tiết thừa đều bị loại bỏ để đảm bảo luồng công việc của Quản trị viên không bị phân tâm, giúp tốc độ xử lý dữ liệu đạt mức tối đa.",
+    "keyCharacteristics": [
+      "Thực dụng (Pragmatic): Thiết kế phục vụ chức năng; không có trang trí dư thừa.",
+      "Dễ chịu (Organic): Sử dụng các sắc xanh làm nền tảng giúp giảm mỏi mắt khi làm việc lâu.",
+      "Rõ ràng (Crisp): Cấu trúc lưới và các đường viền rõ ràng."
+    ],
+    "rules": [
+      { "name": "The Green Ink Rule", "body": "Không sử dụng màu đen thuần (#000000) hoặc xám lạnh (cool gray) cho văn bản. Mọi màu trung tính đều phải được pha một chút sắc xanh lá (tinted green) để giữ nguyên DNA Organic.", "section": "colors" },
+      { "name": "The Flat-By-Default Rule", "body": "Các bề mặt (Surfaces) luôn phẳng ở trạng thái nghỉ. Việc phân lớp được thực hiện bằng cách thay đổi màu nền (tonal layering) hoặc sử dụng đường viền mỏng (1px border), thay vì bóng đổ (shadows).", "section": "elevation" },
+      { "name": "The Tabular Data Rule", "body": "Tất cả các con số trong bảng biểu và báo cáo phải sử dụng tính năng tabular-nums để các chữ số được canh thẳng hàng hoàn hảo.", "section": "typography" }
+    ],
+    "dos": [
+      "Do sử dụng viền mỏng (border) để nhóm các dữ liệu có liên quan thay vì thả bóng đổ.",
+      "Do sử dụng các biến CSS đã định nghĩa (var(--color-...), var(--spacing-...)) thay vì hardcode giá trị hex."
+    ],
+    "donts": [
+      "Don't sử dụng màu thuần xám (pure gray) hoặc đen (pure black). Mọi màu trung tính đều phải thuộc dải xanh (green-tinted).",
+      "Don't tạo ra các thẻ (cards) nổi quá cao so với nền (không dùng drop-shadow lớn), trừ khi đó là các thành phần nổi (Dropdown, Modal)."
+    ]
+  }
+}

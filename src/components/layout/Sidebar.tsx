@@ -191,7 +191,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  end={item.to === '/'}
+                  end={item.to === '/' || item.to === '/agent/inventory' || item.to === '/agent/debts' || item.to === '/agent/products'}
                   onClick={onClose}
                   className={({ isActive }) =>
                     `flex items-center justify-between px-space-md py-space-sm font-label-md text-label-md rounded transition-all overflow-hidden ${

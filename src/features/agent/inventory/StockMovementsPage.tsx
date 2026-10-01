@@ -62,7 +62,7 @@ export default function StockMovementsPage() {
   }
 
   return (
-    <>
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       <section className="space-y-3">
         <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-slate-500">
           <Link className="hover:text-slate-900 transition-colors" to="/">Bảng điều khiển</Link>
@@ -71,7 +71,7 @@ export default function StockMovementsPage() {
         </nav>
         <div className="flex justify-end">
           <button
-            className="flex items-center gap-2 h-9 px-3 bg-white hover:bg-slate-50/50 border border-slate-200 rounded-lg text-slate-700 text-sm font-medium transition-colors shadow-sm"
+            className="flex items-center gap-2 h-9 px-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-slate-700 text-sm font-medium transition-colors shadow-sm"
             onClick={() => showToast('Tính năng xuất báo cáo đang phát triển')}
             type="button"
           >
@@ -164,7 +164,7 @@ export default function StockMovementsPage() {
                 const badge = getTypeBadge(m.type)
                 const isPositive = m.quantityChange > 0
                 return (
-                  <tr key={m.id} className="hover:bg-slate-50/50 transition-colors">
+                  <tr key={m.id} className="hover:bg-slate-50 transition-colors">
                     <td className="py-4 pl-4 px-3">
                       <div className="font-semibold text-slate-900">{new Date(m.createdAt).toLocaleDateString('vi-VN')}</div>
                       <div className="text-xs text-slate-500 mt-0.5">{new Date(m.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div>
@@ -207,6 +207,6 @@ export default function StockMovementsPage() {
           setPage={setPage}
         />
       </section>
-    </>
+    </div>
   )
 }

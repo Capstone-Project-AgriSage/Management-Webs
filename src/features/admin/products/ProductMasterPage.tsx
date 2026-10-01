@@ -134,7 +134,7 @@ export default function ProductMasterPage() {
 
 
   return (
-    <div className="flex flex-col gap-6 max-w-[1400px] mx-auto pb-8 w-full px-2">
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       {/* HEADER ROW */}
       <div className="flex items-start justify-between mt-2">
         <div className="flex flex-col gap-1.5">

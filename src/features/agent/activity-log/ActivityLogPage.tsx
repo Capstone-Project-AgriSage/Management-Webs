@@ -95,11 +95,11 @@ export default function ActivityLogPage() {
   const aiRejectedCount = aiActions.filter((e) => e.actionLabel === 'Từ chối').length
 
   return (
-    <>
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       {/* Trailing Action: Export Data */}
       <div className="flex items-center justify-end gap-2 mb-4">
         <button
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50/50 text-slate-700 rounded-lg text-sm font-semibold shadow-sm transition"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-semibold shadow-sm transition"
           type="button"
           onClick={() => {
             downloadCsv(
@@ -245,7 +245,7 @@ export default function ActivityLogPage() {
                         key={entry.id}
                         onClick={() => setSelectedId(entry.id)}
                         className={`transition-colors cursor-pointer ${
-                          isSelected ? 'bg-emerald-50 border-l-4 border-emerald-600' : 'hover:bg-slate-50/50'
+                          isSelected ? 'bg-emerald-50 border-l-4 border-emerald-600' : 'hover:bg-slate-50'
                         }`}
                       >
                         <td
@@ -286,7 +286,7 @@ export default function ActivityLogPage() {
                             className={
                               isSelected
                                 ? 'px-3 py-1 rounded bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition shadow-sm'
-                                : 'px-3 py-1 rounded bg-white hover:bg-slate-50/50 border border-slate-300 text-slate-700 text-xs font-bold transition shadow-sm'
+                                : 'px-3 py-1 rounded bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-bold transition shadow-sm'
                             }
                           >
                             {isSelected ? 'Đang chọn' : 'Chi tiết'}
@@ -510,7 +510,7 @@ export default function ActivityLogPage() {
               <span className="">Xem phân tích AI gốc</span>
             </button>
             <button
-              className="w-full py-2.5 px-3 bg-white border border-slate-300 hover:bg-slate-50/50 text-slate-700 font-bold text-sm rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm"
+              className="w-full py-2.5 px-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-sm rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm"
               type="button"
               onClick={() => {
                 navigate('/farmers')
@@ -524,6 +524,6 @@ export default function ActivityLogPage() {
           </div>
         ) : null}
       </DetailModal>
-    </>
+    </div>
   )
 }

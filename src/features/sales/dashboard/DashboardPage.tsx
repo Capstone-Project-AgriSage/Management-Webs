@@ -36,7 +36,7 @@ export default function DashboardPage() {
   const recentCompletedOrders = orders.filter((o) => o.status === 'Hoàn thành').slice(0, 5)
 
   return (
-    <div className="space-y-4 pb-12">
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <KpiCard
           icon={Banknote}

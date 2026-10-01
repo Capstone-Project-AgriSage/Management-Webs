@@ -67,7 +67,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-[1200px] mx-auto pb-8">
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       {/* HEADER ROW */}
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-normal text-on-surface">Tổng quan hệ thống</h1>

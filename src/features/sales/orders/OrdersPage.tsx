@@ -262,16 +262,16 @@ export default function OrdersPage() {
   const completedCount = orders.filter((o) => o.status === 'Hoàn thành').length
 
   return (
-    <>
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <nav className="flex items-center gap-1 text-[12px] text-slate-500" aria-label="Breadcrumb">
+        <nav className="flex items-center gap-1 text-body-sm text-slate-500" aria-label="Breadcrumb">
           <Link className="hover:text-slate-900 transition-colors" to="/">Bảng điều khiển</Link>
           <ChevronRight size={14} />
           <span className="text-slate-900 font-medium">Đơn hàng</span>
         </nav>
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50/50 transition-colors shadow-sm"
+            className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
             type="button"
             onClick={handleExportOrders}
           >
@@ -312,7 +312,7 @@ export default function OrdersPage() {
           value={waitingCount}
           valueClassName="text-amber-600"
           valueSuffix={
-            <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded font-semibold border border-amber-200">
+            <span className="text-label-sm text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded font-semibold border border-amber-200">
               Cần duyệt
             </span>
           }
@@ -380,13 +380,13 @@ export default function OrdersPage() {
         <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-slate-900">Danh sách đơn hàng</span>
-            <span className="text-[10px] font-mono bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">{filteredOrders.length} bản ghi</span>
+            <span className="text-label-sm font-mono bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">{filteredOrders.length} bản ghi</span>
           </div>
         </div>
         <div className="flex-1 overflow-auto">
           <table className="w-full text-left border-collapse text-sm">
             <thead>
-              <tr className="border-b border-slate-100 text-slate-900 text-[13px] font-bold">
+              <tr className="border-b border-slate-100 text-slate-900 text-label-md font-bold">
                 <th className="py-4 pl-4 px-3">Mã đơn</th>
                 <th className="py-4 px-3">Khách hàng</th>
                 <th className="py-4 px-3">Thời gian</th>
@@ -407,7 +407,7 @@ export default function OrdersPage() {
                     key={order.id}
                     onClick={() => setSelectedId(order.id)}
                     className={`transition-colors cursor-pointer group ${
-                      isSelected ? 'bg-emerald-50/50 hover:bg-emerald-50 border-l-2 border-l-emerald-500' : 'hover:bg-slate-50/50'
+                      isSelected ? 'bg-emerald-50/50 hover:bg-emerald-50 border-l-2 border-l-emerald-500' : 'hover:bg-slate-50'
                     }`}
                   >
                     <td className={`py-3 pl-4 px-3 font-mono font-medium text-xs ${isSelected ? 'text-emerald-600' : 'text-slate-900'}`}>
@@ -467,12 +467,12 @@ export default function OrdersPage() {
                   <span className="font-mono font-bold text-sm text-slate-900">#{selectedOrder.id}</span>
                   <StatusBadge label={selectedOrder.statusBadge.label} className={selectedOrder.statusBadge.className} />
                 </div>
-                <div className="text-[11px] text-slate-500 mt-1">{selectedOrder.createdAgo}</div>
+                <div className="text-label-sm text-slate-500 mt-1">{selectedOrder.createdAgo}</div>
               </div>
             </div>
             <div className="p-4 space-y-2 border-b border-slate-100">
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Khách hàng</span>
+                <span className="text-label-sm font-bold text-slate-400 uppercase tracking-wider block">Khách hàng</span>
                 <div className="text-sm text-slate-900 font-bold mt-1">{selectedOrder.customerName}</div>
                 <div className="text-xs text-slate-500 flex items-center gap-1 mt-1">
                   <Phone size={12} className="text-slate-400" />
@@ -491,13 +491,13 @@ export default function OrdersPage() {
               ) : null}
             </div>
             <div className="p-4 space-y-2 border-b border-slate-100">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Danh sách sản phẩm</span>
+              <span className="text-label-sm font-bold text-slate-400 uppercase tracking-wider block">Danh sách sản phẩm</span>
               <div className="space-y-3 pt-2 text-xs">
                 {selectedOrder.items.map((item) => (
                   <div key={item.productId} className="flex items-start justify-between">
                     <div>
                       <p className="font-semibold text-slate-900">{item.name}</p>
-                      <p className="text-[11px] text-slate-500 font-mono mt-0.5">{item.qtyPrice}</p>
+                      <p className="text-label-sm text-slate-500 font-mono mt-0.5">{item.qtyPrice}</p>
                     </div>
                     <span className="font-mono font-bold text-slate-900">{item.total}</span>
                   </div>
@@ -505,8 +505,8 @@ export default function OrdersPage() {
               </div>
               <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tổng thanh toán</span>
-                  <div className="text-[11px] font-medium text-slate-600 mt-0.5">
+                  <span className="text-label-sm font-bold text-slate-400 uppercase tracking-wider">Tổng thanh toán</span>
+                  <div className="text-label-sm font-medium text-slate-600 mt-0.5">
                     {selectedOrder.paymentBadge.label} • Tạo bởi {selectedOrder.createdBy}
                   </div>
                 </div>
@@ -516,12 +516,12 @@ export default function OrdersPage() {
             <div className="p-4 bg-slate-50 rounded-b-xl space-y-2">
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50/50 text-rose-600 rounded-lg text-xs font-semibold transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-rose-600 rounded-lg text-xs font-semibold transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   type="button"
                   disabled={!CANCELABLE_STATUSES.includes(selectedOrder.status)}
                   onClick={() => setOrderStatus(selectedOrder.id, 'Đã hủy')}
                 >
-                  <span className="material-symbols-outlined text-[16px]">cancel</span>
+                  <span className="material-symbols-outlined text-title-lg">cancel</span>
                   <span>Hủy đơn</span>
                 </button>
                 <button
@@ -552,6 +552,6 @@ export default function OrdersPage() {
         onSubmit={handleCreateOrder}
         submitLabel="Tạo đơn hàng"
       />
-    </>
+    </div>
   )
 }
