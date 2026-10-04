@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Trash2, Plus, Minus, ShoppingCart, ArrowRight } from 'lucide-react'
+import { Trash2, Plus, Minus, ShoppingCart, ArrowRight, Loader2 } from 'lucide-react'
 import { formatVnd } from '@/utils/money'
 import { counterSalesApi } from '@/api/counterSalesApi'
 import { ordersApi } from '@/api/ordersApi'
@@ -21,7 +21,7 @@ export default function CartPanel({ items, onUpdateQuantity, onRemoveItem, onCle
   const [selling, setSelling] = useState(false)
   const [creatingOrder, setCreatingOrder] = useState(false)
 
-  const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+  const total = Math.round(items.reduce((sum, item) => sum + (item.price * item.quantity), 0))
 
   const handlePreview = async () => {
     if (items.length === 0) return

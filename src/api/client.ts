@@ -12,7 +12,7 @@ export class ApiError extends Error {
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem('agrisage_token')
-  const baseUrl = import.meta.env.VITE_API_URL || 'https://localhost:7068'
+  const baseUrl = import.meta.env.VITE_API_URL || ''
   const res = await fetch(`${baseUrl}${path}`, {
     ...init,
     headers: {

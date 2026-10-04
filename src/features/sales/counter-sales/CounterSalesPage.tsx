@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import ProductSearchPanel from './ProductSearchPanel'
 import CartPanel from './CartPanel'
@@ -15,7 +15,7 @@ export default function CounterSalesPage() {
   usePageHeader({ title: 'Bán tại quầy', subtitle: 'Tạo đơn và thu tiền trực tiếp' })
   const [cartItems, setCartItems] = useState<CartItem[]>([])
 
-  const handleAddToCart = (item: CartItem) => {
+  const handleAddToCart = useCallback((item: CartItem) => {
     setCartItems(prev => {
       const existing = prev.find(i => i.product.id === item.product.id && i.packagingId === item.packagingId)
       if (existing) {
@@ -23,19 +23,19 @@ export default function CounterSalesPage() {
       }
       return [...prev, item]
     })
-  }
+  }, [])
 
-  const handleUpdateQuantity = (index: number, quantity: number) => {
+  const handleUpdateQuantity = useCallback((index: number, quantity: number) => {
     setCartItems(prev => prev.map((item, i) => i === index ? { ...item, quantity } : item))
-  }
+  }, [])
 
-  const handleRemoveItem = (index: number) => {
+  const handleRemoveItem = useCallback((index: number) => {
     setCartItems(prev => prev.filter((_, i) => i !== index))
-  }
+  }, [])
 
-  const handleClearCart = () => {
+  const handleClearCart = useCallback(() => {
     setCartItems([])
-  }
+  }, [])
 
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col md:flex-row bg-surface-container-lowest overflow-hidden -m-space-md">
