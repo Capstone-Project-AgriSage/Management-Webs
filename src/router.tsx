@@ -51,10 +51,12 @@ import SalesDashboardPage from '@/features/sales/dashboard/DashboardPage'
 import SalesFarmersPage from '@/features/sales/farmers/FarmersPage'
 import SalesProductsPage from '@/features/sales/products/ProductsPage'
 import SalesOrdersPage from '@/features/sales/orders/OrdersPage'
+import CounterSalesPage from '@/features/sales/counter-sales/CounterSalesPage'
 import SalesPaymentsPage from '@/features/sales/payments/PaymentsPage'
 import SalesDebtsPage from '@/features/sales/debts/DebtsPage'
 import SalesCreditRequestsPage from '@/features/sales/credit-requests/CreditRequestsPage'
 import SalesInventoryPage from '@/features/sales/inventory/InventoryPage'
+import SalesPriceListsPage from '@/features/sales/price-lists/PriceListsPage'
 import SalesAiReviewPage from '@/features/sales/ai-review/AiReviewPage'
 import SalesSettingsPage from '@/features/sales/settings/SettingsPage'
 
@@ -150,6 +152,10 @@ export const router = createBrowserRouter([
             element: <RequireRole role="agent"><AgentOrdersPage /></RequireRole>,
           },
           {
+            path: 'agent/counter-sales',
+            element: <RequireRole role="agent"><CounterSalesPage /></RequireRole>,
+          },
+          {
             path: 'agent/payments',
             element: <RequireRole role="agent"><AgentPaymentsPage /></RequireRole>,
           },
@@ -232,6 +238,10 @@ export const router = createBrowserRouter([
             element: <RequireRole role="sales_staff"><SalesOrdersPage /></RequireRole>,
           },
           {
+            path: 'sales/counter-sales',
+            element: <RequireRole role="sales_staff"><CounterSalesPage /></RequireRole>,
+          },
+          {
             path: 'sales/payments',
             element: <RequireRole role="sales_staff"><SalesPaymentsPage /></RequireRole>,
           },
@@ -246,6 +256,10 @@ export const router = createBrowserRouter([
           {
             path: 'sales/inventory',
             element: <RequireRole role="sales_staff"><SalesInventoryPage /></RequireRole>,
+          },
+          {
+            path: 'sales/price-lists',
+            element: <RequireRole role="sales_staff"><SalesPriceListsPage /></RequireRole>,
           },
           {
             path: 'sales/ai-review',

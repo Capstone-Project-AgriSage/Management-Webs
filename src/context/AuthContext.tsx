@@ -1,58 +1,72 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { AppRole, AppUser } from '@/types'
-import { DEFAULT_USERS } from '@/config/roles'
+import { authApi } from '@/api/authApi'
 
-const STORAGE_KEY = 'agrisage_auth'
-const ROLE_KEY = 'agrisage_role'
+const TOKEN_KEY = 'agrisage_token'
 
 interface AuthContextValue {
   isAuthenticated: boolean
-  user: AppUser
-  currentRole: AppRole
-  login: (email: string, password: string, role: AppRole) => Promise<void>
+  isLoading: boolean
+  user: any // Ideally map from BE user
+  currentRole: AppRole | null
+  login: (identifier: string, password: string) => Promise<void>
   logout: () => void
-  switchRole: (role: AppRole) => void
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [currentRole, setCurrentRole] = useState<AppRole>(
-    () => (localStorage.getItem(ROLE_KEY) as AppRole) || 'admin',
-  )
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () => localStorage.getItem(STORAGE_KEY) === '1',
-  )
+const roleMapping: Record<string, AppRole> = {
+  'STORE_OWNER': 'agent',
+  'SALES_STAFF': 'sales_staff',
+  'ADMIN': 'admin',
+  'DELIVERY_STAFF': 'delivery_staff'
+}
 
-  const user = DEFAULT_USERS[currentRole]
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [currentRole, setCurrentRole] = useState<AppRole | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
-    if (isAuthenticated) {
-      localStorage.setItem(STORAGE_KEY, '1')
-      localStorage.setItem(ROLE_KEY, currentRole)
-    } else {
-      localStorage.removeItem(STORAGE_KEY)
-      localStorage.removeItem(ROLE_KEY)
+    const initAuth = async () => {
+      const token = localStorage.getItem(TOKEN_KEY)
+      if (!token) {
+        setIsLoading(false)
+        return
+      }
+      try {
+        const userData = await authApi.me()
+        setUser(userData)
+        setCurrentRole(roleMapping[userData.role] || null)
+        setIsAuthenticated(true)
+      } catch (err) {
+        localStorage.removeItem(TOKEN_KEY)
+      } finally {
+        setIsLoading(false)
+      }
     }
-  }, [isAuthenticated, currentRole])
+    initAuth()
+  }, [])
 
-  const login = async (_email: string, _password: string, role: AppRole) => {
-    await new Promise((resolve) => setTimeout(resolve, 900))
-    setCurrentRole(role)
+  const login = async (identifier: string, password: string) => {
+    const res = await authApi.login(identifier, password)
+    localStorage.setItem(TOKEN_KEY, res.accessToken)
+    setUser(res.user)
+    setCurrentRole(roleMapping[res.user.role] || null)
     setIsAuthenticated(true)
   }
 
   const logout = () => {
+    localStorage.removeItem(TOKEN_KEY)
     setIsAuthenticated(false)
-  }
-
-  const switchRole = (role: AppRole) => {
-    setCurrentRole(role)
+    setCurrentRole(null)
+    setUser(null)
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, currentRole, login, logout, switchRole }}>
-      {children}
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, user, currentRole, login, logout }}>
+      {!isLoading && children}
     </AuthContext.Provider>
   )
 }

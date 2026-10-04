@@ -64,6 +64,7 @@ function useNavConfig() {
         title: 'Chung',
         items: [
           { label: 'Tổng quan', to: '/', icon: 'dashboard', iconTone: 'primary' as const },
+          { label: 'Bán tại quầy', to: '/agent/counter-sales', icon: 'point_of_sale', iconTone: 'primary' as const },
           { label: 'Đơn hàng', to: '/agent/orders', icon: 'receipt_long', badge: String(agentOrders.length), badgeTone: 'primary' as const },
           { label: 'Thanh toán VietQR', to: '/agent/payments', icon: 'payments', badge: `${unpaidPaymentCount} chờ`, badgeTone: 'primary' as const },
           ...(user.can_review_ai ? [{ label: 'Hàng đợi AI', to: '/agent/ai-recommendations', icon: 'psychology', badge: String(pendingAiCount), badgeTone: 'error' as const, iconTone: 'primary' as const }] : [])
@@ -105,6 +106,7 @@ function useNavConfig() {
   if (currentRole === 'sales_staff') {
     const items: NavItem[] = [
       { label: 'Tổng quan', to: '/', icon: 'dashboard', iconTone: 'primary' },
+      { label: 'Bán tại quầy', to: '/sales/counter-sales', icon: 'point_of_sale', iconTone: 'primary' },
       { label: 'Farmer', to: '/sales/farmers', icon: 'groups' },
       { label: 'Sản phẩm', to: '/sales/products', icon: 'category' },
       { label: 'Đơn hàng', to: '/sales/orders', icon: 'receipt_long' },
@@ -112,6 +114,7 @@ function useNavConfig() {
       { label: 'Mua chịu mùa vụ', to: '/sales/credit-requests', icon: 'assignment_turned_in' },
       { label: 'Công nợ', to: '/sales/debts', icon: 'pending_actions' },
       { label: 'Kho', to: '/sales/inventory', icon: 'inventory_2' },
+      { label: 'Bảng giá', to: '/sales/price-lists', icon: 'price_change' },
       ...(user.can_review_ai ? [{ label: 'AI Review', to: '/sales/ai-review', icon: 'psychology', iconTone: 'primary' as const }] : []),
       { label: 'Cài đặt', to: '/sales/settings', icon: 'settings' },
     ]

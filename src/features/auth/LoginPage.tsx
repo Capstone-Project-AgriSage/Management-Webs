@@ -8,42 +8,32 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
   
-  const [selectedRole, setSelectedRole] = useState<AppRole>('admin')
-  const [email, setEmail] = useState(ROLE_OPTIONS.find(r => r.id === 'admin')?.email || '')
-  const [password, setPassword] = useState('password123')
+  const [identifier, setIdentifier] = useState('')
+  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  const handleRoleSelect = (roleId: AppRole) => {
-    setSelectedRole(roleId)
-    const roleConfig = ROLE_OPTIONS.find(r => r.id === roleId)
-    if (roleConfig) {
-      setEmail(roleConfig.email)
-    }
-  }
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!email || !password) {
-      setError('Vui lòng nhập đầy đủ email và mật khẩu.')
+    if (!identifier || !password) {
+      setError('Vui lòng nhập đầy đủ email/sđt và mật khẩu.')
       return
     }
     setError('')
     setIsSubmitting(true)
     try {
-      await login(email, password, selectedRole)
-      let destination = '/'
-      if (selectedRole === 'agent') destination = '/agent'
-      if (selectedRole === 'sales_staff') destination = '/sales'
-      if (selectedRole === 'delivery_staff') destination = '/delivery'
-      navigate(destination)
+      await login(identifier, password)
+      // Navigation is handled implicitly or you can redirect here:
+      // Note: the login function updates context, but we need to wait for re-render 
+      // or rely on a generic redirect. Actually, the RootRedirect in router will handle the slash route.
+      navigate('/')
+    } catch (err: any) {
+      setError(err.detail || 'Đăng nhập thất bại. Kiểm tra lại thông tin.')
     } finally {
       setIsSubmitting(false)
     }
   }
-
-  const currentRoleConfig = ROLE_OPTIONS.find(r => r.id === selectedRole)
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 sm:p-6">
@@ -66,49 +56,31 @@ export default function LoginPage() {
           <div className="mb-6 text-center">
             <h1 className="font-headline-sm text-headline-sm text-on-surface font-bold">Đăng nhập hệ thống</h1>
             <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">
-              Chọn vai trò của bạn để tiếp tục
+              Nhập số điện thoại hoặc email để tiếp tục
             </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 mb-6">
-            {ROLE_OPTIONS.map((role) => (
-              <button
-                key={role.id}
-                type="button"
-                onClick={() => handleRoleSelect(role.id)}
-                className={`p-3 rounded-lg border flex flex-col items-center gap-1 transition-all ${
-                  selectedRole === role.id
-                    ? 'border-primary bg-primary-container/20 text-primary'
-                    : 'border-outline-variant/60 hover:bg-surface-container-low text-on-surface-variant hover:text-on-surface'
-                }`}
-              >
-                <span className="material-symbols-outlined text-[24px]">{role.icon}</span>
-                <span className="text-[12px] font-medium text-center">{role.shortLabel}</span>
-              </button>
-            ))}
           </div>
 
           <form className="space-y-4" onSubmit={handleSubmit} noValidate>
             <div>
               <label
                 className="block font-label-sm text-label-sm uppercase text-on-surface-variant mb-1.5"
-                htmlFor="emailInput"
+                htmlFor="identifierInput"
               >
-                Email đăng nhập
+                Tài khoản (SĐT hoặc Email)
               </label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-outline">
                   person
                 </span>
                 <input
-                  id="emailInput"
-                  name="email"
+                  id="identifierInput"
+                  name="identifier"
                   type="text"
                   autoComplete="username"
-                  placeholder="admin@agrisage.vn"
+                  placeholder="0901234567"
                   className="w-full h-11 pl-10 pr-3 text-sm bg-white border border-outline-variant rounded focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none text-on-surface placeholder:text-outline font-body-md transition-all"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                 />
               </div>
             </div>
@@ -121,12 +93,6 @@ export default function LoginPage() {
                 >
                   Mật khẩu
                 </label>
-                <Link
-                  to="/forgot-password"
-                  className="font-label-md text-label-md text-primary hover:underline"
-                >
-                  Quên mật khẩu?
-                </Link>
               </div>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-outline">
@@ -181,7 +147,7 @@ export default function LoginPage() {
                 </>
               ) : (
                 <>
-                  Đăng nhập ({currentRoleConfig?.shortLabel})
+                  Đăng nhập
                   <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                 </>
               )}

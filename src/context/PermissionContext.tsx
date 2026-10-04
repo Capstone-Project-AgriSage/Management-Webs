@@ -12,7 +12,7 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
 
   // Map AppRole to AccountRole for admin permission lookups
-  const accountRole = user.role === 'admin' ? 'Admin' : user.roleLabel
+  const accountRole = user?.role === 'admin' ? 'Admin' : (user?.roleLabel || '')
 
   const value = useMemo<PermissionContextValue>(
     () => ({
