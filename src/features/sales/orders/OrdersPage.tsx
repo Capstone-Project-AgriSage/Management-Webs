@@ -122,13 +122,18 @@ export default function OrdersPage() {
   }
 
   const handleOpenDetail = async (order: OrderResponse) => {
+    // Show the dialog at once with the list summary, then load the full order (the list has no order lines).
     setSelectedOrder(order)
     setPaymentSummary(null)
     try {
-      const summary = await paymentsApi.getOrderPayments(order.id)
+      const [full, summary] = await Promise.all([
+        ordersApi.getById(order.id),
+        paymentsApi.getOrderPayments(order.id),
+      ])
+      setSelectedOrder(full)
       setPaymentSummary(summary)
     } catch (err) {
-      showToast('Không thể tải thông tin thanh toán', 'error')
+      showToast('Không thể tải chi tiết đơn hàng', 'error')
     }
   }
 
@@ -273,8 +278,12 @@ export default function OrdersPage() {
       }
       setCancelModal({ open: false, type: 'ORDER', title: '' })
       setCancelReason('')
-      // Tải lại payment summary để lấy thông tin hoàn tiền (nếu có)
-      const newSummary = await paymentsApi.getOrderPayments(selectedOrder.id)
+      // Tải lại đơn (trạng thái, số lượng còn lại) và payment summary để lấy thông tin hoàn tiền (nếu có)
+      const [fullOrder, newSummary] = await Promise.all([
+        ordersApi.getById(selectedOrder.id),
+        paymentsApi.getOrderPayments(selectedOrder.id),
+      ])
+      setSelectedOrder(fullOrder)
       setPaymentSummary(newSummary)
       // Tạm đóng modal chi tiết hoặc load lại (đây load lại summary + list)
       fetchOrders()
