@@ -7,7 +7,6 @@ import * as accountsService from '@/features/admin/services/accountsService'
 
 /* ── Agent-only imports (used for dynamic badges) ── */
 import { products as agentProducts } from '@/features/agent/data/mockProducts'
-import { inventoryItems } from '@/features/agent/data/mockInventory'
 import { orders as agentOrders } from '@/features/agent/data/mockOrders'
 import { payments as agentPayments } from '@/features/agent/data/mockPayments'
 import { debtCustomers } from '@/features/agent/data/mockDebts'
@@ -54,7 +53,6 @@ function useNavConfig() {
   }
 
   if (currentRole === 'agent') {
-    const inventoryAlertCount = inventoryItems.filter((i) => i.stockLabel !== 'Tồn kho tốt').length
     const unpaidPaymentCount = agentPayments.filter((p) => p.statusBadge.label !== 'Đã thanh toán').length
     const totalDebtRemaining = debtCustomers.reduce((sum, c) => sum + parseVnd(c.remaining), 0)
     const pendingAiCount = aiCases.filter((c) => c.statusBadge.label === 'Chờ duyệt').length
@@ -74,7 +72,7 @@ function useNavConfig() {
         title: 'Quản lý kho & Sản phẩm',
         items: [
           { label: 'Sản phẩm', to: '/agent/products', icon: 'category', badge: String(agentProducts.length) },
-          { label: 'Tồn kho', to: '/agent/inventory', icon: 'inventory_2', badge: String(inventoryAlertCount), badgeTone: 'error' as const },
+          { label: 'Tồn kho', to: '/agent/inventory', icon: 'inventory_2' },
           { label: 'Biến động kho', to: '/agent/inventory/movements', icon: 'sync_alt' },
           { label: 'Kiểm kê', to: '/agent/inventory/stocktake', icon: 'fact_check' },
           { label: 'Giao hàng', to: '/agent/deliveries', icon: 'local_shipping' },
