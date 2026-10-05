@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Trash2, Plus, Minus, ShoppingCart, ArrowRight, Loader2 } from 'lucide-react'
 import { formatVnd } from '@/utils/money'
 import { counterSalesApi } from '@/api/counterSalesApi'
-import { ordersApi } from '@/api/ordersApi'
 import { useToast } from '@/context/ToastContext'
 import type { CartItem } from './CounterSalesPage'
 import type { CounterSalePreviewResponse } from '@/api/types'
@@ -19,7 +18,6 @@ export default function CartPanel({ items, onUpdateQuantity, onRemoveItem, onCle
   const [previewing, setPreviewing] = useState(false)
   const [previewData, setPreviewData] = useState<CounterSalePreviewResponse | null>(null)
   const [selling, setSelling] = useState(false)
-  const [creatingOrder, setCreatingOrder] = useState(false)
 
   const total = Math.round(items.reduce((sum, item) => sum + (item.price * item.quantity), 0))
 
@@ -83,35 +81,6 @@ export default function CartPanel({ items, onUpdateQuantity, onRemoveItem, onCle
       }
     } finally {
       setSelling(false)
-    }
-  }
-
-  const handleCreateOrder = async () => {
-    if (items.length === 0) return
-    setCreatingOrder(true)
-    try {
-      const res = await ordersApi.create({
-        source: 'COUNTER',
-        customerType: 'WALK_IN',
-        settlementType: 'FULL_PAYMENT',
-        fulfillmentType: 'PICKUP',
-        items: items.map(i => ({
-          storeProductId: i.product.id,
-          productPackagingId: i.packagingId,
-          quantity: i.quantity,
-          unitPrice: i.price
-        }))
-      })
-      showToast(`Tạo đơn hàng thành công! Mã đơn: ${res.orderNumber}`, 'success')
-      onClearCart()
-    } catch (err: any) {
-      if (err.errors) {
-        showToast(Object.values(err.errors).flat().join(', '), 'error')
-      } else {
-        showToast(err.detail || err.title || 'Lỗi khi tạo đơn', 'error')
-      }
-    } finally {
-      setCreatingOrder(false)
     }
   }
 
@@ -253,9 +222,9 @@ export default function CartPanel({ items, onUpdateQuantity, onRemoveItem, onCle
           <span className="font-bold text-3xl text-emerald-600 tracking-tight">{formatVnd(total)}</span>
         </div>
         <div className="flex flex-col gap-3">
-          <button 
+          <button
             className="w-full h-14 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-2xl font-bold flex justify-center items-center gap-2 disabled:opacity-50 transition-all shadow-md hover:shadow-emerald-500/25 text-base"
-            disabled={items.length === 0 || previewing || creatingOrder}
+            disabled={items.length === 0 || previewing}
             onClick={handlePreview}
           >
             {previewing ? (
@@ -265,14 +234,6 @@ export default function CartPanel({ items, onUpdateQuantity, onRemoveItem, onCle
                 BÁN NHANH (THU TIỀN NGAY) <ArrowRight className="w-5 h-5" />
               </>
             )}
-          </button>
-          
-          <button 
-            className="w-full h-12 bg-surface hover:bg-surface-container text-on-surface rounded-2xl font-bold flex justify-center items-center gap-2 disabled:opacity-50 transition-all border-2 border-outline-variant hover:border-outline text-sm"
-            disabled={items.length === 0 || previewing || creatingOrder}
-            onClick={handleCreateOrder}
-          >
-            {creatingOrder ? 'ĐANG TẠO ĐƠN...' : 'TẠO ĐƠN VÀ THU TIỀN SAU'}
           </button>
         </div>
       </div>

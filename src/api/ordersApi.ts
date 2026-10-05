@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { OrderResponse, OrderItemRequest, Paged, Uuid, FefoLotSuggestion } from './types'
+import type { OrderResponse, OrderItemRequest, OrderStatus, Paged, Uuid, FefoLotSuggestion } from './types'
 
 export interface CreateOrderRequest {
   source: 'COUNTER' | 'FARMER_WEB' | 'FARMER_MOBILE'
@@ -65,7 +65,12 @@ export const ordersApi = {
     const qs = searchParams.toString()
     return api<Paged<OrderResponse>>(`/api/orders${qs ? `?${qs}` : ''}`)
   },
-  
+
+  // The list returns summaries without the order lines; the lines only come with the single-order call.
+  getById: (orderId: Uuid) => {
+    return api<OrderResponse>(`/api/orders/${orderId}`)
+  },
+
   getFefoSuggestions: (orderId: Uuid) => {
     return api<FefoSuggestionResponse>(`/api/orders/${orderId}/fefo-suggestions`)
   },
