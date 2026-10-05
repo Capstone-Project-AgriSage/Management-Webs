@@ -625,12 +625,6 @@ export default function OrdersPage() {
                 >
                   Thu hết số còn lại
                 </button>
-                <button
-                  className="flex-1 py-2 bg-surface-container-high hover:bg-surface-container-highest text-sm font-bold rounded-lg border border-outline-variant transition-colors text-on-surface"
-                  onClick={() => setPaymentAmount((paymentSummary.orderTotal / 2).toString())}
-                >
-                  Đặt cọc 50%
-                </button>
               </div>
             </div>
             
