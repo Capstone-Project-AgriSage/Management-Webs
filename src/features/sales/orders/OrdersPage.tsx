@@ -19,6 +19,9 @@ import { paymentsApi } from '@/api/paymentsApi'
 import type { OrderResponse, OrderStatus } from '@/api/types'
 import type { FefoSuggestionResponse } from '@/api/ordersApi'
 import type { OrderPaymentsSummary } from '@/api/paymentsApi'
+import { deliveriesApi, type DeliveryListItem, type DeliveryResponse } from '@/api/deliveriesApi'
+import { ApiError } from '@/api/client'
+import { DELIVERY_STATUS_LABEL, formatDate, labelOf } from '@/utils/deliveryLabels'
 const STATUS_MAP: Record<OrderStatus, string> = {
   PENDING_CONFIRMATION: 'Chờ xác nhận',
   CONFIRMED: 'Đã xác nhận',
@@ -39,6 +42,13 @@ const STATUS_OPTIONS: { label: string; value: OrderStatus | '' }[] = [
   { label: 'Giao một phần', value: 'PARTIALLY_FULFILLED' },
   { label: 'Hoàn thành', value: 'COMPLETED' },
   { label: 'Đã hủy', value: 'CANCELLED' },
+]
+
+const SOURCE_OPTIONS: { label: string; value: string }[] = [
+  { label: 'Tất cả nguồn', value: '' },
+  { label: 'Tại quầy', value: 'COUNTER' },
+  { label: 'Đơn Online (Web)', value: 'FARMER_WEB' },
+  { label: 'Đơn Online (App)', value: 'FARMER_MOBILE' },
 ]
 
 const STATUS_VISUALS: Record<OrderStatus, { className: string; dotClassName: string }> = {
@@ -64,6 +74,7 @@ export default function OrdersPage() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<OrderStatus | ''>('')
+  const [sourceFilter, setSourceFilter] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
 
   const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(null)
@@ -91,6 +102,15 @@ export default function OrdersPage() {
   const [cancelReason, setCancelReason] = useState('')
   const [isCancelling, setIsCancelling] = useState(false)
 
+  // Delivery state
+  const [isDeliveryModalOpen, setIsDeliveryModalOpen] = useState(false)
+  const [deliveryQuantities, setDeliveryQuantities] = useState<Record<string, number>>({})
+  const [isCreatingDelivery, setIsCreatingDelivery] = useState(false)
+  const [orderDeliveries, setOrderDeliveries] = useState<DeliveryListItem[]>([])
+  const [openDeliveryDetails, setOpenDeliveryDetails] = useState<DeliveryResponse[]>([])
+  const [deliveryScheduledAt, setDeliveryScheduledAt] = useState('')
+  const [deliveryNote, setDeliveryNote] = useState('')
+
   const fetchOrders = async () => {
     setIsLoading(true)
     try {
@@ -98,7 +118,8 @@ export default function OrdersPage() {
         page,
         pageSize: 10,
         search,
-        status: statusFilter || undefined
+        status: statusFilter || undefined,
+        source: sourceFilter || undefined
       })
       setOrders(res.items)
       setTotalCount(res.totalCount)
@@ -113,11 +134,12 @@ export default function OrdersPage() {
   useEffect(() => {
     const timer = setTimeout(fetchOrders, 300)
     return () => clearTimeout(timer)
-  }, [page, search, statusFilter])
+  }, [page, search, statusFilter, sourceFilter])
 
   const handleClearFilters = () => {
     setSearch('')
     setStatusFilter('')
+    setSourceFilter('')
     setPage(1)
   }
 
@@ -125,6 +147,10 @@ export default function OrdersPage() {
     // Show the dialog at once with the list summary, then load the full order (the list has no order lines).
     setSelectedOrder(order)
     setPaymentSummary(null)
+    setOrderDeliveries([])
+    if (order.fulfillmentType === 'DELIVERY') {
+      deliveriesApi.getOrderDeliveries(order.id).then(setOrderDeliveries).catch(() => setOrderDeliveries([]))
+    }
     try {
       const [full, summary] = await Promise.all([
         ordersApi.getById(order.id),
@@ -261,6 +287,85 @@ export default function OrdersPage() {
     }
   }
 
+  /** Packs of an order line still undelivered on other open deliveries — FE_GUIDE_FLOW_2 §Q2. */
+  const plannedElsewhere = (orderItemId: string, conversion: number, deliveries = openDeliveryDetails) =>
+    deliveries
+      .filter((d) => d.status !== 'CANCELLED' && d.status !== 'DELIVERED')
+      .flatMap((d) => d.items ?? [])
+      .filter((i) => i.orderItemId === orderItemId)
+      .reduce((sum, i) => sum + Math.ceil((i.remainingBaseQuantity ?? i.plannedBaseQuantity ?? 0) / conversion), 0)
+
+  const availableToPlan = (item: OrderResponse['items'][number], deliveries = openDeliveryDetails) => {
+    const conversion = item.conversionToBase || 1
+    return Math.max(0, Math.floor(item.remainingBaseQuantity / conversion) - plannedElsewhere(item.id, conversion, deliveries))
+  }
+
+  const handleOpenDeliveryModal = async () => {
+    if (!selectedOrder) return
+    // Reload so a delivery created a moment ago (another tab, another staff) is counted.
+    const list = await deliveriesApi.getOrderDeliveries(selectedOrder.id).catch(() => orderDeliveries)
+    setOrderDeliveries(list)
+    // The list has no lines: load the open deliveries to know what they still hold.
+    const deliveries = await Promise.all(
+      list.filter((d) => d.status !== 'CANCELLED' && d.status !== 'DELIVERED').map((d) => deliveriesApi.getDeliveryDetail(d.id)),
+    ).catch(() => openDeliveryDetails)
+    setOpenDeliveryDetails(deliveries)
+    const initialQuantities: Record<string, number> = {}
+    selectedOrder.items.forEach(item => {
+      const free = availableToPlan(item, deliveries)
+      if (free > 0) {
+        initialQuantities[item.id] = free
+      }
+    })
+    setDeliveryQuantities(initialQuantities)
+    setDeliveryScheduledAt('')
+    setDeliveryNote('')
+    setIsDeliveryModalOpen(true)
+  }
+
+  const handleCreateDelivery = async () => {
+    if (!selectedOrder) return
+    const items = Object.entries(deliveryQuantities)
+      .filter(([_, qty]) => qty > 0)
+      .map(([orderItemId, plannedQuantity]) => ({
+        orderItemId,
+        plannedQuantity,
+      }))
+
+    if (items.length === 0) {
+      showToast('Vui lòng chọn ít nhất 1 sản phẩm để giao', 'error')
+      return
+    }
+
+    setIsCreatingDelivery(true)
+    try {
+      await deliveriesApi.create({
+        orderId: selectedOrder.id,
+        items,
+        deliveryAddress: null,
+        scheduledAt: deliveryScheduledAt ? new Date(deliveryScheduledAt).toISOString() : null,
+        note: deliveryNote.trim() || null,
+      })
+      showToast('Lập phiếu giao hàng thành công!', 'success')
+      setIsDeliveryModalOpen(false)
+      setSelectedOrder(null)
+      fetchOrders()
+    } catch (err) {
+      // 422 errors are keyed by line ("items[i]"); name the product in the message.
+      if (err instanceof ApiError && err.errors) {
+        const [key, messages] = Object.entries(err.errors)[0] ?? []
+        const index = key ? Number(/items\[(\d+)\]/.exec(key)?.[1]) : NaN
+        const line = Number.isNaN(index) ? null : selectedOrder.items.find((i) => i.id === items[index]?.orderItemId)
+        showToast(`${line ? line.productName + ': ' : ''}${messages?.[0] ?? err.message}`, 'error')
+      } else {
+        showToast(err instanceof Error ? err.message : 'Lỗi khi lập phiếu giao hàng', 'error')
+      }
+      deliveriesApi.getOrderDeliveries(selectedOrder.id).then(setOrderDeliveries).catch(() => {})
+    } finally {
+      setIsCreatingDelivery(false)
+    }
+  }
+
   const handleCancelSubmit = async () => {
     if (!selectedOrder) return
     if (!cancelReason.trim()) {
@@ -356,6 +461,21 @@ export default function OrdersPage() {
               className="w-full h-10 px-3 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none cursor-pointer"
             >
               {STATUS_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+            <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+              <ChevronRight size={16} className="text-on-surface-variant rotate-90" />
+            </div>
+          </div>
+
+          <div className="relative min-w-[160px]">
+            <select
+              value={sourceFilter}
+              onChange={(e) => { setSourceFilter(e.target.value); setPage(1) }}
+              className="w-full h-10 px-3 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none cursor-pointer"
+            >
+              {SOURCE_OPTIONS.map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
@@ -566,7 +686,9 @@ export default function OrdersPage() {
                 </button>
                 <button
                   className="w-full h-10 bg-primary text-on-primary hover:bg-primary/90 rounded-lg font-bold flex items-center justify-center transition-colors disabled:opacity-50"
-                  disabled={!paymentSummary || paymentSummary.paidAmount < paymentSummary.orderTotal || selectedOrder.status !== 'PENDING_CONFIRMATION'}
+                  // A FULL_PAYMENT order is confirmed only once it is fully paid (server: "Payment does not cover the order total"); CREDIT orders are not.
+                  disabled={selectedOrder.status !== 'PENDING_CONFIRMATION' || (selectedOrder.settlementType === 'FULL_PAYMENT' && (!paymentSummary || paymentSummary.remainingToPay > 0))}
+                  title={selectedOrder.settlementType === 'FULL_PAYMENT' && (paymentSummary?.remainingToPay ?? 0) > 0 ? 'Đơn trả ngay: cần thu đủ tiền trước khi xác nhận' : undefined}
                   onClick={handleOpenConfirmModal}
                 >
                   <CheckCircle size={16} className="mr-2" />
@@ -577,13 +699,47 @@ export default function OrdersPage() {
                 * Chỉ có thể xác nhận đơn khi đã thu đủ tiền
               </div>
 
-              {['CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT', 'PARTIALLY_FULFILLED'].includes(selectedOrder.status) && (
+              {selectedOrder.status === 'PENDING_CONFIRMATION' && selectedOrder.settlementType === 'FULL_PAYMENT' && paymentSummary && paymentSummary.remainingToPay > 0 && (
+                <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  Đơn trả ngay chưa thanh toán đủ: chờ khách trả qua payOS hoặc thu tiền tại quầy rồi mới xác nhận được.
+                </p>
+              )}
+
+              {['CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT', 'PARTIALLY_FULFILLED'].includes(selectedOrder.status) && selectedOrder.fulfillmentType === 'PICKUP' && (
                 <button
                   className="w-full h-10 mt-1 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg font-bold flex items-center justify-center transition-colors shadow-sm"
                   onClick={handleOpenPickupModal}
                 >
                   <PackageCheck size={16} className="mr-2" />
                   GIAO HÀNG TẠI QUẦY (M6)
+                </button>
+              )}
+
+              {selectedOrder.fulfillmentType === 'DELIVERY' && orderDeliveries.length > 0 && (
+                <div className="rounded-lg border border-outline-variant bg-surface-container-lowest p-3 text-sm">
+                  <div className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Phiếu giao của đơn</div>
+                  <ul className="space-y-1">
+                    {orderDeliveries.map((d) => (
+                      <li key={d.id} className="flex justify-between gap-2">
+                        <span className="font-mono">{d.deliveryNumber}</span>
+                        <span className="text-on-surface-variant">
+                          {labelOf(DELIVERY_STATUS_LABEL, d.status)}
+                          {d.assignedTo ? ` · ${d.assignedTo.fullName}` : ''}
+                          {d.scheduledAt ? ` · ${formatDate(d.scheduledAt)}` : ''}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {['CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT', 'PARTIALLY_FULFILLED'].includes(selectedOrder.status) && selectedOrder.fulfillmentType === 'DELIVERY' && (
+                <button
+                  className="w-full h-10 mt-1 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-bold flex items-center justify-center transition-colors shadow-sm"
+                  onClick={handleOpenDeliveryModal}
+                >
+                  <PackageCheck size={16} className="mr-2" />
+                  LẬP PHIẾU GIAO HÀNG (M7)
                 </button>
               )}
 
@@ -841,6 +997,112 @@ export default function OrdersPage() {
                 disabled={isPickingUp || isLoadingPickupSuggestions || !pickupSuggestions}
               >
                 {isPickingUp ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN GIAO & TRỪ KHO'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delivery Modal M7 */}
+      {isDeliveryModalOpen && selectedOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-surface w-full max-w-2xl rounded-2xl shadow-xl flex flex-col overflow-hidden max-h-[90vh]">
+            <div className="p-4 border-b border-outline-variant bg-blue-50 flex justify-between items-center">
+              <h3 className="font-bold text-lg text-blue-900">Lập phiếu giao hàng #{selectedOrder.orderNumber}</h3>
+              <button onClick={() => setIsDeliveryModalOpen(false)} className="text-blue-500 hover:text-blue-800">
+                <FilterX size={20} />
+              </button>
+            </div>
+            
+            <div className="p-5 overflow-y-auto flex-1 space-y-4">
+              <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-sm mb-4">
+                Điền số lượng (theo quy cách) cho chuyến này. Lô hàng được chọn sẵn theo hạn dùng; có thể đổi lô trong chi tiết phiếu giao.
+              </div>
+              
+              <div className="bg-surface rounded-lg overflow-hidden border border-outline-variant text-sm">
+                <table className="w-full text-left">
+                  <thead className="bg-surface-container-low text-xs text-on-surface-variant">
+                    <tr>
+                      <th className="p-3 font-medium">Sản phẩm</th>
+                      <th className="p-3 font-medium text-right">Cần giao</th>
+                      <th className="p-3 font-medium text-right text-blue-600 w-32">SL lập phiếu</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/50">
+                    {selectedOrder.items?.filter(i => availableToPlan(i) > 0).length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="p-4 text-center text-on-surface-variant italic text-xs">
+                          Mọi sản phẩm còn lại đã nằm trên các phiếu giao khác
+                        </td>
+                      </tr>
+                    ) : (
+                      selectedOrder.items?.filter(i => availableToPlan(i) > 0).map((item) => {
+                        const maxPlanned = availableToPlan(item)
+                        return (
+                        <tr key={item.id}>
+                          <td className="p-3">
+                            <div className="font-bold">{item.productName}</div>
+                            <div className="text-xs text-on-surface-variant mt-0.5">
+                              {item.packagingName}
+                            </div>
+                          </td>
+                          <td className="p-3 text-right font-medium">{maxPlanned}</td>
+                          <td className="p-3 text-right">
+                            <input
+                              type="number"
+                              min="0"
+                              max={maxPlanned}
+                              value={deliveryQuantities[item.id] ?? 0}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value) || 0
+                                setDeliveryQuantities(prev => ({ ...prev, [item.id]: Math.min(Math.max(val, 0), maxPlanned) }))
+                              }}
+                              className="w-full h-9 px-2 text-right rounded-lg border border-outline-variant focus:outline-none focus:border-blue-500 font-bold text-blue-600"
+                            />
+                          </td>
+                        </tr>
+                      )})
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="block text-sm">
+                  <span className="font-medium text-on-surface-variant block mb-1">Hẹn giao lúc</span>
+                  <input
+                    type="datetime-local"
+                    value={deliveryScheduledAt}
+                    onChange={(e) => setDeliveryScheduledAt(e.target.value)}
+                    className="w-full h-9 px-2 rounded-lg border border-outline-variant focus:outline-none focus:border-blue-500"
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="font-medium text-on-surface-variant block mb-1">Ghi chú cho tài xế</span>
+                  <input
+                    type="text"
+                    value={deliveryNote}
+                    onChange={(e) => setDeliveryNote(e.target.value)}
+                    placeholder="VD: Gọi trước 15 phút"
+                    className="w-full h-9 px-2 rounded-lg border border-outline-variant focus:outline-none focus:border-blue-500"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-outline-variant bg-surface-container-lowest flex justify-end gap-3">
+              <button
+                className="px-6 py-2 bg-surface-container-high hover:bg-surface-container-highest font-bold rounded-xl transition-colors text-on-surface"
+                onClick={() => setIsDeliveryModalOpen(false)}
+              >
+                HỦY
+              </button>
+              <button
+                className="px-6 py-2 bg-blue-600 text-white hover:bg-blue-700 font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
+                onClick={handleCreateDelivery}
+                disabled={isCreatingDelivery || Object.values(deliveryQuantities).every(q => q === 0)}
+              >
+                {isCreatingDelivery ? 'ĐANG XỬ LÝ...' : 'LẬP PHIẾU GIAO'}
               </button>
             </div>
           </div>

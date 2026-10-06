@@ -1,69 +1,91 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { usePageHeader } from '@/context/PageHeaderContext'
-import { useDeliveries } from '@/context/DeliveryContext'
+import { deliveriesApi } from '@/api/deliveriesApi'
 import StatusBadge from '@/components/ui/StatusBadge'
-import type { DeliveryOrder } from '@/types'
-import { formatDateLabel, isToday } from '@/utils/date'
+import type { DeliveryListItem, DeliveryStatus } from '@/api/deliveriesApi'
+import { DELIVERY_STATUS_LABEL, formatDate, labelOf } from '@/utils/deliveryLabels'
 
-type TabKey = 'active' | 'today' | 'redeliver'
+type TabKey = 'pending' | 'retry' | 'done'
 
-function getStatusLabel(status: string) {
-  switch (status) {
-    case 'ASSIGNED': return 'Chờ giao'
-    case 'OUT_FOR_DELIVERY': return 'Đang giao'
-    case 'DELIVERED': return 'Đã giao'
-    case 'FAILED': return 'Giao thất bại'
-    case 'CANCELLED': return 'Đã hủy'
-    default: return status
-  }
-}
-
-
-const TABS: { key: TabKey; label: string; icon: string }[] = [
-  { key: 'active', label: 'Được phân công', icon: 'assignment' },
-  { key: 'today', label: 'Lịch giao hôm nay', icon: 'today' },
-  { key: 'redeliver', label: 'Cần giao lại', icon: 'replay' },
+// D1 of FE_GUIDE_FLOW_2: the server already limits the list to the signed-in driver.
+// A driver can only start a trip once the store has dispatched it (OUT_FOR_DELIVERY).
+const TABS: { key: TabKey; label: string; icon: string; statuses: DeliveryStatus[] }[] = [
+  {
+    key: 'pending',
+    label: 'Cần giao',
+    icon: 'local_shipping',
+    statuses: ['OUT_FOR_DELIVERY'],
+  },
+  {
+    key: 'retry',
+    label: 'Chờ xuất phát',
+    icon: 'replay',
+    statuses: ['ASSIGNED', 'RETRY_PENDING', 'PARTIALLY_DELIVERED'],
+  },
+  {
+    key: 'done',
+    label: 'Đã giao',
+    icon: 'check_circle',
+    statuses: ['DELIVERED'],
+  },
 ]
-
-function matchesTab(order: DeliveryOrder, tab: TabKey): boolean {
-  if (tab === 'today') return isToday(order.scheduledDate) && order.status !== 'CANCELLED'
-  if (tab === 'redeliver') return order.status === 'FAILED' && Boolean(order.redeliveryDate)
-  return order.status === 'ASSIGNED' || order.status === 'OUT_FOR_DELIVERY' || order.status === 'FAILED'
-}
 
 export default function DeliveriesPage() {
   usePageHeader({ title: 'Danh sách giao hàng', subtitle: 'Các đơn được phân công cho bạn' })
 
-  const { orders } = useDeliveries()
-  const [tab, setTab] = useState<TabKey>('active')
+  const [orders, setOrders] = useState<DeliveryListItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+  const [tab, setTab] = useState<TabKey>('pending')
   const [search, setSearch] = useState('')
+
+  useEffect(() => {
+    let mounted = true
+    const fetchOrders = async () => {
+      try {
+        setLoading(true)
+        const data = await deliveriesApi.getDeliveries()
+        if (mounted) setOrders(data.items || [])
+      } catch (err) {
+        if (mounted) setError(err instanceof Error ? err : new Error('Failed to fetch deliveries'))
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+    fetchOrders()
+    return () => { mounted = false }
+  }, [])
+
+  const activeTab = TABS.find((t) => t.key === tab)!
 
   const filtered = useMemo(() => {
     const keyword = search.trim().toLowerCase()
     return orders
-      .filter((o) => matchesTab(o, tab))
+      .filter((o) => activeTab.statuses.includes(o.status))
       .filter(
         (o) =>
           !keyword ||
-          o.orderCode.toLowerCase().includes(keyword) ||
-          o.farmerName.toLowerCase().includes(keyword) ||
-          o.deliveryAddress.toLowerCase().includes(keyword),
+          o.orderNumber.toLowerCase().includes(keyword) ||
+          o.deliveryNumber.toLowerCase().includes(keyword) ||
+          (o.recipientName || '').toLowerCase().includes(keyword) ||
+          (o.province || '').toLowerCase().includes(keyword),
       )
-      .sort((a, b) => a.scheduledDate.localeCompare(b.scheduledDate))
+      .sort((a, b) => (a.scheduledAt || a.createdAt).localeCompare(b.scheduledAt || b.createdAt))
   }, [orders, tab, search])
 
   const counts = useMemo(
     () => ({
-      active: orders.filter((o) => matchesTab(o, 'active')).length,
-      today: orders.filter((o) => matchesTab(o, 'today')).length,
-      redeliver: orders.filter((o) => matchesTab(o, 'redeliver')).length,
+      pending: orders.filter((o) => TABS[0].statuses.includes(o.status)).length,
+      retry: orders.filter((o) => TABS[1].statuses.includes(o.status)).length,
+      done: orders.filter((o) => TABS[2].statuses.includes(o.status)).length,
     }),
     [orders],
   )
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
+      {/* Tabs */}
       <div className="flex gap-2 overflow-x-auto pb-1">
         {TABS.map((t) => (
           <button
@@ -89,6 +111,7 @@ export default function DeliveriesPage() {
         ))}
       </div>
 
+      {/* Search */}
       <div className="relative">
         <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-outline">
           search
@@ -103,46 +126,60 @@ export default function DeliveriesPage() {
         />
       </div>
 
+      {/* Retry pending notice */}
+      {tab === 'retry' && counts.retry > 0 && (
+        <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+          <span className="material-symbols-outlined text-[20px] text-amber-600 shrink-0">warning</span>
+          <span>Có <strong>{counts.retry}</strong> chuyến đang chờ cửa hàng xuất phát. Khi cửa hàng bấm xuất phát, chuyến sẽ chuyển sang mục "Cần giao".</span>
+        </div>
+      )}
+
+      {/* List */}
       <div className="space-y-space-sm">
-        {filtered.length === 0 ? (
+        {loading ? (
           <div className="bg-white rounded-lg border border-outline-variant/60 p-8 text-center text-on-surface-variant font-body-md">
-            Không có đơn giao hàng phù hợp.
+            Đang tải dữ liệu...
+          </div>
+        ) : error ? (
+          <div className="bg-white rounded-lg border border-outline-variant/60 p-8 text-center text-error font-body-md">
+            Đã có lỗi xảy ra. Vui lòng thử lại sau.
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="bg-white rounded-lg border border-outline-variant/60 p-8 text-center text-on-surface-variant font-body-md">
+            Không có đơn giao hàng nào trong mục này.
           </div>
         ) : null}
+
         {filtered.map((order) => (
           <Link
             key={order.id}
-            to={`/deliveries/${order.id}`}
+            to={`/delivery/deliveries/${order.id}`}
             className="block bg-white rounded-lg border border-outline-variant/60 shadow-2xs p-space-md hover:border-primary/60 transition-colors"
           >
             <div className="flex items-start justify-between gap-space-sm">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-title-md text-title-md text-on-surface font-bold">{order.farmerName}</span>
-                  {order.isCreditPurchase ? (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-secondary-fixed text-on-secondary-fixed-variant">
-                      Mua chịu
+                  <span className="font-title-md text-title-md text-on-surface font-bold">{order.recipientName || '--'}</span>
+                  {order.status === 'RETRY_PENDING' && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">
+                      Giao lại
                     </span>
-                  ) : null}
+                  )}
                 </div>
-                <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">{order.orderCode}</p>
-                <p className="font-body-sm text-body-sm text-on-surface-variant mt-1 truncate max-w-md" title={order.deliveryAddress}>
+                <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">{order.orderNumber} · {order.deliveryNumber}</p>
+                <p className="font-body-sm text-body-sm text-on-surface-variant mt-1 truncate max-w-md">
                   <span className="material-symbols-outlined text-[14px] align-text-bottom mr-1">location_on</span>
-                  {order.deliveryAddress}
+                  {order.province || '--'}
                 </p>
               </div>
-              <StatusBadge label={getStatusLabel(order.status)} className="" />
+              <StatusBadge label={labelOf(DELIVERY_STATUS_LABEL, order.status)} />
             </div>
             <div className="flex items-center justify-between mt-space-sm pt-space-sm border-t border-outline-variant/60">
               <span className="font-label-md text-label-md text-on-surface-variant flex items-center gap-1">
                 <span className="material-symbols-outlined text-[16px]">schedule</span>
-                {order.scheduledWindowLabel}
+                Hẹn giao: {formatDate(order.scheduledAt)}
               </span>
-              {order.status === 'FAILED' && order.redeliveryDate ? (
-                <span className="font-label-md text-label-md text-error font-semibold">
-                  Giao lại: {formatDateLabel(order.redeliveryDate)}
-                </span>
-              ) : null}
+              <span className="font-label-md text-label-md text-on-surface-variant">{order.itemCount} mặt hàng</span>
             </div>
           </Link>
         ))}

@@ -56,12 +56,13 @@ export const ordersApi = {
       body: JSON.stringify(data),
     })
   },
-    getOrders: (params?: { page?: number; pageSize?: number; search?: string; status?: OrderStatus }) => {
+  getOrders: (params?: { page?: number; pageSize?: number; search?: string; status?: OrderStatus; source?: string }) => {
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.append('page', params.page.toString())
     if (params?.pageSize) searchParams.append('pageSize', params.pageSize.toString())
     if (params?.search) searchParams.append('search', params.search)
     if (params?.status) searchParams.append('status', params.status)
+    if (params?.source) searchParams.append('source', params.source)
     const qs = searchParams.toString()
     return api<Paged<OrderResponse>>(`/api/orders${qs ? `?${qs}` : ''}`)
   },
