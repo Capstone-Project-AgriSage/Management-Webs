@@ -1,4 +1,4 @@
-import type { Farmer } from '@/data/types'
+import type { Farmer } from '@/types'
 
 export const farmers: Farmer[] = [
   {

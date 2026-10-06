@@ -1,4 +1,4 @@
-import type { AiModel, AiPolicy } from '@/data/types'
+import type { AiModel, AiPolicy } from '@/types'
 
 export const mockAiModels: AiModel[] = [
   {

@@ -38,6 +38,7 @@ function useNavConfig() {
     const pendingAccountCount = accountsService.list().filter((a) => a.status === 'Chờ duyệt').length
     const items: NavItem[] = [
       { label: 'Tổng quan hệ thống', to: '/', icon: 'monitoring', iconTone: 'primary' },
+      { label: 'Cấu hình Tín dụng', to: '/admin/credit-config', icon: 'credit_score' },
       { label: 'Quản lý tài khoản', to: '/admin/accounts', icon: 'group', badge: pendingAccountCount ? String(pendingAccountCount) : undefined, badgeTone: 'warning' },
       { label: 'Phân quyền', to: '/admin/roles', icon: 'admin_panel_settings' },
       { label: 'Danh mục', to: '/admin/products/categories', icon: 'category' },
@@ -80,6 +81,7 @@ function useNavConfig() {
           { label: 'Kiểm kê', to: '/agent/inventory/stocktake', icon: 'fact_check' },
           { label: 'Báo cáo kho', to: '/agent/inventory/reports', icon: 'assessment' },
           { label: 'Giao hàng', to: '/agent/deliveries', icon: 'local_shipping' },
+          { label: 'Báo cáo giao hàng', to: '/agent/deliveries/reports', icon: 'analytics' },
         ]
       },
       {
@@ -112,6 +114,7 @@ function useNavConfig() {
       { label: 'Farmer', to: '/sales/farmers', icon: 'groups' },
       { label: 'Sản phẩm', to: '/sales/products', icon: 'category' },
       { label: 'Đơn hàng', to: '/sales/orders', icon: 'receipt_long' },
+      { label: 'Giao hàng', to: '/sales/deliveries', icon: 'local_shipping' },
       { label: 'Thanh toán', to: '/sales/payments', icon: 'payments' },
       { label: 'Trả hàng', to: '/sales/returns', icon: 'assignment_return' },
       { label: 'Mua chịu mùa vụ', to: '/sales/credit-requests', icon: 'assignment_turned_in' },

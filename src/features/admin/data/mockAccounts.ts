@@ -1,4 +1,4 @@
-import type { Account } from '@/data/types'
+import type { Account } from '@/types'
 
 /** Seed data only — the "current" list lives in accountsService's in-memory store,
  * seeded from this array once at module load. Status -> badge and status -> actions

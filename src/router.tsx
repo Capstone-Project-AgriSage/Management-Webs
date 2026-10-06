@@ -21,6 +21,7 @@ import AiPolicyConfigsPage from '@/features/admin/ai-models/AiPolicyConfigsPage'
 import ArticlesPage from '@/features/admin/content/ArticlesPage'
 import SystemNotificationsPage from '@/features/admin/system/SystemNotificationsPage'
 import AuditLogsPage from '@/features/admin/system/AuditLogsPage'
+import CreditConfigPage from '@/features/admin/credit-config/CreditConfigPage'
 
 // =======================
 // AGENT FEATURES
@@ -39,6 +40,7 @@ import AgentInventoryReportsPage from '@/features/agent/inventory/InventoryRepor
 import AgentStocktakePage from '@/features/agent/inventory/StocktakeListPage'
 import StocktakeDetailPage from '@/features/agent/inventory/StocktakeDetailPage'
 import AgentDeliveriesPage from '@/features/agent/deliveries/DeliveriesPage'
+import AgentDeliveryReportsPage from '@/features/agent/deliveries/DeliveryReportsPage'
 import AgentSuppliersPage from '@/features/agent/purchases/SuppliersPage'
 import RefundsPage from '@/features/agent/refunds/RefundsPage'
 import ReturnsListPage from '@/features/agent/returns/ReturnsListPage'
@@ -48,6 +50,7 @@ import AgentGoodsReceiptsPage from '@/features/agent/purchases/GoodsReceiptsPage
 import GoodsReceiptDetailPage from '@/features/agent/purchases/GoodsReceiptDetailPage'
 import ReceiptImportPage from '@/features/agent/purchases/ReceiptImportPage'
 import AgentSeasonalCreditPage from '@/features/agent/debts/SeasonalCreditPage'
+import DebtReportsPage from '@/features/agent/debts/DebtReportsPage'
 import AgentProductReviewsPage from '@/features/agent/products/ProductReviewsPage'
 import AgentStaffPage from '@/features/agent/staff/StaffPage'
 import AgentActivityLogPage from '@/features/agent/system/ActivityLogPage'
@@ -62,7 +65,8 @@ import SalesProductsPage from '@/features/sales/products/ProductsPage'
 import SalesOrdersPage from '@/features/sales/orders/OrdersPage'
 import CounterSalesPage from '@/features/sales/counter-sales/CounterSalesPage'
 import SalesPaymentsPage from '@/features/sales/payments/PaymentsPage'
-import SalesDebtsPage from '@/features/sales/debts/DebtsPage'
+import DebtAccountsPage from '@/features/cashier/debt/DebtAccountsPage'
+import CustomerDebtDetailPage from '@/features/cashier/debt/CustomerDebtDetailPage'
 import SalesCreditRequestsPage from '@/features/sales/credit-requests/CreditRequestsPage'
 import SalesInventoryPage from '@/features/sales/inventory/InventoryPage'
 import SalesPriceListsPage from '@/features/sales/price-lists/PriceListsPage'
@@ -74,6 +78,7 @@ import SalesSettingsPage from '@/features/sales/settings/SettingsPage'
 // =======================
 import DeliveryDashboardPage from '@/features/delivery/dashboard/DashboardPage'
 import DeliveriesPage from '@/features/delivery/deliveries/DeliveriesPage'
+import DeliveryDetailPage from '@/features/delivery/deliveries/DeliveryDetailPage'
 
 // Fallback component for missing routes
 function PlaceholderPage({ title }: { title: string }) {
@@ -150,6 +155,10 @@ export const router = createBrowserRouter([
             path: 'admin/audit-logs',
             element: <RequireRole role="admin"><RequirePermission module="audit-logs"><AuditLogsPage /></RequirePermission></RequireRole>,
           },
+          {
+            path: 'admin/credit-config',
+            element: <RequireRole role="admin"><RequirePermission module="accounts"><CreditConfigPage /></RequirePermission></RequireRole>,
+          },
 
           // --- AGENT ROUTES ---
           {
@@ -186,7 +195,15 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/debts',
-            element: <RequireRole role="agent"><AgentDebtsPage /></RequireRole>,
+            element: <RequireRole role="agent"><DebtAccountsPage /></RequireRole>,
+          },
+          {
+            path: 'agent/debts/reports',
+            element: <RequireRole role="agent"><DebtReportsPage /></RequireRole>,
+          },
+          {
+            path: 'agent/debts/:id',
+            element: <RequireRole role="agent"><CustomerDebtDetailPage /></RequireRole>,
           },
           {
             path: 'agent/inventory/movements',
@@ -227,6 +244,10 @@ export const router = createBrowserRouter([
           {
             path: 'agent/deliveries',
             element: <RequireRole role="agent"><AgentDeliveriesPage /></RequireRole>,
+          },
+          {
+            path: 'agent/deliveries/reports',
+            element: <RequireRole role="agent"><AgentDeliveryReportsPage /></RequireRole>,
           },
           {
             path: 'agent/purchases/suppliers',
@@ -287,6 +308,10 @@ export const router = createBrowserRouter([
             element: <RequireRole role="sales_staff"><SalesOrdersPage /></RequireRole>,
           },
           {
+            path: 'sales/deliveries',
+            element: <RequireRole role="sales_staff"><AgentDeliveriesPage /></RequireRole>,
+          },
+          {
             path: 'sales/counter-sales',
             element: <RequireRole role="sales_staff"><CounterSalesPage /></RequireRole>,
           },
@@ -296,7 +321,15 @@ export const router = createBrowserRouter([
           },
           {
             path: 'sales/debts',
-            element: <RequireRole role="sales_staff"><SalesDebtsPage /></RequireRole>,
+            element: <RequireRole role="sales_staff"><DebtAccountsPage /></RequireRole>,
+          },
+          {
+            path: 'sales/debts/reports',
+            element: <RequireRole role="sales_staff"><DebtReportsPage /></RequireRole>,
+          },
+          {
+            path: 'sales/debts/:id',
+            element: <RequireRole role="sales_staff"><CustomerDebtDetailPage /></RequireRole>,
           },
           {
             path: 'sales/credit-requests',
@@ -348,8 +381,13 @@ export const router = createBrowserRouter([
             path: 'delivery/deliveries',
             element: <RequireRole role="delivery_staff"><DeliveriesPage /></RequireRole>,
           },
+          {
+            path: 'delivery/deliveries/:id',
+            element: <RequireRole role="delivery_staff"><DeliveryDetailPage /></RequireRole>,
+          },
         ],
       },
     ],
   },
 ])
+
