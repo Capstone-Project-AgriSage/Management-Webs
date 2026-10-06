@@ -13,14 +13,12 @@ import { formatDate, formatDateTime, formatQty, unitLabel } from '@/utils/units'
 import {
   CONDITION_LABEL,
   DISPOSITION_LABEL,
-  REFUND_METHOD_LABEL,
-  REFUND_STATUS_BADGE_CLASS,
-  REFUND_STATUS_LABEL,
   RETURN_CONDITIONS,
   RETURN_REASONS,
   RETURN_STATUS_BADGE_CLASS,
   returnStatusText,
 } from './returnLabels'
+import RefundsPanel from '../refunds/RefundsPanel'
 import { loadOrderInfo, type OrderItemInfo } from './returnContext'
 import { useReturnsBase } from './returnPaths'
 
@@ -393,36 +391,14 @@ export default function ReturnDetailPage() {
         </div>
       </div>
 
-      {ret.refunds.length > 0 ? (
-        <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-outline-variant">
-            <h3 className="font-semibold text-on-surface">Các khoản hoàn tiền</h3>
-          </div>
-          <table className="w-full text-left">
-            <thead className="bg-surface-container-low text-xs text-on-surface-variant uppercase tracking-wider border-b border-outline-variant">
-              <tr>
-                <th className="py-3 px-4 font-medium">Mã</th>
-                <th className="py-3 px-3 font-medium">Hình thức</th>
-                <th className="py-3 px-3 font-medium text-right">Số tiền</th>
-                <th className="py-3 px-3 font-medium text-center">Trạng thái</th>
-                <th className="py-3 px-4 font-medium">Hoàn lúc</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/50 text-sm">
-              {ret.refunds.map((r) => (
-                <tr key={r.id}>
-                  <td className="py-2.5 px-4 font-mono text-xs">{r.refundNumber}</td>
-                  <td className="py-2.5 px-3">{REFUND_METHOD_LABEL[r.refundMethod] ?? r.refundMethod}</td>
-                  <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">{formatVnd(r.amount)}</td>
-                  <td className="py-2.5 px-3 text-center">
-                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded tracking-wide whitespace-nowrap ${REFUND_STATUS_BADGE_CLASS[r.status]}`}>{REFUND_STATUS_LABEL[r.status]}</span>
-                  </td>
-                  <td className="py-2.5 px-4 whitespace-nowrap">{formatDateTime(r.completedAt)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {ret.totalRefundAmount > 0 || ret.refunds.length > 0 ? (
+        <RefundsPanel
+          scope={{ kind: 'return', returnId: ret.id, orderId: ret.orderId }}
+          refunds={ret.refunds}
+          refundable={ret.totalRefundAmount}
+          canManage={canManage}
+          onChanged={load}
+        />
       ) : null}
 
       <ConfirmModal

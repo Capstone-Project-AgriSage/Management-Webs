@@ -1,5 +1,6 @@
 import { api } from './client'
-import type { Uuid } from './types'
+import { buildQuery } from './stockApi'
+import type { Paged, Uuid } from './types'
 
 /** Refunds of a sales return and of a cancelled order (flow L4, F4.5). Every refund route needs Manage; there is no automatic payOS refund. */
 
@@ -43,7 +44,37 @@ export interface RefundCompleteInput {
   note?: string | null
 }
 
+export interface ProofUpload {
+  url: string
+  storageKey: string
+  sizeBytes: number
+}
+
+export interface CancelledOrderRow {
+  id: Uuid
+  orderNumber: string
+  status: string
+  customerName: string
+  totalAmount: number
+  createdAt: string
+}
+
 export const refundsApi = {
+  /** An image (jpg, png, webp, up to 3 MB) of the bank transfer or the signed receipt; its url goes into `proofFileUrl`. */
+  uploadProof: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return api<ProofUpload>('/api/files/delivery-proofs', { method: 'POST', body: form })
+  },
+
+  /** The newest cancelled and partly cancelled orders: the ones that can have refunds to pay back. */
+  listCancelledOrders: async (pageSize = 30): Promise<CancelledOrderRow[]> => {
+    const [cancelled, partly] = await Promise.all(
+      ['CANCELLED', 'PARTIALLY_CANCELLED'].map((status) => api<Paged<CancelledOrderRow>>(`/api/orders${buildQuery({ status, pageSize })}`)),
+    )
+    return [...cancelled.items, ...partly.items].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, pageSize)
+  },
+
   // ---- refunds of a sales return ----
   requestForReturn: (returnId: Uuid, data: RefundRequestInput) =>
     api<Refund>(`/api/returns/${returnId}/refunds`, { method: 'POST', body: JSON.stringify(data) }),

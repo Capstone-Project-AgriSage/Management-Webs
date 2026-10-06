@@ -66,6 +66,7 @@ function useNavConfig() {
           { label: 'Đơn hàng', to: '/agent/orders', icon: 'receipt_long', badge: String(agentOrders.length), badgeTone: 'primary' as const },
           { label: 'Thanh toán VietQR', to: '/agent/payments', icon: 'payments', badge: `${unpaidPaymentCount} chờ`, badgeTone: 'primary' as const },
           { label: 'Trả hàng', to: '/agent/returns', icon: 'assignment_return' },
+          { label: 'Hoàn tiền', to: '/agent/refunds', icon: 'currency_exchange' },
           ...(user.can_review_ai ? [{ label: 'Hàng đợi AI', to: '/agent/ai-recommendations', icon: 'psychology', badge: String(pendingAiCount), badgeTone: 'error' as const, iconTone: 'primary' as const }] : [])
         ]
       },

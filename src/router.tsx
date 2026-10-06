@@ -40,6 +40,7 @@ import AgentStocktakePage from '@/features/agent/inventory/StocktakeListPage'
 import StocktakeDetailPage from '@/features/agent/inventory/StocktakeDetailPage'
 import AgentDeliveriesPage from '@/features/agent/deliveries/DeliveriesPage'
 import AgentSuppliersPage from '@/features/agent/purchases/SuppliersPage'
+import RefundsPage from '@/features/agent/refunds/RefundsPage'
 import ReturnsListPage from '@/features/agent/returns/ReturnsListPage'
 import ReturnCreatePage from '@/features/agent/returns/ReturnCreatePage'
 import ReturnDetailPage from '@/features/agent/returns/ReturnDetailPage'
@@ -190,6 +191,10 @@ export const router = createBrowserRouter([
           {
             path: 'agent/inventory/movements',
             element: <RequireRole role="agent"><AgentInventoryMovementsPage /></RequireRole>,
+          },
+          {
+            path: 'agent/refunds',
+            element: <RequireRole role="agent"><RefundsPage /></RequireRole>,
           },
           {
             path: 'agent/returns',
