@@ -1,4 +1,4 @@
-import type { CreditRequest } from '@/data/types'
+import type { CreditRequest } from '@/types'
 
 export const mockCreditRequests: CreditRequest[] = [
   {

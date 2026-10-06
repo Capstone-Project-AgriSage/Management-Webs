@@ -6,8 +6,10 @@ export interface Paged<T> {
   page: number; 
   pageSize: number; 
   totalCount: number; 
-  totalPages: number 
+  totalPages: number
 }
+
+export type PagedResult<T> = Paged<T>
 
 export type OrderStatus =
   | 'PENDING_CONFIRMATION' | 'CONFIRMED' | 'PREPARING' | 'READY_FOR_FULFILLMENT'

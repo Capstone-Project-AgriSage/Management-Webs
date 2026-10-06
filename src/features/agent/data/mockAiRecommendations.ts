@@ -1,4 +1,4 @@
-import type { AiCase } from '@/data/types'
+import type { AiCase } from '@/types'
 
 export const aiCases: AiCase[] = [
   {

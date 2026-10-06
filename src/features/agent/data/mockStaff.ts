@@ -1,4 +1,4 @@
-import type { StaffMember } from '@/data/types'
+import type { StaffMember } from '@/types'
 
 export const staffMembers: StaffMember[] = [
   {

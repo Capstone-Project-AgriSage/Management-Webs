@@ -1,4 +1,4 @@
-import type { PermissionModule, Role } from '@/data/types'
+import type { PermissionModule, Role } from '@/types'
 
 export const permissionModules: PermissionModule[] = [
   {

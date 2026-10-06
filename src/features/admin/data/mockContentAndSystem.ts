@@ -1,4 +1,4 @@
-import type { Article, SystemNotification, AuditLog } from '@/data/types'
+import type { Article, SystemNotification, AuditLog } from '@/types'
 
 export const mockArticles: Article[] = [
   {
