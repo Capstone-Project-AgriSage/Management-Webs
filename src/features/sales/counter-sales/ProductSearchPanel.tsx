@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Modal from '@/components/ui/Modal'
 import { packagingLabel } from '@/utils/packaging'
-import type { CartItem } from './CounterSalesPage'
+import type { CartItem } from './orderDraft'
 import { Search } from 'lucide-react'
 import { catalogApi } from '@/api/catalogApi'
 import type { CatalogProduct, CatalogCategory, CatalogProductDetail, CatalogPackaging } from '@/api/types'

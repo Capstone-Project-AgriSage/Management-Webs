@@ -27,8 +27,8 @@ import CreditConfigPage from '@/features/admin/credit-config/CreditConfigPage'
 // AGENT FEATURES
 // =======================
 import AgentDashboardPage from '@/features/agent/dashboard/DashboardPage'
-import AgentOrdersPage from '@/features/agent/orders/OrdersPage'
-import AgentPaymentsPage from '@/features/agent/payments/PaymentsPage'
+import OrdersPage from '@/features/orders/OrdersPage'
+import PaymentsPage from '@/features/payments/PaymentsPage'
 import AgentAiRecommendationsPage from '@/features/agent/ai-recommendations/AiRecommendationsPage'
 import AgentProductsPage from '@/features/agent/products/ProductsPage'
 import AgentInventoryPage from '@/features/agent/inventory/StockOverviewPage'
@@ -58,9 +58,7 @@ import AgentSettingsPage from '@/features/agent/system/SettingsPage'
 // =======================
 import SalesDashboardPage from '@/features/sales/dashboard/DashboardPage'
 import SalesProductsPage from '@/features/sales/products/ProductsPage'
-import SalesOrdersPage from '@/features/sales/orders/OrdersPage'
 import CounterSalesPage from '@/features/sales/counter-sales/CounterSalesPage'
-import SalesPaymentsPage from '@/features/sales/payments/PaymentsPage'
 import CustomersPage from '@/features/customers/CustomersPage'
 import DebtsPage from '@/features/debts/DebtsPage'
 import CustomerDebtPage from '@/features/debts/CustomerDebtPage'
@@ -75,19 +73,6 @@ import SalesSettingsPage from '@/features/sales/settings/SettingsPage'
 import DeliveryDashboardPage from '@/features/delivery/dashboard/DashboardPage'
 import DeliveriesPage from '@/features/delivery/deliveries/DeliveriesPage'
 import DeliveryDetailPage from '@/features/delivery/deliveries/DeliveryDetailPage'
-
-// Fallback component for missing routes
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <div className="flex items-center justify-center min-h-[50vh] text-on-surface-variant">
-      <div className="text-center">
-        <span className="material-symbols-outlined text-[48px] mb-4">construction</span>
-        <h2 className="text-xl font-bold">{title}</h2>
-        <p>Tính năng đang được phát triển</p>
-      </div>
-    </div>
-  )
-}
 
 function RootRedirect() {
   const { currentRole } = useAuth()
@@ -163,7 +148,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/orders',
-            element: <RequireRole role="agent"><AgentOrdersPage /></RequireRole>,
+            element: <RequireRole role="agent"><OrdersPage /></RequireRole>,
           },
           {
             path: 'agent/counter-sales',
@@ -171,7 +156,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/payments',
-            element: <RequireRole role="agent"><AgentPaymentsPage /></RequireRole>,
+            element: <RequireRole role="agent"><PaymentsPage /></RequireRole>,
           },
           {
             path: 'agent/ai-recommendations',
@@ -305,7 +290,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'sales/orders',
-            element: <RequireRole role="sales_staff"><SalesOrdersPage /></RequireRole>,
+            element: <RequireRole role="sales_staff"><OrdersPage /></RequireRole>,
           },
           {
             path: 'sales/deliveries',
@@ -317,7 +302,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'sales/payments',
-            element: <RequireRole role="sales_staff"><SalesPaymentsPage /></RequireRole>,
+            element: <RequireRole role="sales_staff"><PaymentsPage /></RequireRole>,
           },
           {
             path: 'sales/debts',

@@ -63,17 +63,32 @@ export interface PaymentResponse {
                  prepaymentConsumedAmount: Money; status: 'ACTIVE' | 'REVERSED'; allocatedAt: string }[]
 }
 
+/** A refund owed to the customer (refunds[] of GET /api/orders/{id}/payments). PENDING until staff pay it back (flow 4). */
 export interface RefundResponse {
+  id: Uuid
+  refundNumber: string
+  source: string
+  orderId: Uuid | null
+  originalPaymentId: Uuid | null
+  refundMethod: 'CASH' | 'BANK_TRANSFER' | string
+  amount: Money
+  status: 'PENDING' | 'COMPLETED' | 'CANCELLED' | string
+  completedAt: string | null
+}
+
+/** refunds[] of POST /api/orders/{id}/cancel. */
+export interface OrderCancellationRefund {
   refundId: Uuid
   refundNumber: string
   paymentId: Uuid
-  refundMethod: 'CASH' | 'BANK_TRANSFER'
+  refundMethod: string
   amount: Money
 }
 
+/** Quick sale (FE_GUIDE_FLOW_1 §M7): always paid in full in cash and picked up now; `lots` are ignored by preview. */
 export interface CounterSaleRequest {
-  customerType: 'WALK_IN'; customerName?: string | null; customerPhone?: string | null; note?: string | null
-  settlementType?: 'FULL_PAYMENT' | 'CREDIT'; fulfillmentType?: 'PICKUP' | 'DELIVERY'
+  customerType: 'WALK_IN' | 'REGISTERED'; farmerProfileId?: Uuid | null
+  customerName?: string | null; customerPhone?: string | null; note?: string | null
   items: (OrderItemRequest & { lots?: { inventoryLotId: Uuid; baseQuantity: number }[] })[]
 }
 

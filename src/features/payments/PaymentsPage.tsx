@@ -4,7 +4,6 @@ import { ChevronRight, Download, FilterX, Receipt, Banknote } from 'lucide-react
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { useToast } from '@/context/ToastContext'
 import RowActionsMenu from '@/components/ui/RowActionsMenu'
-import type { RowAction } from '@/components/ui/RowActionsMenu'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import DetailModal from '@/components/ui/DetailModal'
 import Pagination from '@/components/ui/Pagination'
@@ -15,7 +14,7 @@ import { downloadCsv } from '@/utils/csv'
 import KpiCard from '@/components/ui/KpiCard'
 import { ordersApi } from '@/api/ordersApi'
 import { paymentsApi } from '@/api/paymentsApi'
-import type { OrderResponse, OrderStatus } from '@/api/types'
+import type { OrderResponse } from '@/api/types'
 import type { OrderPaymentsSummary } from '@/api/paymentsApi'
 
 type PaymentStatusLabel = 'Chưa thanh toán' | 'Thanh toán 1 phần' | 'Đã thanh toán đủ' | 'Đang tải...'
@@ -315,10 +314,10 @@ export default function PaymentsPage() {
                   <h4 className="font-bold text-rose-700 mb-3 uppercase text-sm tracking-wider">Lịch sử khoản hoàn tiền</h4>
                   <div className="space-y-3">
                     {paymentSummaries[selectedOrder.id].refunds.map(rf => (
-                      <div key={rf.refundId} className="flex justify-between items-center p-3 border border-rose-200 rounded-lg bg-rose-50">
+                      <div key={rf.id} className="flex justify-between items-center p-3 border border-rose-200 rounded-lg bg-rose-50">
                         <div>
                           <div className="font-bold text-rose-800">{formatVnd(rf.amount)} <span className="text-xs font-normal text-rose-600">({rf.refundMethod})</span></div>
-                          <div className="text-xs text-rose-700 mt-1">Hoàn cho thanh toán gốc</div>
+                          <div className="text-xs text-rose-700 mt-1">{rf.status === 'PENDING' ? 'Chờ trả lại khách' : rf.status === 'COMPLETED' ? 'Đã trả lại khách' : 'Đã huỷ'}</div>
                         </div>
                         <div className="text-right">
                           <div className="text-xs font-mono text-rose-600">{rf.refundNumber}</div>
