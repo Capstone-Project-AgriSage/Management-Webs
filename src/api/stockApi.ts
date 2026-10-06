@@ -173,6 +173,8 @@ export const stockApi = {
   getStockCard: (params: { storeProductId: Uuid; inventoryLotId?: Uuid; fromDate: string; toDate: string }) =>
     api<StockCard>(`/api/inventory/stock-card${query(params)}`),
 
+  getLot: (lotId: Uuid) => api<StockLot>(`/api/inventory/lots/${lotId}`),
+
   /** Manage. Marks every ACTIVE lot past its expiry date as EXPIRED. */
   expireDue: () => api<ExpireDueResult>('/api/inventory/lots/expire-due', { method: 'POST' }),
 

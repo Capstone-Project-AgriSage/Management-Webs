@@ -40,6 +40,9 @@ import AgentStocktakePage from '@/features/agent/inventory/StocktakeListPage'
 import StocktakeDetailPage from '@/features/agent/inventory/StocktakeDetailPage'
 import AgentDeliveriesPage from '@/features/agent/deliveries/DeliveriesPage'
 import AgentSuppliersPage from '@/features/agent/purchases/SuppliersPage'
+import ReturnsListPage from '@/features/agent/returns/ReturnsListPage'
+import ReturnCreatePage from '@/features/agent/returns/ReturnCreatePage'
+import ReturnDetailPage from '@/features/agent/returns/ReturnDetailPage'
 import AgentGoodsReceiptsPage from '@/features/agent/purchases/GoodsReceiptsPage'
 import GoodsReceiptDetailPage from '@/features/agent/purchases/GoodsReceiptDetailPage'
 import ReceiptImportPage from '@/features/agent/purchases/ReceiptImportPage'
@@ -189,6 +192,18 @@ export const router = createBrowserRouter([
             element: <RequireRole role="agent"><AgentInventoryMovementsPage /></RequireRole>,
           },
           {
+            path: 'agent/returns',
+            element: <RequireRole role="agent"><ReturnsListPage /></RequireRole>,
+          },
+          {
+            path: 'agent/returns/new',
+            element: <RequireRole role="agent"><ReturnCreatePage /></RequireRole>,
+          },
+          {
+            path: 'agent/returns/:id',
+            element: <RequireRole role="agent"><ReturnDetailPage /></RequireRole>,
+          },
+          {
             path: 'agent/inventory/stock-card',
             element: <RequireRole role="agent"><AgentStockCardPage /></RequireRole>,
           },
@@ -285,6 +300,18 @@ export const router = createBrowserRouter([
           {
             path: 'sales/inventory',
             element: <RequireRole role="sales_staff"><SalesInventoryPage /></RequireRole>,
+          },
+          {
+            path: 'sales/returns',
+            element: <RequireRole role="sales_staff"><ReturnsListPage /></RequireRole>,
+          },
+          {
+            path: 'sales/returns/new',
+            element: <RequireRole role="sales_staff"><ReturnCreatePage /></RequireRole>,
+          },
+          {
+            path: 'sales/returns/:id',
+            element: <RequireRole role="sales_staff"><ReturnDetailPage /></RequireRole>,
           },
           {
             path: 'sales/inventory/stocktake',

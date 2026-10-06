@@ -595,6 +595,15 @@ export default function OrdersPage() {
                   HỦY ĐƠN HÀNG (M8)
                 </button>
               )}
+
+              {['COMPLETED', 'PARTIALLY_FULFILLED', 'PARTIALLY_CANCELLED'].includes(selectedOrder.status) && (
+                <button
+                  className="w-full h-10 mt-1 bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 rounded-lg font-bold flex items-center justify-center transition-colors shadow-sm"
+                  onClick={() => navigate(`/sales/returns/new?orderId=${selectedOrder.id}`)}
+                >
+                  TẠO YÊU CẦU TRẢ HÀNG
+                </button>
+              )}
             </div>
           </>
         ) : null}

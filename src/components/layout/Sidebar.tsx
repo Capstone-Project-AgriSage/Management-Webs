@@ -65,6 +65,7 @@ function useNavConfig() {
           { label: 'Bán tại quầy', to: '/agent/counter-sales', icon: 'point_of_sale', iconTone: 'primary' as const },
           { label: 'Đơn hàng', to: '/agent/orders', icon: 'receipt_long', badge: String(agentOrders.length), badgeTone: 'primary' as const },
           { label: 'Thanh toán VietQR', to: '/agent/payments', icon: 'payments', badge: `${unpaidPaymentCount} chờ`, badgeTone: 'primary' as const },
+          { label: 'Trả hàng', to: '/agent/returns', icon: 'assignment_return' },
           ...(user.can_review_ai ? [{ label: 'Hàng đợi AI', to: '/agent/ai-recommendations', icon: 'psychology', badge: String(pendingAiCount), badgeTone: 'error' as const, iconTone: 'primary' as const }] : [])
         ]
       },
@@ -111,6 +112,7 @@ function useNavConfig() {
       { label: 'Sản phẩm', to: '/sales/products', icon: 'category' },
       { label: 'Đơn hàng', to: '/sales/orders', icon: 'receipt_long' },
       { label: 'Thanh toán', to: '/sales/payments', icon: 'payments' },
+      { label: 'Trả hàng', to: '/sales/returns', icon: 'assignment_return' },
       { label: 'Mua chịu mùa vụ', to: '/sales/credit-requests', icon: 'assignment_turned_in' },
       { label: 'Công nợ', to: '/sales/debts', icon: 'pending_actions' },
       { label: 'Kho', to: '/sales/inventory', icon: 'inventory_2' },
