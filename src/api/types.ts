@@ -79,7 +79,7 @@ export interface CounterSaleRequest {
 
 export interface CounterSalePreviewResponse {
   customerGroupId: Uuid | null; priceListId: Uuid | null; totalAmount: Money
-  items: { storeProductId: Uuid; productPackagingId: Uuid; sku: string; productName: string; packagingName: string
+  items: { storeProductId: Uuid; productPackagingId: Uuid; sku: string; productName: string; packagingName: string | null
            quantity: number; conversionToBase: number; baseQuantity: number; suggestedUnitPrice: Money; unitPrice: Money
            lineTotalAmount: Money; lots: FefoLotSuggestion[]; shortageBaseQuantity: number }[]
 }
@@ -113,9 +113,13 @@ export interface CatalogProductDetail extends CatalogProduct {
 
 export interface CatalogPackaging {
   id: string // productPackagingId
-  name: string
+  unitName: string | null
+  symbol: string | null
+  packagingName: string | null // null for the base unit ("Kilogram", "Chai"…): show unitName instead
   conversionToBase: number
-  price: number | null // null means not for sale
+  isBaseUnit: boolean
+  barcode: string | null
+  price: number | null // walk-in price; null = no price yet, cannot be sold (422)
 }
 
 export interface InventoryLot {

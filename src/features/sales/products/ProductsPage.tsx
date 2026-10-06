@@ -8,6 +8,7 @@ import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import DetailModal from '@/components/ui/DetailModal'
 import Pagination from '@/components/ui/Pagination'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
+import { packagingLabel } from '@/utils/packaging'
 import SearchInput from '@/components/ui/SearchInput'
 import { catalogApi } from '@/api/catalogApi'
 import type { CatalogProduct, CatalogProductDetail } from '@/api/types'
@@ -135,8 +136,8 @@ export default function ProductsPage() {
                         <RowActionsMenu
                           triggerLabel={`Thao tác ${product.name}`}
                           actions={[
-                            { label: 'Chi tiết', icon: Package, onClick: () => handleViewProductDetail(product.id) },
-                            { label: 'Bán tại quầy', icon: Package, onClick: () => handleAddProductToOrder(), tone: 'primary' }
+                            { label: 'Chi tiết', icon: 'visibility', onClick: () => handleViewProductDetail(product.id) },
+                            { label: 'Bán tại quầy', icon: 'point_of_sale', onClick: () => handleAddProductToOrder(), tone: 'primary' }
                           ]}
                         />
                       </div>
@@ -182,8 +183,11 @@ export default function ProductsPage() {
                 ) : (
                   selectedProduct.packagings.map((pack) => (
                     <div key={pack.id} className="flex justify-between items-center bg-surface-container-lowest border border-outline-variant p-2.5 rounded-lg shadow-sm">
-                      <span className="font-medium text-on-surface">{pack.name}</span>
-                      <span className="font-bold text-primary">{pack.price ? formatVnd(pack.price) : 'Liên hệ'}</span>
+                      <span className="font-medium text-on-surface">
+                        {packagingLabel(pack)}
+                        {!pack.isBaseUnit && <span className="ml-1 text-xs font-normal text-on-surface-variant">({pack.conversionToBase} {(selectedProduct.packagings.find((p) => p.isBaseUnit)?.unitName ?? 'đơn vị cơ sở').toLowerCase()})</span>}
+                      </span>
+                      <span className="font-bold text-primary">{pack.price !== null ? formatVnd(pack.price) : 'Chưa có giá'}</span>
                     </div>
                   ))
                 )}
