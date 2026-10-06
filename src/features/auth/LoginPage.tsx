@@ -29,7 +29,11 @@ export default function LoginPage() {
       // or rely on a generic redirect. Actually, the RootRedirect in router will handle the slash route.
       navigate('/')
     } catch (err: any) {
-      setError(err.detail || 'Đăng nhập thất bại. Kiểm tra lại thông tin.')
+      setError(
+        err.status === 401
+          ? 'Sai email/số điện thoại hoặc mật khẩu, hoặc tài khoản đã bị khoá.'
+          : err.detail || 'Đăng nhập thất bại. Kiểm tra lại thông tin.',
+      )
     } finally {
       setIsSubmitting(false)
     }
