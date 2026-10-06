@@ -19,6 +19,7 @@ export const DEBT_ENTRY_STATUS_LABEL: Record<string, string> = {
   PARTIALLY_PAID: 'Trả một phần',
   PAID: 'Đã trả hết',
   DISPUTED: 'Đang tranh chấp',
+  ADJUSTED: 'Đã điều chỉnh',
   CANCELLED: 'Đã hủy',
 }
 
