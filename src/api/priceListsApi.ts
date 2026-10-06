@@ -1,76 +1,87 @@
-import { api } from './client'
+import { api, toQuery } from './client'
 import type { Uuid, Paged } from './types'
+
+// FE_GUIDE_FLOW_1 §M12 — writes are Manage (store owner, admin); sales staff only read.
+
+export type PriceListStatus = 'DRAFT' | 'ACTIVE' | 'INACTIVE'
 
 export interface PriceList {
   id: Uuid
   code: string
   name: string
+  description: string | null
   effectiveFrom: string
   effectiveTo: string | null
   isWalkInDefault: boolean
-  description: string | null
-  status: 'DRAFT' | 'ACTIVE' | 'INACTIVE'
-  storeId: Uuid
+  status: PriceListStatus
+  itemCount: number
+  groups: { id: Uuid; code: string; name: string }[]
+  createdAt: string
 }
 
 export interface PriceListItem {
   id: Uuid
   storeProductId: Uuid
   productPackagingId: Uuid
-  sellingPrice: number
+  sku: string | null
   productName: string
-  packagingName: string
+  packagingName: string | null
+  sellingPrice: number
 }
 
+export interface PriceListWriteRequest {
+  name: string
+  effectiveFrom: string
+  effectiveTo?: string | null
+  isWalkInDefault: boolean
+  description?: string | null
+}
+
+export interface PriceListItemInput {
+  storeProductId: Uuid
+  productPackagingId: Uuid
+  sellingPrice: number
+}
+
+/**
+ * Validity dates are DateTimeOffset on the server and only a UTC offset is stored: a bare "2026-10-06" is read with
+ * the server's +07:00 offset and fails with a 500. Send the day as UTC midnight, like the existing lists.
+ */
+const toUtcDay = (day: string | null | undefined) => (day ? `${day.slice(0, 10)}T00:00:00Z` : null)
+
+const withUtcDays = <T extends PriceListWriteRequest>(data: T): T => ({
+  ...data,
+  effectiveFrom: toUtcDay(data.effectiveFrom) as string,
+  effectiveTo: toUtcDay(data.effectiveTo),
+})
+
 export const priceListsApi = {
-  getPriceLists: (params?: { status?: string; isWalkInDefault?: boolean; search?: string }) => {
-    const searchParams = new URLSearchParams()
-    if (params?.status) searchParams.append('status', params.status)
-    if (params?.isWalkInDefault !== undefined) searchParams.append('isWalkInDefault', params.isWalkInDefault.toString())
-    if (params?.search) searchParams.append('search', params.search)
-    return api<Paged<PriceList>>(`/api/price-lists?${searchParams.toString()}`)
-  },
+  getPriceLists: (params: { status?: string; isWalkInDefault?: boolean; search?: string; page?: number; pageSize?: number } = {}) =>
+    api<Paged<PriceList>>(`/api/price-lists${toQuery(params)}`),
 
-  create: (data: { code: string; name: string; effectiveFrom: string; effectiveTo?: string; isWalkInDefault: boolean; description?: string }) => {
-    return api<PriceList>('/api/price-lists', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    })
-  },
+  create: (data: PriceListWriteRequest & { code: string }) =>
+    api<PriceList>('/api/price-lists', { method: 'POST', body: JSON.stringify(withUtcDays(data)) }),
 
-  update: (id: Uuid, data: { name: string; effectiveFrom: string; effectiveTo?: string; isWalkInDefault: boolean; description?: string }) => {
-    return api<PriceList>(`/api/price-lists/${id}`, {
+  update: (id: Uuid, data: PriceListWriteRequest) =>
+    api<PriceList>(`/api/price-lists/${id}`, { method: 'PUT', body: JSON.stringify(withUtcDays(data)) }),
+
+  /** Only a draft list that was never used can be deleted. */
+  delete: (id: Uuid) => api<void>(`/api/price-lists/${id}`, { method: 'DELETE' }),
+
+  activate: (id: Uuid) => api<PriceList>(`/api/price-lists/${id}/activate`, { method: 'POST' }),
+
+  deactivate: (id: Uuid) => api<PriceList>(`/api/price-lists/${id}/deactivate`, { method: 'POST' }),
+
+  getItems: (priceListId: Uuid, params: { search?: string; page?: number; pageSize?: number } = {}) =>
+    api<Paged<PriceListItem>>(`/api/price-lists/${priceListId}/items${toQuery(params)}`),
+
+  /** Creates or updates up to 500 prices at once; one invalid row rejects the whole batch (422, errors["items[i]"]). */
+  updateItems: (priceListId: Uuid, items: PriceListItemInput[]) =>
+    api<{ created: number; updated: number }>(`/api/price-lists/${priceListId}/items`, {
       method: 'PUT',
-      body: JSON.stringify(data)
-    })
-  },
+      body: JSON.stringify({ items }),
+    }),
 
-  delete: (id: Uuid) => {
-    return api<void>(`/api/price-lists/${id}`, { method: 'DELETE' })
-  },
-
-  activate: (id: Uuid) => {
-    return api<void>(`/api/price-lists/${id}/activate`, { method: 'POST' })
-  },
-
-  deactivate: (id: Uuid) => {
-    return api<void>(`/api/price-lists/${id}/deactivate`, { method: 'POST' })
-  },
-
-  getItems: (priceListId: Uuid, params?: { search?: string }) => {
-    const searchParams = new URLSearchParams()
-    if (params?.search) searchParams.append('search', params.search)
-    return api<Paged<PriceListItem>>(`/api/price-lists/${priceListId}/items?${searchParams.toString()}`)
-  },
-
-  updateItems: (priceListId: Uuid, data: { items: { storeProductId: Uuid; productPackagingId: Uuid; sellingPrice: number }[] }) => {
-    return api<{ created: number; updated: number }>(`/api/price-lists/${priceListId}/items`, {
-      method: 'PUT',
-      body: JSON.stringify(data)
-    })
-  },
-
-  deleteItem: (priceListId: Uuid, itemId: Uuid) => {
-    return api<void>(`/api/price-lists/${priceListId}/items/${itemId}`, { method: 'DELETE' })
-  }
+  deleteItem: (priceListId: Uuid, itemId: Uuid) =>
+    api<void>(`/api/price-lists/${priceListId}/items/${itemId}`, { method: 'DELETE' }),
 }
