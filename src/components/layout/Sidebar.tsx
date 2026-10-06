@@ -9,9 +9,7 @@ import * as accountsService from '@/features/admin/services/accountsService'
 import { products as agentProducts } from '@/features/agent/data/mockProducts'
 import { orders as agentOrders } from '@/features/agent/data/mockOrders'
 import { payments as agentPayments } from '@/features/agent/data/mockPayments'
-import { debtCustomers } from '@/features/agent/data/mockDebts'
 import { aiCases } from '@/features/agent/data/mockAiRecommendations'
-import { parseVnd, formatVndShort } from '@/utils/money'
 
 function badgeClasses(tone: NavItem['badgeTone']) {
   switch (tone) {
@@ -55,7 +53,6 @@ function useNavConfig() {
 
   if (currentRole === 'agent') {
     const unpaidPaymentCount = agentPayments.filter((p) => p.statusBadge.label !== 'Đã thanh toán').length
-    const totalDebtRemaining = debtCustomers.reduce((sum, c) => sum + parseVnd(c.remaining), 0)
     const pendingAiCount = aiCases.filter((c) => c.statusBadge.label === 'Chờ duyệt').length
 
     const groups = [
@@ -89,14 +86,15 @@ function useNavConfig() {
         items: [
           { label: 'Nhà cung cấp', to: '/agent/purchases/suppliers', icon: 'storefront' },
           { label: 'Phiếu nhập hàng', to: '/agent/purchases/receipts', icon: 'shopping_cart' },
-          { label: 'Mua chịu (Seasonal)', to: '/agent/debts/seasonal-credit', icon: 'credit_score' },
-          { label: 'Sổ nợ mùa vụ', to: '/agent/debts', icon: 'pending_actions', badge: formatVndShort(totalDebtRemaining), badgeTone: 'warning' as const },
+          { label: 'Công nợ', to: '/agent/debts', icon: 'pending_actions' },
+          { label: 'Báo cáo công nợ', to: '/agent/debts/reports', icon: 'analytics' },
+          { label: 'Nhóm khách & tín dụng', to: '/agent/credit-config', icon: 'credit_score' },
         ]
       },
       {
         title: 'Cộng đồng & Quản trị',
         items: [
-          { label: 'Nông dân', to: '/agent/farmers', icon: 'groups' },
+          { label: 'Khách hàng', to: '/agent/farmers', icon: 'groups' },
           { label: 'Đánh giá sản phẩm', to: '/agent/products/reviews', icon: 'reviews' },
           { label: 'Nhân sự', to: '/agent/staff', icon: 'manage_accounts' },
           { label: 'Nhật ký kiểm toán', to: '/agent/activity-log', icon: 'history_toggle_off' },
@@ -111,13 +109,12 @@ function useNavConfig() {
     const items: NavItem[] = [
       { label: 'Tổng quan', to: '/', icon: 'dashboard', iconTone: 'primary' },
       { label: 'Bán tại quầy', to: '/sales/counter-sales', icon: 'point_of_sale', iconTone: 'primary' },
-      { label: 'Farmer', to: '/sales/farmers', icon: 'groups' },
+      { label: 'Khách hàng', to: '/sales/farmers', icon: 'groups' },
       { label: 'Sản phẩm', to: '/sales/products', icon: 'category' },
       { label: 'Đơn hàng', to: '/sales/orders', icon: 'receipt_long' },
       { label: 'Giao hàng', to: '/sales/deliveries', icon: 'local_shipping' },
       { label: 'Thanh toán', to: '/sales/payments', icon: 'payments' },
       { label: 'Trả hàng', to: '/sales/returns', icon: 'assignment_return' },
-      { label: 'Mua chịu mùa vụ', to: '/sales/credit-requests', icon: 'assignment_turned_in' },
       { label: 'Công nợ', to: '/sales/debts', icon: 'pending_actions' },
       { label: 'Kho', to: '/sales/inventory', icon: 'inventory_2' },
       { label: 'Kiểm kê', to: '/sales/inventory/stocktake', icon: 'fact_check' },

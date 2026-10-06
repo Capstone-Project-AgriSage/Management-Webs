@@ -100,3 +100,13 @@ export function describeError(err: unknown, fallback = 'Có lỗi xảy ra, vui 
   }
   return fallback
 }
+
+/** Builds "?a=1&b=x" from defined, non-empty values (swagger query names are PascalCase, ASP.NET binds them case-insensitively). */
+export function toQuery(params: Record<string, string | number | boolean | null | undefined> = {}): string {
+  const sp = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '') sp.append(key, String(value))
+  }
+  const qs = sp.toString()
+  return qs ? `?${qs}` : ''
+}

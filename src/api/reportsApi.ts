@@ -1,4 +1,4 @@
-import { api } from './client'
+import { api, toQuery } from './client'
 
 export interface DeliveryReportRow {
   key: string
@@ -49,37 +49,55 @@ export const reportsApi = {
     return api<DeliveryReportResponse>(`/api/reports/deliveries?${searchParams.toString()}`)
   },
 
-  getDebtAging: () => {
-    return api<DebtAgingReport>('/api/reports/debt-aging')
-  },
-  
-  getDebtCollections: (params: { fromDate: string; toDate: string }) => {
-    return api<DebtCollectionReport>(`/api/reports/debt-collections?fromDate=${params.fromDate}&toDate=${params.toDate}`)
-  },
-  
-  getDebtByGroup: () => {
-    return api<DebtByGroupReport[]>('/api/reports/debt-by-customer-group')
-  }
+  /** FLOW_3 §8 (Manage): asOf = Vietnam day, default today. */
+  getDebtAging: (params: { asOf?: string; customerGroupId?: string } = {}) =>
+    api<DebtAgingReport>(`/api/reports/debt-aging${toQuery({ asOf: params.asOf, customerGroupId: params.customerGroupId })}`),
+
+  /** ≤ 366 days; groupBy DAY (default) | METHOD | STAFF. */
+  getDebtCollections: (params: { fromDate: string; toDate: string; groupBy?: 'DAY' | 'METHOD' | 'STAFF' }) =>
+    api<DebtCollectionReport>(`/api/reports/debt-collections${toQuery({ fromDate: params.fromDate, toDate: params.toDate, groupBy: params.groupBy })}`),
+
+  getDebtByGroup: () => api<DebtByGroupReport>('/api/reports/debt-by-customer-group'),
+}
+
+export interface AgingBuckets {
+  notDue: number
+  days1To30: number
+  days31To60: number
+  days61To90: number
+  over90: number
+  total: number
 }
 
 export interface DebtAgingReport {
-  totalDebt: number;
-  notYetDue: number;
-  overdue1_30: number;
-  overdue31_60: number;
-  overdue61_90: number;
-  overdue91Plus: number;
+  asOf: string
+  rows: (AgingBuckets & { farmerProfileId: string; fullName: string | null; phoneNumber: string | null; customerGroup: { id: string; code: string | null; name: string | null } | null })[]
+  totals: AgingBuckets
+}
+
+export interface DebtCollectionRow {
+  key: string | null
+  label: string | null
+  paymentCount: number
+  collectedAmount: number
 }
 
 export interface DebtCollectionReport {
-  totalCollected: number;
-  byMethod: { method: string; amount: number }[];
+  fromDate: string
+  toDate: string
+  groupBy: string
+  rows: DebtCollectionRow[]
+  totals: DebtCollectionRow
 }
 
 export interface DebtByGroupReport {
-  groupName: string;
-  totalDebt: number;
-  totalOverdue: number;
-  customerCount: number;
+  rows: {
+    customerGroup: { id: string; code: string | null; name: string | null } | null
+    customersWithDebt: number
+    outstanding: number
+    overdueAmount: number
+    totalCreditLimit: number
+    /** outstanding ÷ total limit; null when the limit total is 0. */
+    utilization: number | null
+  }[]
 }
-
