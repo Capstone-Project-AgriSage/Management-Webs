@@ -9,7 +9,6 @@ import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import DetailModal from '@/components/ui/DetailModal'
 import Pagination from '@/components/ui/Pagination'
 import SearchInput from '@/components/ui/SearchInput'
-import FilterSelect from '@/components/ui/FilterSelect'
 import StatusBadge from '@/components/ui/StatusBadge'
 import { formatVnd } from '@/utils/money'
 import { downloadCsv } from '@/utils/csv'
@@ -22,6 +21,7 @@ import type { OrderPaymentsSummary } from '@/api/paymentsApi'
 import { deliveriesApi, type DeliveryListItem, type DeliveryResponse } from '@/api/deliveriesApi'
 import { ApiError } from '@/api/client'
 import { DELIVERY_STATUS_LABEL, formatDate, labelOf } from '@/utils/deliveryLabels'
+import { useRoleBase } from '@/utils/creditLabels'
 const STATUS_MAP: Record<OrderStatus, string> = {
   PENDING_CONFIRMATION: 'Chờ xác nhận',
   CONFIRMED: 'Đã xác nhận',
@@ -64,6 +64,8 @@ const STATUS_VISUALS: Record<OrderStatus, { className: string; dotClassName: str
 
 export default function OrdersPage() {
   usePageHeader({ title: 'Đơn hàng', subtitle: 'Quản lý các đơn hàng hệ thống' })
+  // Shared by the store owner (/agent) and sales staff (/sales); links stay in the current role's area.
+  const base = useRoleBase()
 
   const { showToast } = useToast()
   const navigate = useNavigate()
@@ -158,7 +160,7 @@ export default function OrdersPage() {
       ])
       setSelectedOrder(full)
       setPaymentSummary(summary)
-    } catch (err) {
+    } catch {
       showToast('Không thể tải chi tiết đơn hàng', 'error')
     }
   }
@@ -427,7 +429,7 @@ export default function OrdersPage() {
           <button
             className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary text-on-primary text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors shadow-sm"
             type="button"
-            onClick={() => navigate('/sales/counter-sales')}
+            onClick={() => navigate(`${base}/counter-sales`)}
           >
             <Plus size={16} />
             <span>Soạn đơn tại quầy</span>
@@ -755,7 +757,7 @@ export default function OrdersPage() {
               {['COMPLETED', 'PARTIALLY_FULFILLED', 'PARTIALLY_CANCELLED'].includes(selectedOrder.status) && (
                 <button
                   className="w-full h-10 mt-1 bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 rounded-lg font-bold flex items-center justify-center transition-colors shadow-sm"
-                  onClick={() => navigate(`/sales/returns/new?orderId=${selectedOrder.id}`)}
+                  onClick={() => navigate(`${base}/returns/new?orderId=${selectedOrder.id}`)}
                 >
                   TẠO YÊU CẦU TRẢ HÀNG
                 </button>
