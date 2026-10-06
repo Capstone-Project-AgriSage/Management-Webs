@@ -314,10 +314,10 @@ export default function PaymentsPage() {
                   <h4 className="font-bold text-rose-700 mb-3 uppercase text-sm tracking-wider">Lịch sử khoản hoàn tiền</h4>
                   <div className="space-y-3">
                     {paymentSummaries[selectedOrder.id].refunds.map(rf => (
-                      <div key={rf.refundId} className="flex justify-between items-center p-3 border border-rose-200 rounded-lg bg-rose-50">
+                      <div key={rf.id} className="flex justify-between items-center p-3 border border-rose-200 rounded-lg bg-rose-50">
                         <div>
                           <div className="font-bold text-rose-800">{formatVnd(rf.amount)} <span className="text-xs font-normal text-rose-600">({rf.refundMethod})</span></div>
-                          <div className="text-xs text-rose-700 mt-1">Hoàn cho thanh toán gốc</div>
+                          <div className="text-xs text-rose-700 mt-1">{rf.status === 'PENDING' ? 'Chờ trả lại khách' : rf.status === 'COMPLETED' ? 'Đã trả lại khách' : 'Đã huỷ'}</div>
                         </div>
                         <div className="text-right">
                           <div className="text-xs font-mono text-rose-600">{rf.refundNumber}</div>

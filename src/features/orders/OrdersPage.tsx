@@ -16,14 +16,14 @@ import KpiCard from '@/components/ui/KpiCard'
 import { ordersApi } from '@/api/ordersApi'
 import { paymentsApi } from '@/api/paymentsApi'
 import type { OrderResponse, OrderStatus } from '@/api/types'
-import type { FefoSuggestionResponse } from '@/api/ordersApi'
 import type { OrderPaymentsSummary } from '@/api/paymentsApi'
 import { deliveriesApi, type DeliveryListItem, type DeliveryResponse } from '@/api/deliveriesApi'
 import { ApiError } from '@/api/client'
 import { DELIVERY_STATUS_LABEL, formatDate, labelOf } from '@/utils/deliveryLabels'
 import { useRoleBase } from '@/utils/creditLabels'
 import OrderEditModal from './OrderEditModal'
-import { creditRefusal } from '@/features/sales/counter-sales/orderDraft'
+import ConfirmOrderModal from './ConfirmOrderModal'
+import PickupModal from './PickupModal'
 const STATUS_MAP: Record<OrderStatus, string> = {
   PENDING_CONFIRMATION: 'Chờ xác nhận',
   CONFIRMED: 'Đã xác nhận',
@@ -44,7 +44,18 @@ const STATUS_OPTIONS: { label: string; value: OrderStatus | '' }[] = [
   { label: 'Giao một phần', value: 'PARTIALLY_FULFILLED' },
   { label: 'Hoàn thành', value: 'COMPLETED' },
   { label: 'Đã hủy', value: 'CANCELLED' },
+  { label: 'Hủy một phần', value: 'PARTIALLY_CANCELLED' },
 ]
+
+/** Payment state of a list row, derived from GET /api/orders/{id}/payments (the list itself has no payment fields). */
+function paymentBadge(order: OrderResponse, p: OrderPaymentsSummary | undefined): { label: string; className: string } {
+  if (!p) return { label: '…', className: 'bg-slate-50 text-slate-400 border-slate-200' }
+  if (p.refunds?.some((r) => r.status === 'PENDING')) return { label: 'Cần hoàn tiền', className: 'bg-rose-50 text-rose-700 border-rose-200' }
+  if (order.settlementType === 'CREDIT' && p.paidAmount === 0) return { label: 'Mua chịu', className: 'bg-violet-50 text-violet-700 border-violet-200' }
+  if (p.paidAmount === 0) return { label: 'Chưa thanh toán', className: 'bg-rose-50 text-rose-700 border-rose-200' }
+  if (p.paidAmount < p.orderTotal) return { label: 'Thanh toán 1 phần', className: 'bg-amber-50 text-amber-800 border-amber-200' }
+  return { label: 'Đã thanh toán', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+}
 
 const SOURCE_OPTIONS: { label: string; value: string }[] = [
   { label: 'Tất cả nguồn', value: '' },
@@ -79,6 +90,9 @@ export default function OrdersPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<OrderStatus | ''>('')
   const [sourceFilter, setSourceFilter] = useState<string>('')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
+  const [rowPayments, setRowPayments] = useState<Record<string, OrderPaymentsSummary>>({})
   const [isLoading, setIsLoading] = useState(false)
 
   const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(null)
@@ -89,17 +103,10 @@ export default function OrdersPage() {
   const [paymentAmount, setPaymentAmount] = useState('')
   const [isPaying, setIsPaying] = useState(false)
 
-  // Confirm state
-  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
-  const [fefoSuggestions, setFefoSuggestions] = useState<FefoSuggestionResponse | null>(null)
-  const [isLoadingFefo, setIsLoadingFefo] = useState(false)
-  const [isConfirming, setIsConfirming] = useState(false)
-
-  // Pickup state
-  const [isPickupModalOpen, setIsPickupModalOpen] = useState(false)
-  const [pickupSuggestions, setPickupSuggestions] = useState<FefoSuggestionResponse | null>(null)
-  const [isLoadingPickupSuggestions, setIsLoadingPickupSuggestions] = useState(false)
-  const [isPickingUp, setIsPickingUp] = useState(false)
+  // Confirm (M5) and counter hand-over (M6) dialogs, and the optional preparing/ready steps
+  const [confirmFor, setConfirmFor] = useState<OrderResponse | null>(null)
+  const [pickupFor, setPickupFor] = useState<OrderResponse | null>(null)
+  const [stepping, setStepping] = useState(false)
 
   // Cancel state
   const [cancelModal, setCancelModal] = useState<{ open: boolean; type: 'ORDER' | 'ITEM'; itemId?: string; title: string }>({ open: false, type: 'ORDER', title: '' })
@@ -124,9 +131,15 @@ export default function OrdersPage() {
         pageSize: 10,
         search,
         status: statusFilter || undefined,
-        source: sourceFilter || undefined
+        source: sourceFilter || undefined,
+        fromDate: fromDate || undefined,
+        toDate: toDate || undefined,
       })
       setOrders(res.items)
+      // One payments call per visible row (≤ page size), as FE_GUIDE_FLOW_1 §M9 suggests until the list carries it.
+      Promise.allSettled(res.items.map((o) => paymentsApi.getOrderPayments(o.id))).then((all) =>
+        setRowPayments(Object.fromEntries(all.flatMap((r, i) => (r.status === 'fulfilled' ? [[res.items[i].id, r.value]] : [])))),
+      )
       setTotalCount(res.totalCount)
       setTotalPages(res.totalPages)
     } catch (err: any) {
@@ -139,12 +152,14 @@ export default function OrdersPage() {
   useEffect(() => {
     const timer = setTimeout(fetchOrders, 300)
     return () => clearTimeout(timer)
-  }, [page, search, statusFilter, sourceFilter])
+  }, [page, search, statusFilter, sourceFilter, fromDate, toDate])
 
   const handleClearFilters = () => {
     setSearch('')
     setStatusFilter('')
     setSourceFilter('')
+    setFromDate('')
+    setToDate('')
     setPage(1)
   }
 
@@ -233,76 +248,22 @@ export default function OrdersPage() {
     }
   }
 
-  const handleOpenConfirmModal = async () => {
-    if (!selectedOrder) return
-    setIsConfirmModalOpen(true)
-    setIsLoadingFefo(true)
-    try {
-      const suggestions = await ordersApi.getFefoSuggestions(selectedOrder.id)
-      setFefoSuggestions(suggestions)
-    } catch (err: any) {
-      showToast(err.detail || 'Không thể lấy thông tin lô hàng', 'error')
-      setIsConfirmModalOpen(false)
-    } finally {
-      setIsLoadingFefo(false)
-    }
+  /** After an action on the open order: show the server's copy, reload its payments, refresh the list. */
+  const refreshSelected = (order: OrderResponse) => {
+    setSelectedOrder(order)
+    paymentsApi.getOrderPayments(order.id).then(setPaymentSummary).catch(() => {})
+    fetchOrders()
   }
 
-  const handleConfirmOrder = async () => {
-    if (!selectedOrder) return
-    setIsConfirming(true)
+  const runStep = async (action: () => Promise<OrderResponse>, success: string) => {
+    setStepping(true)
     try {
-      await ordersApi.confirm(selectedOrder.id)
-      showToast('Xác nhận đơn và giữ hàng thành công!', 'success')
-      setIsConfirmModalOpen(false)
-      setSelectedOrder(null)
-      fetchOrders() // refresh orders list
+      refreshSelected(await action())
+      showToast(success, 'success')
     } catch (err: any) {
-      // A credit order is checked again on confirm (FLOW_3 §5): explain the refusal instead of "Credit refused: CODE".
-      showToast(creditRefusal(err) ?? (err.detail || 'Lỗi xác nhận đơn'), 'error')
+      showToast(err.detail || 'Không thực hiện được', 'error')
     } finally {
-      setIsConfirming(false)
-    }
-  }
-
-  const handleOpenPickupModal = async () => {
-    if (!selectedOrder) return
-    setIsPickupModalOpen(true)
-    setIsLoadingPickupSuggestions(true)
-    try {
-      const suggestions = await ordersApi.getFefoSuggestions(selectedOrder.id)
-      setPickupSuggestions(suggestions)
-    } catch (err: any) {
-      showToast(err.detail || 'Không thể tải lô hàng cần giao', 'error')
-      setIsPickupModalOpen(false)
-    } finally {
-      setIsLoadingPickupSuggestions(false)
-    }
-  }
-
-  const handlePickupOrder = async () => {
-    if (!selectedOrder || !pickupSuggestions) return
-    setIsPickingUp(true)
-    try {
-      const payload = {
-        items: pickupSuggestions.items?.map(item => ({
-          orderItemId: item.orderItemId,
-          lots: item.lots?.map(lot => ({
-            inventoryLotId: lot.inventoryLotId,
-            baseQuantity: lot.suggestedBaseQuantity
-          }))?.filter(l => l.baseQuantity > 0) || []
-        }))?.filter(i => i.lots.length > 0),
-        note: 'Giao hàng tại quầy'
-      }
-      await ordersApi.pickup(selectedOrder.id, payload)
-      showToast('Giao hàng và trừ kho thành công!', 'success')
-      setIsPickupModalOpen(false)
-      setSelectedOrder(null)
-      fetchOrders()
-    } catch (err: any) {
-      showToast(err.detail || 'Lỗi khi giao hàng', 'error')
-    } finally {
-      setIsPickingUp(false)
+      setStepping(false)
     }
   }
 
@@ -503,6 +464,26 @@ export default function OrdersPage() {
             </div>
           </div>
           
+          <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
+            <input
+              type="date"
+              aria-label="Từ ngày"
+              value={fromDate}
+              max={toDate || undefined}
+              onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
+              className="h-10 px-2 bg-surface-container-lowest border border-outline-variant rounded-lg text-sm"
+            />
+            <span>→</span>
+            <input
+              type="date"
+              aria-label="Đến ngày"
+              value={toDate}
+              min={fromDate || undefined}
+              onChange={(e) => { setToDate(e.target.value); setPage(1) }}
+              className="h-10 px-2 bg-surface-container-lowest border border-outline-variant rounded-lg text-sm"
+            />
+          </div>
+
           <button
             className="h-9 px-3 text-on-surface-variant hover:text-on-surface text-xs font-medium flex items-center gap-1 transition-colors"
             onClick={handleClearFilters}
@@ -523,14 +504,15 @@ export default function OrdersPage() {
                 <th className="py-4 px-3 min-w-[200px]">Đơn hàng</th>
                 <th className="py-4 px-3 text-center min-w-[130px]">Trạng thái</th>
                 <th className="py-4 px-3 text-right min-w-[120px]">Tổng tiền</th>
+                <th className="py-4 px-3 text-center min-w-[130px]">Thanh toán</th>
                 <th className="py-4 pr-4 pl-3 w-10"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant/50 text-sm text-on-surface">
               {isLoading ? (
-                <EmptyTableRow colSpan={5} message="Đang tải dữ liệu..." />
+                <EmptyTableRow colSpan={6} message="Đang tải dữ liệu..." />
               ) : !orders || orders.length === 0 ? (
-                <EmptyTableRow colSpan={5} message="Không tìm thấy đơn hàng." />
+                <EmptyTableRow colSpan={6} message="Không tìm thấy đơn hàng." />
               ) : null}
               {orders?.map((order) => {
                 const isSelected = order.id === selectedOrder?.id
@@ -564,6 +546,12 @@ export default function OrdersPage() {
                     </td>
                     <td className="py-4.5 px-3 text-right font-mono font-bold text-on-surface">
                       {formatVnd(order.totalAmount)}
+                    </td>
+                    <td className="py-4.5 px-3 text-center">
+                      {(() => {
+                        const b = paymentBadge(order, rowPayments[order.id])
+                        return <StatusBadge label={b.label} className={b.className} />
+                      })()}
                     </td>
                     <td className="py-4.5 pr-4 pl-3 text-center">
                       <div className="flex items-center justify-center">
@@ -646,7 +634,7 @@ export default function OrdersPage() {
                           className="text-rose-600 hover:text-rose-800 text-[11px] font-bold underline"
                           onClick={() => setCancelModal({ open: true, type: 'ITEM', itemId: item.id, title: `Hủy phần chưa giao của ${item.productName}` })}
                         >
-                          Hủy phần còn lại ({item.remainingBaseQuantity} Đ.V.C.S)
+                          Hủy phần còn lại ({item.remainingBaseQuantity} đơn vị cơ sở)
                         </button>
                       </div>
                     )}
@@ -673,8 +661,11 @@ export default function OrdersPage() {
                     {paymentSummary.refunds && paymentSummary.refunds.length > 0 && (
                       <div className="mt-2 space-y-1">
                         {paymentSummary.refunds?.map(rf => (
-                          <div key={rf.refundId} className="flex justify-between items-center text-sm font-bold bg-rose-50 border border-rose-200 text-rose-700 p-2 rounded-lg">
-                            <span>Cần hoàn tiền mặt:</span>
+                          <div
+                            key={rf.id}
+                            className={`flex justify-between items-center text-sm font-bold p-2 rounded-lg border ${rf.status === 'PENDING' ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}
+                          >
+                            <span>{rf.status === 'PENDING' ? 'Cần hoàn tiền mặt' : rf.status === 'COMPLETED' ? 'Đã hoàn tiền' : 'Khoản hoàn đã huỷ'} · {rf.refundNumber}</span>
                             <span>{formatVnd(rf.amount)}</span>
                           </div>
                         ))}
@@ -718,15 +709,37 @@ export default function OrdersPage() {
                   // A FULL_PAYMENT order is confirmed only once it is fully paid (server: "Payment does not cover the order total"); CREDIT orders are not.
                   disabled={selectedOrder.status !== 'PENDING_CONFIRMATION' || (selectedOrder.settlementType === 'FULL_PAYMENT' && (!paymentSummary || paymentSummary.remainingToPay > 0))}
                   title={selectedOrder.settlementType === 'FULL_PAYMENT' && (paymentSummary?.remainingToPay ?? 0) > 0 ? 'Đơn trả ngay: cần thu đủ tiền trước khi xác nhận' : undefined}
-                  onClick={handleOpenConfirmModal}
+                  onClick={() => setConfirmFor(selectedOrder)}
                 >
                   <CheckCircle size={16} className="mr-2" />
                   XÁC NHẬN ĐƠN (M5)
                 </button>
               </div>
               <div className="text-xs text-center text-on-surface-variant mt-1">
-                * Chỉ có thể xác nhận đơn khi đã thu đủ tiền
+                {selectedOrder.settlementType === 'CREDIT' ? '* Đơn mua chịu: xác nhận không cần thu tiền trước' : '* Chỉ có thể xác nhận đơn khi đã thu đủ tiền'}
               </div>
+
+              {/* Optional tracking steps (FE_GUIDE_FLOW_1 §M5/§M9): skipping them does not block the hand-over. */}
+              {['CONFIRMED', 'PREPARING'].includes(selectedOrder.status) && (
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    className="h-9 rounded-lg border border-outline-variant text-sm font-semibold hover:bg-surface-container disabled:opacity-40"
+                    disabled={stepping || selectedOrder.status !== 'CONFIRMED'}
+                    onClick={() => runStep(() => ordersApi.startPreparing(selectedOrder.id), 'Đã chuyển sang Đang chuẩn bị')}
+                  >
+                    Bắt đầu chuẩn bị
+                  </button>
+                  <button
+                    type="button"
+                    className="h-9 rounded-lg border border-outline-variant text-sm font-semibold hover:bg-surface-container disabled:opacity-40"
+                    disabled={stepping}
+                    onClick={() => runStep(() => ordersApi.markReady(selectedOrder.id), 'Đơn đã sẵn sàng giao')}
+                  >
+                    Sẵn sàng giao
+                  </button>
+                </div>
+              )}
 
               {selectedOrder.status === 'PENDING_CONFIRMATION' && selectedOrder.settlementType === 'FULL_PAYMENT' && paymentSummary && paymentSummary.remainingToPay > 0 && (
                 <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
@@ -737,7 +750,7 @@ export default function OrdersPage() {
               {['CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT', 'PARTIALLY_FULFILLED'].includes(selectedOrder.status) && selectedOrder.fulfillmentType === 'PICKUP' && (
                 <button
                   className="w-full h-10 mt-1 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg font-bold flex items-center justify-center transition-colors shadow-sm"
-                  onClick={handleOpenPickupModal}
+                  onClick={() => setPickupFor(selectedOrder)}
                 >
                   <PackageCheck size={16} className="mr-2" />
                   GIAO HÀNG TẠI QUẦY (M6)
@@ -844,202 +857,25 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* Confirm Modal M5 */}
-      {isConfirmModalOpen && selectedOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-surface w-full max-w-3xl rounded-2xl shadow-xl flex flex-col overflow-hidden max-h-[90vh]">
-            <div className="p-4 border-b border-outline-variant bg-surface-container-low flex justify-between items-center">
-              <h3 className="font-bold text-lg text-on-surface">Xác nhận đơn và giữ hàng #{selectedOrder.orderNumber}</h3>
-              <button onClick={() => setIsConfirmModalOpen(false)} className="text-on-surface-variant hover:text-on-surface">
-                <FilterX size={20} />
-              </button>
-            </div>
-            
-            <div className="p-5 overflow-y-auto flex-1">
-              {isLoadingFefo ? (
-                <div className="py-10 text-center text-on-surface-variant font-medium animate-pulse">
-                  Đang tính toán các lô hàng gợi ý tự động (FEFO)...
-                </div>
-              ) : fefoSuggestions ? (
-                <div className="space-y-4">
-                  <div className="bg-primary/10 text-primary p-3 rounded-lg text-sm font-medium mb-4">
-                    Hệ thống đã tự động gợi ý các lô hàng tối ưu theo nguyên tắc FEFO (hết hạn trước xuất trước). Vui lòng kiểm tra trước khi xác nhận.
-                  </div>
-                  
-                  {fefoSuggestions.items?.map((item) => {
-                    const originalItem = selectedOrder.items?.find(i => i.id === item.orderItemId)
-                    const hasShortage = item.shortageBaseQuantity > 0
-                    
-                    return (
-                      <div key={item.orderItemId} className={`border rounded-xl p-4 ${hasShortage ? 'border-rose-300 bg-rose-50' : 'border-outline-variant bg-surface-container-lowest'}`}>
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <div className="font-bold text-on-surface">{originalItem?.productName}</div>
-                            <div className="text-xs text-on-surface-variant mt-1">
-                              Cần xuất: {item.baseQuantity} {originalItem?.packagingName} (Đơn vị cơ sở)
-                            </div>
-                          </div>
-                          {hasShortage && (
-                            <div className="bg-rose-100 text-rose-700 font-bold text-xs px-2 py-1 rounded-md">
-                              THIẾU {item.shortageBaseQuantity} Đ.VỊ
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="bg-surface rounded-lg overflow-hidden border border-outline-variant text-sm">
-                          <table className="w-full text-left">
-                            <thead className="bg-surface-container-low text-xs text-on-surface-variant">
-                              <tr>
-                                <th className="p-2 font-medium">Số lô</th>
-                                <th className="p-2 font-medium text-center">Hạn dùng</th>
-                                <th className="p-2 font-medium text-right">Tồn khả dụng</th>
-                                <th className="p-2 font-medium text-right text-primary">Sẽ giữ</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-outline-variant/50">
-                              {item.lots.length === 0 ? (
-                                <tr>
-                                  <td colSpan={4} className="p-4 text-center text-on-surface-variant italic text-xs">
-                                    Không có lô hàng nào phù hợp
-                                  </td>
-                                </tr>
-                              ) : (
-                                item.lots?.map((lot, idx) => (
-                                  <tr key={idx}>
-                                    <td className="p-2 font-mono font-medium">{lot.lotNumber || 'Không số'}</td>
-                                    <td className="p-2 text-center">{lot.expiryDate ? new Date(lot.expiryDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Không hạn'}</td>
-                                    <td className="p-2 text-right">{lot.availableBaseQuantity}</td>
-                                    <td className="p-2 text-right font-bold text-primary">{lot.suggestedBaseQuantity}</td>
-                                  </tr>
-                                ))
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="py-10 text-center text-rose-600 font-medium">
-                  Không có dữ liệu gợi ý FEFO
-                </div>
-              )}
-            </div>
-            
-            <div className="p-4 border-t border-outline-variant bg-surface-container-lowest flex justify-end gap-3">
-              <button
-                className="px-6 py-2 bg-surface-container-high hover:bg-surface-container-highest font-bold rounded-xl transition-colors"
-                onClick={() => setIsConfirmModalOpen(false)}
-              >
-                HỦY
-              </button>
-              <button
-                className="px-6 py-2 bg-primary text-on-primary hover:bg-primary/90 font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2"
-                onClick={handleConfirmOrder}
-                disabled={
-                  isConfirming || 
-                  isLoadingFefo || 
-                  !fefoSuggestions || 
-                  fefoSuggestions.items?.some(i => i.shortageBaseQuantity > 0)
-                }
-              >
-                {isConfirming ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN VÀ GIỮ HÀNG'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmOrderModal
+        order={confirmFor}
+        onClose={() => setConfirmFor(null)}
+        onConfirmed={(order) => {
+          setConfirmFor(null)
+          showToast(order.settlementType === 'CREDIT' ? 'Đã xác nhận: giữ hàng và hạn mức của khách' : 'Đã xác nhận đơn và giữ hàng', 'success')
+          refreshSelected(order)
+        }}
+      />
 
-      {/* Pickup Modal M6 */}
-      {isPickupModalOpen && selectedOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-surface w-full max-w-3xl rounded-2xl shadow-xl flex flex-col overflow-hidden max-h-[90vh]">
-            <div className="p-4 border-b border-outline-variant bg-indigo-50 flex justify-between items-center">
-              <h3 className="font-bold text-lg text-indigo-900">Giao hàng tại quầy #{selectedOrder.orderNumber}</h3>
-              <button onClick={() => setIsPickupModalOpen(false)} className="text-indigo-500 hover:text-indigo-800">
-                <FilterX size={20} />
-              </button>
-            </div>
-            
-            <div className="p-5 overflow-y-auto flex-1">
-              {isLoadingPickupSuggestions ? (
-                <div className="py-10 text-center text-on-surface-variant font-medium animate-pulse">
-                  Đang tải thông tin các lô hàng cần giao...
-                </div>
-              ) : pickupSuggestions ? (
-                <div className="space-y-4">
-                  <div className="bg-indigo-50 text-indigo-800 p-3 rounded-lg text-sm mb-4">
-                    Xác nhận xuất kho các lô hàng dưới đây để giao cho khách. Số lượng xuất đã được lấy theo số lượng giữ (FEFO).
-                  </div>
-                  
-                  {pickupSuggestions.items?.map((item) => {
-                    const originalItem = selectedOrder.items?.find(i => i.id === item.orderItemId)
-                    
-                    return (
-                      <div key={item.orderItemId} className="border border-outline-variant rounded-xl p-4 bg-surface-container-lowest">
-                        <div className="font-bold text-on-surface mb-2">{originalItem?.productName}</div>
-                        <div className="text-xs text-on-surface-variant mb-3">
-                          Cần giao: {item.baseQuantity} {originalItem?.packagingName} (Đơn vị cơ sở)
-                        </div>
-                        
-                        <div className="bg-surface rounded-lg overflow-hidden border border-outline-variant text-sm">
-                          <table className="w-full text-left">
-                            <thead className="bg-surface-container-low text-xs text-on-surface-variant">
-                              <tr>
-                                <th className="p-2 font-medium">Số lô</th>
-                                <th className="p-2 font-medium text-center">Hạn dùng</th>
-                                <th className="p-2 font-medium text-right text-indigo-600">Thực tế xuất</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-outline-variant/50">
-                              {item.lots.length === 0 ? (
-                                <tr>
-                                  <td colSpan={3} className="p-4 text-center text-on-surface-variant italic text-xs">
-                                    Không có lô hàng
-                                  </td>
-                                </tr>
-                              ) : (
-                                item.lots?.map((lot, idx) => (
-                                  <tr key={idx}>
-                                    <td className="p-2 font-mono font-medium">{lot.lotNumber || 'Không số'}</td>
-                                    <td className="p-2 text-center">{lot.expiryDate ? new Date(lot.expiryDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Không hạn'}</td>
-                                    <td className="p-2 text-right font-bold text-indigo-600">{lot.suggestedBaseQuantity}</td>
-                                  </tr>
-                                ))
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="py-10 text-center text-rose-600 font-medium">
-                  Không có dữ liệu
-                </div>
-              )}
-            </div>
-            
-            <div className="p-4 border-t border-outline-variant bg-surface-container-lowest flex justify-end gap-3">
-              <button
-                className="px-6 py-2 bg-surface-container-high hover:bg-surface-container-highest font-bold rounded-xl transition-colors text-on-surface"
-                onClick={() => setIsPickupModalOpen(false)}
-              >
-                HỦY
-              </button>
-              <button
-                className="px-6 py-2 bg-indigo-600 text-white hover:bg-indigo-700 font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
-                onClick={handlePickupOrder}
-                disabled={isPickingUp || isLoadingPickupSuggestions || !pickupSuggestions}
-              >
-                {isPickingUp ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN GIAO & TRỪ KHO'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PickupModal
+        order={pickupFor}
+        onClose={() => setPickupFor(null)}
+        onDone={(order) => {
+          setPickupFor(null)
+          showToast(order.status === 'COMPLETED' ? 'Đã giao đủ, đơn hoàn thành' : 'Đã giao một phần, phần còn lại giao sau hoặc huỷ', 'success')
+          refreshSelected(order)
+        }}
+      />
 
       {/* Delivery Modal M7 */}
       {isDeliveryModalOpen && selectedOrder && (

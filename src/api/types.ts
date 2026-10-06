@@ -63,11 +63,25 @@ export interface PaymentResponse {
                  prepaymentConsumedAmount: Money; status: 'ACTIVE' | 'REVERSED'; allocatedAt: string }[]
 }
 
+/** A refund owed to the customer (refunds[] of GET /api/orders/{id}/payments). PENDING until staff pay it back (flow 4). */
 export interface RefundResponse {
+  id: Uuid
+  refundNumber: string
+  source: string
+  orderId: Uuid | null
+  originalPaymentId: Uuid | null
+  refundMethod: 'CASH' | 'BANK_TRANSFER' | string
+  amount: Money
+  status: 'PENDING' | 'COMPLETED' | 'CANCELLED' | string
+  completedAt: string | null
+}
+
+/** refunds[] of POST /api/orders/{id}/cancel. */
+export interface OrderCancellationRefund {
   refundId: Uuid
   refundNumber: string
   paymentId: Uuid
-  refundMethod: 'CASH' | 'BANK_TRANSFER'
+  refundMethod: string
   amount: Money
 }
 
