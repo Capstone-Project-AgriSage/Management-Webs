@@ -31,13 +31,22 @@ import AgentOrdersPage from '@/features/agent/orders/OrdersPage'
 import AgentPaymentsPage from '@/features/agent/payments/PaymentsPage'
 import AgentAiRecommendationsPage from '@/features/agent/ai-recommendations/AiRecommendationsPage'
 import AgentProductsPage from '@/features/agent/products/ProductsPage'
-import AgentInventoryPage from '@/features/agent/inventory/InventoryPage'
-import AgentInventoryMovementsPage from '@/features/agent/inventory/InventoryMovementsPage'
-import AgentStocktakePage from '@/features/agent/inventory/StocktakePage'
+import AgentInventoryPage from '@/features/agent/inventory/StockOverviewPage'
+import AgentInventoryMovementsPage from '@/features/agent/inventory/StockMovementsPage'
+import AgentStockCardPage from '@/features/agent/inventory/StockCardPage'
+import AgentInventoryReportsPage from '@/features/agent/inventory/InventoryReportsPage'
+import AgentStocktakePage from '@/features/agent/inventory/StocktakeListPage'
+import StocktakeDetailPage from '@/features/agent/inventory/StocktakeDetailPage'
 import AgentDeliveriesPage from '@/features/agent/deliveries/DeliveriesPage'
 import AgentDeliveryReportsPage from '@/features/agent/deliveries/DeliveryReportsPage'
 import AgentSuppliersPage from '@/features/agent/purchases/SuppliersPage'
-import AgentPurchaseOrdersPage from '@/features/agent/purchases/PurchaseOrdersPage'
+import RefundsPage from '@/features/agent/refunds/RefundsPage'
+import ReturnsListPage from '@/features/agent/returns/ReturnsListPage'
+import ReturnCreatePage from '@/features/agent/returns/ReturnCreatePage'
+import ReturnDetailPage from '@/features/agent/returns/ReturnDetailPage'
+import AgentGoodsReceiptsPage from '@/features/agent/purchases/GoodsReceiptsPage'
+import GoodsReceiptDetailPage from '@/features/agent/purchases/GoodsReceiptDetailPage'
+import ReceiptImportPage from '@/features/agent/purchases/ReceiptImportPage'
 import DebtReportsPage from '@/features/agent/debts/DebtReportsPage'
 import AgentProductReviewsPage from '@/features/agent/products/ProductReviewsPage'
 import AgentStaffPage from '@/features/agent/staff/StaffPage'
@@ -197,8 +206,36 @@ export const router = createBrowserRouter([
             element: <RequireRole role="agent"><AgentInventoryMovementsPage /></RequireRole>,
           },
           {
+            path: 'agent/refunds',
+            element: <RequireRole role="agent"><RefundsPage /></RequireRole>,
+          },
+          {
+            path: 'agent/returns',
+            element: <RequireRole role="agent"><ReturnsListPage /></RequireRole>,
+          },
+          {
+            path: 'agent/returns/new',
+            element: <RequireRole role="agent"><ReturnCreatePage /></RequireRole>,
+          },
+          {
+            path: 'agent/returns/:id',
+            element: <RequireRole role="agent"><ReturnDetailPage /></RequireRole>,
+          },
+          {
+            path: 'agent/inventory/stock-card',
+            element: <RequireRole role="agent"><AgentStockCardPage /></RequireRole>,
+          },
+          {
+            path: 'agent/inventory/reports',
+            element: <RequireRole role="agent"><AgentInventoryReportsPage /></RequireRole>,
+          },
+          {
             path: 'agent/inventory/stocktake',
             element: <RequireRole role="agent"><AgentStocktakePage /></RequireRole>,
+          },
+          {
+            path: 'agent/inventory/stocktake/:id',
+            element: <RequireRole role="agent"><StocktakeDetailPage /></RequireRole>,
           },
           {
             path: 'agent/deliveries',
@@ -214,7 +251,19 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/purchases/orders',
-            element: <RequireRole role="agent"><AgentPurchaseOrdersPage /></RequireRole>,
+            element: <Navigate to="/agent/purchases/receipts" replace />,
+          },
+          {
+            path: 'agent/purchases/receipts',
+            element: <RequireRole role="agent"><AgentGoodsReceiptsPage /></RequireRole>,
+          },
+          {
+            path: 'agent/purchases/receipts/import',
+            element: <RequireRole role="agent"><ReceiptImportPage /></RequireRole>,
+          },
+          {
+            path: 'agent/purchases/receipts/:id',
+            element: <RequireRole role="agent"><GoodsReceiptDetailPage /></RequireRole>,
           },
           {
             path: 'agent/credit-config',
@@ -277,6 +326,26 @@ export const router = createBrowserRouter([
           {
             path: 'sales/inventory',
             element: <RequireRole role="sales_staff"><SalesInventoryPage /></RequireRole>,
+          },
+          {
+            path: 'sales/returns',
+            element: <RequireRole role="sales_staff"><ReturnsListPage /></RequireRole>,
+          },
+          {
+            path: 'sales/returns/new',
+            element: <RequireRole role="sales_staff"><ReturnCreatePage /></RequireRole>,
+          },
+          {
+            path: 'sales/returns/:id',
+            element: <RequireRole role="sales_staff"><ReturnDetailPage /></RequireRole>,
+          },
+          {
+            path: 'sales/inventory/stocktake',
+            element: <RequireRole role="sales_staff"><AgentStocktakePage /></RequireRole>,
+          },
+          {
+            path: 'sales/inventory/stocktake/:id',
+            element: <RequireRole role="sales_staff"><StocktakeDetailPage /></RequireRole>,
           },
           {
             path: 'sales/price-lists',
