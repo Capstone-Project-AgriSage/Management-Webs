@@ -82,12 +82,12 @@ export default function ProductMasterPage() {
         setEditTarget(product)
         break
       case 'approve':
-        productsService.updateProductStatus(product.id, 'Đang lưu hành')
+        productsService.updateAdminProductStatus(product.id, 'Đang lưu hành')
         setProductList(productsService.listProducts())
         showToast(`Đã duyệt sản phẩm ${product.name}`)
         break
       case 'reject':
-        productsService.updateProductStatus(product.id, 'Ngừng kinh doanh')
+        productsService.updateAdminProductStatus(product.id, 'Ngừng kinh doanh')
         setProductList(productsService.listProducts())
         showToast(`Đã từ chối sản phẩm ${product.name}`)
         break
@@ -390,7 +390,7 @@ export default function ProductMasterPage() {
               <button className="px-4 py-2 bg-surface-container-low text-on-surface rounded font-medium hover:bg-outline-variant/50 transition-colors" onClick={() => setSelectedId(null)}>Đóng</button>
               {selected.status === 'Chờ duyệt' && (
                 <button className="px-4 py-2 bg-primary text-on-primary rounded font-medium hover:bg-primary/90 transition-colors" onClick={() => {
-                  productsService.updateProductStatus(selected.id, 'Đang lưu hành');
+                  productsService.updateAdminProductStatus(selected.id, 'Đang lưu hành');
                   setProductList(productsService.listProducts());
                   setSelectedId(null);
                   showToast('Đã duyệt sản phẩm thành công');

@@ -1,4 +1,4 @@
-import type { LogEntry } from '@/data/types'
+import type { LogEntry } from '@/types'
 
 export const logEntries: LogEntry[] = [
   {

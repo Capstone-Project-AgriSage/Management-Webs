@@ -1,4 +1,4 @@
-import type { DebtCustomer, DebtPaymentRequest } from '@/data/types'
+import type { DebtCustomer, DebtPaymentRequest } from '@/types'
 
 export const debtCustomers: DebtCustomer[] = [
   {

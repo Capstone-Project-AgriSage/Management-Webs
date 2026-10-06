@@ -1,12 +1,17 @@
 export class ApiError extends Error {
-  constructor(
-    public status: number,
-    public title: string,
-    public detail?: string,
-    public errors?: Record<string, string[]>,
-    public traceId?: string
-  ) {
+  status: number
+  title: string
+  detail?: string
+  errors?: Record<string, string[]>
+  traceId?: string
+
+  constructor(status: number, title: string, detail?: string, errors?: Record<string, string[]>, traceId?: string) {
     super(detail ?? title)
+    this.status = status
+    this.title = title
+    this.detail = detail
+    this.errors = errors
+    this.traceId = traceId
   }
 }
 

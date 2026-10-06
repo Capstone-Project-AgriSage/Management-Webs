@@ -1,4 +1,4 @@
-import type { CreditRequest, DebtCustomer, DebtPaymentRequest } from '@/data/types'
+import type { CreditRequest, DebtCustomer, DebtPaymentRequest } from '@/types'
 
 export const mockCreditRequests: CreditRequest[] = [
   {

@@ -1,4 +1,4 @@
-import type { InventoryItem, StockMovement } from '@/data/types'
+import type { InventoryItem, StockMovement } from '@/types'
 
 export const inventoryItems: InventoryItem[] = [
   {

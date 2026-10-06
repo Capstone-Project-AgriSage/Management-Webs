@@ -6,16 +6,38 @@ import { useToast } from '@/context/ToastContext'
 import SearchInput from '@/components/ui/SearchInput'
 import Pagination from '@/components/ui/Pagination'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
-import RowActionsMenu from '@/components/ui/RowActionsMenu'
+import RowActionsMenu, { type RowAction } from '@/components/ui/RowActionsMenu'
+import FormModal, { type FormFieldSpec } from '@/components/ui/FormModal'
 import { usePagination } from '@/hooks/usePagination'
-import { suppliers as INITIAL_SUPPLIERS } from '@/features/agent/data/mockPurchases'
+import { suppliers as INITIAL_SUPPLIERS, type Supplier } from '@/features/agent/data/mockPurchases'
+
+const SUPPLIER_FIELDS: FormFieldSpec[] = [
+  { key: 'name', label: 'Tên nhà cung cấp *', type: 'text', placeholder: 'VD: Công ty TNHH Phân Bón...', group: 'basic' },
+  { key: 'contactName', label: 'Người liên hệ *', type: 'text', placeholder: 'VD: Lê Văn Trọng', group: 'basic' },
+  { key: 'phone', label: 'Số điện thoại *', type: 'text', placeholder: 'VD: 0987654321', group: 'contact' },
+  { key: 'email', label: 'Email', type: 'text', placeholder: 'VD: trong.le@binhdien.vn', group: 'contact' },
+  { key: 'address', label: 'Địa chỉ kho / trụ sở', type: 'text', placeholder: 'VD: KCN Tân Tạo, Bình Tân, TP.HCM' },
+  { key: 'status', label: 'Trạng thái', type: 'select', options: ['Đang hợp tác', 'Ngừng hợp tác'] },
+]
 
 export default function SuppliersPage() {
   usePageHeader({ title: 'Nhà cung cấp', subtitle: 'Danh sách và đánh giá đối tác cung ứng' })
 
   const { showToast } = useToast()
-  const [suppliers] = useState(INITIAL_SUPPLIERS)
+  const [suppliers, setSuppliers] = useState<Supplier[]>(INITIAL_SUPPLIERS)
   const [search, setSearch] = useState('')
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null)
+  const [formValues, setFormValues] = useState<Record<string, string>>({
+    name: '',
+    contactName: '',
+    phone: '',
+    email: '',
+    address: '',
+    status: 'Đang hợp tác'
+  })
 
   const keyword = search.trim().toLowerCase()
   const filtered = suppliers.filter((s) =>
@@ -28,8 +50,95 @@ export default function SuppliersPage() {
   const { page, totalPages, paginated, startIndex, endIndex, totalCount, goPrev, goNext, setPage } =
     usePagination(filtered, 10)
 
-  const handleAction = (id: string, label: string) => {
-    showToast(`Đã thực hiện: ${label} cho NCC ${id}`)
+  const handleOpenAdd = () => {
+    setEditingSupplier(null)
+    setFormValues({
+      name: '',
+      contactName: '',
+      phone: '',
+      email: '',
+      address: '',
+      status: 'Đang hợp tác'
+    })
+    setIsModalOpen(true)
+  }
+
+  const handleOpenEdit = (supplier: Supplier) => {
+    setEditingSupplier(supplier)
+    setFormValues({
+      name: supplier.name,
+      contactName: supplier.contactName,
+      phone: supplier.phone,
+      email: supplier.email,
+      address: supplier.address,
+      status: supplier.status
+    })
+    setIsModalOpen(true)
+  }
+
+  const handleToggleStatus = (supplier: Supplier) => {
+    const newStatus = supplier.status === 'Đang hợp tác' ? 'Ngừng hợp tác' : 'Đang hợp tác'
+    setSuppliers(prev => prev.map(s => s.id === supplier.id ? { ...s, status: newStatus } : s))
+    showToast(`Đã chuyển trạng thái NCC ${supplier.id} sang "${newStatus}"`, 'success')
+  }
+
+  const handleFormChange = (key: string, value: string) => {
+    setFormValues(prev => ({ ...prev, [key]: value }))
+  }
+
+  const handleFormSubmit = () => {
+    if (!formValues.name.trim() || !formValues.phone.trim()) {
+      showToast('Vui lòng nhập đầy đủ tên nhà cung cấp và số điện thoại', 'error')
+      return
+    }
+
+    if (editingSupplier) {
+      setSuppliers(prev => prev.map(s => {
+        if (s.id === editingSupplier.id) {
+          return {
+            ...s,
+            name: formValues.name,
+            contactName: formValues.contactName,
+            phone: formValues.phone,
+            email: formValues.email,
+            address: formValues.address,
+            status: (formValues.status as 'Đang hợp tác' | 'Ngừng hợp tác') || 'Đang hợp tác'
+          }
+        }
+        return s
+      }))
+      showToast(`Đã cập nhật thông tin nhà cung cấp ${editingSupplier.id}`, 'success')
+    } else {
+      const newId = `SUP-00${suppliers.length + 1}`
+      const newSupplier: Supplier = {
+        id: newId,
+        name: formValues.name,
+        contactName: formValues.contactName,
+        phone: formValues.phone,
+        email: formValues.email,
+        address: formValues.address,
+        status: (formValues.status as 'Đang hợp tác' | 'Ngừng hợp tác') || 'Đang hợp tác',
+        actions: [{ label: 'Sửa thông tin', icon: 'edit' }, { label: 'Ngừng hợp tác', icon: 'block' }]
+      }
+      setSuppliers(prev => [newSupplier, ...prev])
+      showToast(`Thêm nhà cung cấp ${newId} thành công`, 'success')
+    }
+    setIsModalOpen(false)
+  }
+
+  const buildActions = (s: Supplier): RowAction[] => {
+    return [
+      {
+        label: 'Sửa thông tin',
+        icon: 'edit',
+        onClick: () => handleOpenEdit(s)
+      },
+      {
+        label: s.status === 'Đang hợp tác' ? 'Ngừng hợp tác' : 'Kích hoạt lại',
+        icon: s.status === 'Đang hợp tác' ? 'block' : 'check_circle',
+        onClick: () => handleToggleStatus(s)
+      }
+    ]
   }
 
   return (
@@ -44,9 +153,9 @@ export default function SuppliersPage() {
         </div>
         <div className="flex items-center gap-2.5 flex-wrap">
           <button
-            className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer"
             type="button"
-            onClick={() => showToast('Mở form thêm NCC mới')}
+            onClick={handleOpenAdd}
           >
             <Plus size={16} />
             <span>Thêm nhà cung cấp</span>
@@ -132,10 +241,7 @@ export default function SuppliersPage() {
                   <td className="py-4 px-4 text-center">
                     <RowActionsMenu
                       triggerLabel={`Thao tác ${s.name}`}
-                      actions={s.actions.map(a => ({
-                        ...a,
-                        onClick: () => handleAction(s.id, a.label)
-                      }))}
+                      actions={buildActions(s)}
                     />
                   </td>
                 </tr>
@@ -155,6 +261,19 @@ export default function SuppliersPage() {
           setPage={setPage}
         />
       </div>
+
+      {/* Modal Thêm / Sửa Nhà cung cấp */}
+      <FormModal
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingSupplier ? `Sửa thông tin nhà cung cấp (${editingSupplier.id})` : 'Thêm nhà cung cấp mới'}
+        fields={SUPPLIER_FIELDS}
+        values={formValues}
+        onChange={handleFormChange}
+        onSubmit={handleFormSubmit}
+        submitLabel={editingSupplier ? 'Lưu thay đổi' : 'Thêm nhà cung cấp'}
+        cancelLabel="Hủy"
+      />
     </div>
   )
 }

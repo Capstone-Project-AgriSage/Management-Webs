@@ -16,6 +16,7 @@ import { useFilteredList } from '@/hooks/useFilteredList'
 import { usePagination } from '@/hooks/usePagination'
 import { farmers as FARMERS } from '@/features/sales/data/mockFarmers'
 import { parseVnd, formatVnd } from '@/utils/money'
+import CustomerCreditModal from './components/CustomerCreditModal'
 
 const DEBT_OPTIONS = ['Tất cả công nợ', 'Có công nợ', 'Không có nợ', 'Nợ quá hạn']
 const REGION_OPTIONS = ['Tất cả khu vực', ...new Set(FARMERS.map((f) => f.areaShort.split(',').pop()?.trim() ?? '').filter(Boolean))]
@@ -29,6 +30,14 @@ export default function FarmersPage() {
   const { showToast } = useToast()
   const navigate = useNavigate()
   const { selectedId, setSelectedId, selected: selectedFarmer } = useSelectableList(FARMERS, (f) => f.id)
+
+  const [creditModalOpen, setCreditModalOpen] = useState(false)
+  const [selectedCreditFarmerId, setSelectedCreditFarmerId] = useState<string | null>(null)
+  
+  const handleOpenCreditConfig = (id: string) => {
+    setSelectedCreditFarmerId(id)
+    setCreditModalOpen(true)
+  }
 
   const [regionFilter, setRegionFilter] = useState(REGION_OPTIONS[0])
 
@@ -216,6 +225,7 @@ export default function FarmersPage() {
                           triggerLabel={`Thao tác ${farmer.name}`}
                           actions={[
                             { label: 'Xem chi tiết', icon: 'visibility', onClick: () => setSelectedId(farmer.id) },
+                            { label: 'Hồ sơ Tín dụng', icon: 'credit_score', onClick: () => handleOpenCreditConfig(farmer.id) },
                             { label: 'Tạo đơn tại quầy', icon: 'point_of_sale', tone: 'primary', onClick: () => handleCreateOrder(farmer.name) },
                           ]}
                         />
@@ -348,6 +358,11 @@ export default function FarmersPage() {
           </div>
         ) : null}
       </DetailModal>
+      <CustomerCreditModal open={creditModalOpen} onClose={() => setCreditModalOpen(false)} customerId={selectedCreditFarmerId} />
     </div>
   )
 }
+
+
+
+
