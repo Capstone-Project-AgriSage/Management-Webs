@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import ProductSearchPanel from './ProductSearchPanel'
 import CartPanel from './CartPanel'
@@ -7,6 +7,9 @@ import type { CatalogProductDetail } from '@/api/types'
 export interface CartItem {
   product: CatalogProductDetail
   packagingId: string
+  packagingName: string
+  /** Base units in one pack (lots and stock are counted in base units). */
+  conversionToBase: number
   quantity: number
   price: number
 }

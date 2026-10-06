@@ -27,7 +27,7 @@ export interface DebtAccount {
   version: number
 }
 
-export type DebtEntryStatus = 'OPEN' | 'PARTIALLY_PAID' | 'PAID' | 'DISPUTED' | 'CANCELLED' | string
+export type DebtEntryStatus = 'OPEN' | 'PARTIALLY_PAID' | 'PAID' | 'DISPUTED' | 'ADJUSTED' | 'CANCELLED' | string
 
 export interface DebtEntryListItem {
   id: string

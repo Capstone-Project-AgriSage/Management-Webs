@@ -65,7 +65,7 @@ import CustomersPage from '@/features/customers/CustomersPage'
 import DebtsPage from '@/features/debts/DebtsPage'
 import CustomerDebtPage from '@/features/debts/CustomerDebtPage'
 import SalesInventoryPage from '@/features/sales/inventory/InventoryPage'
-import SalesPriceListsPage from '@/features/sales/price-lists/PriceListsPage'
+import PriceListsPage from '@/features/price-lists/PriceListsPage'
 import SalesAiReviewPage from '@/features/sales/ai-review/AiReviewPage'
 import SalesSettingsPage from '@/features/sales/settings/SettingsPage'
 
@@ -266,6 +266,10 @@ export const router = createBrowserRouter([
             element: <RequireRole role="agent"><GoodsReceiptDetailPage /></RequireRole>,
           },
           {
+            path: 'agent/price-lists',
+            element: <RequireRole role="agent"><PriceListsPage /></RequireRole>,
+          },
+          {
             path: 'agent/credit-config',
             element: <RequireRole role="agent"><CreditConfigPage /></RequireRole>,
           },
@@ -349,7 +353,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'sales/price-lists',
-            element: <RequireRole role="sales_staff"><SalesPriceListsPage /></RequireRole>,
+            element: <RequireRole role="sales_staff"><PriceListsPage /></RequireRole>,
           },
           {
             path: 'sales/ai-review',

@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react'
-import { Search, Loader2 } from 'lucide-react'
+import Modal from '@/components/ui/Modal'
+import { packagingLabel } from '@/utils/packaging'
+import type { CartItem } from './CounterSalesPage'
+import { Search } from 'lucide-react'
 import { catalogApi } from '@/api/catalogApi'
-import type { CatalogProduct, CatalogCategory } from '@/api/types'
+import type { CatalogProduct, CatalogCategory, CatalogProductDetail, CatalogPackaging } from '@/api/types'
 import { formatVnd } from '@/utils/money'
 import { useToast } from '@/context/ToastContext'
 
 interface ProductSearchPanelProps {
-  onAddToCart: (item: any) => void
+  onAddToCart: (item: CartItem) => void
 }
 
 export default function ProductSearchPanel({ onAddToCart }: ProductSearchPanelProps) {
@@ -18,6 +21,8 @@ export default function ProductSearchPanel({ onAddToCart }: ProductSearchPanelPr
   const [loading, setLoading] = useState(false)
   const [catsLoading, setCatsLoading] = useState(false)
   const { showToast } = useToast()
+  // Product whose selling packaging the staff must pick (bao, hộp, chai…): price and quantity always belong to a packaging.
+  const [choosing, setChoosing] = useState<CatalogProductDetail | null>(null)
 
   useEffect(() => {
     const fetchCats = async () => {
@@ -44,7 +49,7 @@ export default function ProductSearchPanel({ onAddToCart }: ProductSearchPanelPr
         
         const res = await catalogApi.getProducts(params)
         setProducts(res.items)
-      } catch (err: any) {
+      } catch {
         setProducts([])
       } finally {
         setLoading(false)
@@ -62,21 +67,29 @@ export default function ProductSearchPanel({ onAddToCart }: ProductSearchPanelPr
         return
       }
       
-      const pack = detail.packagings.find(p => p.price !== null)
-      if (!pack) {
-        showToast('Sản phẩm chưa có giá bán lẻ', 'warning')
+      const priced = detail.packagings.filter(p => p.price !== null)
+      if (priced.length === 0) {
+        showToast('Sản phẩm chưa có giá bán lẻ nên chưa bán được', 'warning')
         return
       }
-      onAddToCart({
-        product: detail,
-        packagingId: pack.id,
-        quantity: 1,
-        price: pack.price!
-      })
-      showToast('Đã thêm vào đơn', 'success')
-    } catch (err: any) {
-      showToast('Lỗi tải chi tiết', 'error')
+      if (detail.packagings.length === 1) addPackaging(detail, priced[0])
+      else setChoosing(detail)
+    } catch {
+      showToast('Không tải được quy cách của sản phẩm', 'error')
     }
+  }
+
+  const addPackaging = (detail: CatalogProductDetail, pack: CatalogPackaging) => {
+    onAddToCart({
+      product: detail,
+      packagingId: pack.id,
+      packagingName: packagingLabel(pack),
+      conversionToBase: pack.conversionToBase,
+      quantity: 1,
+      price: pack.price ?? 0,
+    })
+    setChoosing(null)
+    showToast(`Đã thêm ${detail.name} · ${packagingLabel(pack)}`, 'success')
   }
 
   return (
@@ -154,6 +167,37 @@ export default function ProductSearchPanel({ onAddToCart }: ProductSearchPanelPr
           </div>
         )}
       </div>
+
+      <Modal open={choosing !== null} onClose={() => setChoosing(null)} title="Chọn quy cách bán">
+        {choosing && (
+          <div className="space-y-2">
+            <p className="text-sm text-slate-600 mb-3">{choosing.name}</p>
+            {choosing.packagings.map((pack) => {
+              const label = packagingLabel(pack)
+              const baseUnit = (choosing.packagings.find((p) => p.isBaseUnit)?.unitName ?? 'đơn vị cơ sở').toLowerCase()
+              return (
+                <button
+                  key={pack.id}
+                  type="button"
+                  disabled={pack.price === null}
+                  onClick={() => addPackaging(choosing, pack)}
+                  className="w-full flex items-center justify-between gap-3 p-3 rounded-lg border border-slate-200 text-left hover:border-emerald-500 hover:bg-emerald-50/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:border-slate-200 transition-colors"
+                >
+                  <span>
+                    <span className="block font-semibold text-slate-900">{label}</span>
+                    <span className="block text-xs text-slate-500">
+                      {pack.isBaseUnit ? 'Đơn vị cơ sở' : `1 ${label.toLowerCase()} = ${pack.conversionToBase} ${baseUnit}`}
+                    </span>
+                  </span>
+                  <span className="font-bold tabular-nums text-emerald-700">
+                    {pack.price !== null ? formatVnd(pack.price) : <span className="text-xs font-medium text-slate-500">Chưa có giá</span>}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

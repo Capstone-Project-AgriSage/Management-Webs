@@ -105,18 +105,21 @@ export default function CartPanel({ items, onUpdateQuantity, onRemoveItem, onCle
             <div key={idx} className={`p-4 rounded-xl border ${i.shortageBaseQuantity > 0 ? 'bg-error-container/20 border-error' : 'bg-surface-container-lowest border-outline-variant'}`}>
               <div className="font-bold text-base mb-1">{i.productName}</div>
               <div className="text-sm text-on-surface-variant flex justify-between mb-3">
-                <span>{i.packagingName} x {i.quantity}</span>
+                <span>{i.packagingName ?? 'Đơn vị cơ sở'} × {i.quantity}</span>
                 <span className="font-bold text-on-surface">{formatVnd(i.lineTotalAmount)}</span>
               </div>
               
               {i.shortageBaseQuantity > 0 ? (
                 <div className="text-error font-bold text-sm bg-error-container p-2 rounded-lg flex items-center gap-2">
                   <span className="material-symbols-outlined text-[18px]">warning</span>
-                  Thiếu {i.shortageBaseQuantity} {i.packagingName.toLowerCase()} (tồn kho)
+                  {/* Shortage and lots are in base units; show the pack equivalent too when the pack holds several. */}
+                  Thiếu {i.shortageBaseQuantity} đơn vị cơ sở
+                  {i.conversionToBase > 1 && ` (≈ ${Math.ceil(i.shortageBaseQuantity / i.conversionToBase)} ${(i.packagingName ?? 'quy cách').toLowerCase()})`}
+                  {' '}— không đủ tồn kho khả dụng
                 </div>
               ) : (
                 <div className="space-y-1 mt-2 pt-2 border-t border-outline-variant">
-                  <div className="text-xs font-bold text-on-surface-variant mb-1 uppercase">Lô xuất:</div>
+                  <div className="text-xs font-bold text-on-surface-variant mb-1 uppercase">Lô xuất (đơn vị cơ sở):</div>
                   {i.lots.map((l, lIdx) => (
                     <div key={lIdx} className="text-xs flex justify-between items-center bg-surface-container-low p-2 rounded">
                       <span className="font-medium text-on-surface-variant">
@@ -204,7 +207,11 @@ export default function CartPanel({ items, onUpdateQuantity, onRemoveItem, onCle
                     <button onClick={() => onUpdateQuantity(idx, Math.max(1, item.quantity - 1))} className="w-8 h-8 flex items-center justify-center hover:bg-surface-container hover:text-rose-600 rounded-lg transition-colors text-on-surface-variant">
                       <Minus className="w-4 h-4" />
                     </button>
-                    <span className="w-10 text-center font-bold text-base">{item.quantity}</span>
+                    <QuantityInput
+                      label={`Số lượng ${item.product.name}`}
+                      value={item.quantity}
+                      onChange={(q) => onUpdateQuantity(idx, q)}
+                    />
                     <button onClick={() => onUpdateQuantity(idx, item.quantity + 1)} className="w-8 h-8 flex items-center justify-center hover:bg-surface-container hover:text-emerald-600 rounded-lg transition-colors text-on-surface-variant">
                       <Plus className="w-4 h-4" />
                     </button>
@@ -238,5 +245,33 @@ export default function CartPanel({ items, onUpdateQuantity, onRemoveItem, onCle
         </div>
       </div>
     </div>
+  )
+}
+
+/**
+ * Pack count typed by hand: keeps the text while the field is being edited (so clearing it to type "15" works)
+ * and commits a number between 1 and 100,000,000 (FE_GUIDE_FLOW_1 §M3).
+ */
+function QuantityInput({ label, value, onChange }: { label: string; value: number; onChange: (q: number) => void }) {
+  const [draft, setDraft] = useState<string | null>(null)
+  const commit = (text: string) => {
+    const q = Number(text)
+    onChange(Number.isFinite(q) && q >= 1 ? Math.min(100_000_000, Math.floor(q)) : value)
+    setDraft(null)
+  }
+  return (
+    <input
+      aria-label={label}
+      inputMode="numeric"
+      className="w-14 h-8 text-center font-bold text-base bg-transparent border-0 focus:ring-1 focus:ring-emerald-500 rounded-lg"
+      value={draft ?? String(value)}
+      onChange={(e) => {
+        const text = e.target.value.replace(/[^\d]/g, '')
+        setDraft(text)
+        if (Number(text) >= 1) onChange(Math.min(100_000_000, Number(text)))
+      }}
+      onBlur={(e) => commit(e.target.value)}
+      onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+    />
   )
 }

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import type { AppRole, AppUser } from '@/types'
+import type { AppRole } from '@/types'
 import { authApi } from '@/api/authApi'
+import { ApiError } from '@/api/client'
 
 const TOKEN_KEY = 'agrisage_token'
 
@@ -37,10 +38,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       try {
         const userData = await authApi.me()
+        if (!roleMapping[userData.role]) throw new Error('Not a staff account')
         setUser(userData)
-        setCurrentRole(roleMapping[userData.role] || null)
+        setCurrentRole(roleMapping[userData.role])
         setIsAuthenticated(true)
-      } catch (err) {
+      } catch {
         localStorage.removeItem(TOKEN_KEY)
       } finally {
         setIsLoading(false)
@@ -51,6 +53,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (identifier: string, password: string) => {
     const res = await authApi.login(identifier, password)
+    // Farmers sign in to the farmer app; this web is for store staff only.
+    if (!roleMapping[res.user.role]) {
+      throw new ApiError(403, 'Forbidden', 'Tài khoản này không có quyền truy cập trang quản lý. Nông dân vui lòng dùng ứng dụng dành cho nông dân.')
+    }
     localStorage.setItem(TOKEN_KEY, res.accessToken)
     setUser(res.user)
     setCurrentRole(roleMapping[res.user.role] || null)
