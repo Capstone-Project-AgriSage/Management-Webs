@@ -108,16 +108,6 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           </div>
         </form>
         <div className="flex items-center gap-1">
-          {currentRole === 'agent' ? (
-            <button
-              className="w-8 h-8 flex items-center justify-center rounded border border-transparent hover:border-outline-variant/60 hover:bg-surface-container-low text-on-surface-variant transition-colors"
-              title="VietQR Quick Scanner"
-              type="button"
-              onClick={() => showToast('Chức năng quét mã VietQR đang được phát triển')}
-            >
-              <span className="material-symbols-outlined text-[18px]">qr_code_scanner</span>
-            </button>
-          ) : null}
           <button
             className="w-8 h-8 flex items-center justify-center rounded border border-transparent hover:border-outline-variant/60 hover:bg-surface-container-low text-on-surface-variant relative transition-colors"
             title="Thông báo hệ thống"

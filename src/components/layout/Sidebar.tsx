@@ -1,16 +1,12 @@
-import { NavLink } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import { ordersApi } from '@/api/ordersApi'
 import type { NavItem } from '@/types'
 
 /* ── Admin-only imports (used for dynamic badges) ── */
 import * as accountsService from '@/features/admin/services/accountsService'
 
-/* ── Agent-only imports (used for dynamic badges) ── */
-import { products as agentProducts } from '@/features/agent/data/mockProducts'
-import { inventoryItems } from '@/features/agent/data/mockInventory'
-import { orders as agentOrders } from '@/features/agent/data/mockOrders'
-import { payments as agentPayments } from '@/features/agent/data/mockPayments'
-import { aiCases } from '@/features/agent/data/mockAiRecommendations'
 
 function badgeClasses(tone: NavItem['badgeTone']) {
   switch (tone) {
@@ -30,8 +26,28 @@ interface SidebarProps {
   onClose: () => void
 }
 
+/** Orders waiting for confirmation, refreshed on every navigation so the badge follows the staff's work. */
+function usePendingOrderCount(enabled: boolean) {
+  const { pathname } = useLocation()
+  const [count, setCount] = useState<number | null>(null)
+  useEffect(() => {
+    if (!enabled) return
+    let alive = true
+    ordersApi
+      .getOrders({ status: 'PENDING_CONFIRMATION', page: 1, pageSize: 1 })
+      .then((res) => alive && setCount(res.totalCount))
+      .catch(() => alive && setCount(null))
+    return () => {
+      alive = false
+    }
+  }, [enabled, pathname])
+  return count
+}
+
 function useNavConfig() {
   const { user, currentRole } = useAuth()
+  const pendingOrders = usePendingOrderCount(currentRole === 'agent' || currentRole === 'sales_staff')
+  const pendingBadge = pendingOrders ? { badge: String(pendingOrders), badgeTone: 'primary' as const } : {}
 
   if (currentRole === 'admin') {
     const pendingAccountCount = accountsService.list().filter((a) => a.status === 'Chờ duyệt').length
@@ -53,9 +69,6 @@ function useNavConfig() {
   }
 
   if (currentRole === 'agent') {
-    const inventoryAlertCount = inventoryItems.filter((i) => i.stockLabel !== 'Tồn kho tốt').length
-    const unpaidPaymentCount = agentPayments.filter((p) => p.statusBadge.label !== 'Đã thanh toán').length
-    const pendingAiCount = aiCases.filter((c) => c.statusBadge.label === 'Chờ duyệt').length
 
     const groups = [
       {
@@ -63,16 +76,16 @@ function useNavConfig() {
         items: [
           { label: 'Tổng quan', to: '/', icon: 'dashboard', iconTone: 'primary' as const },
           { label: 'Bán tại quầy', to: '/agent/counter-sales', icon: 'point_of_sale', iconTone: 'primary' as const },
-          { label: 'Đơn hàng', to: '/agent/orders', icon: 'receipt_long', badge: String(agentOrders.length), badgeTone: 'primary' as const },
-          { label: 'Thanh toán VietQR', to: '/agent/payments', icon: 'payments', badge: `${unpaidPaymentCount} chờ`, badgeTone: 'primary' as const },
-          ...(user.can_review_ai ? [{ label: 'Hàng đợi AI', to: '/agent/ai-recommendations', icon: 'psychology', badge: String(pendingAiCount), badgeTone: 'error' as const, iconTone: 'primary' as const }] : [])
+          { label: 'Đơn hàng', to: '/agent/orders', icon: 'receipt_long', ...pendingBadge },
+          { label: 'Thanh toán', to: '/agent/payments', icon: 'payments' },
+          ...(user.can_review_ai ? [{ label: 'Hàng đợi AI', to: '/agent/ai-recommendations', icon: 'psychology', iconTone: 'primary' as const }] : [])
         ]
       },
       {
         title: 'Quản lý kho & Sản phẩm',
         items: [
-          { label: 'Sản phẩm', to: '/agent/products', icon: 'category', badge: String(agentProducts.length) },
-          { label: 'Tồn kho', to: '/agent/inventory', icon: 'inventory_2', badge: String(inventoryAlertCount), badgeTone: 'error' as const },
+          { label: 'Sản phẩm', to: '/agent/products', icon: 'category' },
+          { label: 'Tồn kho', to: '/agent/inventory', icon: 'inventory_2' },
           { label: 'Biến động kho', to: '/agent/inventory/movements', icon: 'sync_alt' },
           { label: 'Kiểm kê', to: '/agent/inventory/stocktake', icon: 'fact_check' },
           { label: 'Giao hàng', to: '/agent/deliveries', icon: 'local_shipping' },
@@ -87,6 +100,7 @@ function useNavConfig() {
           { label: 'Công nợ', to: '/agent/debts', icon: 'pending_actions' },
           { label: 'Báo cáo công nợ', to: '/agent/debts/reports', icon: 'analytics' },
           { label: 'Nhóm khách & tín dụng', to: '/agent/credit-config', icon: 'credit_score' },
+          { label: 'Bảng giá', to: '/agent/price-lists', icon: 'price_change' },
         ]
       },
       {
@@ -109,7 +123,7 @@ function useNavConfig() {
       { label: 'Bán tại quầy', to: '/sales/counter-sales', icon: 'point_of_sale', iconTone: 'primary' },
       { label: 'Khách hàng', to: '/sales/farmers', icon: 'groups' },
       { label: 'Sản phẩm', to: '/sales/products', icon: 'category' },
-      { label: 'Đơn hàng', to: '/sales/orders', icon: 'receipt_long' },
+      { label: 'Đơn hàng', to: '/sales/orders', icon: 'receipt_long', ...pendingBadge },
       { label: 'Giao hàng', to: '/sales/deliveries', icon: 'local_shipping' },
       { label: 'Thanh toán', to: '/sales/payments', icon: 'payments' },
       { label: 'Công nợ', to: '/sales/debts', icon: 'pending_actions' },
