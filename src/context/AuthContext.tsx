@@ -36,17 +36,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(false)
         return
       }
-      try {
-        const userData = await authApi.me()
-        if (!roleMapping[userData.role]) throw new Error('Not a staff account')
-        setUser(userData)
-        setCurrentRole(roleMapping[userData.role])
-        setIsAuthenticated(true)
-      } catch {
-        localStorage.removeItem(TOKEN_KEY)
-      } finally {
-        setIsLoading(false)
+      // Only the server's answer ends the session (401 is handled by api(), a non-staff role here). A network error —
+      // a dropped connection, or the request aborted because the page is being left — must not log the user out.
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const userData = await authApi.me()
+          if (roleMapping[userData.role]) {
+            setUser(userData)
+            setCurrentRole(roleMapping[userData.role])
+            setIsAuthenticated(true)
+          } else {
+            localStorage.removeItem(TOKEN_KEY)
+          }
+          break
+        } catch (err) {
+          if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+            localStorage.removeItem(TOKEN_KEY)
+            break
+          }
+          await new Promise((resolve) => setTimeout(resolve, 800 * (attempt + 1)))
+        }
       }
+      setIsLoading(false)
     }
     initAuth()
   }, [])
