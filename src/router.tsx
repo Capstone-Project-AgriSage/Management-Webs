@@ -40,7 +40,9 @@ import AgentStocktakePage from '@/features/agent/inventory/StocktakeListPage'
 import StocktakeDetailPage from '@/features/agent/inventory/StocktakeDetailPage'
 import AgentDeliveriesPage from '@/features/agent/deliveries/DeliveriesPage'
 import AgentSuppliersPage from '@/features/agent/purchases/SuppliersPage'
-import AgentPurchaseOrdersPage from '@/features/agent/purchases/PurchaseOrdersPage'
+import AgentGoodsReceiptsPage from '@/features/agent/purchases/GoodsReceiptsPage'
+import GoodsReceiptDetailPage from '@/features/agent/purchases/GoodsReceiptDetailPage'
+import ReceiptImportPage from '@/features/agent/purchases/ReceiptImportPage'
 import AgentSeasonalCreditPage from '@/features/agent/debts/SeasonalCreditPage'
 import AgentProductReviewsPage from '@/features/agent/products/ProductReviewsPage'
 import AgentStaffPage from '@/features/agent/staff/StaffPage'
@@ -212,7 +214,19 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/purchases/orders',
-            element: <RequireRole role="agent"><AgentPurchaseOrdersPage /></RequireRole>,
+            element: <Navigate to="/agent/purchases/receipts" replace />,
+          },
+          {
+            path: 'agent/purchases/receipts',
+            element: <RequireRole role="agent"><AgentGoodsReceiptsPage /></RequireRole>,
+          },
+          {
+            path: 'agent/purchases/receipts/import',
+            element: <RequireRole role="agent"><ReceiptImportPage /></RequireRole>,
+          },
+          {
+            path: 'agent/purchases/receipts/:id',
+            element: <RequireRole role="agent"><GoodsReceiptDetailPage /></RequireRole>,
           },
           {
             path: 'agent/debts/seasonal-credit',

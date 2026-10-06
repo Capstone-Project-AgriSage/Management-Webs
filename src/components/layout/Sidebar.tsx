@@ -84,7 +84,7 @@ function useNavConfig() {
         title: 'Mua hàng & Công nợ',
         items: [
           { label: 'Nhà cung cấp', to: '/agent/purchases/suppliers', icon: 'storefront' },
-          { label: 'Phiếu nhập hàng', to: '/agent/purchases/orders', icon: 'shopping_cart' },
+          { label: 'Phiếu nhập hàng', to: '/agent/purchases/receipts', icon: 'shopping_cart' },
           { label: 'Mua chịu (Seasonal)', to: '/agent/debts/seasonal-credit', icon: 'credit_score' },
           { label: 'Sổ nợ mùa vụ', to: '/agent/debts', icon: 'pending_actions', badge: formatVndShort(totalDebtRemaining), badgeTone: 'warning' as const },
         ]
