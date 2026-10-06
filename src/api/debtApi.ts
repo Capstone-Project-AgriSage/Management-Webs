@@ -1,83 +1,191 @@
-import { api } from './client'
+import { api, toQuery } from './client'
 import type { PagedResult } from './types'
+import type { CustomerReference, PaymentListItem } from './customersApi'
 
-export interface DebtAccountResponse {
-  customerId: string
-  customerCode: string
-  customerName: string
-  customerPhone: string
-  creditLimit: number
-  outstandingReceivable: number
-  availableCredit: number
-  totalOverdueAmount: number
-  status: 'NORMAL' | 'WARNING' | 'OVERDUE' | 'SUSPENDED'
-}
+// FLOW_3 §6–§7 — debt ledger and actions. Money only enters through payments (paymentsApi), decision B-D6.
 
-export interface DebtTransactionResponse {
+export interface DebtAccountListItem {
   id: string
-  transactionType: 'ORDER_DEBT' | 'REPAYMENT' | 'ADJUSTMENT_INCREASE' | 'ADJUSTMENT_DECREASE'
-  amount: number
-  note: string
-  createdAt: string
-  referenceId: string // Mã đơn hàng nếu là order
-  paymentMethod?: 'CASH' | 'BANK_TRANSFER'
-  status: 'COMPLETED' | 'PENDING_VERIFICATION' | 'REJECTED'
+  farmerProfileId: string
+  fullName: string | null
+  phoneNumber: string | null
+  customerGroup: CustomerReference | null
+  currentBalance: number
+  overdueAmount: number
+  oldestDueDate: string | null
 }
+
+export interface DebtAccount {
+  id: string
+  farmerProfileId: string
+  status: string
+  currentBalance: number
+  overdueAmount: number
+  openEntryCount: number
+  oldestDueDate: string | null
+  lastTransactionAt: string | null
+  version: number
+}
+
+export type DebtEntryStatus = 'OPEN' | 'PARTIALLY_PAID' | 'PAID' | 'DISPUTED' | 'CANCELLED' | string
+
+export interface DebtEntryListItem {
+  id: string
+  entryNumber: string
+  farmerProfileId: string
+  fullName: string | null
+  phoneNumber: string | null
+  sourceType: 'DELIVERY' | 'PICKUP' | 'MANUAL_ADJUSTMENT' | string
+  orderNumber: string | null
+  originalAmount: number
+  totalPaid: number
+  outstandingAmount: number
+  dueDate: string
+  isOverdue: boolean
+  overdueDays: number
+  status: DebtEntryStatus
+  createdAt: string
+}
+
+export interface DebtAction {
+  id: string
+  actionType: 'DISPUTE' | 'KEEP' | 'CHANGE_DUE_DATE' | 'ADJUST' | 'CANCEL' | string
+  reason: string | null
+  adjustmentAmount: number | null
+  oldDueDate: string | null
+  newDueDate: string | null
+  createdBy: string
+  createdAt: string
+}
+
+export interface DebtTransaction {
+  id: string
+  debtEntryId: string | null
+  transactionType: 'CREDIT_SALE' | 'PAYMENT' | 'ADJUSTMENT_IN' | 'ADJUSTMENT_OUT' | 'RETURN' | string
+  amountDelta: number
+  balanceBefore: number
+  balanceAfter: number
+  occurredAt: string
+  status: string
+  paymentAllocationId: string | null
+  salesReturnId: string | null
+  debtEntryActionId: string | null
+  note: string | null
+  createdBy: string | null
+}
+
+export interface DebtEntry {
+  id: string
+  entryNumber: string
+  sourceType: string
+  orderId: string | null
+  orderNumber: string | null
+  deliveryId: string | null
+  fulfillmentValue: number
+  prepaymentAppliedAmount: number
+  originalAmount: number
+  totalPaid: number
+  outstandingAmount: number
+  dueDate: string
+  isOverdue: boolean
+  overdueDays: number
+  status: DebtEntryStatus
+  customer: { id: string; fullName: string | null; phoneNumber: string | null; creditLimit: number; currentOutstandingDebt: number; reservedCredit: number; availableCredit: number } | null
+  order: { id: string; orderNumber: string; items?: { id: string; productName: string; packagingName: string; quantity: number; lineTotalAmount: number }[] } | null
+  actions: DebtAction[]
+  transactions: DebtTransaction[]
+  payments: { id: string; paymentNumber: string; paymentMethod: string; amount: number; status: string; confirmedAt: string | null; initiatedAt: string }[]
+  createdAt: string
+}
+
+export interface AllocationPreview {
+  amount: number
+  allocations: { debtEntryId: string; entryNumber: string; dueDate: string; outstandingAmount: number; allocatedAmount: number }[]
+  unallocatedAmount: number
+}
+
+export interface DebtDashboard {
+  totalOutstandingDebt: number
+  totalOverdueDebt: number
+  collectedToday: number
+  collectedThisMonth: number
+  customersWithDebt: number
+  customersWithOverdueDebt: number
+  topDebtors: DebtAccountListItem[]
+  recentDebtPayments: PaymentListItem[]
+  overdueDebts: DebtEntryListItem[]
+}
+
+export type DebtEntrySortBy = 'CreatedAt' | 'DueDate' | 'OutstandingAmount' | 'DaysOverdue'
+
+export interface DebtEntryQuery {
+  farmerProfileId?: string
+  orderId?: string
+  status?: string
+  search?: string
+  overdueOnly?: boolean
+  dueFrom?: string
+  dueTo?: string
+  sortBy?: DebtEntrySortBy
+  descending?: boolean
+  page?: number
+  pageSize?: number
+}
+
+const entry = (id: string) => `/api/debt-entries/${id}`
+const post = <T>(path: string, body: unknown) => api<T>(path, { method: 'POST', body: JSON.stringify(body) })
 
 export const debtApi = {
-  // Q9: Danh sách sổ nợ
-  getDebtAccounts: (params?: { page?: number; pageSize?: number; search?: string; hasOverdue?: boolean }) => {
-    const searchParams = new URLSearchParams()
-    if (params?.page) searchParams.append('Page', params.page.toString())
-    if (params?.pageSize) searchParams.append('PageSize', params.pageSize.toString())
-    if (params?.search) searchParams.append('Search', params.search)
-    if (params?.hasOverdue) searchParams.append('HasOverdue', params.hasOverdue.toString())
-    
-    return api<PagedResult<DebtAccountResponse>>(`/api/debt-accounts?${searchParams.toString()}`)
-  },
-  
-  // Q9: Chi tiết nợ của 1 khách
-  getCustomerDebt: (customerId: string) => {
-    return api<DebtAccountResponse>(`/api/customers/${customerId}/debt`)
-  },
-  
-  // Q9: Lịch sử giao dịch nợ
-  getDebtTransactions: (customerId: string, params?: { page?: number; pageSize?: number }) => {
-    const searchParams = new URLSearchParams()
-    if (params?.page) searchParams.append('Page', params.page.toString())
-    if (params?.pageSize) searchParams.append('PageSize', params.pageSize.toString())
-    return api<PagedResult<DebtTransactionResponse>>(`/api/customers/${customerId}/debt/transactions?${searchParams.toString()}`)
-  },
-  
-  // Q9: Điều chỉnh nợ (Tăng/Giảm)
-  adjustDebt: (customerId: string, data: { amount: number; isIncrease: boolean; note: string }) => {
-    return api<void>(`/api/customers/${customerId}/debt/adjust`, {
-      method: 'POST',
-      body: JSON.stringify(data)
-    })
-  },
-  
-  // Q10: Thu tiền trả nợ - Tiền mặt
-  repayCash: (customerId: string, data: { amount: number; note: string }) => {
-    return api<void>(`/api/customers/${customerId}/repayment/cash`, {
-      method: 'POST',
-      body: JSON.stringify(data)
-    })
-  },
-  
-  // Q10: Báo cáo chuyển khoản
-  repayBankTransfer: (customerId: string, data: { amount: number; referenceCode: string; note: string }) => {
-    return api<void>(`/api/customers/${customerId}/repayment/bank-transfer`, {
-      method: 'POST',
-      body: JSON.stringify(data)
-    })
-  },
-  
-  // Q10: Duyệt giao dịch bank-transfer (Kế toán)
-  verifyRepayment: (customerId: string, transactionId: string, isApproved: boolean) => {
-    return api<void>(`/api/customers/${customerId}/repayment/${transactionId}/verify`, {
-      method: 'POST',
-      body: JSON.stringify({ isApproved })
-    })
-  }
+  getDebtAccounts: (q: { search?: string; hasOutstanding?: boolean; overdueOnly?: boolean; page?: number; pageSize?: number } = {}) =>
+    api<PagedResult<DebtAccountListItem>>(
+      `/api/debt-accounts${toQuery({ Search: q.search, HasOutstanding: q.hasOutstanding, OverdueOnly: q.overdueOnly, Page: q.page, PageSize: q.pageSize })}`,
+    ),
+
+  getCustomerDebt: (farmerProfileId: string) => api<DebtAccount>(`/api/customers/${farmerProfileId}/debt`),
+
+  getTransactions: (farmerProfileId: string, q: { fromDate?: string; toDate?: string; page?: number; pageSize?: number } = {}) =>
+    api<PagedResult<DebtTransaction>>(
+      `/api/customers/${farmerProfileId}/debt/transactions${toQuery({ FromDate: q.fromDate, ToDate: q.toDate, Page: q.page, PageSize: q.pageSize })}`,
+    ),
+
+  getEntries: (q: DebtEntryQuery = {}) =>
+    api<PagedResult<DebtEntryListItem>>(
+      `/api/debt-entries${toQuery({
+        FarmerProfileId: q.farmerProfileId,
+        OrderId: q.orderId,
+        Status: q.status,
+        Search: q.search,
+        OverdueOnly: q.overdueOnly,
+        DueFrom: q.dueFrom,
+        DueTo: q.dueTo,
+        SortBy: q.sortBy,
+        Descending: q.descending,
+        Page: q.page,
+        PageSize: q.pageSize,
+      })}`,
+    ),
+
+  getEntry: (id: string) => api<DebtEntry>(entry(id)),
+  getEntryPayments: (id: string) => api<PaymentListItem[]>(`${entry(id)}/payments`),
+  getEntryLedger: (id: string) => api<DebtTransaction[]>(`${entry(id)}/ledger`),
+
+  /** Oldest due date first (rule 27) — preview before collecting cash. */
+  getAllocationPreview: (farmerProfileId: string, amount: number) =>
+    api<AllocationPreview>(`/api/customers/${farmerProfileId}/debt/allocation-preview${toQuery({ amount })}`),
+
+  /** Operate: DISPUTE does not block payments; KEEP / ADJUST / CANCEL resolve it. */
+  dispute: (id: string, reason: string) => post<DebtEntry>(`${entry(id)}/dispute`, { reason }),
+  keep: (id: string, reason: string) => post<DebtEntry>(`${entry(id)}/keep`, { reason }),
+  /** The new date cannot be in the past. */
+  changeDueDate: (id: string, newDueDate: string, reason: string) => post<DebtEntry>(`${entry(id)}/change-due-date`, { newDueDate, reason }),
+  /** Manage: amount > 0 is the amount to REDUCE (≤ outstanding). */
+  adjust: (id: string, amount: number, reason: string) => post<DebtEntry>(`${entry(id)}/adjust`, { amount, reason }),
+  /** Manage: writes off the full outstanding. */
+  cancel: (id: string, reason: string) => post<DebtEntry>(`${entry(id)}/cancel`, { reason }),
+  /** Manage: the only way to increase receivable by hand. */
+  createManualEntry: (farmerProfileId: string, data: { amount: number; dueDate: string; reason: string }) =>
+    post<DebtEntry>(`/api/customers/${farmerProfileId}/debt/manual-entries`, data),
+
+  /** Manage. */
+  getDashboard: () => api<DebtDashboard>('/api/debt-entries/dashboard'),
 }

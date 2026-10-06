@@ -32,15 +32,12 @@ import AgentPaymentsPage from '@/features/agent/payments/PaymentsPage'
 import AgentAiRecommendationsPage from '@/features/agent/ai-recommendations/AiRecommendationsPage'
 import AgentProductsPage from '@/features/agent/products/ProductsPage'
 import AgentInventoryPage from '@/features/agent/inventory/InventoryPage'
-import AgentFarmersPage from '@/features/agent/farmers/FarmersPage'
-import AgentDebtsPage from '@/features/agent/debts/DebtsPage'
 import AgentInventoryMovementsPage from '@/features/agent/inventory/InventoryMovementsPage'
 import AgentStocktakePage from '@/features/agent/inventory/StocktakePage'
 import AgentDeliveriesPage from '@/features/agent/deliveries/DeliveriesPage'
 import AgentDeliveryReportsPage from '@/features/agent/deliveries/DeliveryReportsPage'
 import AgentSuppliersPage from '@/features/agent/purchases/SuppliersPage'
 import AgentPurchaseOrdersPage from '@/features/agent/purchases/PurchaseOrdersPage'
-import AgentSeasonalCreditPage from '@/features/agent/debts/SeasonalCreditPage'
 import DebtReportsPage from '@/features/agent/debts/DebtReportsPage'
 import AgentProductReviewsPage from '@/features/agent/products/ProductReviewsPage'
 import AgentStaffPage from '@/features/agent/staff/StaffPage'
@@ -51,14 +48,13 @@ import AgentSettingsPage from '@/features/agent/system/SettingsPage'
 // SALES FEATURES
 // =======================
 import SalesDashboardPage from '@/features/sales/dashboard/DashboardPage'
-import SalesFarmersPage from '@/features/sales/farmers/FarmersPage'
 import SalesProductsPage from '@/features/sales/products/ProductsPage'
 import SalesOrdersPage from '@/features/sales/orders/OrdersPage'
 import CounterSalesPage from '@/features/sales/counter-sales/CounterSalesPage'
 import SalesPaymentsPage from '@/features/sales/payments/PaymentsPage'
-import DebtAccountsPage from '@/features/cashier/debt/DebtAccountsPage'
-import CustomerDebtDetailPage from '@/features/cashier/debt/CustomerDebtDetailPage'
-import SalesCreditRequestsPage from '@/features/sales/credit-requests/CreditRequestsPage'
+import CustomersPage from '@/features/customers/CustomersPage'
+import DebtsPage from '@/features/debts/DebtsPage'
+import CustomerDebtPage from '@/features/debts/CustomerDebtPage'
 import SalesInventoryPage from '@/features/sales/inventory/InventoryPage'
 import SalesPriceListsPage from '@/features/sales/price-lists/PriceListsPage'
 import SalesAiReviewPage from '@/features/sales/ai-review/AiReviewPage'
@@ -182,11 +178,11 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/farmers',
-            element: <RequireRole role="agent"><AgentFarmersPage /></RequireRole>,
+            element: <RequireRole role="agent"><CustomersPage /></RequireRole>,
           },
           {
             path: 'agent/debts',
-            element: <RequireRole role="agent"><DebtAccountsPage /></RequireRole>,
+            element: <RequireRole role="agent"><DebtsPage /></RequireRole>,
           },
           {
             path: 'agent/debts/reports',
@@ -194,7 +190,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/debts/:id',
-            element: <RequireRole role="agent"><CustomerDebtDetailPage /></RequireRole>,
+            element: <RequireRole role="agent"><CustomerDebtPage /></RequireRole>,
           },
           {
             path: 'agent/inventory/movements',
@@ -221,8 +217,8 @@ export const router = createBrowserRouter([
             element: <RequireRole role="agent"><AgentPurchaseOrdersPage /></RequireRole>,
           },
           {
-            path: 'agent/debts/seasonal-credit',
-            element: <RequireRole role="agent"><AgentSeasonalCreditPage /></RequireRole>,
+            path: 'agent/credit-config',
+            element: <RequireRole role="agent"><CreditConfigPage /></RequireRole>,
           },
           {
             path: 'agent/products/reviews',
@@ -248,7 +244,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'sales/farmers',
-            element: <RequireRole role="sales_staff"><SalesFarmersPage /></RequireRole>,
+            element: <RequireRole role="sales_staff"><CustomersPage /></RequireRole>,
           },
           {
             path: 'sales/products',
@@ -272,19 +268,11 @@ export const router = createBrowserRouter([
           },
           {
             path: 'sales/debts',
-            element: <RequireRole role="sales_staff"><DebtAccountsPage /></RequireRole>,
-          },
-          {
-            path: 'sales/debts/reports',
-            element: <RequireRole role="sales_staff"><DebtReportsPage /></RequireRole>,
+            element: <RequireRole role="sales_staff"><DebtsPage /></RequireRole>,
           },
           {
             path: 'sales/debts/:id',
-            element: <RequireRole role="sales_staff"><CustomerDebtDetailPage /></RequireRole>,
-          },
-          {
-            path: 'sales/credit-requests',
-            element: <RequireRole role="sales_staff"><SalesCreditRequestsPage /></RequireRole>,
+            element: <RequireRole role="sales_staff"><CustomerDebtPage /></RequireRole>,
           },
           {
             path: 'sales/inventory',

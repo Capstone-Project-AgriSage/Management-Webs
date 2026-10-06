@@ -40,3 +40,13 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const p = await res.json().catch(() => ({}))
   throw new ApiError(res.status, p.title ?? res.statusText, p.detail, p.errors, p.traceId)
 }
+
+/** Builds "?a=1&b=x" from defined, non-empty values (swagger query names are PascalCase, ASP.NET binds them case-insensitively). */
+export function toQuery(params: Record<string, string | number | boolean | null | undefined> = {}): string {
+  const sp = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '') sp.append(key, String(value))
+  }
+  const qs = sp.toString()
+  return qs ? `?${qs}` : ''
+}
