@@ -1,10 +1,9 @@
 import { api } from './client'
 import type { PagedResult } from './types'
 
-export interface CustomerReference {
-  id: string
-  name: string
-}
+import type { CustomerReference } from './customersApi'
+
+export type { CustomerReference }
 
 export interface CreditTierResponse {
   id: string
@@ -48,7 +47,8 @@ export const creditTiersApi = {
     })
   },
   
-  updateCreditTier: (id: string, data: CreditTierRequest) => {
+  /** Code is immutable; changing a tier never changes existing profiles or confirmed orders (FLOW_3 §4.1). */
+  updateCreditTier: (id: string, data: Omit<CreditTierRequest, 'code'>) => {
     return api<CreditTierResponse>(`/api/credit-tiers/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data)
