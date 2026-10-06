@@ -36,7 +36,8 @@ import AgentDebtsPage from '@/features/agent/debts/DebtsPage'
 import AgentInventoryMovementsPage from '@/features/agent/inventory/StockMovementsPage'
 import AgentStockCardPage from '@/features/agent/inventory/StockCardPage'
 import AgentInventoryReportsPage from '@/features/agent/inventory/InventoryReportsPage'
-import AgentStocktakePage from '@/features/agent/inventory/StocktakePage'
+import AgentStocktakePage from '@/features/agent/inventory/StocktakeListPage'
+import StocktakeDetailPage from '@/features/agent/inventory/StocktakeDetailPage'
 import AgentDeliveriesPage from '@/features/agent/deliveries/DeliveriesPage'
 import AgentSuppliersPage from '@/features/agent/purchases/SuppliersPage'
 import AgentPurchaseOrdersPage from '@/features/agent/purchases/PurchaseOrdersPage'
@@ -198,6 +199,10 @@ export const router = createBrowserRouter([
             element: <RequireRole role="agent"><AgentStocktakePage /></RequireRole>,
           },
           {
+            path: 'agent/inventory/stocktake/:id',
+            element: <RequireRole role="agent"><StocktakeDetailPage /></RequireRole>,
+          },
+          {
             path: 'agent/deliveries',
             element: <RequireRole role="agent"><AgentDeliveriesPage /></RequireRole>,
           },
@@ -266,6 +271,14 @@ export const router = createBrowserRouter([
           {
             path: 'sales/inventory',
             element: <RequireRole role="sales_staff"><SalesInventoryPage /></RequireRole>,
+          },
+          {
+            path: 'sales/inventory/stocktake',
+            element: <RequireRole role="sales_staff"><AgentStocktakePage /></RequireRole>,
+          },
+          {
+            path: 'sales/inventory/stocktake/:id',
+            element: <RequireRole role="sales_staff"><StocktakeDetailPage /></RequireRole>,
           },
           {
             path: 'sales/price-lists',

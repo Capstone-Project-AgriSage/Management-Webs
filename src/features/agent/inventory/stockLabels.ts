@@ -1,4 +1,5 @@
 import type { AdjustmentReason, AlertType, LotStatus, MovementType, StockCardReferenceType } from '@/api/stockApi'
+import type { StocktakeReason, StocktakeStatus } from '@/api/stocktakeApi'
 
 export const ADJUSTMENT_REASONS: { value: AdjustmentReason; label: string }[] = [
   { value: 'DAMAGED', label: 'Hư hỏng' },
@@ -84,3 +85,26 @@ export const MOVEMENT_TYPE_OPTIONS = (Object.keys(MOVEMENT_TYPE_LABEL) as Moveme
   value,
   label: MOVEMENT_TYPE_LABEL[value],
 }))
+
+export const STOCKTAKE_STATUS_LABEL: Record<StocktakeStatus, string> = {
+  DRAFT: 'Nháp',
+  IN_PROGRESS: 'Đang kiểm kê',
+  COMPLETED: 'Đã hoàn thành',
+  CANCELLED: 'Đã hủy',
+}
+
+export const STOCKTAKE_STATUS_BADGE_CLASS: Record<StocktakeStatus, string> = {
+  DRAFT: 'bg-slate-100 text-slate-700',
+  IN_PROGRESS: 'bg-sky-100 text-sky-800',
+  COMPLETED: 'bg-emerald-100 text-emerald-800',
+  CANCELLED: 'bg-slate-200 text-slate-600',
+}
+
+export const STOCKTAKE_REASONS: { value: StocktakeReason; label: string }[] = [
+  { value: 'STOCKTAKE_DIFFERENCE', label: 'Chênh lệch kiểm kê' },
+  { value: 'DAMAGED', label: 'Hư hỏng' },
+  { value: 'EXPIRED', label: 'Hết hạn dùng' },
+  { value: 'LOST', label: 'Mất / thất thoát' },
+  { value: 'MANUAL_CORRECTION', label: 'Sửa sai số liệu' },
+  { value: 'OTHER', label: 'Khác' },
+]

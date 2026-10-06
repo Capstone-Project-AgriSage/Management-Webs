@@ -114,6 +114,7 @@ function useNavConfig() {
       { label: 'Mua chịu mùa vụ', to: '/sales/credit-requests', icon: 'assignment_turned_in' },
       { label: 'Công nợ', to: '/sales/debts', icon: 'pending_actions' },
       { label: 'Kho', to: '/sales/inventory', icon: 'inventory_2' },
+      { label: 'Kiểm kê', to: '/sales/inventory/stocktake', icon: 'fact_check' },
       { label: 'Bảng giá', to: '/sales/price-lists', icon: 'price_change' },
       ...(user.can_review_ai ? [{ label: 'AI Review', to: '/sales/ai-review', icon: 'psychology', iconTone: 'primary' as const }] : []),
       { label: 'Cài đặt', to: '/sales/settings', icon: 'settings' },
