@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AlertTriangle, CalendarClock, ChevronDown, ChevronRight, History, PackageX, Wallet } from 'lucide-react'
+import { AlertTriangle, CalendarClock, ChevronDown, ChevronRight, ChevronsRight, History, PackageX, Wallet } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { useToast } from '@/context/ToastContext'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
@@ -466,6 +466,12 @@ export default function StockOverviewPage() {
                                     <span className="text-sm font-semibold text-on-surface">
                                       Các lô của {item.productName} (đơn vị: {unitLabel(item.baseUnit)})
                                     </span>
+                                    <Link
+                                      to={`/agent/inventory/stock-card?storeProductId=${item.storeProductId}`}
+                                      className="inline-flex items-center gap-1 text-sm font-medium text-emerald-700 hover:text-emerald-800"
+                                    >
+                                      Xem thẻ kho <ChevronsRight size={16} />
+                                    </Link>
                                   </div>
                                   <table className="w-full text-left">
                                     <thead className="text-[11px] text-on-surface-variant uppercase tracking-wider border-b border-outline-variant">

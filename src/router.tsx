@@ -33,7 +33,9 @@ import AgentProductsPage from '@/features/agent/products/ProductsPage'
 import AgentInventoryPage from '@/features/agent/inventory/StockOverviewPage'
 import AgentFarmersPage from '@/features/agent/farmers/FarmersPage'
 import AgentDebtsPage from '@/features/agent/debts/DebtsPage'
-import AgentInventoryMovementsPage from '@/features/agent/inventory/InventoryMovementsPage'
+import AgentInventoryMovementsPage from '@/features/agent/inventory/StockMovementsPage'
+import AgentStockCardPage from '@/features/agent/inventory/StockCardPage'
+import AgentInventoryReportsPage from '@/features/agent/inventory/InventoryReportsPage'
 import AgentStocktakePage from '@/features/agent/inventory/StocktakePage'
 import AgentDeliveriesPage from '@/features/agent/deliveries/DeliveriesPage'
 import AgentSuppliersPage from '@/features/agent/purchases/SuppliersPage'
@@ -182,6 +184,14 @@ export const router = createBrowserRouter([
           {
             path: 'agent/inventory/movements',
             element: <RequireRole role="agent"><AgentInventoryMovementsPage /></RequireRole>,
+          },
+          {
+            path: 'agent/inventory/stock-card',
+            element: <RequireRole role="agent"><AgentStockCardPage /></RequireRole>,
+          },
+          {
+            path: 'agent/inventory/reports',
+            element: <RequireRole role="agent"><AgentInventoryReportsPage /></RequireRole>,
           },
           {
             path: 'agent/inventory/stocktake',

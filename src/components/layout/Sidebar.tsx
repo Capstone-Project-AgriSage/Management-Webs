@@ -74,7 +74,9 @@ function useNavConfig() {
           { label: 'Sản phẩm', to: '/agent/products', icon: 'category', badge: String(agentProducts.length) },
           { label: 'Tồn kho', to: '/agent/inventory', icon: 'inventory_2' },
           { label: 'Biến động kho', to: '/agent/inventory/movements', icon: 'sync_alt' },
+          { label: 'Thẻ kho', to: '/agent/inventory/stock-card', icon: 'menu_book' },
           { label: 'Kiểm kê', to: '/agent/inventory/stocktake', icon: 'fact_check' },
+          { label: 'Báo cáo kho', to: '/agent/inventory/reports', icon: 'assessment' },
           { label: 'Giao hàng', to: '/agent/deliveries', icon: 'local_shipping' },
         ]
       },

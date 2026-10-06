@@ -1,11 +1,11 @@
-import type { AdjustmentReason, AlertType, LotStatus } from '@/api/stockApi'
+import type { AdjustmentReason, AlertType, LotStatus, MovementType, StockCardReferenceType } from '@/api/stockApi'
 
 export const ADJUSTMENT_REASONS: { value: AdjustmentReason; label: string }[] = [
   { value: 'DAMAGED', label: 'Hư hỏng' },
   { value: 'EXPIRED', label: 'Hết hạn dùng' },
   { value: 'LOST', label: 'Mất / thất thoát' },
   { value: 'MANUAL_CORRECTION', label: 'Sửa sai số liệu' },
-  { value: 'OTHER', label: 'Lý do khác' },
+  { value: 'OTHER', label: 'Khác' },
 ]
 
 export const ALERT_LABEL: Record<AlertType, string> = {
@@ -53,3 +53,34 @@ export function daysUntil(dateOnly: string | null | undefined): number | null {
   const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
   return Math.round((target - today) / 86_400_000)
 }
+
+export const MOVEMENT_TYPE_LABEL: Record<MovementType, string> = {
+  STOCK_IN: 'Nhập kho',
+  SALE: 'Bán hàng',
+  RETURN_IN: 'Khách trả hàng',
+  ADJUSTMENT_IN: 'Điều chỉnh tăng',
+  ADJUSTMENT_OUT: 'Điều chỉnh giảm',
+  REVERSAL: 'Đảo phiếu',
+}
+
+export const MOVEMENT_TYPE_BADGE_CLASS: Record<MovementType, string> = {
+  STOCK_IN: 'bg-emerald-100 text-emerald-800',
+  SALE: 'bg-sky-100 text-sky-800',
+  RETURN_IN: 'bg-teal-100 text-teal-800',
+  ADJUSTMENT_IN: 'bg-lime-100 text-lime-800',
+  ADJUSTMENT_OUT: 'bg-amber-100 text-amber-800',
+  REVERSAL: 'bg-slate-200 text-slate-700',
+}
+
+export const REFERENCE_TYPE_LABEL: Record<StockCardReferenceType, string> = {
+  ORDER: 'Đơn hàng',
+  GOODS_RECEIPT: 'Phiếu nhập',
+  SALES_RETURN: 'Phiếu trả hàng',
+  STOCKTAKE: 'Kiểm kê',
+  DELIVERY: 'Giao hàng',
+}
+
+export const MOVEMENT_TYPE_OPTIONS = (Object.keys(MOVEMENT_TYPE_LABEL) as MovementType[]).map((value) => ({
+  value,
+  label: MOVEMENT_TYPE_LABEL[value],
+}))

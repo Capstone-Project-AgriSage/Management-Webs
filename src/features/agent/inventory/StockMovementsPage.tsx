@@ -1,212 +1,293 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, FilterX, Download, ArrowDownToLine, ArrowUpFromLine, SlidersHorizontal } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { useToast } from '@/context/ToastContext'
+import { describeError } from '@/api/client'
+import { stockApi, type MovementType, type StockMovement, type StockMovementListItem } from '@/api/stockApi'
+import type { Paged } from '@/api/types'
+import FilterSelect from '@/components/ui/FilterSelect'
 import Pagination from '@/components/ui/Pagination'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
-import SearchInput from '@/components/ui/SearchInput'
-import FilterSelect from '@/components/ui/FilterSelect'
-import StatusBadge from '@/components/ui/StatusBadge'
-import { usePagination } from '@/hooks/usePagination'
-import { stockMovements as INITIAL_MOVEMENTS } from '@/features/agent/data/mockStock'
-import type { StockMovementType } from '@/features/agent/data/mockStock'
+import DetailModal from '@/components/ui/DetailModal'
+import { formatVnd } from '@/utils/money'
+import { formatDate, formatDateTime, formatQty } from '@/utils/units'
+import { ADJUSTMENT_REASONS, MOVEMENT_TYPE_BADGE_CLASS, MOVEMENT_TYPE_LABEL, MOVEMENT_TYPE_OPTIONS } from './stockLabels'
 
-const TYPE_OPTIONS = ['Tất cả loại giao dịch', 'Nhập kho (STOCK_IN)', 'Xuất bán (SALE)', 'Điều chỉnh (ADJUSTMENT)']
+const PAGE_SIZE = 15
 
-const mapTypeToOption = (type: StockMovementType) => {
-  switch (type) {
-    case 'STOCK_IN': return 'Nhập kho (STOCK_IN)'
-    case 'SALE': return 'Xuất bán (SALE)'
-    case 'ADJUSTMENT': return 'Điều chỉnh (ADJUSTMENT)'
-    default: return ''
-  }
+const dateInputClassName =
+  'h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 shadow-sm'
+
+const STATUS_LABEL: Record<string, string> = { DRAFT: 'Nháp', POSTED: 'Đã ghi sổ', CANCELLED: 'Đã hủy' }
+
+function badge(type: string) {
+  return MOVEMENT_TYPE_BADGE_CLASS[type as MovementType] ?? 'bg-slate-100 text-slate-700'
 }
 
 export default function StockMovementsPage() {
-  usePageHeader({
-    title: 'Biến động kho',
-  })
-
+  usePageHeader({ title: 'Biến động kho', subtitle: 'Sổ phiếu kho: nhập, bán, trả hàng, điều chỉnh, kiểm kê' })
   const { showToast } = useToast()
-  const [movements] = useState(INITIAL_MOVEMENTS)
-  const [search, setSearch] = useState('')
-  const [typeFilter, setTypeFilter] = useState(TYPE_OPTIONS[0])
 
-  const keyword = search.trim().toLowerCase()
-  const filteredMovements = movements.filter(
-    (m) =>
-      (!keyword || m.productName.toLowerCase().includes(keyword) || m.id.toLowerCase().includes(keyword) || (m.referenceId && m.referenceId.toLowerCase().includes(keyword))) &&
-      (typeFilter === TYPE_OPTIONS[0] || mapTypeToOption(m.type) === typeFilter)
-  )
+  const [type, setType] = useState('')
+  const [from, setFrom] = useState('')
+  const [to, setTo] = useState('')
+  const [page, setPage] = useState(1)
+  const [data, setData] = useState<Paged<StockMovementListItem> | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [detail, setDetail] = useState<StockMovement | null>(null)
+  const [detailLoading, setDetailLoading] = useState<string | null>(null)
+  const request = useRef(0)
 
-  const handleClearFilters = () => {
-    setSearch('')
-    setTypeFilter(TYPE_OPTIONS[0])
-  }
+  const rangeInvalid = from !== '' && to !== '' && to < from
 
-  const { page, totalPages, paginated, startIndex, endIndex, totalCount: pageTotalCount, goPrev, goNext, setPage } =
-    usePagination(filteredMovements, 10)
+  const load = useCallback(async () => {
+    if (rangeInvalid) return
+    const id = ++request.current
+    setLoading(true)
+    try {
+      const res = await stockApi.getMovements({
+        type: (type || undefined) as MovementType | undefined,
+        fromDate: from || undefined,
+        toDate: to || undefined,
+        page,
+        pageSize: PAGE_SIZE,
+      })
+      if (id === request.current) setData(res)
+    } catch (err) {
+      if (id === request.current) showToast(describeError(err, 'Không tải được danh sách phiếu kho'), 'error')
+    } finally {
+      if (id === request.current) setLoading(false)
+    }
+  }, [type, from, to, page, rangeInvalid, showToast])
 
-  const totalCount = movements.length
-  const stockInCount = movements.filter(m => m.type === 'STOCK_IN').length
-  const saleCount = movements.filter(m => m.type === 'SALE').length
-  const adjustmentCount = movements.filter(m => m.type === 'ADJUSTMENT').length
+  useEffect(() => {
+    load()
+  }, [load])
 
-  const getTypeBadge = (type: StockMovementType) => {
-    switch (type) {
-      case 'STOCK_IN': return { label: 'Nhập kho', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
-      case 'SALE': return { label: 'Xuất bán', className: 'bg-blue-50 text-blue-700 border-blue-200' }
-      case 'ADJUSTMENT': return { label: 'Điều chỉnh', className: 'bg-amber-50 text-amber-700 border-amber-200' }
+  const openDetail = async (item: StockMovementListItem) => {
+    setDetailLoading(item.id)
+    try {
+      setDetail(await stockApi.getMovement(item.id))
+    } catch (err) {
+      showToast(describeError(err, 'Không mở được phiếu kho'), 'error')
+    } finally {
+      setDetailLoading(null)
     }
   }
 
+  const items = data?.items ?? []
+  const reasonLabel = (code: string | null) => ADJUSTMENT_REASONS.find((r) => r.value === code)?.label ?? code
+
   return (
-    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
-      <section className="space-y-3">
-        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-slate-500">
-          <Link className="hover:text-slate-900 transition-colors" to="/">Bảng điều khiển</Link>
-          <ChevronRight size={14} />
-          <span className="text-slate-900 font-medium">Biến động kho</span>
-        </nav>
-        <div className="flex justify-end">
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
+      <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-end gap-3">
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Loại phiếu</label>
+          <FilterSelect
+            value={type}
+            onChange={(v) => {
+              setType(v)
+              setPage(1)
+            }}
+            className="relative min-w-[200px]"
+            options={[{ value: '', label: 'Tất cả loại' }, ...MOVEMENT_TYPE_OPTIONS]}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1" htmlFor="mv-from">
+            Từ ngày
+          </label>
+          <input
+            id="mv-from"
+            type="date"
+            className={dateInputClassName}
+            value={from}
+            max={to || undefined}
+            onChange={(e) => {
+              setFrom(e.target.value)
+              setPage(1)
+            }}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1" htmlFor="mv-to">
+            Đến ngày
+          </label>
+          <input
+            id="mv-to"
+            type="date"
+            className={dateInputClassName}
+            value={to}
+            min={from || undefined}
+            onChange={(e) => {
+              setTo(e.target.value)
+              setPage(1)
+            }}
+          />
+        </div>
+        {type || from || to ? (
           <button
-            className="flex items-center gap-2 h-9 px-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-slate-700 text-sm font-medium transition-colors shadow-sm"
-            onClick={() => showToast('Tính năng xuất báo cáo đang phát triển')}
             type="button"
+            className="h-10 px-3 text-sm font-medium text-slate-600 hover:text-slate-900"
+            onClick={() => {
+              setType('')
+              setFrom('')
+              setTo('')
+              setPage(1)
+            }}
           >
-            <Download size={16} className="text-slate-500" />
-            <span>Xuất báo cáo</span>
+            Xóa bộ lọc
           </button>
-        </div>
-      </section>
-
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-start justify-between">
-          <div className="space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Tổng giao dịch</span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-900 tabular-nums">{totalCount}</span>
-            </div>
-          </div>
-          <div className="p-2.5 bg-slate-100 rounded-lg text-slate-600">
-            <SlidersHorizontal size={20} />
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-start justify-between">
-          <div className="space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Lượt nhập kho</span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-emerald-700 tabular-nums">{stockInCount}</span>
-            </div>
-          </div>
-          <div className="p-2.5 bg-emerald-50 rounded-lg text-emerald-600">
-            <ArrowDownToLine size={20} />
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-start justify-between">
-          <div className="space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Lượt xuất bán</span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-blue-700 tabular-nums">{saleCount}</span>
-            </div>
-          </div>
-          <div className="p-2.5 bg-blue-50 rounded-lg text-blue-600">
-            <ArrowUpFromLine size={20} />
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-start justify-between">
-          <div className="space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Lượt điều chỉnh</span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-amber-700 tabular-nums">{adjustmentCount}</span>
-            </div>
-          </div>
-          <div className="p-2.5 bg-amber-50 rounded-lg text-amber-600">
-            <SlidersHorizontal size={20} />
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4 mt-4">
-        <div className="flex flex-wrap items-center gap-3 flex-1">
-          <SearchInput value={search} onChange={setSearch} placeholder="Sản phẩm, Mã giao dịch, Tham chiếu..." className="relative flex-1 min-w-[300px]" />
-          <FilterSelect value={typeFilter} onChange={setTypeFilter} options={TYPE_OPTIONS} className="relative min-w-[220px]" />
-          <button
-            className="h-9 px-3 text-slate-500 hover:text-slate-900 text-xs font-medium flex items-center gap-1 transition-colors"
-            onClick={handleClearFilters}
-            type="button"
+        ) : null}
+        <div className="ml-auto">
+          <Link
+            to="/agent/inventory/stock-card"
+            className="inline-flex items-center h-10 px-3 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-medium shadow-sm"
           >
-            <FilterX size={14} />
-            <span>Xóa tìm kiếm</span>
-          </button>
+            Xem thẻ kho theo sản phẩm
+          </Link>
         </div>
-      </section>
+      </div>
 
-      <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col mt-4">
+      {rangeInvalid ? (
+        <p className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2" role="alert">
+          Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.
+        </p>
+      ) : null}
+
+      <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-100 text-slate-900 text-[13px] font-bold">
-                <th className="py-4 pl-4 px-3 w-[140px]">Thời gian</th>
-                <th className="py-4 px-3 min-w-[200px]">Sản phẩm & SKU</th>
-                <th className="py-4 px-3 min-w-[140px]">Loại</th>
-                <th className="py-4 px-3 min-w-[120px] text-right">Thay đổi</th>
-                <th className="py-4 px-3 min-w-[120px] text-right">Tồn cuối</th>
-                <th className="py-4 pr-4 pl-3 min-w-[200px]">Chi tiết & Người thực hiện</th>
+          <table className="w-full text-left">
+            <thead className="bg-surface-container-low text-xs text-on-surface-variant uppercase tracking-wider border-b border-outline-variant">
+              <tr>
+                <th className="py-3 px-4 font-medium">Mã phiếu kho</th>
+                <th className="py-3 px-3 font-medium">Loại</th>
+                <th className="py-3 px-3 font-medium">Thời điểm</th>
+                <th className="py-3 px-3 font-medium text-center">Số dòng</th>
+                <th className="py-3 px-4 font-medium text-center">Trạng thái</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50 text-sm text-slate-900">
-              {paginated.length === 0 ? (
-                <EmptyTableRow colSpan={6} message="Không tìm thấy lịch sử biến động kho." />
-              ) : null}
-              {paginated.map((m) => {
-                const badge = getTypeBadge(m.type)
-                const isPositive = m.quantityChange > 0
-                return (
-                  <tr key={m.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-4 pl-4 px-3">
-                      <div className="font-semibold text-slate-900">{new Date(m.createdAt).toLocaleDateString('vi-VN')}</div>
-                      <div className="text-xs text-slate-500 mt-0.5">{new Date(m.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div>
+            <tbody className="divide-y divide-outline-variant/50 text-sm">
+              {loading && items.length === 0 ? (
+                <EmptyTableRow colSpan={5} message="Đang tải phiếu kho..." className="text-slate-500 animate-pulse" />
+              ) : items.length === 0 ? (
+                <EmptyTableRow colSpan={5} message="Không có phiếu kho nào." />
+              ) : (
+                items.map((m) => (
+                  <tr
+                    key={m.id}
+                    className={`hover:bg-surface-container-low transition-colors cursor-pointer ${detailLoading === m.id ? 'opacity-60' : ''}`}
+                    onClick={() => openDetail(m)}
+                  >
+                    <td className="py-3 px-4 font-mono text-xs font-semibold">{m.movementNumber}</td>
+                    <td className="py-3 px-3">
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded uppercase tracking-wide whitespace-nowrap ${badge(m.movementType)}`}>
+                        {MOVEMENT_TYPE_LABEL[m.movementType] ?? m.movementType}
+                      </span>
                     </td>
-                    <td className="py-4 px-3">
-                      <div className="font-medium text-slate-900">{m.productName}</div>
-                      <div className="text-xs text-slate-500 mt-0.5 font-mono">{m.sku}</div>
-                    </td>
-                    <td className="py-4 px-3">
-                      <StatusBadge label={badge.label} className={badge.className} />
-                    </td>
-                    <td className={`py-3 px-3 text-right font-semibold font-mono ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {isPositive ? '+' : ''}{m.quantityChange}
-                    </td>
-                    <td className="py-4 px-3 text-right font-semibold font-mono text-slate-900">
-                      {m.balanceAfter}
-                    </td>
-                    <td className="py-4 pr-4 pl-3">
-                      <div className="text-sm text-slate-700">{m.note}</div>
-                      <div className="text-xs text-slate-500 mt-0.5">
-                        Bởi: <span className="font-medium text-slate-700">{m.createdBy}</span> 
-                        {m.referenceId && <span className="ml-2 font-mono bg-slate-100 px-1 py-0.5 rounded">Ref: {m.referenceId}</span>}
-                      </div>
+                    <td className="py-3 px-3 whitespace-nowrap">{formatDateTime(m.occurredAt)}</td>
+                    <td className="py-3 px-3 text-center tabular-nums">{m.itemCount}</td>
+                    <td className="py-3 px-4 text-center">
+                      <span className="text-xs text-slate-600">{STATUS_LABEL[m.status] ?? m.status}</span>
                     </td>
                   </tr>
-                )
-              })}
+                ))
+              )}
             </tbody>
           </table>
         </div>
         <Pagination
           page={page}
-          totalPages={totalPages}
-          startIndex={startIndex}
-          endIndex={endIndex}
-          totalCount={pageTotalCount}
-          unitLabel="giao dịch"
-          goPrev={goPrev}
-          goNext={goNext}
+          totalPages={data?.totalPages ?? 1}
+          startIndex={(page - 1) * PAGE_SIZE}
+          endIndex={Math.min(page * PAGE_SIZE, data?.totalCount ?? 0)}
+          totalCount={data?.totalCount ?? 0}
+          unitLabel="phiếu kho"
+          goPrev={() => setPage((p) => Math.max(1, p - 1))}
+          goNext={() => setPage((p) => Math.min(data?.totalPages ?? 1, p + 1))}
           setPage={setPage}
         />
-      </section>
+      </div>
+
+      <DetailModal open={detail !== null} onClose={() => setDetail(null)} widthClassName="max-w-4xl">
+        {detail ? (
+          <div className="p-5 space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <h3 className="text-lg font-bold text-slate-900 font-mono">{detail.movementNumber}</h3>
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded uppercase tracking-wide ${badge(detail.movementType)}`}>
+                {MOVEMENT_TYPE_LABEL[detail.movementType as MovementType] ?? detail.movementType}
+              </span>
+              <span className="text-xs text-slate-500">{STATUS_LABEL[detail.status] ?? detail.status}</span>
+            </div>
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+              <div>
+                <dt className="text-slate-500">Thời điểm</dt>
+                <dd className="font-medium">{formatDateTime(detail.occurredAt)}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500">Ghi sổ lúc</dt>
+                <dd className="font-medium">{formatDateTime(detail.postedAt)}</dd>
+              </div>
+              {detail.reasonCode ? (
+                <div>
+                  <dt className="text-slate-500">Lý do</dt>
+                  <dd className="font-medium">{reasonLabel(detail.reasonCode)}</dd>
+                </div>
+              ) : null}
+              {detail.reason ? (
+                <div className="col-span-2">
+                  <dt className="text-slate-500">Ghi chú</dt>
+                  <dd className="font-medium whitespace-pre-line">{detail.reason}</dd>
+                </div>
+              ) : null}
+              <div className="col-span-2 flex flex-wrap gap-2">
+                {detail.goodsReceiptId ? <span className="text-xs bg-slate-100 text-slate-700 rounded px-2 py-0.5">Từ phiếu nhập hàng</span> : null}
+                {detail.orderId ? <span className="text-xs bg-slate-100 text-slate-700 rounded px-2 py-0.5">Từ đơn hàng</span> : null}
+                {detail.deliveryId ? <span className="text-xs bg-slate-100 text-slate-700 rounded px-2 py-0.5">Từ chuyến giao hàng</span> : null}
+                {detail.stocktakeId ? <span className="text-xs bg-slate-100 text-slate-700 rounded px-2 py-0.5">Từ phiếu kiểm kê</span> : null}
+                {detail.reversalOfMovementId ? <span className="text-xs bg-slate-100 text-slate-700 rounded px-2 py-0.5">Đảo một phiếu kho khác</span> : null}
+              </div>
+            </dl>
+
+            <div className="rounded-lg border border-outline-variant overflow-hidden">
+              <table className="w-full text-left">
+                <thead className="bg-surface-container-low text-[11px] text-on-surface-variant uppercase tracking-wider border-b border-outline-variant">
+                  <tr>
+                    <th className="py-2 px-4 font-medium">Sản phẩm</th>
+                    <th className="py-2 px-3 font-medium">Lô</th>
+                    <th className="py-2 px-3 font-medium text-right">Số lượng</th>
+                    <th className="py-2 px-3 font-medium text-right">Giá vốn</th>
+                    <th className="py-2 px-3 font-medium text-right">Thành tiền</th>
+                    <th className="py-2 px-4 font-medium text-right">Tồn sau</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/50 text-sm">
+                  {detail.items.map((it) => (
+                    <tr key={it.id}>
+                      <td className="py-2.5 px-4">
+                        <div className="font-medium">{it.productName}</div>
+                        <div className="font-mono text-xs text-slate-500">{it.sku}</div>
+                      </td>
+                      <td className="py-2.5 px-3 font-mono text-xs">
+                        {it.lotNumber ?? '-'}
+                        {it.expiryDate ? <div className="font-sans text-slate-500">HSD {formatDate(it.expiryDate)}</div> : null}
+                      </td>
+                      <td className={`py-2.5 px-3 text-right tabular-nums font-semibold ${it.quantityDeltaBase < 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                        {it.quantityDeltaBase > 0 ? '+' : ''}
+                        {formatQty(it.quantityDeltaBase)}
+                      </td>
+                      <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">{formatVnd(it.unitCostSnapshot)}</td>
+                      <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">{formatVnd(it.totalCostSnapshot)}</td>
+                      <td className="py-2.5 px-4 text-right tabular-nums">{it.quantityOnHandAfter === null ? '-' : formatQty(it.quantityOnHandAfter)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-slate-500">Phiếu kho đã ghi sổ không sửa hay xóa được; sai sót được sửa bằng phiếu điều chỉnh hoặc phiếu đảo.</p>
+          </div>
+        ) : null}
+      </DetailModal>
     </div>
   )
 }

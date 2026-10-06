@@ -100,6 +100,46 @@ export interface StockMovement {
   items: StockMovementItem[]
 }
 
+export type MovementType = 'STOCK_IN' | 'SALE' | 'RETURN_IN' | 'ADJUSTMENT_IN' | 'ADJUSTMENT_OUT' | 'REVERSAL'
+
+export interface StockMovementListItem {
+  id: Uuid
+  movementNumber: string
+  movementType: MovementType
+  status: string
+  occurredAt: string
+  goodsReceiptId: Uuid | null
+  itemCount: number
+}
+
+/** The document a stock card line comes from; null for a manual adjustment. */
+export type StockCardReferenceType = 'ORDER' | 'GOODS_RECEIPT' | 'SALES_RETURN' | 'STOCKTAKE' | 'DELIVERY'
+
+export interface StockCardLine {
+  postedAt: string
+  movementId: Uuid
+  movementNumber: string
+  movementType: MovementType
+  reference: { type: StockCardReferenceType; id: Uuid; number: string | null } | null
+  lotNumber: string | null
+  inBaseQuantity: number
+  outBaseQuantity: number
+  balanceBaseQuantity: number
+  unitCost: number
+}
+
+export interface StockCard {
+  storeProductId: Uuid
+  sku: string
+  productName: string
+  baseUnit: string
+  fromDate: string
+  toDate: string
+  openingBaseQuantity: number
+  lines: StockCardLine[]
+  closingBaseQuantity: number
+}
+
 export interface ExpireDueResult {
   expiredLotCount: number
   lots: { id: Uuid; lotNumber: string | null; expiryDate: string | null }[]
@@ -123,6 +163,15 @@ export const stockApi = {
 
   getLots: (params: { storeProductId?: Uuid; status?: LotStatus; hasStock?: boolean; search?: string; page?: number; pageSize?: number }) =>
     api<Paged<StockLot>>(`/api/inventory/lots${query(params)}`),
+
+  getMovements: (params: { type?: MovementType; fromDate?: string; toDate?: string; goodsReceiptId?: Uuid; page?: number; pageSize?: number }) =>
+    api<Paged<StockMovementListItem>>(`/api/inventory/stock-movements${query(params)}`),
+
+  getMovement: (id: Uuid) => api<StockMovement>(`/api/inventory/stock-movements/${id}`),
+
+  /** Opening + every POSTED movement of the period = closing. `inventoryLotId` narrows it to one lot; at most 366 days. */
+  getStockCard: (params: { storeProductId: Uuid; inventoryLotId?: Uuid; fromDate: string; toDate: string }) =>
+    api<StockCard>(`/api/inventory/stock-card${query(params)}`),
 
   /** Manage. Marks every ACTIVE lot past its expiry date as EXPIRED. */
   expireDue: () => api<ExpireDueResult>('/api/inventory/lots/expire-due', { method: 'POST' }),
