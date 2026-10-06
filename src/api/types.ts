@@ -71,9 +71,10 @@ export interface RefundResponse {
   amount: Money
 }
 
+/** Quick sale (FE_GUIDE_FLOW_1 §M7): always paid in full in cash and picked up now; `lots` are ignored by preview. */
 export interface CounterSaleRequest {
-  customerType: 'WALK_IN'; customerName?: string | null; customerPhone?: string | null; note?: string | null
-  settlementType?: 'FULL_PAYMENT' | 'CREDIT'; fulfillmentType?: 'PICKUP' | 'DELIVERY'
+  customerType: 'WALK_IN' | 'REGISTERED'; farmerProfileId?: Uuid | null
+  customerName?: string | null; customerPhone?: string | null; note?: string | null
   items: (OrderItemRequest & { lots?: { inventoryLotId: Uuid; baseQuantity: number }[] })[]
 }
 

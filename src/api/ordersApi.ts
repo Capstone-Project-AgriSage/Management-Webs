@@ -1,14 +1,30 @@
 import { api } from './client'
 import type { OrderResponse, OrderItemRequest, OrderStatus, Paged, Uuid, FefoLotSuggestion } from './types'
 
+export interface DeliveryAddressRequest {
+  recipientName: string
+  recipientPhone: string
+  addressLine: string
+  ward?: string | null
+  district?: string | null
+  province: string
+}
+
+/**
+ * POST /api/orders (CreateCounterOrderRequest) — FE_GUIDE_FLOW_1 §M3. The server sets the source (COUNTER) and the
+ * prices; unitPrice is sent only for an overridden line, with its reason. A registered customer may buy on credit
+ * (FLOW_3 §5: checked when the order is created and again on confirm). Delivery needs addressId or deliveryAddress.
+ */
 export interface CreateOrderRequest {
-  source: 'COUNTER' | 'FARMER_WEB' | 'FARMER_MOBILE'
   customerType: 'REGISTERED' | 'WALK_IN'
+  farmerProfileId?: Uuid | null
   customerName?: string | null
   customerPhone?: string | null
   note?: string | null
   settlementType: 'FULL_PAYMENT' | 'CREDIT'
   fulfillmentType: 'PICKUP' | 'DELIVERY'
+  addressId?: Uuid | null
+  deliveryAddress?: DeliveryAddressRequest | null
   items: OrderItemRequest[]
 }
 
@@ -95,6 +111,27 @@ export const ordersApi = {
       body: JSON.stringify(data)
     })
   },
+
+  // Editing while PENDING_CONFIRMATION (FE_GUIDE_FLOW_1 §M3). Each call returns the whole updated order.
+  updateNote: (orderId: Uuid, note: string) =>
+    api<OrderResponse>(`/api/orders/${orderId}`, { method: 'PUT', body: JSON.stringify({ note }) }),
+
+  /** New lines use the price list the order locked in; adding a product + packaging already on the order is a 422. */
+  addItem: (orderId: Uuid, item: OrderItemRequest) =>
+    api<OrderResponse>(`/api/orders/${orderId}/items`, { method: 'POST', body: JSON.stringify(item) }),
+
+  changeQuantity: (orderId: Uuid, itemId: Uuid, quantity: number) =>
+    api<OrderResponse>(`/api/orders/${orderId}/items/${itemId}`, { method: 'PUT', body: JSON.stringify({ quantity }) }),
+
+  removeItem: (orderId: Uuid, itemId: Uuid) =>
+    api<OrderResponse>(`/api/orders/${orderId}/items/${itemId}`, { method: 'DELETE' }),
+
+  overridePrice: (orderId: Uuid, itemId: Uuid, unitPrice: number, reason: string) =>
+    api<OrderResponse>(`/api/orders/${orderId}/items/${itemId}/price`, { method: 'PUT', body: JSON.stringify({ unitPrice, reason }) }),
+
+  /** Back to the suggested price. */
+  resetPrice: (orderId: Uuid, itemId: Uuid) =>
+    api<OrderResponse>(`/api/orders/${orderId}/items/${itemId}/price`, { method: 'DELETE' }),
 
   cancelRemainingItem: (orderId: Uuid, itemId: Uuid, data: CancelOrderRequest) => {
     return api<OrderResponse>(`/api/orders/${orderId}/items/${itemId}/cancel-remaining`, {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { ChevronRight, Download, Plus, Receipt, Clock, PackageCheck, CheckCircle, FilterX, Phone, StickyNote } from 'lucide-react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { ChevronRight, Download, Plus, Receipt, Clock, PackageCheck, CheckCircle, FilterX, Phone, StickyNote, Pencil } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { useToast } from '@/context/ToastContext'
 import RowActionsMenu from '@/components/ui/RowActionsMenu'
@@ -22,6 +22,8 @@ import { deliveriesApi, type DeliveryListItem, type DeliveryResponse } from '@/a
 import { ApiError } from '@/api/client'
 import { DELIVERY_STATUS_LABEL, formatDate, labelOf } from '@/utils/deliveryLabels'
 import { useRoleBase } from '@/utils/creditLabels'
+import OrderEditModal from './OrderEditModal'
+import { creditRefusal } from '@/features/sales/counter-sales/orderDraft'
 const STATUS_MAP: Record<OrderStatus, string> = {
   PENDING_CONFIRMATION: 'Chờ xác nhận',
   CONFIRMED: 'Đã xác nhận',
@@ -102,6 +104,7 @@ export default function OrdersPage() {
   // Cancel state
   const [cancelModal, setCancelModal] = useState<{ open: boolean; type: 'ORDER' | 'ITEM'; itemId?: string; title: string }>({ open: false, type: 'ORDER', title: '' })
   const [cancelReason, setCancelReason] = useState('')
+  const [editingOrder, setEditingOrder] = useState<OrderResponse | null>(null)
   const [isCancelling, setIsCancelling] = useState(false)
 
   // Delivery state
@@ -164,6 +167,19 @@ export default function OrdersPage() {
       showToast('Không thể tải chi tiết đơn hàng', 'error')
     }
   }
+
+  // "?open=<orderId>" (e.g. from the counter screen right after creating an order) opens that order's detail.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const openId = searchParams.get('open')
+  useEffect(() => {
+    if (!openId) return
+    setSearchParams({}, { replace: true })
+    ordersApi
+      .getById(openId)
+      .then(handleOpenDetail)
+      .catch(() => showToast('Không tìm thấy đơn hàng', 'error'))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId])
 
   const handleExportOrders = () => {
     downloadCsv(
@@ -242,7 +258,8 @@ export default function OrdersPage() {
       setSelectedOrder(null)
       fetchOrders() // refresh orders list
     } catch (err: any) {
-      showToast(err.detail || 'Lỗi xác nhận đơn', 'error')
+      // A credit order is checked again on confirm (FLOW_3 §5): explain the refusal instead of "Credit refused: CODE".
+      showToast(creditRefusal(err) ?? (err.detail || 'Lỗi xác nhận đơn'), 'error')
     } finally {
       setIsConfirming(false)
     }
@@ -676,7 +693,17 @@ export default function OrdersPage() {
                 <span className="font-medium text-on-surface-variant">Trạng thái thanh toán:</span>
                 <span className={`font-bold ${getPaymentStatus().color}`}>{getPaymentStatus().label}</span>
               </div>
-              
+
+              {selectedOrder.status === 'PENDING_CONFIRMATION' && selectedOrder.items && (
+                <button
+                  type="button"
+                  className="w-full h-10 mt-2 border border-outline-variant text-on-surface hover:bg-surface-container rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
+                  onClick={() => setEditingOrder(selectedOrder)}
+                >
+                  <Pencil size={15} /> SỬA ĐƠN (DÒNG HÀNG, GIÁ, GHI CHÚ)
+                </button>
+              )}
+
               <div className="grid grid-cols-2 gap-3 mt-2">
                 <button
                   className="w-full h-10 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg font-bold flex items-center justify-center transition-colors disabled:opacity-50"
@@ -1166,6 +1193,20 @@ export default function OrdersPage() {
           </div>
         </div>
       )}
+
+      <OrderEditModal
+        order={editingOrder}
+        onClose={() => {
+          setEditingOrder(null)
+          fetchOrders()
+        }}
+        onChanged={(order) => {
+          // Lines and total changed: refresh the detail and its payment summary (remaining to pay).
+          setEditingOrder(order)
+          setSelectedOrder(order)
+          paymentsApi.getOrderPayments(order.id).then(setPaymentSummary).catch(() => {})
+        }}
+      />
     </div>
   )
 }
