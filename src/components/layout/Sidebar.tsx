@@ -78,6 +78,8 @@ function useNavConfig() {
           { label: 'Bán tại quầy', to: '/agent/counter-sales', icon: 'point_of_sale', iconTone: 'primary' as const },
           { label: 'Đơn hàng', to: '/agent/orders', icon: 'receipt_long', ...pendingBadge },
           { label: 'Thanh toán', to: '/agent/payments', icon: 'payments' },
+          { label: 'Trả hàng', to: '/agent/returns', icon: 'assignment_return' },
+          { label: 'Hoàn tiền', to: '/agent/refunds', icon: 'currency_exchange' },
           ...(user.can_review_ai ? [{ label: 'Hàng đợi AI', to: '/agent/ai-recommendations', icon: 'psychology', iconTone: 'primary' as const }] : [])
         ]
       },
@@ -87,7 +89,9 @@ function useNavConfig() {
           { label: 'Sản phẩm', to: '/agent/products', icon: 'category' },
           { label: 'Tồn kho', to: '/agent/inventory', icon: 'inventory_2' },
           { label: 'Biến động kho', to: '/agent/inventory/movements', icon: 'sync_alt' },
+          { label: 'Thẻ kho', to: '/agent/inventory/stock-card', icon: 'menu_book' },
           { label: 'Kiểm kê', to: '/agent/inventory/stocktake', icon: 'fact_check' },
+          { label: 'Báo cáo kho', to: '/agent/inventory/reports', icon: 'assessment' },
           { label: 'Giao hàng', to: '/agent/deliveries', icon: 'local_shipping' },
           { label: 'Báo cáo giao hàng', to: '/agent/deliveries/reports', icon: 'analytics' },
         ]
@@ -96,7 +100,7 @@ function useNavConfig() {
         title: 'Mua hàng & Công nợ',
         items: [
           { label: 'Nhà cung cấp', to: '/agent/purchases/suppliers', icon: 'storefront' },
-          { label: 'Phiếu nhập hàng', to: '/agent/purchases/orders', icon: 'shopping_cart' },
+          { label: 'Phiếu nhập hàng', to: '/agent/purchases/receipts', icon: 'shopping_cart' },
           { label: 'Công nợ', to: '/agent/debts', icon: 'pending_actions' },
           { label: 'Báo cáo công nợ', to: '/agent/debts/reports', icon: 'analytics' },
           { label: 'Nhóm khách & tín dụng', to: '/agent/credit-config', icon: 'credit_score' },
@@ -126,8 +130,10 @@ function useNavConfig() {
       { label: 'Đơn hàng', to: '/sales/orders', icon: 'receipt_long', ...pendingBadge },
       { label: 'Giao hàng', to: '/sales/deliveries', icon: 'local_shipping' },
       { label: 'Thanh toán', to: '/sales/payments', icon: 'payments' },
+      { label: 'Trả hàng', to: '/sales/returns', icon: 'assignment_return' },
       { label: 'Công nợ', to: '/sales/debts', icon: 'pending_actions' },
       { label: 'Kho', to: '/sales/inventory', icon: 'inventory_2' },
+      { label: 'Kiểm kê', to: '/sales/inventory/stocktake', icon: 'fact_check' },
       { label: 'Bảng giá', to: '/sales/price-lists', icon: 'price_change' },
       ...(user.can_review_ai ? [{ label: 'AI Review', to: '/sales/ai-review', icon: 'psychology', iconTone: 'primary' as const }] : []),
       { label: 'Cài đặt', to: '/sales/settings', icon: 'settings' },
