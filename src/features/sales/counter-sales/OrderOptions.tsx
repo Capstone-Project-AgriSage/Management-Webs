@@ -1,5 +1,5 @@
 import { formatVnd } from '@/utils/money'
-import { EMPTY_ADDRESS, MAX_NOTE, creditUsable, type OrderDraft } from './orderDraft'
+import { EMPTY_ADDRESS, MAX_NOTE, creditUsable, deliveryAllowed, type OrderDraft } from './orderDraft'
 
 interface OrderOptionsProps {
   draft: OrderDraft
@@ -36,6 +36,7 @@ function Choice<T extends string>({ name, value, options, onChange }: { name: st
 export default function OrderOptions({ draft, total, errors, onChange }: OrderOptionsProps) {
   const set = (patch: Partial<OrderDraft>) => onChange({ ...draft, ...patch })
   const canCredit = creditUsable(draft.customer)
+  const canDeliver = deliveryAllowed(draft.customer)
   const credit = draft.customer.kind === 'REGISTERED' ? draft.customer.credit : null
   const overLimit = draft.settlementType === 'CREDIT' && credit !== null && total > credit.availableCredit
   const saved = draft.customer.kind === 'REGISTERED' ? draft.customer.addresses : []
@@ -84,9 +85,15 @@ export default function OrderOptions({ draft, total, errors, onChange }: OrderOp
           }}
           options={[
             { value: 'PICKUP', label: 'Tại quầy', hint: 'Khách lấy hàng ở cửa hàng' },
-            { value: 'DELIVERY', label: 'Giao tận nơi', hint: 'Lập phiếu giao sau khi xác nhận' },
+            {
+              value: 'DELIVERY',
+              label: 'Giao tận nơi',
+              hint: canDeliver ? 'Lập phiếu giao sau khi xác nhận' : 'Chỉ khách quen: sang tab "Khách quen" để tạo khách mới',
+              disabled: !canDeliver,
+            },
           ]}
         />
+        {errors.fulfillmentType && <p className="text-xs text-rose-600">{errors.fulfillmentType}</p>}
       </div>
 
       {draft.fulfillmentType === 'DELIVERY' && (
