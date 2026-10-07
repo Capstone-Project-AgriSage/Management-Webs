@@ -77,10 +77,22 @@ export function creditUsable(customer: DraftCustomer): boolean {
   return customer.kind === 'REGISTERED' && customer.credit?.status === 'ACTIVE'
 }
 
+/**
+ * Delivery is for a registered customer only: a walk-in buys and takes the goods at once. The delivery needs someone the
+ * shop can follow afterwards (address book, tracking on the farmer web, payments, returns), which a walk-in is not.
+ * The API would accept a typed address for a walk-in; this is the counter screen's own rule.
+ */
+export function deliveryAllowed(customer: DraftCustomer): boolean {
+  return customer.kind === 'REGISTERED'
+}
+
 /** Field errors of the order options; empty when the draft can be sent. */
 export function validateDraft(draft: OrderDraft): Record<string, string> {
   const e: Record<string, string> = {}
   if (draft.customer.kind === 'REGISTERED' && !draft.customer.customer) e.customer = 'Chọn khách quen.'
+  if (draft.fulfillmentType === 'DELIVERY' && !deliveryAllowed(draft.customer)) {
+    e.fulfillmentType = 'Giao tận nơi chỉ dành cho khách quen: chọn tab "Khách quen" và thêm khách mới.'
+  }
   if (draft.settlementType === 'CREDIT' && !creditUsable(draft.customer)) e.settlementType = 'Khách này chưa được mua chịu.'
   if (draft.note.length > MAX_NOTE) e.note = `Ghi chú tối đa ${MAX_NOTE} ký tự.`
   if (draft.fulfillmentType === 'DELIVERY' && !draft.address.addressId) {

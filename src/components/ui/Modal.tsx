@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import type { ReactNode } from 'react'
 
@@ -30,7 +31,9 @@ export default function Modal({ open, onClose, title, children, widthClassName =
 
   if (!open) return null
 
-  return (
+  // Rendered into <body>: opened from inside a panel that has its own stacking context (e.g. the counter cart, z-10),
+  // an in-place modal would stay below the top bar (z-40) and its top would be hidden behind it.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6" role="dialog" aria-modal="true" aria-label={title}>
       <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
       <div className={`relative w-full ${widthClassName} my-4 sm:my-8`}>
@@ -51,6 +54,7 @@ export default function Modal({ open, onClose, title, children, widthClassName =
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
