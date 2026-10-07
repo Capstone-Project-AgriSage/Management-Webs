@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Minus, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { formatVnd } from '@/utils/money'
+import ProductThumb from '@/components/ui/ProductThumb'
 import type { CounterSalePreviewResponse } from '@/api/types'
 import type { CartItem } from './orderDraft'
 
@@ -31,9 +32,12 @@ export default function CartLines({ items, preview, errors, onQuantity, onOverri
         return (
           <li key={`${item.product.id}-${item.packagingId}`} className={`p-3 rounded-xl border bg-surface ${errors[idx] ? 'border-rose-400' : 'border-outline-variant/60'}`}>
             <div className="flex justify-between items-start gap-2">
-              <div className="min-w-0">
-                <div className="font-semibold text-sm text-on-surface leading-snug line-clamp-2">{item.product.name}</div>
-                <div className="text-xs text-on-surface-variant mt-0.5">{item.packagingName}</div>
+              <div className="flex items-start gap-2.5 min-w-0">
+                <ProductThumb src={item.product.imageUrl} alt={item.product.name} className="w-10 h-10 rounded-lg border border-outline-variant/40" iconSize={18} />
+                <div className="min-w-0">
+                  <div className="font-semibold text-sm text-on-surface leading-snug line-clamp-2">{item.product.name}</div>
+                  <div className="text-xs text-on-surface-variant mt-0.5">{item.packagingName}</div>
+                </div>
               </div>
               <button type="button" aria-label={`Xoá ${item.product.name}`} onClick={() => onRemove(idx)} className="p-1.5 rounded-lg text-on-surface-variant hover:text-rose-600 hover:bg-rose-50 shrink-0">
                 <Trash2 size={15} />

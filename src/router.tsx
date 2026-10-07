@@ -14,7 +14,7 @@ import AdminDashboardPage from '@/features/admin/dashboard/DashboardPage'
 import AccountsPage from '@/features/admin/accounts/AccountsPage'
 import RolesPage from '@/features/admin/roles/RolesPage'
 import CategoriesPage from '@/features/admin/products/CategoriesPage'
-import ProductMasterPage from '@/features/admin/products/ProductMasterPage'
+import ProductManagementPage from '@/features/products/ProductManagementPage'
 import ActiveIngredientsPage from '@/features/admin/products/ActiveIngredientsPage'
 import AiModelsPage from '@/features/admin/ai-models/AiModelsPage'
 import AiPolicyConfigsPage from '@/features/admin/ai-models/AiPolicyConfigsPage'
@@ -30,7 +30,6 @@ import AgentDashboardPage from '@/features/agent/dashboard/DashboardPage'
 import OrdersPage from '@/features/orders/OrdersPage'
 import PaymentsPage from '@/features/payments/PaymentsPage'
 import AgentAiRecommendationsPage from '@/features/agent/ai-recommendations/AiRecommendationsPage'
-import AgentProductsPage from '@/features/agent/products/ProductsPage'
 import AgentInventoryPage from '@/features/agent/inventory/StockOverviewPage'
 import AgentInventoryMovementsPage from '@/features/agent/inventory/StockMovementsPage'
 import AgentStockCardPage from '@/features/agent/inventory/StockCardPage'
@@ -110,7 +109,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'admin/products/master',
-            element: <RequireRole role="admin"><RequirePermission module="products"><ProductMasterPage /></RequirePermission></RequireRole>,
+            element: <RequireRole role="admin"><RequirePermission module="products"><ProductManagementPage /></RequirePermission></RequireRole>,
           },
           {
             path: 'admin/products/ingredients',
@@ -164,7 +163,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/products',
-            element: <RequireRole role="agent"><AgentProductsPage /></RequireRole>,
+            element: <RequireRole role="agent"><ProductManagementPage /></RequireRole>,
           },
           {
             path: 'agent/inventory',
