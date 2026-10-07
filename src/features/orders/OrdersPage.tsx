@@ -24,6 +24,12 @@ import { useRoleBase } from '@/utils/creditLabels'
 import OrderEditModal from './OrderEditModal'
 import ConfirmOrderModal from './ConfirmOrderModal'
 import PickupModal from './PickupModal'
+/**
+ * Made by staff at the counter. Orders from the farmer web or mobile app are paid through payOS or put on credit, so
+ * staff do not collect cash for them. A screen rule only: the API still accepts a cash payment for any order.
+ */
+const isCounterOrder = (order: Pick<OrderResponse, 'source'>) => order.source === 'COUNTER'
+
 const STATUS_MAP: Record<OrderStatus, string> = {
   PENDING_CONFIRMATION: 'Chờ xác nhận',
   CONFIRMED: 'Đã xác nhận',
@@ -696,15 +702,18 @@ export default function OrdersPage() {
                 </button>
               )}
 
-              <div className="grid grid-cols-2 gap-3 mt-2">
-                <button
-                  className="w-full h-10 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg font-bold flex items-center justify-center transition-colors disabled:opacity-50"
-                  disabled={!paymentSummary || paymentSummary.remainingToPay <= 0 || ['COMPLETED', 'CANCELLED', 'PARTIALLY_CANCELLED'].includes(selectedOrder.status)}
-                  onClick={() => setIsPaymentModalOpen(true)}
-                >
-                  <Receipt size={16} className="mr-2" />
-                  THU TIỀN TẠI QUẦY
-                </button>
+              {/* Online orders (farmer web / mobile) are paid through payOS or put on credit: cash is only for counter orders. */}
+              <div className={isCounterOrder(selectedOrder) ? 'grid grid-cols-2 gap-3 mt-2' : 'mt-2'}>
+                {isCounterOrder(selectedOrder) && (
+                  <button
+                    className="w-full h-10 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg font-bold flex items-center justify-center transition-colors disabled:opacity-50"
+                    disabled={!paymentSummary || paymentSummary.remainingToPay <= 0 || ['COMPLETED', 'CANCELLED', 'PARTIALLY_CANCELLED'].includes(selectedOrder.status)}
+                    onClick={() => setIsPaymentModalOpen(true)}
+                  >
+                    <Receipt size={16} className="mr-2" />
+                    THU TIỀN TẠI QUẦY
+                  </button>
+                )}
                 <button
                   className="w-full h-10 bg-primary text-on-primary hover:bg-primary/90 rounded-lg font-bold flex items-center justify-center transition-colors disabled:opacity-50"
                   // A FULL_PAYMENT order is confirmed only once it is fully paid (server: "Payment does not cover the order total"); CREDIT orders are not.
@@ -744,7 +753,9 @@ export default function OrdersPage() {
 
               {selectedOrder.status === 'PENDING_CONFIRMATION' && selectedOrder.settlementType === 'FULL_PAYMENT' && paymentSummary && paymentSummary.remainingToPay > 0 && (
                 <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                  Đơn trả ngay chưa thanh toán đủ: chờ khách trả qua payOS hoặc thu tiền tại quầy rồi mới xác nhận được.
+                  {isCounterOrder(selectedOrder)
+                    ? 'Đơn trả ngay chưa thanh toán đủ: chờ khách trả qua payOS hoặc thu tiền tại quầy rồi mới xác nhận được.'
+                    : 'Đơn online trả ngay chưa thanh toán đủ: chờ khách thanh toán qua payOS rồi mới xác nhận được.'}
                 </p>
               )}
 
