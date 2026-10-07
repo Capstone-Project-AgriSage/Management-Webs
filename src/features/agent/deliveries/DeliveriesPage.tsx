@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { ChevronRight, RefreshCw, MapPin, UserCircle } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { deliveriesApi, type DeliveryListItem, type DeliveryStatus } from '@/api/deliveriesApi'
@@ -32,6 +32,16 @@ export default function DeliveriesPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState(ALL_STATUSES)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  // "?open=<deliveryId>" (from the order's delivery list) opens that delivery's detail, where the driver is assigned.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const openId = searchParams.get('open')
+  useEffect(() => {
+    if (!openId) return
+    setSelectedId(openId)
+    setSearchParams({}, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId])
 
   const fetchDeliveries = async () => {
     try {

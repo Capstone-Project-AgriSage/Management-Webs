@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronRight, Download, Plus, Receipt, Clock, PackageCheck, CheckCircle, FilterX, Phone, StickyNote, Pencil } from 'lucide-react'
+import { ChevronRight, Download, Plus, Receipt, Clock, PackageCheck, CheckCircle, FilterX, Phone, StickyNote, Pencil, ArrowRight } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { useToast } from '@/context/ToastContext'
 import RowActionsMenu from '@/components/ui/RowActionsMenu'
@@ -319,16 +319,17 @@ export default function OrdersPage() {
 
     setIsCreatingDelivery(true)
     try {
-      await deliveriesApi.create({
+      const created = await deliveriesApi.create({
         orderId: selectedOrder.id,
         items,
         deliveryAddress: null,
         scheduledAt: deliveryScheduledAt ? new Date(deliveryScheduledAt).toISOString() : null,
         note: deliveryNote.trim() || null,
       })
-      showToast('Lập phiếu giao hàng thành công!', 'success')
+      showToast(`Đã lập phiếu giao ${created.deliveryNumber}. Bấm "Phân công tài xế" để chọn tài xế.`, 'success')
       setIsDeliveryModalOpen(false)
-      setSelectedOrder(null)
+      // Stay on the order so the new delivery shows up with its "Phân công tài xế" shortcut.
+      deliveriesApi.getOrderDeliveries(selectedOrder.id).then(setOrderDeliveries).catch(() => {})
       fetchOrders()
     } catch (err) {
       // 422 errors are keyed by line ("items[i]"); name the product in the message.
@@ -761,16 +762,31 @@ export default function OrdersPage() {
                 <div className="rounded-lg border border-outline-variant bg-surface-container-lowest p-3 text-sm">
                   <div className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Phiếu giao của đơn</div>
                   <ul className="space-y-1">
-                    {orderDeliveries.map((d) => (
-                      <li key={d.id} className="flex justify-between gap-2">
-                        <span className="font-mono">{d.deliveryNumber}</span>
-                        <span className="text-on-surface-variant">
-                          {labelOf(DELIVERY_STATUS_LABEL, d.status)}
-                          {d.assignedTo ? ` · ${d.assignedTo.fullName}` : ''}
-                          {d.scheduledAt ? ` · ${formatDate(d.scheduledAt)}` : ''}
-                        </span>
-                      </li>
-                    ))}
+                    {orderDeliveries.map((d) => {
+                      // A draft or retry without a driver needs one; anything else is just opened to follow it.
+                      const needsDriver = !d.assignedTo && (d.status === 'DRAFT' || d.status === 'RETRY_PENDING')
+                      return (
+                        <li key={d.id} className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="font-mono">{d.deliveryNumber}</div>
+                            <div className="text-xs text-on-surface-variant">
+                              {labelOf(DELIVERY_STATUS_LABEL, d.status)}
+                              {d.assignedTo ? ` · ${d.assignedTo.fullName}` : ''}
+                              {d.scheduledAt ? ` · ${formatDate(d.scheduledAt)}` : ''}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => navigate(`${base}/deliveries?open=${d.id}`)}
+                            className={`shrink-0 h-8 px-3 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${
+                              needsDriver ? 'bg-blue-600 text-white hover:bg-blue-700' : 'border border-outline-variant text-on-surface hover:bg-surface-container'
+                            }`}
+                          >
+                            {needsDriver ? 'Phân công tài xế' : 'Mở phiếu giao'} <ArrowRight size={14} />
+                          </button>
+                        </li>
+                      )
+                    })}
                   </ul>
                 </div>
               )}
