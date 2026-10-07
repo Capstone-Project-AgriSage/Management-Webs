@@ -15,6 +15,9 @@ interface CustomerFormModalProps {
   tiers: CreditTierResponse[]
   onClose: () => void
   onSaved: (customer: CustomerResponse) => void
+  /** Prefill when creating (e.g. the text the staff already typed in the counter search). */
+  initialName?: string
+  initialPhone?: string
 }
 
 const EMPTY = {
@@ -58,7 +61,7 @@ function Field({ label, required, error, children }: { label: string; required?:
 
 // CUSTOMER_MANAGEMENT.md: create (REGISTERED + password) or edit. Group and credit of an existing customer
 // are changed from their own tabs (they need a reason), so the edit form leaves them untouched.
-export default function CustomerFormModal({ open, customer, groups, tiers, onClose, onSaved }: CustomerFormModalProps) {
+export default function CustomerFormModal({ open, customer, groups, tiers, onClose, onSaved, initialName = '', initialPhone = '' }: CustomerFormModalProps) {
   const { showToast } = useToast()
   const [v, setV] = useState(EMPTY)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -83,9 +86,9 @@ export default function CustomerFormModal({ open, customer, groups, tiers, onClo
             district: customer.address?.district ?? '',
             province: customer.address?.province ?? '',
           }
-        : EMPTY,
+        : { ...EMPTY, fullName: initialName, phoneNumber: initialPhone },
     )
-  }, [open, customer])
+  }, [open, customer, initialName, initialPhone])
 
   const set = (key: keyof typeof EMPTY, value: string | boolean) => setV((prev) => ({ ...prev, [key]: value }))
 

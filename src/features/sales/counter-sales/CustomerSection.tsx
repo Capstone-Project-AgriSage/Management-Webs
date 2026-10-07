@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { Loader2, Search, UserRound, X } from 'lucide-react'
+import { Loader2, Search, UserPlus, UserRound, X } from 'lucide-react'
 import { customersApi, type CustomerResponse } from '@/api/customersApi'
+import { customerGroupsApi, type CustomerGroupResponse } from '@/api/customerGroupsApi'
+import { creditTiersApi, type CreditTierResponse } from '@/api/creditTiersApi'
 import { customerCreditApi } from '@/api/customerCreditApi'
+import CustomerFormModal from '@/features/customers/CustomerFormModal'
 import { ApiError } from '@/api/client'
 import { formatVnd } from '@/utils/money'
 import { CREDIT_STATUS_LABEL, label } from '@/utils/creditLabels'
@@ -20,6 +23,22 @@ const inputClass =
 export default function CustomerSection({ value, onChange }: CustomerSectionProps) {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  // New farmer created at the counter: the create form is the one from the Customers page; its group and credit-tier
+  // lists are fetched the first time it opens (a failure only leaves the lists empty, "default group" still works).
+  const [adding, setAdding] = useState<{ name: string; phone: string } | null>(null)
+  const [lists, setLists] = useState<{ groups: CustomerGroupResponse[]; tiers: CreditTierResponse[] } | null>(null)
+
+  const openAdd = (typed: string) => {
+    const text = typed.trim()
+    // What the staff typed in the search is most likely the phone when it is mostly digits, else the name.
+    setAdding(/^\+?[\d\s.-]{6,}$/.test(text) ? { name: '', phone: text.replace(/[\s.-]/g, '') } : { name: text, phone: '' })
+    if (!lists) {
+      Promise.all([
+        customerGroupsApi.getCustomerGroups({ pageSize: 100 }).then((r) => r.items || []).catch(() => []),
+        creditTiersApi.getCreditTiers({ pageSize: 100 }).then((r) => r.items || []).catch(() => []),
+      ]).then(([groups, tiers]) => setLists({ groups, tiers }))
+    }
+  }
 
   const pick = async (c: CustomerResponse) => {
     setLoading(true)
@@ -93,14 +112,28 @@ export default function CustomerSection({ value, onChange }: CustomerSectionProp
           </div>
         </div>
       ) : (
-        <CustomerSearch onPick={pick} loading={loading} />
+        <CustomerSearch onPick={pick} onAddNew={openAdd} loading={loading} />
       )}
       {error && <p className="text-xs text-rose-600">{error}</p>}
+
+      <CustomerFormModal
+        open={adding !== null}
+        customer={null}
+        groups={lists?.groups ?? []}
+        tiers={lists?.tiers ?? []}
+        initialName={adding?.name}
+        initialPhone={adding?.phone}
+        onClose={() => setAdding(null)}
+        onSaved={(saved) => {
+          setAdding(null)
+          pick(saved) // loads the credit and saved addresses, then the order is built for this farmer
+        }}
+      />
     </section>
   )
 }
 
-function CustomerSearch({ onPick, loading }: { onPick: (c: CustomerResponse) => void; loading: boolean }) {
+function CustomerSearch({ onPick, onAddNew, loading }: { onPick: (c: CustomerResponse) => void; onAddNew: (typed: string) => void; loading: boolean }) {
   const [text, setText] = useState('')
   const [results, setResults] = useState<CustomerResponse[]>([])
   const [searching, setSearching] = useState(false)
@@ -131,50 +164,77 @@ function CustomerSearch({ onPick, loading }: { onPick: (c: CustomerResponse) => 
   }, [])
 
   return (
-    <div ref={box} className="relative">
-      <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
-      <input
-        aria-label="Tìm khách quen"
-        className={`${inputClass} pl-9`}
-        placeholder="Tìm theo tên hoặc số điện thoại..."
-        value={text}
-        onFocus={() => setOpen(true)}
-        onChange={(e) => {
-          setText(e.target.value)
-          setOpen(true)
-        }}
-      />
-      {(searching || loading) && <Loader2 size={15} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-on-surface-variant" />}
-      {open && (
-        <div className="absolute z-20 mt-1 w-full max-h-72 overflow-y-auto rounded-lg border border-outline-variant bg-surface-container-lowest shadow-lg" role="listbox">
-          {results.length === 0 ? (
-            <div className="px-3 py-3 text-sm text-on-surface-variant">{searching ? 'Đang tìm...' : 'Không tìm thấy khách đang hoạt động'}</div>
-          ) : (
-            results.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                role="option"
-                aria-selected={false}
-                className="w-full flex items-center gap-2.5 text-left px-3 py-2 hover:bg-surface-container"
-                onClick={() => {
-                  setOpen(false)
-                  onPick(c)
-                }}
-              >
-                <UserRound size={16} className="text-on-surface-variant shrink-0" />
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium text-on-surface truncate">{c.fullName}</span>
-                  <span className="block text-xs text-on-surface-variant">
-                    {c.phoneNumber ?? '--'} · {c.customerGroup?.name ?? 'Nhóm mặc định'}
-                    {c.allowCreditPurchase ? ' · có mua chịu' : ''}
+    <div className="flex items-center gap-2">
+      <div ref={box} className="relative flex-1 min-w-0">
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+        <input
+          aria-label="Tìm khách quen"
+          className={`${inputClass} pl-9`}
+          placeholder="Tìm theo tên hoặc số điện thoại..."
+          value={text}
+          onFocus={() => setOpen(true)}
+          onChange={(e) => {
+            setText(e.target.value)
+            setOpen(true)
+          }}
+        />
+        {(searching || loading) && <Loader2 size={15} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-on-surface-variant" />}
+        {open && (
+          <div className="absolute z-20 mt-1 w-full max-h-72 overflow-y-auto rounded-lg border border-outline-variant bg-surface-container-lowest shadow-lg" role="listbox">
+            {results.length === 0 ? (
+              <div className="px-3 py-3 text-sm text-on-surface-variant">
+                {searching ? (
+                  'Đang tìm...'
+                ) : (
+                  <>
+                    <p>Không tìm thấy khách đang hoạt động.</p>
+                    <button
+                      type="button"
+                      className="mt-1.5 inline-flex items-center gap-1.5 font-semibold text-emerald-700 hover:underline"
+                      onClick={() => {
+                        setOpen(false)
+                        onAddNew(text)
+                      }}
+                    >
+                      <UserPlus size={14} /> Thêm {text.trim() ? `"${text.trim()}"` : 'nông dân'} làm khách mới
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : (
+              results.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  role="option"
+                  aria-selected={false}
+                  className="w-full flex items-center gap-2.5 text-left px-3 py-2 hover:bg-surface-container"
+                  onClick={() => {
+                    setOpen(false)
+                    onPick(c)
+                  }}
+                >
+                  <UserRound size={16} className="text-on-surface-variant shrink-0" />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-on-surface truncate">{c.fullName}</span>
+                    <span className="block text-xs text-on-surface-variant">
+                      {c.phoneNumber ?? '--'} · {c.customerGroup?.name ?? 'Nhóm mặc định'}
+                      {c.allowCreditPurchase ? ' · có mua chịu' : ''}
+                    </span>
                   </span>
-                </span>
-              </button>
-            ))
-          )}
-        </div>
-      )}
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+      <button
+        type="button"
+        className="h-9 shrink-0 px-3 rounded-lg border border-emerald-600 text-emerald-700 text-sm font-semibold hover:bg-emerald-50 flex items-center gap-1.5"
+        onClick={() => onAddNew(text)}
+      >
+        <UserPlus size={15} /> Khách mới
+      </button>
     </div>
   )
 }
