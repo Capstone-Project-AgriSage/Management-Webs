@@ -26,7 +26,8 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     
-    /* Path aliases */
+    /* Path aliases (baseUrl is deprecated in TypeScript 6; remove both lines when moving the paths off it) */
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]

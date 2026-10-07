@@ -12,7 +12,7 @@ import { useFilteredList } from '@/hooks/useFilteredList'
 import { usePagination } from '@/hooks/usePagination'
 import { useFormValues } from '@/hooks/useFormValues'
 import * as productsService from '@/features/admin/services/productsService'
-import type { ProductMaster, ProductStatus, ProductActionId } from '@/types'
+import type { ProductMaster, AdminProductStatus as ProductStatus, ProductActionId } from '@/types'
 
 export default function ProductMasterPage() {
   usePageHeader({ title: 'Sản phẩm gốc', subtitle: 'Quản lý cơ sở dữ liệu các sản phẩm nông nghiệp chuẩn' })

@@ -1,4 +1,4 @@
-import type { ProductCategory, ProductMaster, ActiveIngredient, CategoryStatus, ProductStatus, ToxicityClass } from '@/types'
+import type { ProductCategory, ProductMaster, ActiveIngredient } from '@/types'
 
 export const mockCategories: ProductCategory[] = [
   { id: 'CAT001', name: 'Thuốc trừ nấm', parentId: null, description: 'Các loại thuốc trị nấm bệnh', status: 'Hoạt động', createdAt: '2024-01-15', productCount: 45 },

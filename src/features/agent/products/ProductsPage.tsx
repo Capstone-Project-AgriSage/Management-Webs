@@ -201,7 +201,7 @@ export default function ProductsPage() {
         'Giá bán': p.price,
         'Số lượng': p.stockQuantity,
         'Đơn vị': p.unit,
-        'Trạng thái kinh doanh': p.businessStatus,
+        'Trạng thái kinh doanh': p.businessStatus ?? '',
       })),
     )
     showToast(`Đã xuất Excel danh sách ${filteredProducts.length} sản phẩm`)

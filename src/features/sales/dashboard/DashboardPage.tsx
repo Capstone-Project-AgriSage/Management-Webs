@@ -20,7 +20,7 @@ export default function DashboardPage() {
   const { user } = useAuth()
   usePageHeader({ title: 'Tổng quan', subtitle: `Ca làm việc hôm nay tại ${user.storeName}` })
 
-  const todayOrders = orders.filter((o) => o.createdAt.startsWith(TODAY) && o.status !== 'Đã hủy')
+  const todayOrders = orders.filter((o) => (o.createdAt ?? '').startsWith(TODAY) && o.status !== 'Đã hủy')
   const todayRevenue = todayOrders.reduce((sum, o) => sum + parseVnd(o.total), 0)
 
   const pendingOrders = orders.filter((o) => o.status === 'Chờ xác nhận')

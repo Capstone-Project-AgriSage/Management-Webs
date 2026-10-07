@@ -494,7 +494,7 @@ export default function AiRecommendationsPage() {
                 <span className="font-bold text-slate-900 text-lg">Chi tiết ca thẩm định</span>
               </div>
               <div className="flex items-center gap-2">
-                <StatusBadge label={selected.panelBadge.label} className={selected.panelBadge.className} />
+                {selected.panelBadge && <StatusBadge label={selected.panelBadge.label} className={selected.panelBadge.className} />}
               </div>
             </div>
 

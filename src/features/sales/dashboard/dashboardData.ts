@@ -14,7 +14,7 @@ function dayLabel(dayIso: string): string {
 /** The latest order date in the mock data — stands in for "today" everywhere the dashboard needs it,
  * derived once here instead of being hardcoded separately in every chart/section that needs it. */
 export const TODAY = orders.reduce((latest, order) => {
-  const day = order.createdAt.slice(0, 10)
+  const day = (order.createdAt ?? '').slice(0, 10)
   return day > latest ? day : latest
 }, '')
 
@@ -22,7 +22,7 @@ function ordersByDay() {
   const counts = new Map<string, number>()
   for (const order of orders) {
     if (order.status === 'Đã hủy') continue
-    const day = order.createdAt.slice(0, 10)
+    const day = (order.createdAt ?? '').slice(0, 10)
     counts.set(day, (counts.get(day) ?? 0) + 1)
   }
   return [...counts.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ name: dayLabel(day), value }))
@@ -32,7 +32,7 @@ function revenueByDay() {
   const totals = new Map<string, number>()
   for (const order of orders) {
     if (order.status === 'Đã hủy') continue
-    const day = order.createdAt.slice(0, 10)
+    const day = (order.createdAt ?? '').slice(0, 10)
     totals.set(day, (totals.get(day) ?? 0) + parseVnd(order.total))
   }
   return [...totals.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, value]) => ({ name: dayLabel(day), value }))

@@ -18,10 +18,10 @@ export default function AiPolicyConfigsPage() {
   const { showToast } = useToast()
   
   const [createOpen, setCreateOpen] = useState(false)
-  const createForm = useFormValues({ name: '', type: 'System Prompt', priority: 'Trung bình', content: '', isActive: true })
+  const createForm = useFormValues({ name: '', type: 'System Prompt', priority: 'Trung bình', content: '', isActive: 'true' })
 
   const [editTarget, setEditTarget] = useState<AiPolicy | null>(null)
-  const editForm = useFormValues({ name: '', type: 'System Prompt', priority: 'Trung bình', content: '', isActive: true })
+  const editForm = useFormValues({ name: '', type: 'System Prompt', priority: 'Trung bình', content: '', isActive: 'true' })
 
   const {
     search,
@@ -58,7 +58,7 @@ export default function AiPolicyConfigsPage() {
   const handleAction = (policy: AiPolicy, actionId: AiPolicyActionId) => {
     switch (actionId) {
       case 'edit':
-        editForm.reset({ name: policy.name, type: policy.type, priority: policy.priority, content: policy.content, isActive: policy.isActive })
+        editForm.reset({ name: policy.name, type: policy.type, priority: policy.priority, content: policy.content, isActive: String(policy.isActive) })
         setEditTarget(policy)
         break
       case 'toggle-active':
@@ -81,12 +81,12 @@ export default function AiPolicyConfigsPage() {
       type: type as AiPolicyType, 
       priority: priority as any, 
       content, 
-      isActive: isActive as boolean 
+      isActive: isActive === 'true'
     })
     setPolicyList(aiService.listPolicies())
     showToast(`Đã tạo quy tắc AI mới: ${name}`)
     setCreateOpen(false)
-    createForm.reset({ name: '', type: 'System Prompt', priority: 'Trung bình', content: '', isActive: true })
+    createForm.reset({ name: '', type: 'System Prompt', priority: 'Trung bình', content: '', isActive: 'true' })
   }
 
   const handleEdit = () => {
@@ -97,7 +97,7 @@ export default function AiPolicyConfigsPage() {
       type: type as AiPolicyType, 
       priority: priority as any, 
       content, 
-      isActive: isActive as boolean 
+      isActive: isActive === 'true'
     })
     setPolicyList(aiService.listPolicies())
     showToast(`Đã cập nhật quy tắc: ${name}`)
