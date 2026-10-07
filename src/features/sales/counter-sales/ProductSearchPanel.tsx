@@ -7,6 +7,7 @@ import { catalogApi } from '@/api/catalogApi'
 import type { CatalogProduct, CatalogCategory, CatalogProductDetail, CatalogPackaging } from '@/api/types'
 import { formatVnd } from '@/utils/money'
 import { useToast } from '@/context/ToastContext'
+import ProductThumb from '@/components/ui/ProductThumb'
 
 interface ProductSearchPanelProps {
   onAddToCart: (item: CartItem) => void
@@ -154,9 +155,7 @@ export default function ProductSearchPanel({ onAddToCart }: ProductSearchPanelPr
                 onClick={() => handleSelectProduct(p)}
               >
                 <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-primary/5 to-transparent rounded-bl-full -z-10 transition-transform group-hover:scale-125"></div>
-                <div className="w-12 h-12 bg-surface-container-low rounded-xl mb-3 flex items-center justify-center border border-outline-variant/30 shadow-sm group-hover:bg-primary/10 transition-colors">
-                  <span className="material-symbols-outlined text-primary/80 group-hover:text-primary transition-colors text-2xl">eco</span>
-                </div>
+                <ProductThumb src={p.imageUrl} alt={p.name} className="w-full aspect-[4/3] rounded-xl mb-3 border border-outline-variant/30 shadow-sm" iconSize={32} />
                 <div className="font-bold text-sm mb-1 text-on-surface line-clamp-2 group-hover:text-primary transition-colors">{p.name}</div>
                 <div className="text-xs text-on-surface-variant mb-4 font-mono">{p.sku}</div>
                 <div className="mt-auto font-bold text-primary text-base">

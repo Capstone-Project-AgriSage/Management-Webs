@@ -10,6 +10,7 @@ import Pagination from '@/components/ui/Pagination'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import { packagingLabel } from '@/utils/packaging'
 import SearchInput from '@/components/ui/SearchInput'
+import ProductThumb from '@/components/ui/ProductThumb'
 import { catalogApi } from '@/api/catalogApi'
 import type { CatalogProduct, CatalogProductDetail } from '@/api/types'
 import { formatVnd } from '@/utils/money'
@@ -125,8 +126,13 @@ export default function ProductsPage() {
                     className={`transition-colors cursor-pointer group hover:bg-surface-container-low`}
                   >
                     <td className="py-4.5 pl-4 px-3">
-                      <div className="font-medium text-sm text-on-surface group-hover:text-primary transition-colors">{product.name}</div>
-                      <div className="text-xs text-on-surface-variant mt-0.5">{product.sku}</div>
+                      <div className="flex items-center gap-3">
+                        <ProductThumb src={product.imageUrl} alt={product.name} className="w-12 h-12 rounded-lg border border-outline-variant/50" iconSize={22} />
+                        <div className="min-w-0">
+                          <div className="font-medium text-sm text-on-surface group-hover:text-primary transition-colors">{product.name}</div>
+                          <div className="text-xs text-on-surface-variant mt-0.5">{product.sku}</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="py-4.5 px-3 text-center font-medium font-mono text-primary">
                       {product.fromPrice ? formatVnd(product.fromPrice) : 'Liên hệ'}
@@ -166,6 +172,7 @@ export default function ProductsPage() {
         {selectedProduct ? (
           <div className="p-4 space-y-4">
             <div>
+              <ProductThumb src={selectedProduct.imageUrl} alt={selectedProduct.name} className="w-full max-h-56 aspect-video rounded-xl border border-outline-variant/40 mb-3" iconSize={40} />
               <h3 className="text-lg text-on-surface font-bold">{selectedProduct.name}</h3>
               <p className="text-sm text-on-surface-variant mt-1">{selectedProduct.sku}</p>
             </div>
