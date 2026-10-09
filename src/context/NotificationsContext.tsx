@@ -9,6 +9,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const identity = isAuthenticated ? user?.id || 'authenticated' : ''
   const [snapshot, setSnapshot] = useState({ identity: '', count: 0 })
   const [revision, setRevision] = useState(0)
+  const confirmed = useRef({ identity: '', count: 0 })
   const request = useRef<AbortController | null>(null)
 
   const refreshUnread = useCallback(async () => {
@@ -18,7 +19,13 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     request.current = controller
     try {
       const response = await notificationsApi.unreadCount(controller.signal)
-      if (!controller.signal.aborted) setSnapshot({ identity, count: response.count })
+      if (!controller.signal.aborted) {
+        if (confirmed.current.identity !== identity || confirmed.current.count !== response.count) {
+          setRevision((value) => value + 1)
+        }
+        confirmed.current = { identity, count: response.count }
+        setSnapshot(confirmed.current)
+      }
     } catch {
       // Retain the last confirmed badge on transient errors; the API client handles expired sessions.
     }

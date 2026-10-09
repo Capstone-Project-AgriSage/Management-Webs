@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useRef, useState } from 'react'
 import { ExternalLink, Plus } from 'lucide-react'
 import { useToast } from '@/context/ToastContext'
@@ -251,20 +252,24 @@ function CompleteRefundModal({ scope, refund, onClose, onDone }: { scope: Refund
 
   return (
     <DetailModal open onClose={busy ? () => undefined : onClose} widthClassName="max-w-lg">
-      <div className="p-5 space-y-4">
-        <div>
-          <h3 className="text-lg text-slate-900 font-bold">Xác nhận đã hoàn tiền</h3>
-          <p className="text-sm text-slate-600 mt-1">
-            Khoản <span className="font-mono">{refund.refundNumber}</span>: <strong>{formatVnd(refund.amount)}</strong> ({REFUND_METHOD_LABEL[refund.refundMethod] ?? refund.refundMethod}). Chỉ bấm khi bạn đã thật sự trả tiền cho khách.
-          </p>
-        </div>
-        <div className="space-y-1">
+      <ModalLayout header={<div>
+        <h3 className="text-lg text-slate-900 font-bold">Xác nhận đã hoàn tiền</h3>
+        <p className="text-sm text-slate-600 mt-1">
+          Khoản <span className="font-mono">{refund.refundNumber}</span>: <strong>{formatVnd(refund.amount)}</strong> ({REFUND_METHOD_LABEL[refund.refundMethod] ?? refund.refundMethod}). Chỉ bấm khi bạn đã thật sự trả tiền cho khách.
+        </p>
+      </div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
+        <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm shadow-sm disabled:opacity-50" onClick={onClose} disabled={busy}>
+          Hủy
+        </button>
+        <button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={busy || uploading}>
+          {busy ? 'Đang ghi...' : 'Đã hoàn tiền'}
+        </button>
+      </div>} bodyClassName="space-y-4"><div className="space-y-1">
           <label className="text-sm font-medium text-slate-700" htmlFor="rf-ref">
             Mã giao dịch / số chứng từ (không bắt buộc)
           </label>
           <input id="rf-ref" className={inputClassName} maxLength={200} value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Ví dụ: mã chuyển khoản ngân hàng" />
-        </div>
-        <div className="space-y-1">
+        </div><div className="space-y-1">
           <label className="text-sm font-medium text-slate-700">Ảnh chứng từ (không bắt buộc)</label>
           <div className="flex items-center gap-3">
             <input ref={fileInput} id="rf-proof" type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => upload(e.target.files?.[0] ?? null)} />
@@ -273,22 +278,13 @@ function CompleteRefundModal({ scope, refund, onClose, onDone }: { scope: Refund
             </button>
             <span className="text-sm text-slate-600 truncate">{proofName ? `Đã tải lên: ${proofName}` : 'Chưa có ảnh'}</span>
           </div>
-        </div>
-        <div className="space-y-1">
+        </div><div className="space-y-1">
           <label className="text-sm font-medium text-slate-700" htmlFor="rf-note">
             Ghi chú
           </label>
           <input id="rf-note" className={inputClassName} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-          <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm shadow-sm disabled:opacity-50" onClick={onClose} disabled={busy}>
-            Hủy
-          </button>
-          <button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={busy || uploading}>
-            {busy ? 'Đang ghi...' : 'Đã hoàn tiền'}
-          </button>
-        </div>
-      </div>
+      </ModalLayout>
     </DetailModal>
   )
 }
@@ -341,14 +337,19 @@ function RequestRefundModal({ scope, remaining, onClose, onDone }: { scope: Refu
 
   return (
     <DetailModal open onClose={busy ? () => undefined : onClose} widthClassName="max-w-lg">
-      <div className="p-5 space-y-4">
-        <div>
-          <h3 className="text-lg text-slate-900 font-bold">Tạo khoản hoàn tiền</h3>
-          <p className="text-sm text-slate-600 mt-1">
-            {remaining !== null ? `Còn ${formatVnd(remaining)} chưa có khoản hoàn.` : 'Dùng để tạo lại khoản hoàn sau khi khoản trước thất bại hoặc bị hủy.'} Khoản mới ở trạng thái chờ, bạn xác nhận khi đã trả tiền cho khách.
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
+      <ModalLayout header={<div>
+        <h3 className="text-lg text-slate-900 font-bold">Tạo khoản hoàn tiền</h3>
+        <p className="text-sm text-slate-600 mt-1">
+          {remaining !== null ? `Còn ${formatVnd(remaining)} chưa có khoản hoàn.` : 'Dùng để tạo lại khoản hoàn sau khi khoản trước thất bại hoặc bị hủy.'} Khoản mới ở trạng thái chờ, bạn xác nhận khi đã trả tiền cho khách.
+        </p>
+      </div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
+        <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm shadow-sm disabled:opacity-50" onClick={onClose} disabled={busy}>
+          Hủy
+        </button>
+        <button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={!canSubmit}>
+          {busy ? 'Đang tạo...' : 'Tạo khoản hoàn'}
+        </button>
+      </div>} bodyClassName="space-y-4"><div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <label className="text-sm font-medium text-slate-700" htmlFor="rq-method">
               Hình thức hoàn
@@ -367,8 +368,7 @@ function RequestRefundModal({ scope, remaining, onClose, onDone }: { scope: Refu
             </label>
             <input id="rq-amount" type="number" min={0} step="0.01" className={inputClassName} value={amount} onChange={(e) => setAmount(e.target.value)} />
           </div>
-        </div>
-        <div className="space-y-1">
+        </div><div className="space-y-1">
           <label className="text-sm font-medium text-slate-700" htmlFor="rq-pay">
             Hoàn cho khoản thanh toán {scope.kind === 'order' ? '*' : '(không bắt buộc)'}
           </label>
@@ -380,13 +380,11 @@ function RequestRefundModal({ scope, remaining, onClose, onDone }: { scope: Refu
               </option>
             ))}
           </select>
-        </div>
-        {amount !== '' && !amountOk ? (
+        </div>{amount !== '' && !amountOk ? (
           <p className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2" role="alert">
             {remaining !== null && value > remaining ? `Tối đa ${formatVnd(remaining)}.` : 'Số tiền phải lớn hơn 0, tối đa 2 chữ số thập phân.'}
           </p>
-        ) : null}
-        <div className="grid grid-cols-2 gap-3">
+        ) : null}<div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <label className="text-sm font-medium text-slate-700" htmlFor="rq-ref">
               Mã giao dịch (nếu có)
@@ -400,15 +398,7 @@ function RequestRefundModal({ scope, remaining, onClose, onDone }: { scope: Refu
             <input id="rq-note" className={inputClassName} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
         </div>
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-          <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm shadow-sm disabled:opacity-50" onClick={onClose} disabled={busy}>
-            Hủy
-          </button>
-          <button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={!canSubmit}>
-            {busy ? 'Đang tạo...' : 'Tạo khoản hoàn'}
-          </button>
-        </div>
-      </div>
+      </ModalLayout>
     </DetailModal>
   )
 }

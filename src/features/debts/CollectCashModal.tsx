@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
 import Modal from '@/components/ui/Modal'
 import { debtApi, type AllocationPreview, type DebtEntryListItem } from '@/api/debtApi'
@@ -84,12 +85,22 @@ export default function CollectCashModal({ open, farmerProfileId, customerName, 
 
   return (
     <Modal open={open} onClose={onClose} title={`Thu nợ tiền mặt — ${customerName}`} widthClassName="max-w-xl">
-      <div className="space-y-4">
-        <p className="text-sm text-slate-600">
+      <ModalLayout footer={<div className="flex flex-wrap items-center justify-end gap-3">
+        <span className="text-sm text-slate-600">
+          Tổng thu: <strong className="text-slate-900 tabular-nums">{formatVnd(total)}</strong>
+          {mode === 'manual' && manualInvalid && <span className="text-rose-600"> · vượt số còn nợ</span>}
+        </span>
+        <div className="flex gap-2">
+          <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50" onClick={onClose}>
+            Hủy
+          </button>
+          <button type="button" disabled={!canSubmit} className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50" onClick={submit}>
+            {saving ? 'Đang thu...' : 'Xác nhận thu tiền'}
+          </button>
+        </div>
+      </div>} bodyClassName="space-y-4"><p className="text-sm text-slate-600">
           Dư nợ hiện tại: <strong className="text-slate-900">{formatVnd(outstanding)}</strong>
-        </p>
-
-        <div className="flex bg-slate-100 p-1 rounded-lg w-fit text-sm" role="tablist">
+        </p><div className="flex bg-slate-100 p-1 rounded-lg w-fit text-sm" role="tablist">
           {(['auto', 'manual'] as const).map((m) => (
             <button
               key={m}
@@ -102,9 +113,7 @@ export default function CollectCashModal({ open, farmerProfileId, customerName, 
               {m === 'auto' ? 'Trừ khoản đến hạn trước' : 'Chọn khoản nợ'}
             </button>
           ))}
-        </div>
-
-        {mode === 'auto' ? (
+        </div>{mode === 'auto' ? (
           <>
             <label className="block space-y-1">
               <span className="text-sm font-medium text-slate-700">Số tiền thu (đ)<span className="text-rose-600 ml-0.5">*</span></span>
@@ -173,28 +182,11 @@ export default function CollectCashModal({ open, farmerProfileId, customerName, 
               </ul>
             )}
           </div>
-        )}
-
-        <label className="block space-y-1">
+        )}<label className="block space-y-1">
           <span className="text-sm font-medium text-slate-700">Ghi chú</span>
           <input className={inputClassName} value={note} onChange={(e) => setNote(e.target.value)} />
         </label>
-
-        <div className="flex items-center justify-between gap-3 pt-2 border-t border-slate-100">
-          <span className="text-sm text-slate-600">
-            Tổng thu: <strong className="text-slate-900 tabular-nums">{formatVnd(total)}</strong>
-            {mode === 'manual' && manualInvalid && <span className="text-rose-600"> · vượt số còn nợ</span>}
-          </span>
-          <div className="flex gap-2">
-            <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50" onClick={onClose}>
-              Hủy
-            </button>
-            <button type="button" disabled={!canSubmit} className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50" onClick={submit}>
-              {saving ? 'Đang thu...' : 'Xác nhận thu tiền'}
-            </button>
-          </div>
-        </div>
-      </div>
+      </ModalLayout>
     </Modal>
   )
 }

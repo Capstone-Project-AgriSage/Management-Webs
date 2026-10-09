@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import DetailModal from '@/components/ui/DetailModal'
@@ -120,7 +121,7 @@ export default function CustomerDetailModal({ customerId, groups, tiers, onClose
       showToast(success, 'success')
       setPrompt(null)
       refresh()
-      if (customerId && tab === 'group') customersApi.getGroupHistory(customerId).then(setGroupHistory).catch(() => {})
+      if (customerId && tab === 'group') customersApi.getGroupHistory(customerId).then(setGroupHistory).catch(() => { })
     } catch (err) {
       showToast(errorText(err, 'Thao tác thất bại'), 'error')
     } finally {
@@ -134,38 +135,36 @@ export default function CustomerDetailModal({ customerId, groups, tiers, onClose
   return (
     <DetailModal open={customerId !== null} onClose={onClose} widthClassName="max-w-3xl">
       {!c ? (
-        <div className="p-8 text-center text-sm text-slate-500">Đang tải...</div>
+        <ModalLayout bodyClassName="space-y-4">Đang tải...
+        </ModalLayout>
       ) : (
-        <div className="flex flex-col max-h-[85vh]">
-          <div className="p-5 border-b border-slate-100 flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h3 className="text-lg font-bold text-slate-900">{c.fullName}</h3>
-              <div className="text-sm text-slate-600 mt-0.5">
-                {c.phoneNumber ?? '--'}
-                {c.email ? ` · ${c.email}` : ''}
-              </div>
-              <div className="flex flex-wrap items-center gap-2 mt-2">
-                <StatusBadge label={label(CUSTOMER_STATUS_LABEL, c.status)} />
-                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">{c.customerGroup?.name ?? 'Nhóm mặc định'}</span>
-                {c.allowCreditPurchase && <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">Được mua chịu</span>}
-              </div>
+        <ModalLayout header={<div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-bold text-slate-900">{c.fullName}</h3>
+            <div className="text-sm text-slate-600 mt-0.5">
+              {c.phoneNumber ?? '--'}
+              {c.email ? ` · ${c.email}` : ''}
             </div>
-            <div className="flex flex-wrap gap-2">
-              <button type="button" className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50" onClick={() => onEdit(c)}>
-                Sửa thông tin
-              </button>
-              {canManage && (
-                <button type="button" className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50" onClick={() => setPrompt('status')}>
-                  Đổi trạng thái
-                </button>
-              )}
-              <Link to={`${base}/debts/${c.id}`} className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700">
-                Công nợ
-              </Link>
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              <StatusBadge label={label(CUSTOMER_STATUS_LABEL, c.status)} />
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">{c.customerGroup?.name ?? 'Nhóm mặc định'}</span>
+              {c.allowCreditPurchase && <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">Được mua chịu</span>}
             </div>
           </div>
-
-          <div className="px-5 border-b border-slate-100 flex gap-1 overflow-x-auto" role="tablist">
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50" onClick={() => onEdit(c)}>
+              Sửa thông tin
+            </button>
+            {canManage && (
+              <button type="button" className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50" onClick={() => setPrompt('status')}>
+                Đổi trạng thái
+              </button>
+            )}
+            <Link to={`${base}/debts/${c.id}`} className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700">
+              Công nợ
+            </Link>
+          </div>
+        </div>} bodyClassName="space-y-4"><div className="px-5 border-b border-slate-100 flex gap-1 overflow-x-auto" role="tablist">
             {TABS.map((t) => (
               <button
                 key={t.key}
@@ -177,9 +176,7 @@ export default function CustomerDetailModal({ customerId, groups, tiers, onClose
                 {t.label}
               </button>
             ))}
-          </div>
-
-          <div className="p-5 overflow-y-auto">
+          </div><div className="p-5 overflow-y-auto">
             {tab === 'overview' && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -326,7 +323,7 @@ export default function CustomerDetailModal({ customerId, groups, tiers, onClose
               </div>
             )}
           </div>
-        </div>
+        </ModalLayout>
       )}
 
       {c && prompt === 'group' && (

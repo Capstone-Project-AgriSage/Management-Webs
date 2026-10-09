@@ -16,7 +16,7 @@ const item = (n, status = 'READ') => ({ id: id(n), notificationType: 'ORDER_STAT
   data: { entityType: 'ORDER', entityId: id(1000 + n) }, status,
   readAt: status === 'UNREAD' ? null : '2026-10-09T01:00:00Z', createdAt: '2026-10-09T00:00:00Z' });
 
-async function fixture({ role = management ? 'SALES_STAFF' : 'FARMER', count = 21, viewport = { width: 1440, height: 900 } } = {}) {
+async function fixture({ role = management ? 'SALES_STAFF' : 'FARMER', count = 21, viewport = { width: 1440, height: 900 }, clock = false } = {}) {
   const context = await browser.newContext({ viewport });
   await context.addInitScript(({ management }) => {
     if (location.pathname !== '/notifications') return
@@ -58,9 +58,12 @@ async function fixture({ role = management ? 'SALES_STAFF' : 'FARMER', count = 2
     return json({ items: [], totalCount: 0, totalPages: 0 });
   });
   const page = await context.newPage();
+  if (clock) await page.clock.install();
   const errors = []; page.on('pageerror', (error) => errors.push(error.message));
   await page.goto(baseUrl + '/notifications');
-  await page.locator('article[data-notification-id]').first().waitFor();
+  await bell(page, state.records.filter((record) => record.status === 'UNREAD').length).waitFor();
+  if (count === 0) await page.getByText('Bạn chưa có thông báo nào.').waitFor();
+  else await page.waitForFunction((expected) => document.querySelectorAll('article[data-notification-id]').length === expected, Math.min(count, 20));
   return { context, page, state, errors };
 }
 async function passed(name) { checks++; console.log('PASS ' + name); }
@@ -143,6 +146,38 @@ try {
   assert(state.requests.some((r) => r.method === 'DELETE'));
   await context.close();
 
+  const incoming = await fixture({ count: 0, clock: true });
+  await bell(incoming.page, 0).waitFor();
+  incoming.state.records.unshift({ ...item(100, 'UNREAD'), notificationType: 'ORDER_PLACED', title: 'Đơn hàng mới chờ xác nhận' });
+  await incoming.page.clock.runFor(30_100);
+  await bell(incoming.page, 1).waitFor();
+  await incoming.page.getByText('Đơn hàng mới chờ xác nhận', { exact: true }).waitFor();
+  const rolePrefix = management ? '/sales/orders' : '/orders/';
+  assert((await row(incoming.page, 100).getByRole('link').getAttribute('href')).startsWith(rolePrefix));
+  await incoming.context.close();
+  await passed('incoming order notification refreshes badge and visible inbox automatically');
+  const navigation = await fixture({ count: 0, clock: true });
+  const links = [['RETURN_REQUESTED', 'SALES_RETURN', '/sales/returns/' + id(1300)],
+    ['REFUND_REQUESTED', 'REFUND', '/sales/orders'], ['PAYMENT_FAILED', 'PAYMENT', '/sales/payments']];
+  links.forEach(([notificationType, entityType], n) => navigation.state.records.push({ ...item(200 + n, 'UNREAD'),
+    notificationType, data: { entityType, entityId: id(1300 + n), orderId: id(1200) } }));
+  await navigation.page.clock.runFor(30_100);
+  await bell(navigation.page, links.length).waitFor();
+  for (let n = 0; n < links.length; n++) {
+    await row(navigation.page, 200 + n).waitFor();
+    assert.equal(await row(navigation.page, 200 + n).getByRole('link').getAttribute('href'), links[n][2]);
+  }
+  assert.deepEqual(navigation.errors, []);
+  await navigation.context.close();
+  await passed('return, refund and failed payment notifications link to accessible sales screens');
+  const ownerInbox = await fixture({ role: 'STORE_OWNER', count: 0, clock: true });
+  ownerInbox.state.records.push({ ...item(300, 'UNREAD'), notificationType: 'STOCK_RECEIVED',
+    data: { entityType: 'STOCK_MOVEMENT', entityId: id(1400) } });
+  await ownerInbox.page.clock.runFor(30_100);
+  await row(ownerInbox.page, 300).waitFor();
+  assert.equal(await row(ownerInbox.page, 300).getByRole('link').getAttribute('href'), '/agent/inventory/movements');
+  await ownerInbox.context.close();
+  await passed('owner posted inventory notification links to the movement ledger');
   const expiry = await fixture();
   expiry.state.unauthorized = true;
   await button(expiry.page, 'Tải lại').click();

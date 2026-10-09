@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
 import DetailModal from '@/components/ui/DetailModal'
 import { describeError } from '@/api/client'
@@ -101,18 +102,32 @@ export default function StockAdjustmentModal({ target, defaultReason, onClose, o
 
   return (
     <DetailModal open onClose={busy ? () => undefined : onClose} widthClassName="max-w-lg">
-      <div className="p-5 space-y-4">
-        <div>
-          <h3 className="text-lg text-slate-900 font-bold">Điều chỉnh kho</h3>
-          <p className="text-sm text-slate-600 mt-1">
-            <strong>{target.productName}</strong> <span className="font-mono text-xs text-slate-500">{target.sku}</span>
-            <br />
-            Lô <span className="font-mono">{target.lotNumber ?? 'không có số lô'}</span>: tồn {formatQty(target.onHand)} {unit}, đang giữ{' '}
-            {formatQty(target.reserved)} {unit}.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Hướng điều chỉnh">
+      <ModalLayout header={<div>
+        <h3 className="text-lg text-slate-900 font-bold">Điều chỉnh kho</h3>
+        <p className="text-sm text-slate-600 mt-1">
+          <strong>{target.productName}</strong> <span className="font-mono text-xs text-slate-500">{target.sku}</span>
+          <br />
+          Lô <span className="font-mono">{target.lotNumber ?? 'không có số lô'}</span>: tồn {formatQty(target.onHand)} {unit}, đang giữ{' '}
+          {formatQty(target.reserved)} {unit}.
+        </p>
+      </div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
+        <button
+          type="button"
+          className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors font-medium text-sm shadow-sm disabled:opacity-50"
+          onClick={onClose}
+          disabled={busy}
+        >
+          Hủy
+        </button>
+        <button
+          type="button"
+          className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors text-sm shadow-sm disabled:opacity-50"
+          onClick={submit}
+          disabled={!canSubmit}
+        >
+          {busy ? 'Đang ghi...' : 'Ghi phiếu điều chỉnh'}
+        </button>
+      </div>} bodyClassName="space-y-4"><div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Hướng điều chỉnh">
           {(
             [
               ['DECREASE', 'Giảm tồn (xuất hủy, hao hụt)'],
@@ -125,18 +140,15 @@ export default function StockAdjustmentModal({ target, defaultReason, onClose, o
               role="radio"
               aria-checked={direction === value}
               onClick={() => setDirection(value)}
-              className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                direction === value
-                  ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
-                  : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-              }`}
+              className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${direction === value
+                ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
+                : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
             >
               {label}
             </button>
           ))}
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
+        </div><div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <label className="text-sm font-medium text-slate-700" htmlFor="adj-qty">
               Số lượng ({unit})
@@ -163,9 +175,7 @@ export default function StockAdjustmentModal({ target, defaultReason, onClose, o
               ))}
             </select>
           </div>
-        </div>
-
-        {direction === 'INCREASE' ? (
+        </div>{direction === 'INCREASE' ? (
           <div className="space-y-1">
             <label className="text-sm font-medium text-slate-700" htmlFor="adj-cost">
               Giá vốn mỗi {unit} (đ){costNeeded ? '' : ' - bỏ trống để dùng giá vốn bình quân của lô'}
@@ -180,9 +190,7 @@ export default function StockAdjustmentModal({ target, defaultReason, onClose, o
               placeholder={target.averageUnitCost !== null ? `Bình quân hiện tại: ${formatQty(Math.round(target.averageUnitCost))}` : 'Ví dụ 12000'}
             />
           </div>
-        ) : null}
-
-        <div className="space-y-1">
+        ) : null}<div className="space-y-1">
           <label className="text-sm font-medium text-slate-700" htmlFor="adj-note">
             Ghi chú (bắt buộc)
           </label>
@@ -194,37 +202,14 @@ export default function StockAdjustmentModal({ target, defaultReason, onClose, o
             onChange={(e) => setNote(e.target.value)}
             placeholder="Ví dụ: 5 bao rách vỏ, ẩm mốc, phát hiện khi kiểm hàng"
           />
-        </div>
-
-        {problem ? (
+        </div>{problem ? (
           <p className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2" role="alert">
             {problem}
           </p>
-        ) : null}
-
-        <p className="text-xs text-slate-500">
+        ) : null}<p className="text-xs text-slate-500">
           Điều chỉnh tạo một phiếu kho có ghi lý do và người thực hiện, không sửa trực tiếp số tồn. Phiếu đã ghi không xóa được.
         </p>
-
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-          <button
-            type="button"
-            className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors font-medium text-sm shadow-sm disabled:opacity-50"
-            onClick={onClose}
-            disabled={busy}
-          >
-            Hủy
-          </button>
-          <button
-            type="button"
-            className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors text-sm shadow-sm disabled:opacity-50"
-            onClick={submit}
-            disabled={!canSubmit}
-          >
-            {busy ? 'Đang ghi...' : 'Ghi phiếu điều chỉnh'}
-          </button>
-        </div>
-      </div>
+      </ModalLayout>
     </DetailModal>
   )
 }

@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Plus } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
@@ -174,9 +175,8 @@ export default function SuppliersPage() {
                     <td className="py-3 px-3 text-on-surface-variant">{[s.addressLine, s.ward, s.district, s.province].filter(Boolean).join(', ') || '-'}</td>
                     <td className="py-3 px-3 text-center">
                       <span
-                        className={`text-[11px] font-bold px-2 py-0.5 rounded uppercase tracking-wide whitespace-nowrap ${
-                          s.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
-                        }`}
+                        className={`text-[11px] font-bold px-2 py-0.5 rounded uppercase tracking-wide whitespace-nowrap ${s.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
+                          }`}
                       >
                         {s.isActive ? 'Đang hợp tác' : 'Ngừng hợp tác'}
                       </span>
@@ -282,23 +282,25 @@ function SupplierFormModal({ supplier, onClose, onSaved }: { supplier: Supplier 
 
   return (
     <DetailModal open onClose={busy ? () => undefined : onClose} widthClassName="max-w-2xl">
-      <div className="p-5 space-y-4">
-        <h3 className="text-lg text-slate-900 font-bold">{supplier ? 'Sửa nhà cung cấp' : 'Thêm nhà cung cấp'}</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <ModalLayout header={<h3 className="text-lg text-slate-900 font-bold">{supplier ? 'Sửa nhà cung cấp' : 'Thêm nhà cung cấp'}</h3>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
+        <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm shadow-sm disabled:opacity-50" onClick={onClose} disabled={busy}>
+          Hủy
+        </button>
+        <button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={!canSubmit}>
+          {busy ? 'Đang lưu...' : 'Lưu'}
+        </button>
+      </div>} bodyClassName="space-y-4"><div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {field('name', 'Tên nhà cung cấp *', { maxLength: 255, placeholder: 'Ví dụ: Công ty Vật tư Nông nghiệp Miền Tây' })}
           {field('code', 'Mã nhà cung cấp', { maxLength: 50, placeholder: 'Bỏ trống nếu chưa có' })}
           {field('taxCode', 'Mã số thuế', { maxLength: 50 })}
           {field('contactPerson', 'Người liên hệ', { maxLength: 150 })}
           {field('phoneNumber', 'Số điện thoại', { maxLength: 20 })}
           {field('email', 'Email', { type: 'email' })}
-        </div>
-        {field('addressLine', 'Địa chỉ', { maxLength: 500 })}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        </div>{field('addressLine', 'Địa chỉ', { maxLength: 500 })}<div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {field('ward', 'Phường/Xã', { maxLength: 150 })}
           {field('district', 'Quận/Huyện', { maxLength: 150 })}
           {field('province', 'Tỉnh/Thành phố', { maxLength: 150 })}
-        </div>
-        <div className="space-y-1">
+        </div><div className="space-y-1">
           <label className="text-sm font-medium text-slate-700" htmlFor="sp-note">
             Ghi chú
           </label>
@@ -310,15 +312,7 @@ function SupplierFormModal({ supplier, onClose, onSaved }: { supplier: Supplier 
             onChange={(e) => set('note', e.target.value)}
           />
         </div>
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-          <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm shadow-sm disabled:opacity-50" onClick={onClose} disabled={busy}>
-            Hủy
-          </button>
-          <button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={!canSubmit}>
-            {busy ? 'Đang lưu...' : 'Lưu'}
-          </button>
-        </div>
-      </div>
+      </ModalLayout>
     </DetailModal>
   )
 }

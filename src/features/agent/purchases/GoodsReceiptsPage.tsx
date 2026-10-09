@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FileSpreadsheet, Plus } from 'lucide-react'
@@ -209,18 +210,22 @@ function CreateReceiptModal({ onClose, onCreated }: { onClose: () => void; onCre
 
   return (
     <DetailModal open onClose={busy ? () => undefined : onClose} widthClassName="max-w-xl">
-      <div className="p-5 space-y-4">
-        <div>
-          <h3 className="text-lg text-slate-900 font-bold">Tạo phiếu nhập hàng</h3>
-          <p className="text-sm text-slate-600 mt-1">Phiếu tạo ở dạng nháp; bạn thêm các dòng hàng ở bước sau rồi mới xác nhận để cộng kho.</p>
-        </div>
-        <div className="space-y-1">
+      <ModalLayout header={<div>
+        <h3 className="text-lg text-slate-900 font-bold">Tạo phiếu nhập hàng</h3>
+        <p className="text-sm text-slate-600 mt-1">Phiếu tạo ở dạng nháp; bạn thêm các dòng hàng ở bước sau rồi mới xác nhận để cộng kho.</p>
+      </div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
+        <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm shadow-sm disabled:opacity-50" onClick={onClose} disabled={busy}>
+          Hủy
+        </button>
+        <button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={!canSubmit}>
+          {busy ? 'Đang tạo...' : 'Tạo phiếu nháp'}
+        </button>
+      </div>} bodyClassName="space-y-4"><div className="space-y-1">
           <label className="text-sm font-medium text-slate-700" htmlFor="gr-supplier">
             Nhà cung cấp *
           </label>
           <SupplierSelect id="gr-supplier" value={supplierId} onChange={setSupplierId} />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        </div><div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1">
             <label className="text-sm font-medium text-slate-700" htmlFor="gr-received">
               Thời điểm nhận hàng
@@ -239,22 +244,13 @@ function CreateReceiptModal({ onClose, onCreated }: { onClose: () => void; onCre
             </label>
             <input id="gr-invdate" type="date" className={inputClassName} value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
           </div>
-        </div>
-        <div className="space-y-1">
+        </div><div className="space-y-1">
           <label className="text-sm font-medium text-slate-700" htmlFor="gr-note">
             Ghi chú
           </label>
           <textarea id="gr-note" className="w-full min-h-[64px] px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-          <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm shadow-sm disabled:opacity-50" onClick={onClose} disabled={busy}>
-            Hủy
-          </button>
-          <button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={!canSubmit}>
-            {busy ? 'Đang tạo...' : 'Tạo phiếu nháp'}
-          </button>
-        </div>
-      </div>
+      </ModalLayout>
     </DetailModal>
   )
 }

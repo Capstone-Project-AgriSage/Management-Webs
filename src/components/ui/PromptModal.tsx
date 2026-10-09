@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState, type ReactNode } from 'react'
 import Modal from '@/components/ui/Modal'
 
@@ -40,16 +41,26 @@ export default function PromptModal({ open, title, description, fields, initialV
   const missing = fields.some((f) => f.required && !String(values[f.key] ?? '').trim())
 
   return (
-    <Modal open={open} onClose={onClose} title={title}>
+    <Modal open={open} onClose={onClose} title={title} description={description} busy={loading}>
       <form
-        className="space-y-4"
+        className="flex min-h-0 flex-1 flex-col"
         onSubmit={(e) => {
           e.preventDefault()
           if (!missing && !loading) onSubmit(values)
         }}
       >
-        {description && <div className="text-sm text-slate-600">{description}</div>}
-        {fields.map((f) => {
+        <ModalLayout footer={<div className="flex flex-wrap items-center justify-end gap-3">
+          <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm font-medium" onClick={onClose}>
+            Hủy
+          </button>
+          <button
+            type="submit"
+            disabled={missing || loading}
+            className={`px-4 py-2 rounded-lg text-white text-sm font-medium disabled:opacity-50 ${danger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
+          >
+            {loading ? 'Đang xử lý...' : submitLabel}
+          </button>
+        </div>} bodyClassName="grid grid-cols-1 sm:grid-cols-2 gap-5">{fields.map((f) => {
           const id = `prompt-${f.key}`
           const common = {
             id,
@@ -58,7 +69,7 @@ export default function PromptModal({ open, title, description, fields, initialV
             onChange: (e: { target: { value: string } }) => setValues((prev) => ({ ...prev, [f.key]: e.target.value })),
           }
           return (
-            <div key={f.key} className="space-y-1">
+            <div key={f.key} className={`space-y-1 ${f.type === 'textarea' ? 'sm:col-span-2' : ''}`}>
               <label htmlFor={id} className="text-sm font-medium text-slate-700">
                 {f.label}
                 {f.required && <span className="text-rose-600 ml-0.5">*</span>}
@@ -79,18 +90,7 @@ export default function PromptModal({ open, title, description, fields, initialV
             </div>
           )
         })}
-        <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-          <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm font-medium" onClick={onClose}>
-            Hủy
-          </button>
-          <button
-            type="submit"
-            disabled={missing || loading}
-            className={`px-4 py-2 rounded-lg text-white text-sm font-medium disabled:opacity-50 ${danger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
-          >
-            {loading ? 'Đang xử lý...' : submitLabel}
-          </button>
-        </div>
+        </ModalLayout>
       </form>
     </Modal>
   )

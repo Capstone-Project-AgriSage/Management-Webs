@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, CheckCircle2, Pencil, Plus, Trash2 } from 'lucide-react'
@@ -396,15 +397,19 @@ function ReceiptHeaderModal({ receipt, onClose, onSaved }: { receipt: GoodsRecei
 
   return (
     <DetailModal open onClose={busy ? () => undefined : onClose} widthClassName="max-w-xl">
-      <div className="p-5 space-y-4">
-        <h3 className="text-lg text-slate-900 font-bold">Sửa thông tin phiếu nhập</h3>
-        <div className="space-y-1">
+      <ModalLayout header={<h3 className="text-lg text-slate-900 font-bold">Sửa thông tin phiếu nhập</h3>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
+        <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm shadow-sm disabled:opacity-50" onClick={onClose} disabled={busy}>
+          Hủy
+        </button>
+        <button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={busy || !supplierId}>
+          {busy ? 'Đang lưu...' : 'Lưu'}
+        </button>
+      </div>} bodyClassName="space-y-4"><div className="space-y-1">
           <label className="text-sm font-medium text-slate-700" htmlFor="rh-supplier">
             Nhà cung cấp *
           </label>
           <SupplierSelect id="rh-supplier" value={supplierId} onChange={setSupplierId} />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        </div><div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1">
             <label className="text-sm font-medium text-slate-700" htmlFor="rh-at">
               Thời điểm nhận hàng
@@ -423,22 +428,13 @@ function ReceiptHeaderModal({ receipt, onClose, onSaved }: { receipt: GoodsRecei
             </label>
             <input id="rh-invdate" type="date" className={inputClassName} value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
           </div>
-        </div>
-        <div className="space-y-1">
+        </div><div className="space-y-1">
           <label className="text-sm font-medium text-slate-700" htmlFor="rh-note">
             Ghi chú
           </label>
           <textarea id="rh-note" className="w-full min-h-[64px] px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-          <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm shadow-sm disabled:opacity-50" onClick={onClose} disabled={busy}>
-            Hủy
-          </button>
-          <button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={busy || !supplierId}>
-            {busy ? 'Đang lưu...' : 'Lưu'}
-          </button>
-        </div>
-      </div>
+      </ModalLayout>
     </DetailModal>
   )
 }

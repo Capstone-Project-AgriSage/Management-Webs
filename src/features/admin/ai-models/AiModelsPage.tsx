@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useState } from 'react'
 
 import { usePageHeader } from '@/context/PageHeaderContext'
@@ -91,7 +92,7 @@ export default function AiModelsPage() {
           <p className="text-on-surface-variant text-sm">Quản lý, theo dõi hiệu suất và vòng đời của các model AI trong hệ thống.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button 
+          <button
             className="flex items-center gap-1.5 px-4 py-1.5 bg-[#171833] hover:bg-black text-white rounded font-medium text-sm shadow-sm transition-colors"
             onClick={() => setCreateOpen(true)}
           >
@@ -130,9 +131,9 @@ export default function AiModelsPage() {
       <div className="flex items-center justify-between mt-2">
         <div className="relative w-[320px]">
           <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[18px] text-outline">search</span>
-          <input 
-            type="text" 
-            placeholder="Tìm kiếm model theo tên hoặc ID..." 
+          <input
+            type="text"
+            placeholder="Tìm kiếm model theo tên hoặc ID..."
             className="w-full h-9 pl-9 pr-3 text-sm bg-white border border-outline-variant rounded focus:border-primary focus:ring-1 focus:ring-primary text-on-surface shadow-sm"
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -205,9 +206,9 @@ export default function AiModelsPage() {
                     </td>
                     <td className="py-3 px-4 border-r border-outline-variant/40 text-center">
                       <span className={`px-2.5 py-1 rounded-md border text-[11px] tracking-wider font-semibold shadow-sm whitespace-nowrap uppercase
-                        ${model.status === 'Đang chạy' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' : 
-                          model.status === 'Đang huấn luyện' ? 'border-primary/30 text-primary bg-primary/5' : 
-                          'border-outline-variant/60 text-on-surface-variant bg-surface-container-lowest'
+                        ${model.status === 'Đang chạy' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' :
+                          model.status === 'Đang huấn luyện' ? 'border-primary/30 text-primary bg-primary/5' :
+                            'border-outline-variant/60 text-on-surface-variant bg-surface-container-lowest'
                         }
                       `}>
                         {model.status}
@@ -227,7 +228,7 @@ export default function AiModelsPage() {
             </tbody>
           </table>
         </div>
-        
+
         <div className="px-4 py-3 bg-white flex items-center justify-between text-sm text-on-surface-variant border-t border-outline-variant/40">
           <div>
             Hiển thị {startIndex + 1} đến {endIndex} của {totalCount} model
@@ -266,20 +267,19 @@ export default function AiModelsPage() {
 
       <DetailModal open={metricsTarget !== null} onClose={() => setMetricsTarget(null)} widthClassName="max-w-3xl">
         {metricsTarget && (
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-semibold text-on-surface">Hiệu suất: {metricsTarget.name}</h2>
-                <div className="text-sm text-outline font-mono mt-1">ID: {metricsTarget.id} | Phiên bản: {metricsTarget.version}</div>
-              </div>
-              <span className={`px-3 py-1 rounded-full font-semibold text-xs border uppercase
-                ${metricsTarget.status === 'Đang chạy' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' : 
-                  metricsTarget.status === 'Đang huấn luyện' ? 'border-primary/30 text-primary bg-primary/5' : 
-                  'border-outline-variant/60 text-on-surface-variant bg-surface-container-lowest'
-                }`}>{metricsTarget.status}</span>
+          <ModalLayout header={<div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-on-surface">Hiệu suất: {metricsTarget.name}</h2>
+              <div className="text-sm text-outline font-mono mt-1">ID: {metricsTarget.id} | Phiên bản: {metricsTarget.version}</div>
             </div>
-            
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            <span className={`px-3 py-1 rounded-full font-semibold text-xs border uppercase
+                ${metricsTarget.status === 'Đang chạy' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' :
+                metricsTarget.status === 'Đang huấn luyện' ? 'border-primary/30 text-primary bg-primary/5' :
+                  'border-outline-variant/60 text-on-surface-variant bg-surface-container-lowest'
+              }`}>{metricsTarget.status}</span>
+          </div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
+            <button className="px-4 py-2 bg-surface-container-low text-on-surface rounded font-medium hover:bg-outline-variant/50 transition-colors" onClick={() => setMetricsTarget(null)}>Đóng</button>
+          </div>} bodyClassName="space-y-4"><div className="grid grid-cols-3 gap-4 mb-6">
               <div className="border border-outline-variant/40 rounded-lg p-4 bg-surface-container-lowest text-center">
                 <div className="text-xs text-on-surface-variant font-medium mb-1">Độ chính xác (Accuracy)</div>
                 <div className="text-2xl font-bold text-emerald-600">{metricsTarget.accuracy}%</div>
@@ -292,26 +292,19 @@ export default function AiModelsPage() {
                 <div className="text-xs text-on-surface-variant font-medium mb-1">Request / Giây (RPS)</div>
                 <div className="text-2xl font-bold text-purple-600">45.2</div>
               </div>
-            </div>
-
-            {/* Giả lập biểu đồ */}
-            <div className="border border-outline-variant/40 rounded-lg p-4 bg-surface-container-lowest mb-6">
+            </div><div className="border border-outline-variant/40 rounded-lg p-4 bg-surface-container-lowest mb-6">
               <div className="text-sm font-semibold text-on-surface mb-4">Lịch sử Độ chính xác qua các Epoch</div>
               <div className="h-48 w-full bg-white border border-outline-variant/20 rounded relative overflow-hidden flex items-end p-2 gap-2">
                 {/* Các thanh biểu đồ cứng */}
                 {[20, 35, 50, 65, 75, 82, 88, 92, 94, metricsTarget.accuracy].map((val, idx) => (
                   <div key={idx} className="flex-1 bg-primary/20 rounded-t hover:bg-primary/40 transition-colors relative group">
                     <div className="absolute bottom-0 w-full bg-primary rounded-t" style={{ height: `${val}%` }}></div>
-                    <div className="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] py-1 px-2 rounded whitespace-nowrap z-10">Epoch {idx+1}: {val}%</div>
+                    <div className="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] py-1 px-2 rounded whitespace-nowrap z-10">Epoch {idx + 1}: {val}%</div>
                   </div>
                 ))}
               </div>
             </div>
-            
-            <div className="flex justify-end gap-3">
-              <button className="px-4 py-2 bg-surface-container-low text-on-surface rounded font-medium hover:bg-outline-variant/50 transition-colors" onClick={() => setMetricsTarget(null)}>Đóng</button>
-            </div>
-          </div>
+          </ModalLayout>
         )}
       </DetailModal>
     </div>

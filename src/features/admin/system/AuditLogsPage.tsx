@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useState, useMemo } from 'react'
 
 import { usePageHeader } from '@/context/PageHeaderContext'
@@ -70,7 +71,7 @@ export default function AuditLogsPage() {
     const headers = ['ID', 'Thời gian', 'Mức độ', 'Người thực hiện', 'Hành động', 'Tài nguyên', 'IP']
     const csvContent = [
       headers.join(','),
-      ...filteredLogs.map(log => 
+      ...filteredLogs.map(log =>
         [log.id, log.timestamp, log.level, `"${log.actor}"`, `"${log.action}"`, `"${log.targetResource}"`, log.ipAddress].join(',')
       )
     ].join('\n')
@@ -93,7 +94,7 @@ export default function AuditLogsPage() {
           <p className="text-on-surface-variant text-sm">Lưu vết (tracking) mọi thao tác thay đổi dữ liệu của Admin và cảnh báo hệ thống.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={exportCsv}
             className="flex items-center gap-1.5 px-3 py-1.5 border border-outline-variant rounded bg-white hover:bg-surface-container-low text-on-surface font-medium text-sm shadow-sm"
           >
@@ -105,9 +106,9 @@ export default function AuditLogsPage() {
       <div className="flex items-center justify-between mt-2">
         <div className="relative w-[400px]">
           <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[18px] text-outline">search</span>
-          <input 
-            type="text" 
-            placeholder="Tìm kiếm tài khoản, hành động hoặc tài nguyên..." 
+          <input
+            type="text"
+            placeholder="Tìm kiếm tài khoản, hành động hoặc tài nguyên..."
             className="w-full h-9 pl-9 pr-3 text-sm bg-white border border-outline-variant rounded focus:border-primary focus:ring-1 focus:ring-primary text-on-surface shadow-sm"
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -162,9 +163,9 @@ export default function AuditLogsPage() {
                     </td>
                     <td className="py-2 px-4 border-r border-outline-variant/40 text-center">
                       <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider
-                        ${log.level === 'Info' ? 'bg-blue-100 text-blue-700' : 
-                          log.level === 'Warning' ? 'bg-amber-100 text-amber-700' : 
-                          'bg-error/10 text-error'
+                        ${log.level === 'Info' ? 'bg-blue-100 text-blue-700' :
+                          log.level === 'Warning' ? 'bg-amber-100 text-amber-700' :
+                            'bg-error/10 text-error'
                         }
                       `}>
                         {log.level}
@@ -204,13 +205,11 @@ export default function AuditLogsPage() {
 
       <DetailModal open={detailTarget !== null} onClose={() => setDetailTarget(null)} widthClassName="max-w-2xl">
         {detailTarget && (
-          <div className="p-6">
-            <h2 className="text-xl font-semibold text-on-surface mb-2">Chi tiết Audit Log</h2>
-            <div className="text-sm text-outline font-mono mb-6">Mã tham chiếu: {detailTarget.id}</div>
-            
-            <div className="bg-[#1e1e1e] rounded-lg p-4 font-mono text-sm overflow-x-auto text-green-400">
+          <ModalLayout header={<h2 className="text-xl font-semibold text-on-surface">Chi tiết Audit Log</h2>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
+            <button className="px-4 py-2 bg-surface-container-low text-on-surface rounded font-medium hover:bg-outline-variant/50 transition-colors" onClick={() => setDetailTarget(null)}>Đóng</button>
+          </div>} bodyClassName="space-y-4"><div className="text-sm text-outline font-mono mb-6">Mã tham chiếu: {detailTarget.id}</div><div className="bg-[#1e1e1e] rounded-lg p-4 font-mono text-sm overflow-x-auto text-green-400">
               <pre>
-{`{
+                {`{
   "eventId": "${detailTarget.id}",
   "timestamp": "${detailTarget.timestamp}",
   "level": "${detailTarget.level}",
@@ -235,11 +234,7 @@ export default function AuditLogsPage() {
 }`}
               </pre>
             </div>
-            
-            <div className="flex justify-end gap-3 mt-6">
-              <button className="px-4 py-2 bg-surface-container-low text-on-surface rounded font-medium hover:bg-outline-variant/50 transition-colors" onClick={() => setDetailTarget(null)}>Đóng</button>
-            </div>
-          </div>
+          </ModalLayout>
         )}
       </DetailModal>
     </div>

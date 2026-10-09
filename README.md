@@ -1153,7 +1153,7 @@ Trang `/notifications` và chuông trên thanh điều hướng dùng dữ liệ
 
 Không truyền user ID; API client hiện có gửi JWT của người đăng nhập. Bộ lọc mặc định bỏ qua thông báo đã lưu trữ;
 `UNREAD`, `READ`, `ARCHIVED` được lọc và phân trang ở server. Lưu trữ không xóa dữ liệu.
-Badge cập nhật ngay sau thao tác thành công, kiểm tra lại mỗi 30 giây khi tab hiển thị và khi cửa sổ nhận focus.
+Badge cập nhật ngay sau thao tác thành công, kiểm tra lại mỗi 30 giây khi tab hiển thị và khi cửa sổ nhận focus. Khi số chưa đọc thay đổi, danh sách đang mở cũng tự tải lại. Đơn mới từ Farmer Web/Mobile tạo thông báo ORDER_PLACED cho chủ cửa hàng và sale đang hoạt động thuộc đúng cửa hàng qua worker backend.
 Phản hồi cũ bị hủy khi chuyển bộ lọc/trang hoặc đổi người đăng nhập; thao tác thất bại giữ nguyên dữ liệu đã xác nhận.
 Thông báo đơn hàng/công nợ/giao hàng/tồn kho có liên kết đến màn hình phù hợp khi vai trò và metadata hỗ trợ.
 
@@ -1175,3 +1175,17 @@ Các tình huống bao gồm phân trang/badge, đọc một mục/tất cả, l
 hết phiên và mobile/99+. Management còn kiểm tra trang cá nhân cho Admin, chủ cửa hàng và nhân viên giao hàng.
 
 Đường dẫn Admin cũ /admin/notifications cũng mở trang thông báo cá nhân dùng API. Các nút chiến dịch/gửi thông báo mẫu không còn nằm trong route này vì backend hiện chỉ có API thông báo của người đăng nhập.
+
+### Mở rộng thông báo Owner/Sale/Farmer (2026-10-09)
+
+Các loại mới gồm thanh toán thất bại, thanh toán công nợ, công nợ mới, đơn cần giao/giao thất bại,
+trả hàng/hoàn tiền, hết hàng và biến động kho. Bộ phát backend lọc tài khoản/role/membership đang
+hoạt động tại đúng cửa hàng và chống gửi trùng. Khi số chưa đọc thay đổi, hộp thư đang mở tự tải lại.
+`data.orderId` do server xác định giúp Farmer mở đúng đơn hàng từ thông báo thanh toán/giao hàng/trả hàng.
+Nhắc công nợ và cảnh báo kho cần `BackgroundJobs__DebtReminders=true`, `BackgroundJobs__InventoryAlerts=true`;
+chạy theo `AlertSeconds` (mặc định một giờ), chống lặp trong cùng ngày Việt Nam. Outbox và bộ đọc phiếu kho/
+kết quả AI đã lưu chạy theo `NotificationSeconds` (mặc định 15 giây).
+
+Thông báo AI/xét duyệt/khuyến nghị yêu cầu kết quả thật đã lưu, review hiện hành và quyền `can_review_ai`.
+Backend chưa có API xử lý AI; trang lịch sử AI của Farmer vẫn dùng demo nên thông báo chưa liên kết tới trang đó.
+Không tạo kết quả AI hoặc khuyến nghị mẫu để giả lập thông báo thật.

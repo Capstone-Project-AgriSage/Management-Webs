@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { usePageHeader } from '@/context/PageHeaderContext'
@@ -39,8 +40,8 @@ export default function DashboardPage() {
   ]
 
   const activeBreakdown = allocationFilter === 'Theo khu vực' ? roleBreakdownArea :
-                          allocationFilter === 'Theo trạng thái' ? roleBreakdownStatus :
-                          roleBreakdownDefault;
+    allocationFilter === 'Theo trạng thái' ? roleBreakdownStatus :
+      roleBreakdownDefault;
 
   let currentOffset = 0;
 
@@ -78,13 +79,13 @@ export default function DashboardPage() {
       <div className="flex items-center justify-end border-b border-outline-variant/60 pb-2">
         <div className="flex items-center gap-4 text-xs font-medium text-on-surface-variant">
           <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">refresh</span> Cập nhật 5 phút trước</span>
-          <button 
+          <button
             className="flex items-center gap-1 px-3 py-1.5 border border-outline-variant rounded-md hover:bg-surface-container-lowest bg-white text-on-surface transition-colors"
             onClick={() => setSettingsOpen(true)}
           >
             <span className="material-symbols-outlined text-[16px]">tune</span> Cài đặt
           </button>
-          <button 
+          <button
             className="flex items-center gap-1 px-3 py-1.5 border border-outline-variant rounded-md hover:bg-surface-container-lowest bg-white text-on-surface transition-colors"
             onClick={handleExportData}
           >
@@ -150,7 +151,7 @@ export default function DashboardPage() {
                 <div className="text-xs text-on-surface-variant">Hệ thống AI vừa được huấn luyện thêm 14 tập dữ liệu mới.</div>
               </div>
             </div>
-            <button 
+            <button
               className="text-xs font-medium border border-outline-variant rounded px-3 py-1.5 hover:bg-surface-container-low text-on-surface transition-colors"
               onClick={() => setUpdateNotesOpen(true)}
             >
@@ -165,7 +166,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-3 p-5 rounded-xl border border-outline-variant bg-white shadow-sm flex flex-col h-[280px]">
           <div className="flex justify-between items-center mb-6">
             <span className="text-sm font-medium text-on-surface">Tổng quan hoạt động AI</span>
-            <select 
+            <select
               className="text-xs border border-outline-variant rounded px-2 py-1 hover:bg-surface-container-low text-on-surface outline-none cursor-pointer bg-white"
               value={chartFilter}
               onChange={e => setChartFilter(e.target.value)}
@@ -176,14 +177,14 @@ export default function DashboardPage() {
             </select>
           </div>
           <div className="flex-1 relative w-full h-full flex items-end">
-             {/* Mock Line Chart */}
-             <svg viewBox="0 0 500 100" className="w-full h-full overflow-visible" preserveAspectRatio="none">
-               <path d="M0 80 L30 60 L60 70 L90 40 L120 70 L150 60 L180 40 L210 60 L240 40 L270 30 L300 50 L330 20 L360 40 L390 40 L420 60 L450 30 L480 60 L500 40" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-               <line x1="0" y1="50" x2="500" y2="40" stroke="#c3dac3" strokeWidth="1" strokeDasharray="4 4" />
-             </svg>
-             <div className="absolute bottom-[-20px] w-full flex justify-between text-[10px] text-outline font-medium">
-               <span>Thứ 2</span><span>Thứ 3</span><span>Thứ 4</span><span>Thứ 5</span><span>Thứ 6</span><span>Thứ 7</span><span>CN</span>
-             </div>
+            {/* Mock Line Chart */}
+            <svg viewBox="0 0 500 100" className="w-full h-full overflow-visible" preserveAspectRatio="none">
+              <path d="M0 80 L30 60 L60 70 L90 40 L120 70 L150 60 L180 40 L210 60 L240 40 L270 30 L300 50 L330 20 L360 40 L390 40 L420 60 L450 30 L480 60 L500 40" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <line x1="0" y1="50" x2="500" y2="40" stroke="#c3dac3" strokeWidth="1" strokeDasharray="4 4" />
+            </svg>
+            <div className="absolute bottom-[-20px] w-full flex justify-between text-[10px] text-outline font-medium">
+              <span>Thứ 2</span><span>Thứ 3</span><span>Thứ 4</span><span>Thứ 5</span><span>Thứ 6</span><span>Thứ 7</span><span>CN</span>
+            </div>
           </div>
         </div>
 
@@ -191,7 +192,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 p-5 rounded-xl border border-outline-variant bg-white shadow-sm flex flex-col h-[280px]">
           <div className="flex justify-between items-center mb-6">
             <span className="text-sm font-medium text-on-surface">Tỉ lệ tài khoản</span>
-            <select 
+            <select
               className="text-xs border border-outline-variant rounded px-2 py-1 hover:bg-surface-container-low text-on-surface outline-none cursor-pointer bg-white max-w-[140px] truncate"
               value={allocationFilter}
               onChange={e => setAllocationFilter(e.target.value)}
@@ -203,30 +204,30 @@ export default function DashboardPage() {
           </div>
           <div className="flex-1 flex items-center justify-between">
             <div className="relative w-36 h-36 shrink-0">
-               <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
-                 {/* Background circle */}
-                 <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#daf0da" strokeWidth="4" />
-                 {/* Segments */}
-                 {activeBreakdown.map((r, i) => {
-                   const offset = -currentOffset;
-                   currentOffset += r.percent;
-                   return (
-                     <path 
-                       key={i}
-                       d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
-                       fill="none" 
-                       stroke={r.hex} 
-                       strokeWidth="4" 
-                       strokeDasharray={`${r.percent}, 100`} 
-                       strokeDashoffset={offset} 
-                     />
-                   )
-                 })}
-               </svg>
-               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                 <span className="text-[10px] text-on-surface-variant">Tổng số</span>
-                 <span className="text-sm font-semibold text-on-surface">{totalAccounts}</span>
-               </div>
+              <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
+                {/* Background circle */}
+                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#daf0da" strokeWidth="4" />
+                {/* Segments */}
+                {activeBreakdown.map((r, i) => {
+                  const offset = -currentOffset;
+                  currentOffset += r.percent;
+                  return (
+                    <path
+                      key={i}
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke={r.hex}
+                      strokeWidth="4"
+                      strokeDasharray={`${r.percent}, 100`}
+                      strokeDashoffset={offset}
+                    />
+                  )
+                })}
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-[10px] text-on-surface-variant">Tổng số</span>
+                <span className="text-sm font-semibold text-on-surface">{totalAccounts}</span>
+              </div>
             </div>
             <div className="flex flex-col gap-3 min-w-[120px]">
               {activeBreakdown.map(r => (
@@ -248,30 +249,30 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-      {/* RECENT ACCOUNTS (Wallet) */}
-      <div className="p-5 rounded-xl border border-outline-variant bg-white shadow-sm flex flex-col">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium text-on-surface">Tài khoản mới nhất</h3>
-          <Link to="/accounts" className="text-[11px] text-primary hover:underline font-medium">Xem tất cả</Link>
-        </div>
-        <div className="flex flex-col gap-4 flex-1">
-          {recentAccounts.map(a => (
-            <div 
-              key={a.id} 
-              className="flex items-center justify-between group cursor-pointer"
-              onClick={() => navigate('/accounts')}
-            >
-              <div>
-                <div className="text-sm font-medium text-on-surface group-hover:text-primary transition-colors">{a.fullName} • {a.phone}</div>
-                <div className="inline-block text-[11px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded mt-0.5">{a.role}</div>
+        {/* RECENT ACCOUNTS (Wallet) */}
+        <div className="p-5 rounded-xl border border-outline-variant bg-white shadow-sm flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-on-surface">Tài khoản mới nhất</h3>
+            <Link to="/accounts" className="text-[11px] text-primary hover:underline font-medium">Xem tất cả</Link>
+          </div>
+          <div className="flex flex-col gap-4 flex-1">
+            {recentAccounts.map(a => (
+              <div
+                key={a.id}
+                className="flex items-center justify-between group cursor-pointer"
+                onClick={() => navigate('/accounts')}
+              >
+                <div>
+                  <div className="text-sm font-medium text-on-surface group-hover:text-primary transition-colors">{a.fullName} • {a.phone}</div>
+                  <div className="inline-block text-[11px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded mt-0.5">{a.role}</div>
+                </div>
+                <div className="w-8 h-8 rounded border border-outline-variant flex items-center justify-center font-bold text-on-surface-variant group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                  {a.fullName.charAt(0)}
+                </div>
               </div>
-              <div className="w-8 h-8 rounded border border-outline-variant flex items-center justify-center font-bold text-on-surface-variant group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                {a.fullName.charAt(0)}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
       </div>
 
       {/* DASHBOARD SETTINGS MODAL */}
@@ -291,18 +292,17 @@ export default function DashboardPage() {
 
       {/* SYSTEM UPDATE DETAIL MODAL */}
       <DetailModal open={updateNotesOpen} onClose={() => setUpdateNotesOpen(false)} widthClassName="max-w-md">
-        <div className="p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-              <span className="material-symbols-outlined text-[20px]">trending_up</span>
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-on-surface">Cập nhật hệ thống</h2>
-              <div className="text-sm text-outline font-medium">Phiên bản: AI Vision v2.4</div>
-            </div>
+        <ModalLayout header={<div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+            <span className="material-symbols-outlined text-[20px]">trending_up</span>
           </div>
-          
-          <div className="space-y-4 text-sm text-on-surface-variant">
+          <div>
+            <h2 className="text-lg font-semibold text-on-surface">Cập nhật hệ thống</h2>
+            <div className="text-sm text-outline font-medium">Phiên bản: AI Vision v2.4</div>
+          </div>
+        </div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
+          <button className="px-4 py-2 bg-primary text-white rounded font-medium hover:bg-primary-container transition-colors" onClick={() => setUpdateNotesOpen(false)}>Đã hiểu</button>
+        </div>} bodyClassName="space-y-4"><div className="space-y-4 text-sm text-on-surface-variant">
             <p>Hệ thống AI nhận diện bệnh lúa vừa được tự động cập nhật và huấn luyện thêm với <strong>14 tập dữ liệu hình ảnh mới</strong> từ khu vực Đồng Bằng Sông Cửu Long.</p>
             <ul className="list-disc pl-5 space-y-1">
               <li>Tăng độ chính xác nhận diện Bệnh Đạo Ôn lên 94%.</li>
@@ -310,15 +310,11 @@ export default function DashboardPage() {
               <li>Thêm khả năng nhận diện một số dấu hiệu thiếu dinh dưỡng ở lúa non.</li>
             </ul>
             <div className="mt-4 p-3 bg-surface-container-lowest border border-outline-variant rounded">
-              <span className="font-semibold text-on-surface">Thời gian triển khai:</span> 02:00 AM, 20/09/2026<br/>
+              <span className="font-semibold text-on-surface">Thời gian triển khai:</span> 02:00 AM, 20/09/2026<br />
               <span className="font-semibold text-on-surface">Trạng thái:</span> Ổn định
             </div>
           </div>
-          
-          <div className="mt-8 flex justify-end">
-            <button className="px-4 py-2 bg-primary text-white rounded font-medium hover:bg-primary-container transition-colors" onClick={() => setUpdateNotesOpen(false)}>Đã hiểu</button>
-          </div>
-        </div>
+        </ModalLayout>
       </DetailModal>
     </div>
   )

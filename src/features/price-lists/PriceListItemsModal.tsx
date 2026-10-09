@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useRef, useState } from 'react'
 import { Loader2, Plus, Search, Trash2, X } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
@@ -160,7 +161,21 @@ export default function PriceListItemsModal({ list, canEdit, onClose, onChanged 
 
   return (
     <Modal open={list !== null} onClose={close} title={list ? `${list.name} · ${list.code}` : ''} widthClassName="max-w-4xl">
-      <div className="flex flex-col gap-4">
+      <ModalLayout footer={canEdit && (
+        <div className="flex items-center justify-between gap-3 pt-1">
+          <p className="text-xs text-slate-500">Một giá sai thì cả lần lưu bị từ chối. Giá chỉ áp dụng cho quy cách bán đang hoạt động.</p>
+          <button
+            type="button"
+            disabled={saving || pendingCount === 0}
+            onClick={save}
+            className="h-10 px-5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2 shrink-0"
+          >
+            {saving && <Loader2 size={16} className="animate-spin" />}
+            Lưu thay đổi{pendingCount > 0 ? ` (${pendingCount})` : ''}
+          </button>
+        </div>
+      )}>
+
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1) }} placeholder="Tìm sản phẩm trong bảng giá..." className="relative flex-1" />
           {canEdit && <StoreProductPicker onPick={addProduct} />}
@@ -262,21 +277,9 @@ export default function PriceListItemsModal({ list, canEdit, onClose, onChanged 
           )}
         </div>
 
-        {canEdit && (
-          <div className="flex items-center justify-between gap-3 pt-1">
-            <p className="text-xs text-slate-500">Một giá sai thì cả lần lưu bị từ chối. Giá chỉ áp dụng cho quy cách bán đang hoạt động.</p>
-            <button
-              type="button"
-              disabled={saving || pendingCount === 0}
-              onClick={save}
-              className="h-10 px-5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2 shrink-0"
-            >
-              {saving && <Loader2 size={16} className="animate-spin" />}
-              Lưu thay đổi{pendingCount > 0 ? ` (${pendingCount})` : ''}
-            </button>
-          </div>
-        )}
-      </div>
+
+
+      </ModalLayout>
     </Modal>
   )
 }

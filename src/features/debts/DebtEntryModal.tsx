@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
 import DetailModal from '@/components/ui/DetailModal'
 import StatusBadge from '@/components/ui/StatusBadge'
@@ -59,52 +60,52 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
 
   const specs: Record<Action, { title: string; description?: string; fields: PromptField[]; submitLabel: string; danger?: boolean; run: (v: Record<string, string>) => Promise<DebtEntry> }> | null = entry
     ? {
-        dispute: {
-          title: 'Ghi nhận khiếu nại',
-          description: 'Khoản nợ chuyển sang "Đang tranh chấp"; khách vẫn trả được. Giải quyết bằng Giữ nguyên, Điều chỉnh hoặc Hủy.',
-          fields: [{ key: 'reason', label: 'Nội dung khiếu nại', type: 'textarea', required: true }],
-          submitLabel: 'Ghi nhận',
-          run: (v) => debtApi.dispute(entry.id, v.reason.trim()),
+      dispute: {
+        title: 'Ghi nhận khiếu nại',
+        description: 'Khoản nợ chuyển sang "Đang tranh chấp"; khách vẫn trả được. Giải quyết bằng Giữ nguyên, Điều chỉnh hoặc Hủy.',
+        fields: [{ key: 'reason', label: 'Nội dung khiếu nại', type: 'textarea', required: true }],
+        submitLabel: 'Ghi nhận',
+        run: (v) => debtApi.dispute(entry.id, v.reason.trim()),
+      },
+      keep: {
+        title: 'Giữ nguyên khoản nợ',
+        description: 'Kết thúc tranh chấp, giữ nguyên số tiền.',
+        fields: [{ key: 'reason', label: 'Lý do', type: 'textarea', required: true }],
+        submitLabel: 'Giữ nguyên',
+        run: (v) => debtApi.keep(entry.id, v.reason.trim()),
+      },
+      changeDueDate: {
+        title: 'Đổi hạn trả',
+        fields: [
+          { key: 'newDueDate', label: 'Hạn trả mới', type: 'date', required: true, min: todayVn(), hint: 'Không được là ngày trong quá khứ.' },
+          { key: 'reason', label: 'Lý do', type: 'textarea', required: true },
+        ],
+        submitLabel: 'Đổi hạn',
+        run: (v) => debtApi.changeDueDate(entry.id, v.newDueDate, v.reason.trim()),
+      },
+      adjust: {
+        title: 'Điều chỉnh giảm nợ',
+        description: `Nhập số tiền cần GIẢM (tối đa ${formatVnd(entry.outstandingAmount)}). Muốn tăng nợ thì tạo khoản nợ thủ công.`,
+        fields: [
+          { key: 'amount', label: 'Số tiền giảm (đ)', type: 'number', required: true, min: '1' },
+          { key: 'reason', label: 'Lý do', type: 'textarea', required: true },
+        ],
+        submitLabel: 'Điều chỉnh',
+        run: (v) => {
+          const amount = Number(v.amount)
+          if (!(amount > 0) || amount > entry.outstandingAmount) return Promise.reject(new Error(`Số tiền phải trong khoảng 1 – ${formatVnd(entry.outstandingAmount)}`))
+          return debtApi.adjust(entry.id, amount, v.reason.trim())
         },
-        keep: {
-          title: 'Giữ nguyên khoản nợ',
-          description: 'Kết thúc tranh chấp, giữ nguyên số tiền.',
-          fields: [{ key: 'reason', label: 'Lý do', type: 'textarea', required: true }],
-          submitLabel: 'Giữ nguyên',
-          run: (v) => debtApi.keep(entry.id, v.reason.trim()),
-        },
-        changeDueDate: {
-          title: 'Đổi hạn trả',
-          fields: [
-            { key: 'newDueDate', label: 'Hạn trả mới', type: 'date', required: true, min: todayVn(), hint: 'Không được là ngày trong quá khứ.' },
-            { key: 'reason', label: 'Lý do', type: 'textarea', required: true },
-          ],
-          submitLabel: 'Đổi hạn',
-          run: (v) => debtApi.changeDueDate(entry.id, v.newDueDate, v.reason.trim()),
-        },
-        adjust: {
-          title: 'Điều chỉnh giảm nợ',
-          description: `Nhập số tiền cần GIẢM (tối đa ${formatVnd(entry.outstandingAmount)}). Muốn tăng nợ thì tạo khoản nợ thủ công.`,
-          fields: [
-            { key: 'amount', label: 'Số tiền giảm (đ)', type: 'number', required: true, min: '1' },
-            { key: 'reason', label: 'Lý do', type: 'textarea', required: true },
-          ],
-          submitLabel: 'Điều chỉnh',
-          run: (v) => {
-            const amount = Number(v.amount)
-            if (!(amount > 0) || amount > entry.outstandingAmount) return Promise.reject(new Error(`Số tiền phải trong khoảng 1 – ${formatVnd(entry.outstandingAmount)}`))
-            return debtApi.adjust(entry.id, amount, v.reason.trim())
-          },
-        },
-        cancel: {
-          title: 'Hủy khoản nợ',
-          description: `Ghi giảm toàn bộ ${formatVnd(entry.outstandingAmount)} còn lại và đóng khoản nợ. Không hoàn tác được.`,
-          fields: [{ key: 'reason', label: 'Lý do', type: 'textarea', required: true }],
-          submitLabel: 'Hủy khoản nợ',
-          danger: true,
-          run: (v) => debtApi.cancel(entry.id, v.reason.trim()),
-        },
-      }
+      },
+      cancel: {
+        title: 'Hủy khoản nợ',
+        description: `Ghi giảm toàn bộ ${formatVnd(entry.outstandingAmount)} còn lại và đóng khoản nợ. Không hoàn tác được.`,
+        fields: [{ key: 'reason', label: 'Lý do', type: 'textarea', required: true }],
+        submitLabel: 'Hủy khoản nợ',
+        danger: true,
+        run: (v) => debtApi.cancel(entry.id, v.reason.trim()),
+      },
+    }
     : null
 
   const submit = async (v: Record<string, string>) => {
@@ -127,68 +128,64 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
   return (
     <DetailModal open={entryId !== null} onClose={onClose} widthClassName="max-w-2xl">
       {!entry ? (
-        <div className="p-8 text-center text-sm text-slate-500">Đang tải...</div>
+        <ModalLayout bodyClassName="space-y-4">Đang tải...
+        </ModalLayout>
       ) : (
-        <div className="max-h-[85vh] overflow-y-auto">
-          <div className="p-5 border-b border-slate-100 space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono font-bold text-slate-900">{entry.entryNumber}</span>
-              <StatusBadge label={label(DEBT_ENTRY_STATUS_LABEL, entry.status)} />
-              {entry.isOverdue && <span className="text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded px-2 py-0.5">Quá hạn {entry.overdueDays} ngày</span>}
-            </div>
-            <div className="text-sm text-slate-600">
-              {entry.customer?.fullName ?? '--'} · {label(DEBT_SOURCE_LABEL, entry.sourceType)}
-              {entry.orderNumber ? ` · đơn ${entry.orderNumber}` : ''}
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-              {[
-                ['Nợ gốc', formatVnd(entry.originalAmount)],
-                ['Đã trả', formatVnd(entry.totalPaid)],
-                ['Còn nợ', formatVnd(entry.outstandingAmount)],
-                ['Hạn trả', formatDay(entry.dueDate)],
-              ].map(([t, val]) => (
-                <div key={t} className="rounded-lg bg-slate-50 border border-slate-100 p-2.5">
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{t}</div>
-                  <div className="text-sm font-bold text-slate-900 tabular-nums mt-0.5">{val}</div>
-                </div>
-              ))}
-            </div>
-            {entry.prepaymentAppliedAmount > 0 && (
-              <p className="text-xs text-slate-500">
-                Giá trị giao {formatVnd(entry.fulfillmentValue)}, đã trừ tiền trả trước {formatVnd(entry.prepaymentAppliedAmount)}.
-              </p>
+        <ModalLayout header={<div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-mono font-bold text-slate-900">{entry.entryNumber}</span>
+            <StatusBadge label={label(DEBT_ENTRY_STATUS_LABEL, entry.status)} />
+            {entry.isOverdue && <span className="text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded px-2 py-0.5">Quá hạn {entry.overdueDays} ngày</span>}
+          </div>
+          <div className="text-sm text-slate-600">
+            {entry.customer?.fullName ?? '--'} · {label(DEBT_SOURCE_LABEL, entry.sourceType)}
+            {entry.orderNumber ? ` · đơn ${entry.orderNumber}` : ''}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+            {[
+              ['Nợ gốc', formatVnd(entry.originalAmount)],
+              ['Đã trả', formatVnd(entry.totalPaid)],
+              ['Còn nợ', formatVnd(entry.outstandingAmount)],
+              ['Hạn trả', formatDay(entry.dueDate)],
+            ].map(([t, val]) => (
+              <div key={t} className="rounded-lg bg-slate-50 border border-slate-100 p-2.5">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{t}</div>
+                <div className="text-sm font-bold text-slate-900 tabular-nums mt-0.5">{val}</div>
+              </div>
+            ))}
+          </div>
+          {entry.prepaymentAppliedAmount > 0 && (
+            <p className="text-xs text-slate-500">
+              Giá trị giao {formatVnd(entry.fulfillmentValue)}, đã trừ tiền trả trước {formatVnd(entry.prepaymentAppliedAmount)}.
+            </p>
+          )}
+        </div>} bodyClassName="space-y-4">{!closed && (
+          <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap gap-2">
+            {!disputed && (
+              <button type="button" className={`${btn} border-amber-300 text-amber-800 hover:bg-amber-50`} onClick={() => setAction('dispute')}>
+                Khiếu nại
+              </button>
+            )}
+            {disputed && (
+              <button type="button" className={`${btn} border-slate-200 hover:bg-slate-50`} onClick={() => setAction('keep')}>
+                Giữ nguyên
+              </button>
+            )}
+            <button type="button" className={`${btn} border-slate-200 hover:bg-slate-50`} onClick={() => setAction('changeDueDate')}>
+              Đổi hạn trả
+            </button>
+            {canManage && (
+              <>
+                <button type="button" className={`${btn} border-slate-200 hover:bg-slate-50`} onClick={() => setAction('adjust')}>
+                  Điều chỉnh giảm
+                </button>
+                <button type="button" className={`${btn} border-rose-300 text-rose-700 hover:bg-rose-50`} onClick={() => setAction('cancel')}>
+                  Hủy khoản nợ
+                </button>
+              </>
             )}
           </div>
-
-          {!closed && (
-            <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap gap-2">
-              {!disputed && (
-                <button type="button" className={`${btn} border-amber-300 text-amber-800 hover:bg-amber-50`} onClick={() => setAction('dispute')}>
-                  Khiếu nại
-                </button>
-              )}
-              {disputed && (
-                <button type="button" className={`${btn} border-slate-200 hover:bg-slate-50`} onClick={() => setAction('keep')}>
-                  Giữ nguyên
-                </button>
-              )}
-              <button type="button" className={`${btn} border-slate-200 hover:bg-slate-50`} onClick={() => setAction('changeDueDate')}>
-                Đổi hạn trả
-              </button>
-              {canManage && (
-                <>
-                  <button type="button" className={`${btn} border-slate-200 hover:bg-slate-50`} onClick={() => setAction('adjust')}>
-                    Điều chỉnh giảm
-                  </button>
-                  <button type="button" className={`${btn} border-rose-300 text-rose-700 hover:bg-rose-50`} onClick={() => setAction('cancel')}>
-                    Hủy khoản nợ
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-
-          <div className="p-5 space-y-5">
+        )}<div className="p-5 space-y-5">
             {entry.order?.items && entry.order.items.length > 0 && (
               <section>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Sản phẩm của đơn {entry.order.orderNumber}</h4>
@@ -270,7 +267,7 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
               </section>
             )}
           </div>
-        </div>
+        </ModalLayout>
       )}
 
       {action && specs && (

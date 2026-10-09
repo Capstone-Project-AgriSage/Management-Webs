@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
@@ -59,17 +60,21 @@ export default function ConfirmOrderModal({ order, onClose, onConfirmed }: Confi
 
   return (
     <Modal open onClose={onClose} title={`Xác nhận đơn và giữ hàng · ${order.orderNumber}`} widthClassName="max-w-2xl">
-      <div className="space-y-4 text-sm">
-        <p className="p-3 rounded-lg bg-emerald-50 text-emerald-900">
+      <ModalLayout footer={<div className="flex flex-wrap items-center justify-end gap-3">
+        <button type="button" onClick={onClose} className="h-10 px-5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100">
+          Huỷ
+        </button>
+        <button type="button" disabled={busy || !fefo || shortage} onClick={confirm} className="h-10 px-5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 inline-flex items-center gap-2">
+          {busy && <Loader2 size={15} className="animate-spin" />} Xác nhận và giữ hàng
+        </button>
+      </div>} bodyClassName="space-y-4"><p className="p-3 rounded-lg bg-emerald-50 text-emerald-900">
           Hàng được giữ theo lô hết hạn trước (FEFO) — chưa xuất kho; lô thực tế chọn khi giao.
           {order.settlementType === 'CREDIT' && ' Đơn mua chịu: xác nhận sẽ giữ hạn mức của khách.'}
-        </p>
-        {error && (
+        </p>{error && (
           <p className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700" role="alert">
             {error}
           </p>
-        )}
-        {!fefo ? (
+        )}{!fefo ? (
           !error && <p className="py-8 text-center text-slate-500">Đang tính lô hàng gợi ý...</p>
         ) : (
           order.items.map((item, idx) => {
@@ -115,17 +120,8 @@ export default function ConfirmOrderModal({ order, onClose, onConfirmed }: Confi
               </section>
             )
           })
-        )}
-        {shortage && <p className="text-xs font-medium text-rose-700">Thiếu hàng: nhập thêm hàng, giảm số lượng hoặc xoá dòng (sửa đơn) rồi xác nhận lại.</p>}
-        <div className="flex justify-end gap-2 pt-1">
-          <button type="button" onClick={onClose} className="h-10 px-5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100">
-            Huỷ
-          </button>
-          <button type="button" disabled={busy || !fefo || shortage} onClick={confirm} className="h-10 px-5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 inline-flex items-center gap-2">
-            {busy && <Loader2 size={15} className="animate-spin" />} Xác nhận và giữ hàng
-          </button>
-        </div>
-      </div>
+        )}{shortage && <p className="text-xs font-medium text-rose-700">Thiếu hàng: nhập thêm hàng, giảm số lượng hoặc xoá dòng (sửa đơn) rồi xác nhận lại.</p>}
+      </ModalLayout>
     </Modal>
   )
 }

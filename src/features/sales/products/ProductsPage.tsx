@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useState, useEffect } from 'react'
 import { Package, FilterX } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -23,14 +24,14 @@ export default function ProductsPage() {
 
   const { showToast } = useToast()
   const navigate = useNavigate()
-  
+
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [products, setProducts] = useState<CatalogProduct[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
-  
+
   const [selectedProduct, setSelectedProduct] = useState<CatalogProductDetail | null>(null)
 
   useEffect(() => {
@@ -48,7 +49,7 @@ export default function ProductsPage() {
         setIsLoading(false)
       }
     }
-    
+
     const timer = setTimeout(fetchProducts, 300)
     return () => clearTimeout(timer)
   }, [search, page, showToast])
@@ -170,19 +171,15 @@ export default function ProductsPage() {
       {/* DETAIL MODAL */}
       <DetailModal open={selectedProduct !== null} onClose={() => setSelectedProduct(null)}>
         {selectedProduct ? (
-          <div className="p-4 space-y-4">
-            <div>
-              <ProductThumb src={selectedProduct.imageUrl} alt={selectedProduct.name} className="w-full max-h-56 aspect-video rounded-xl border border-outline-variant/40 mb-3" iconSize={40} />
-              <h3 className="text-lg text-on-surface font-bold">{selectedProduct.name}</h3>
-              <p className="text-sm text-on-surface-variant mt-1">{selectedProduct.sku}</p>
+          <ModalLayout header={<div>
+            <ProductThumb src={selectedProduct.imageUrl} alt={selectedProduct.name} className="w-full max-h-56 aspect-video rounded-xl border border-outline-variant/40 mb-3" iconSize={40} />
+            <h3 className="text-lg text-on-surface font-bold">{selectedProduct.name}</h3>
+            <p className="text-sm text-on-surface-variant mt-1">{selectedProduct.sku}</p>
+          </div>} bodyClassName="space-y-4">{selectedProduct.description && (
+            <div className="text-sm text-on-surface bg-surface-container-low p-3 rounded-lg border border-outline-variant">
+              {selectedProduct.description}
             </div>
-            {selectedProduct.description && (
-              <div className="text-sm text-on-surface bg-surface-container-low p-3 rounded-lg border border-outline-variant">
-                {selectedProduct.description}
-              </div>
-            )}
-            
-            <div className="border-t border-outline-variant pt-4">
+          )}<div className="border-t border-outline-variant pt-4">
               <h4 className="font-bold text-sm mb-3">Các quy cách đóng gói:</h4>
               <div className="space-y-2">
                 {selectedProduct.packagings.length === 0 ? (
@@ -199,9 +196,7 @@ export default function ProductsPage() {
                   ))
                 )}
               </div>
-            </div>
-            
-            <button
+            </div><button
               className="w-full px-3 py-3 mt-2 bg-primary text-on-primary hover:bg-primary/90 rounded-lg text-center font-bold transition-colors shadow-sm"
               onClick={() => {
                 handleAddProductToOrder()
@@ -211,7 +206,7 @@ export default function ProductsPage() {
             >
               Mở trang Bán tại quầy
             </button>
-          </div>
+          </ModalLayout>
         ) : null}
       </DetailModal>
     </div>

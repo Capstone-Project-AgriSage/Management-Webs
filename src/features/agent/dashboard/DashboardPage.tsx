@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useState } from 'react'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { useToast } from '@/context/ToastContext'
@@ -19,16 +20,16 @@ export default function DashboardPage() {
   usePageHeader({
     title: 'Tổng Quan Bán Hàng',
   })
-  
+
   const { showToast } = useToast()
-  
+
   const [isLeadDetailOpen, setIsLeadDetailOpen] = useState(false)
   const [viewModeOpen, setViewModeOpen] = useState(false)
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table')
   const [optionsMenuOpenId, setOptionsMenuOpenId] = useState<string | null>(null)
 
   const handleDownloadLeadCSV = () => {
-    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF"
       + "Nguồn,Số lượng,Tỷ lệ chuyển đổi\n"
       + "Mua trực tiếp,65,70%\n"
       + "Gọi điện,45,60%\n"
@@ -45,7 +46,7 @@ export default function DashboardPage() {
   }
 
   const handleExportRecentOrders = () => {
-    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF"
       + "Mã Đơn,Khách Hàng,Sản Phẩm,Trạng Thái,Tổng Tiền\n"
       + ALL_ORDERS.slice(0, 10).map(o => `${o.id},${o.customerName},"${o.items.map(i => i.name).join(', ')}",${o.status},${o.total}`).join("\n");
     const encodedUri = encodeURI(csvContent);
@@ -63,19 +64,19 @@ export default function DashboardPage() {
   const debtHouseholds = ALL_DEBT_CUSTOMERS.filter((c) => parseVnd(c.remaining) > 0)
   const totalDebtRemaining = debtHouseholds.reduce((sum, c) => sum + parseVnd(c.remaining), 0)
   const todayOrders = ALL_ORDERS.filter(o => o.timeRest === 'Hôm nay')
-  
+
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
-  
+
   const totalPages = Math.ceil(ALL_ORDERS.length / pageSize)
-  
+
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage)
     }
   }
-  
+
   // New KPIs for Phase 3
   const pendingOrdersCount = ALL_ORDERS.filter(o => o.statusBadge.label === 'Đang xử lý').length
   const pendingVietQrCount = 2 // Mock value for PENDING_VERIFICATION
@@ -116,36 +117,36 @@ export default function DashboardPage() {
 
         {/* Card 3: Revenue -> Doanh Thu */}
         <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between relative overflow-hidden">
-           <div className="absolute top-4 right-4 w-8 h-8 bg-emerald-50 text-emerald-500 rounded-md flex items-center justify-center">
-             <DollarSign size={18} />
-           </div>
-           <div>
+          <div className="absolute top-4 right-4 w-8 h-8 bg-emerald-50 text-emerald-500 rounded-md flex items-center justify-center">
+            <DollarSign size={18} />
+          </div>
+          <div>
             <h3 className="text-sm font-semibold text-slate-900 mt-8">Tổng Doanh Thu</h3>
             <p className="text-xs text-slate-500">Tất cả đơn hàng</p>
-           </div>
-           <div className="mt-4">
-             <span className="text-2xl font-bold text-slate-900">{formatVnd(totalRevenue)}</span>
-           </div>
-           <div className="mt-auto pt-4">
-             <span className="text-xs font-semibold text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded">+12.5%</span>
-           </div>
+          </div>
+          <div className="mt-4">
+            <span className="text-2xl font-bold text-slate-900">{formatVnd(totalRevenue)}</span>
+          </div>
+          <div className="mt-auto pt-4">
+            <span className="text-xs font-semibold text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded">+12.5%</span>
+          </div>
         </div>
 
         {/* Card 4: Projects Won -> Khách Hàng Nợ */}
         <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between relative overflow-hidden">
-           <div className="absolute top-4 right-4 w-8 h-8 bg-rose-50 text-rose-500 rounded-md flex items-center justify-center">
-             <Briefcase size={18} />
-           </div>
-           <div>
+          <div className="absolute top-4 right-4 w-8 h-8 bg-rose-50 text-rose-500 rounded-md flex items-center justify-center">
+            <Briefcase size={18} />
+          </div>
+          <div>
             <h3 className="text-sm font-semibold text-slate-900 mt-8">Công Nợ Tồn Đọng</h3>
             <p className="text-xs text-slate-500">{debtHouseholds.length} hộ chưa thanh toán</p>
-           </div>
-           <div className="mt-4">
-             <span className="text-2xl font-bold text-slate-900">{formatVnd(totalDebtRemaining)}</span>
-           </div>
-           <div className="mt-auto pt-4">
-             <span className="text-xs font-semibold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded">-5.2%</span>
-           </div>
+          </div>
+          <div className="mt-4">
+            <span className="text-2xl font-bold text-slate-900">{formatVnd(totalDebtRemaining)}</span>
+          </div>
+          <div className="mt-auto pt-4">
+            <span className="text-xs font-semibold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded">-5.2%</span>
+          </div>
         </div>
 
         {/* Card 5: Revenue Growth */}
@@ -195,8 +196,8 @@ export default function DashboardPage() {
           <h3 className="text-sm font-semibold text-slate-900">Nguồn Khách Hàng</h3>
           <LeadsBySourceChart />
           <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100">
-             <button onClick={() => setIsLeadDetailOpen(true)} className="flex-1 py-1.5 text-xs font-semibold border border-slate-200 rounded-md text-slate-700 hover:bg-slate-50">Xem Chi Tiết</button>
-             <button onClick={handleDownloadLeadCSV} className="flex-1 py-1.5 text-xs font-semibold border border-slate-200 rounded-md text-slate-700 hover:bg-slate-50">Tải CSV</button>
+            <button onClick={() => setIsLeadDetailOpen(true)} className="flex-1 py-1.5 text-xs font-semibold border border-slate-200 rounded-md text-slate-700 hover:bg-slate-50">Xem Chi Tiết</button>
+            <button onClick={handleDownloadLeadCSV} className="flex-1 py-1.5 text-xs font-semibold border border-slate-200 rounded-md text-slate-700 hover:bg-slate-50">Tải CSV</button>
           </div>
         </div>
 
@@ -219,7 +220,7 @@ export default function DashboardPage() {
         <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
           <h3 className="text-sm font-semibold text-slate-900">Doanh Thu Theo Khu Vực</h3>
           <p className="text-xs text-slate-500 mt-1">Tổng cộng 823,500,000 ₫</p>
-          
+
           <div className="flex flex-col gap-4 mt-6">
             {revenueByRegionData.map(region => (
               <div key={region.name} className="flex flex-col gap-1.5">
@@ -241,7 +242,7 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
-          
+
           <div className="mt-6 pt-4 border-t border-slate-100 text-[11px] text-slate-500 font-medium">
             Theo dõi 5 quận/huyện - 3 khu vực tăng trưởng
           </div>
@@ -258,11 +259,10 @@ export default function DashboardPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className={`text-xs font-bold ${item.completed ? 'text-slate-500 line-through' : 'text-slate-900'}`}>{item.title}</span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
-                        item.priority === 'High' ? 'bg-rose-50 text-rose-600' : 
-                        item.priority === 'Medium' ? 'bg-amber-50 text-amber-600' : 
-                        'bg-emerald-50 text-emerald-600'
-                      }`}>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${item.priority === 'High' ? 'bg-rose-50 text-rose-600' :
+                        item.priority === 'Medium' ? 'bg-amber-50 text-amber-600' :
+                          'bg-emerald-50 text-emerald-600'
+                        }`}>
                         {item.priority}
                       </span>
                     </div>
@@ -287,20 +287,20 @@ export default function DashboardPage() {
             <p className="text-xs text-slate-500 mt-0.5">Theo dõi và quản lý các đơn hàng nông nghiệp mới nhất.</p>
           </div>
           <div className="flex gap-2">
-             <div className="relative">
-               <button onClick={() => setViewModeOpen(!viewModeOpen)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold border border-slate-200 rounded-md text-slate-700 hover:bg-slate-50">
-                 <ChevronDown size={14} /> Chế Độ Xem
-               </button>
-               {viewModeOpen && (
-                 <div className="absolute right-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-lg z-10 py-1 text-left">
-                   <button onClick={() => { setViewMode('table'); setViewModeOpen(false); }} className={`w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 text-left font-semibold ${viewMode === 'table' ? 'text-emerald-600' : ''}`}>Mặc định (Bảng)</button>
-                   <button onClick={() => { setViewMode('grid'); setViewModeOpen(false); }} className={`w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 text-left font-semibold ${viewMode === 'grid' ? 'text-emerald-600' : ''}`}>Dạng Lưới</button>
-                 </div>
-               )}
-             </div>
-             <button onClick={handleExportRecentOrders} className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold border border-slate-200 rounded-md text-slate-700 hover:bg-slate-50">
-               <Download size={14} /> Xuất File
-             </button>
+            <div className="relative">
+              <button onClick={() => setViewModeOpen(!viewModeOpen)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold border border-slate-200 rounded-md text-slate-700 hover:bg-slate-50">
+                <ChevronDown size={14} /> Chế Độ Xem
+              </button>
+              {viewModeOpen && (
+                <div className="absolute right-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-lg z-10 py-1 text-left">
+                  <button onClick={() => { setViewMode('table'); setViewModeOpen(false); }} className={`w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 text-left font-semibold ${viewMode === 'table' ? 'text-emerald-600' : ''}`}>Mặc định (Bảng)</button>
+                  <button onClick={() => { setViewMode('grid'); setViewModeOpen(false); }} className={`w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 text-left font-semibold ${viewMode === 'grid' ? 'text-emerald-600' : ''}`}>Dạng Lưới</button>
+                </div>
+              )}
+            </div>
+            <button onClick={handleExportRecentOrders} className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold border border-slate-200 rounded-md text-slate-700 hover:bg-slate-50">
+              <Download size={14} /> Xuất File
+            </button>
           </div>
         </div>
 
@@ -334,12 +334,11 @@ export default function DashboardPage() {
                     </td>
                     <td className="py-4 px-4 text-slate-600 line-clamp-2">{order.productLine}</td>
                     <td className="py-4 px-4 text-center whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded-full text-[10px] font-semibold border ${
-                        order.statusBadge.label === 'Hoàn thành' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' :
+                      <span className={`px-2 py-1 rounded-full text-[10px] font-semibold border ${order.statusBadge.label === 'Hoàn thành' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' :
                         order.statusBadge.label === 'Đang giao' ? 'border-blue-200 text-blue-700 bg-blue-50' :
-                        order.statusBadge.label === 'Đang xử lý' ? 'border-indigo-200 text-indigo-700 bg-indigo-50' :
-                        'border-amber-200 text-amber-700 bg-amber-50'
-                      }`}>
+                          order.statusBadge.label === 'Đang xử lý' ? 'border-indigo-200 text-indigo-700 bg-indigo-50' :
+                            'border-amber-200 text-amber-700 bg-amber-50'
+                        }`}>
                         {order.statusBadge.label}
                       </span>
                     </td>
@@ -347,11 +346,10 @@ export default function DashboardPage() {
                       {order.total}
                     </td>
                     <td className="py-4 px-4 text-center whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded-full text-[10px] font-medium border ${
-                        order.paymentBadge.label.includes('Gối nợ') ? 'border-red-200 text-red-700 bg-white' :
+                      <span className={`px-2 py-1 rounded-full text-[10px] font-medium border ${order.paymentBadge.label.includes('Gối nợ') ? 'border-red-200 text-red-700 bg-white' :
                         order.paymentBadge.label.includes('Cọc') ? 'border-amber-200 text-amber-700 bg-white' :
-                        'border-slate-200 text-slate-600 bg-white'
-                      }`}>
+                          'border-slate-200 text-slate-600 bg-white'
+                        }`}>
                         {order.paymentMethod}
                       </span>
                     </td>
@@ -374,142 +372,140 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-slate-50/50">
-             {ALL_ORDERS.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((order) => (
-                <div key={order.id} className="border border-slate-200 rounded-xl p-4 bg-white hover:border-emerald-300 transition-colors shadow-sm relative">
-                   <div className="flex justify-between items-start mb-3">
-                     <div>
-                       <div className="font-mono font-bold text-slate-500 text-[11px] mb-1">{order.id}</div>
-                       <div className="font-bold text-slate-900">{order.customerName}</div>
-                       <div className="text-[11px] text-slate-500 mt-0.5">{order.shortLocation}</div>
-                     </div>
-                     <div className="relative">
-                       <button onClick={() => setOptionsMenuOpenId(optionsMenuOpenId === order.id ? null : order.id)} className="text-slate-400 hover:text-slate-600 p-1 -mr-1">
-                         <MoreVertical size={16} />
-                       </button>
-                       {optionsMenuOpenId === order.id && (
-                         <div className="absolute right-0 top-6 mt-1 w-32 bg-white border border-slate-200 rounded-lg shadow-lg z-10 py-1 text-left">
-                           <button onClick={() => { showToast('Đang tải chi tiết đơn hàng...'); setOptionsMenuOpenId(null); }} className="w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 text-left">Xem chi tiết</button>
-                           <button onClick={() => { showToast('Đang in hóa đơn...'); setOptionsMenuOpenId(null); }} className="w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 text-left">In hóa đơn</button>
-                           <button onClick={() => { showToast('Đã thêm đơn hàng vào danh sách Hủy'); setOptionsMenuOpenId(null); }} className="w-full px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 text-left">Hủy đơn</button>
-                         </div>
-                       )}
-                     </div>
-                   </div>
-                   <div className="text-xs text-slate-600 line-clamp-2 mb-4 h-8 bg-slate-50 rounded p-1.5 border border-slate-100">{order.productLine}</div>
-                   <div className="flex justify-between items-end mt-2 pt-3 border-t border-slate-100 border-dashed">
-                     <div className="flex flex-col gap-1.5">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border text-center w-max ${
-                          order.statusBadge.label === 'Hoàn thành' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' :
-                          order.statusBadge.label === 'Đang giao' ? 'border-blue-200 text-blue-700 bg-blue-50' :
-                          order.statusBadge.label === 'Đang xử lý' ? 'border-indigo-200 text-indigo-700 bg-indigo-50' :
-                          'border-amber-200 text-amber-700 bg-amber-50'
-                        }`}>
-                          {order.statusBadge.label}
-                        </span>
-                        <span className="text-[11px] font-medium text-slate-500">{order.paymentMethod}</span>
-                     </div>
-                     <div className="font-mono font-black text-slate-900 text-right">{order.total}</div>
-                   </div>
+            {ALL_ORDERS.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((order) => (
+              <div key={order.id} className="border border-slate-200 rounded-xl p-4 bg-white hover:border-emerald-300 transition-colors shadow-sm relative">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <div className="font-mono font-bold text-slate-500 text-[11px] mb-1">{order.id}</div>
+                    <div className="font-bold text-slate-900">{order.customerName}</div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">{order.shortLocation}</div>
+                  </div>
+                  <div className="relative">
+                    <button onClick={() => setOptionsMenuOpenId(optionsMenuOpenId === order.id ? null : order.id)} className="text-slate-400 hover:text-slate-600 p-1 -mr-1">
+                      <MoreVertical size={16} />
+                    </button>
+                    {optionsMenuOpenId === order.id && (
+                      <div className="absolute right-0 top-6 mt-1 w-32 bg-white border border-slate-200 rounded-lg shadow-lg z-10 py-1 text-left">
+                        <button onClick={() => { showToast('Đang tải chi tiết đơn hàng...'); setOptionsMenuOpenId(null); }} className="w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 text-left">Xem chi tiết</button>
+                        <button onClick={() => { showToast('Đang in hóa đơn...'); setOptionsMenuOpenId(null); }} className="w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 text-left">In hóa đơn</button>
+                        <button onClick={() => { showToast('Đã thêm đơn hàng vào danh sách Hủy'); setOptionsMenuOpenId(null); }} className="w-full px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 text-left">Hủy đơn</button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-             ))}
+                <div className="text-xs text-slate-600 line-clamp-2 mb-4 h-8 bg-slate-50 rounded p-1.5 border border-slate-100">{order.productLine}</div>
+                <div className="flex justify-between items-end mt-2 pt-3 border-t border-slate-100 border-dashed">
+                  <div className="flex flex-col gap-1.5">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold border text-center w-max ${order.statusBadge.label === 'Hoàn thành' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' :
+                      order.statusBadge.label === 'Đang giao' ? 'border-blue-200 text-blue-700 bg-blue-50' :
+                        order.statusBadge.label === 'Đang xử lý' ? 'border-indigo-200 text-indigo-700 bg-indigo-50' :
+                          'border-amber-200 text-amber-700 bg-amber-50'
+                      }`}>
+                      {order.statusBadge.label}
+                    </span>
+                    <span className="text-[11px] font-medium text-slate-500">{order.paymentMethod}</span>
+                  </div>
+                  <div className="font-mono font-black text-slate-900 text-right">{order.total}</div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
-        
+
         <div className="p-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-           <span>0 trong {ALL_ORDERS.length} dòng được chọn.</span>
-           <div className="flex items-center gap-4">
-             <div className="flex items-center gap-2">
-               <span>Số dòng mỗi trang</span>
-               <select 
-                 className="border border-slate-200 rounded px-1 py-0.5 bg-white text-xs"
-                 value={pageSize}
-                 onChange={(e) => {
-                   setPageSize(Number(e.target.value));
-                   setCurrentPage(1);
-                 }}
-               >
-                 <option value={10}>10</option>
-                 <option value={20}>20</option>
-               </select>
-             </div>
-             <span>Trang {currentPage} / {totalPages}</span>
-             <div className="flex gap-1">
-               <button 
-                 onClick={() => handlePageChange(1)}
-                 disabled={currentPage === 1}
-                 className={`p-1 border border-slate-200 rounded bg-white ${currentPage === 1 ? 'text-slate-300' : 'text-slate-600 hover:text-slate-900'}`}
-               >
-                 <ChevronsLeft size={16} />
-               </button>
-               <button 
-                 onClick={() => handlePageChange(currentPage - 1)}
-                 disabled={currentPage === 1}
-                 className={`p-1 border border-slate-200 rounded bg-white ${currentPage === 1 ? 'text-slate-300' : 'text-slate-600 hover:text-slate-900'}`}
-               >
-                 <ChevronLeft size={16} />
-               </button>
-               <button 
-                 onClick={() => handlePageChange(currentPage + 1)}
-                 disabled={currentPage === totalPages}
-                 className={`p-1 border border-slate-200 rounded bg-white ${currentPage === totalPages ? 'text-slate-300' : 'text-slate-600 hover:text-slate-900'}`}
-               >
-                 <ChevronRight size={16} />
-               </button>
-               <button 
-                 onClick={() => handlePageChange(totalPages)}
-                 disabled={currentPage === totalPages}
-                 className={`p-1 border border-slate-200 rounded bg-white ${currentPage === totalPages ? 'text-slate-300' : 'text-slate-600 hover:text-slate-900'}`}
-               >
-                 <ChevronsRight size={16} />
-               </button>
-             </div>
-           </div>
+          <span>0 trong {ALL_ORDERS.length} dòng được chọn.</span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span>Số dòng mỗi trang</span>
+              <select
+                className="border border-slate-200 rounded px-1 py-0.5 bg-white text-xs"
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+              </select>
+            </div>
+            <span>Trang {currentPage} / {totalPages}</span>
+            <div className="flex gap-1">
+              <button
+                onClick={() => handlePageChange(1)}
+                disabled={currentPage === 1}
+                className={`p-1 border border-slate-200 rounded bg-white ${currentPage === 1 ? 'text-slate-300' : 'text-slate-600 hover:text-slate-900'}`}
+              >
+                <ChevronsLeft size={16} />
+              </button>
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`p-1 border border-slate-200 rounded bg-white ${currentPage === 1 ? 'text-slate-300' : 'text-slate-600 hover:text-slate-900'}`}
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className={`p-1 border border-slate-200 rounded bg-white ${currentPage === totalPages ? 'text-slate-300' : 'text-slate-600 hover:text-slate-900'}`}
+              >
+                <ChevronRight size={16} />
+              </button>
+              <button
+                onClick={() => handlePageChange(totalPages)}
+                disabled={currentPage === totalPages}
+                className={`p-1 border border-slate-200 rounded bg-white ${currentPage === totalPages ? 'text-slate-300' : 'text-slate-600 hover:text-slate-900'}`}
+              >
+                <ChevronsRight size={16} />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       {/* Lead Detail Modal */}
       <DetailModal open={isLeadDetailOpen} onClose={() => setIsLeadDetailOpen(false)} widthClassName="max-w-md">
-        <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+        <ModalLayout header={<div className="">
           <h3 className="text-lg font-bold text-slate-900">Chi tiết nguồn khách hàng</h3>
           <p className="text-sm text-slate-500 mt-1">Phân tích chuyên sâu về các kênh tiếp cận trong tháng</p>
-        </div>
-        <div className="p-4 overflow-y-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 text-xs font-semibold text-slate-500 border-b border-slate-200">
-                <th className="py-4 px-3">Nguồn</th>
-                <th className="py-4 px-3 text-center">Số lượng</th>
-                <th className="py-4 px-3 text-right">Tỷ lệ chuyển đổi</th>
-              </tr>
-            </thead>
-            <tbody className="text-sm">
-              <tr className="border-b border-slate-100 hover:bg-slate-50">
-                <td className="py-4 px-3 font-medium text-slate-900">Mua trực tiếp</td>
-                <td className="py-4 px-3 text-center">65</td>
-                <td className="py-4 px-3 text-right text-emerald-600 font-semibold">70%</td>
-              </tr>
-              <tr className="border-b border-slate-100 hover:bg-slate-50">
-                <td className="py-4 px-3 font-medium text-slate-900">Gọi điện</td>
-                <td className="py-4 px-3 text-center">45</td>
-                <td className="py-4 px-3 text-right text-emerald-600 font-semibold">60%</td>
-              </tr>
-              <tr className="border-b border-slate-100 hover:bg-slate-50">
-                <td className="py-4 px-3 font-medium text-slate-900">Zalo/FB</td>
-                <td className="py-4 px-3 text-center">35</td>
-                <td className="py-4 px-3 text-right text-amber-600 font-semibold">40%</td>
-              </tr>
-              <tr className="hover:bg-slate-50">
-                <td className="py-4 px-3 font-medium text-slate-900">Nông dân giới thiệu</td>
-                <td className="py-4 px-3 text-center">25</td>
-                <td className="py-4 px-3 text-right text-emerald-600 font-semibold">85%</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+        </div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
           <button onClick={() => setIsLeadDetailOpen(false)} className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 shadow-sm">
             Đóng
           </button>
-        </div>
+        </div>}><div className="p-4 overflow-y-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 text-xs font-semibold text-slate-500 border-b border-slate-200">
+                  <th className="py-4 px-3">Nguồn</th>
+                  <th className="py-4 px-3 text-center">Số lượng</th>
+                  <th className="py-4 px-3 text-right">Tỷ lệ chuyển đổi</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm">
+                <tr className="border-b border-slate-100 hover:bg-slate-50">
+                  <td className="py-4 px-3 font-medium text-slate-900">Mua trực tiếp</td>
+                  <td className="py-4 px-3 text-center">65</td>
+                  <td className="py-4 px-3 text-right text-emerald-600 font-semibold">70%</td>
+                </tr>
+                <tr className="border-b border-slate-100 hover:bg-slate-50">
+                  <td className="py-4 px-3 font-medium text-slate-900">Gọi điện</td>
+                  <td className="py-4 px-3 text-center">45</td>
+                  <td className="py-4 px-3 text-right text-emerald-600 font-semibold">60%</td>
+                </tr>
+                <tr className="border-b border-slate-100 hover:bg-slate-50">
+                  <td className="py-4 px-3 font-medium text-slate-900">Zalo/FB</td>
+                  <td className="py-4 px-3 text-center">35</td>
+                  <td className="py-4 px-3 text-right text-amber-600 font-semibold">40%</td>
+                </tr>
+                <tr className="hover:bg-slate-50">
+                  <td className="py-4 px-3 font-medium text-slate-900">Nông dân giới thiệu</td>
+                  <td className="py-4 px-3 text-center">25</td>
+                  <td className="py-4 px-3 text-right text-emerald-600 font-semibold">85%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </ModalLayout>
       </DetailModal>
     </div>
   )

@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronRight, Download, FilterX, Receipt, Banknote } from 'lucide-react'
@@ -39,7 +40,7 @@ export default function PaymentsPage() {
   const [isLoading, setIsLoading] = useState(false)
 
   const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(null)
-  
+
   // Payment action state
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [paymentAmount, setPaymentAmount] = useState('')
@@ -92,7 +93,7 @@ export default function PaymentsPage() {
     if (!selectedOrder) return
     const summary = paymentSummaries[selectedOrder.id]
     if (!summary) return
-    
+
     const amount = Number(paymentAmount)
     if (isNaN(amount) || amount <= 0) {
       showToast('Vui lòng nhập số tiền hợp lệ', 'error')
@@ -170,11 +171,11 @@ export default function PaymentsPage() {
 
       <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-center justify-between gap-4 mt-4">
         <div className="flex flex-wrap items-center gap-3 flex-1">
-          <SearchInput 
-            value={search} 
-            onChange={(val) => { setSearch(val); setPage(1) }} 
-            placeholder="Tìm theo mã đơn, SĐT..." 
-            className="relative flex-1 min-w-[240px]" 
+          <SearchInput
+            value={search}
+            onChange={(val) => { setSearch(val); setPage(1) }}
+            placeholder="Tìm theo mã đơn, SĐT..."
+            className="relative flex-1 min-w-[240px]"
           />
           <button
             className="h-9 px-3 text-on-surface-variant hover:text-on-surface text-xs font-medium flex items-center gap-1 transition-colors"
@@ -263,14 +264,20 @@ export default function PaymentsPage() {
 
       <DetailModal open={selectedOrder !== null} onClose={() => setSelectedOrder(null)}>
         {selectedOrder ? (
-          <>
-            <div className="p-4 bg-surface-container-low border-b border-outline-variant flex items-center justify-between rounded-t-xl">
-              <div className="flex items-center gap-2">
-                <span className="font-mono font-bold text-lg text-on-surface">#{selectedOrder.orderNumber}</span>
-              </div>
+          <ModalLayout header={<div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="font-mono font-bold text-lg text-on-surface">#{selectedOrder.orderNumber}</span>
             </div>
-            
-            <div className="p-4 bg-surface-container-lowest">
+          </div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
+            <button
+              className="flex-1 h-11 bg-primary text-on-primary hover:bg-primary/90 rounded-lg font-bold flex items-center justify-center transition-colors disabled:opacity-50"
+              disabled={!paymentSummaries[selectedOrder.id] || paymentSummaries[selectedOrder.id].remainingToPay <= 0 || ['COMPLETED', 'CANCELLED', 'PARTIALLY_CANCELLED'].includes(selectedOrder.status)}
+              onClick={() => setIsPaymentModalOpen(true)}
+            >
+              <Banknote size={18} className="mr-2" />
+              THU TIỀN ĐƠN NÀY (M4)
+            </button>
+          </div>} bodyClassName="space-y-4"><div className="p-4 bg-surface-container-lowest">
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="p-3 border border-outline-variant rounded-xl bg-surface">
                   <div className="text-xs font-bold text-on-surface-variant uppercase mb-1">Tổng đơn</div>
@@ -308,7 +315,7 @@ export default function PaymentsPage() {
                   )}
                 </div>
               </div>
-              
+
               {paymentSummaries[selectedOrder.id]?.refunds?.length > 0 && (
                 <div className="mb-4">
                   <h4 className="font-bold text-rose-700 mb-3 uppercase text-sm tracking-wider">Lịch sử khoản hoàn tiền</h4>
@@ -328,75 +335,50 @@ export default function PaymentsPage() {
                 </div>
               )}
             </div>
-
-            <div className="p-4 bg-surface-container-low border-t border-outline-variant rounded-b-xl flex gap-3">
-              <button
-                className="flex-1 h-11 bg-primary text-on-primary hover:bg-primary/90 rounded-lg font-bold flex items-center justify-center transition-colors disabled:opacity-50"
-                disabled={!paymentSummaries[selectedOrder.id] || paymentSummaries[selectedOrder.id].remainingToPay <= 0 || ['COMPLETED', 'CANCELLED', 'PARTIALLY_CANCELLED'].includes(selectedOrder.status)}
-                onClick={() => setIsPaymentModalOpen(true)}
-              >
-                <Banknote size={18} className="mr-2" />
-                THU TIỀN ĐƠN NÀY (M4)
-              </button>
-            </div>
-          </>
+          </ModalLayout>
         ) : null}
       </DetailModal>
 
       {/* Payment Form Modal */}
       {isPaymentModalOpen && selectedOrder && paymentSummaries[selectedOrder.id] && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-surface w-full max-w-md rounded-2xl shadow-xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-outline-variant bg-surface-container-low flex justify-between items-center">
-              <h3 className="font-bold text-lg text-on-surface">Thu tiền đơn #{selectedOrder.orderNumber}</h3>
-              <button onClick={() => setIsPaymentModalOpen(false)} className="text-on-surface-variant hover:text-on-surface">
-                <FilterX size={20} />
-              </button>
-            </div>
-            <div className="p-5 space-y-4">
-              <div className="flex justify-between items-center bg-surface-container-lowest p-3 rounded-lg border border-outline-variant">
-                <span className="text-sm font-medium text-on-surface-variant">Còn phải thu:</span>
-                <span className="text-xl font-bold text-rose-600">{formatVnd(paymentSummaries[selectedOrder.id].remainingToPay)}</span>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-bold text-on-surface mb-2">Số tiền thu (VNĐ)</label>
-                <input
-                  type="number"
-                  className="w-full h-12 px-4 rounded-xl border border-outline-variant bg-surface focus:outline-none focus:ring-2 focus:ring-primary/50 text-lg font-mono font-bold"
-                  placeholder="Nhập số tiền..."
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
-                />
-              </div>
-              
-              <div className="flex gap-2">
-                <button
-                  className="flex-1 py-2 bg-surface-container-high hover:bg-surface-container-highest text-sm font-bold rounded-lg border border-outline-variant transition-colors text-on-surface"
-                  onClick={() => setPaymentAmount(paymentSummaries[selectedOrder.id].remainingToPay.toString())}
-                >
-                  Thu hết số còn lại
-                </button>
-              </div>
-            </div>
-            
-            <div className="p-4 border-t border-outline-variant bg-surface-container-lowest flex justify-end gap-3">
+        <DetailModal open onClose={() => setIsPaymentModalOpen(false)}>
+          <ModalLayout header={<div className="space-y-1"><h3 className="font-bold text-lg text-on-surface">Thu tiền đơn #{selectedOrder.orderNumber}</h3></div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
+            <button
+              className="px-6 py-2 bg-surface-container-high hover:bg-surface-container-highest font-bold rounded-xl transition-colors text-on-surface"
+              onClick={() => setIsPaymentModalOpen(false)}
+            >
+              HỦY
+            </button>
+            <button
+              className="px-6 py-2 bg-primary text-on-primary hover:bg-primary/90 font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
+              onClick={handleProcessPayment}
+              disabled={isPaying || !paymentAmount}
+            >
+              {isPaying ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN THU TIỀN'}
+            </button>
+          </div>}>
+            <div className="flex justify-between items-center bg-surface-container-lowest p-3 rounded-lg border border-outline-variant">
+              <span className="text-sm font-medium text-on-surface-variant">Còn phải thu:</span>
+              <span className="text-xl font-bold text-rose-600">{formatVnd(paymentSummaries[selectedOrder.id].remainingToPay)}</span>
+            </div><div>
+              <label className="block text-sm font-bold text-on-surface mb-2">Số tiền thu (VNĐ)</label>
+              <input
+                type="number"
+                className="w-full h-12 px-4 rounded-xl border border-outline-variant bg-surface focus:outline-none focus:ring-2 focus:ring-primary/50 text-lg font-mono font-bold"
+                placeholder="Nhập số tiền..."
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+              />
+            </div><div className="flex gap-2">
               <button
-                className="px-6 py-2 bg-surface-container-high hover:bg-surface-container-highest font-bold rounded-xl transition-colors text-on-surface"
-                onClick={() => setIsPaymentModalOpen(false)}
+                className="flex-1 py-2 bg-surface-container-high hover:bg-surface-container-highest text-sm font-bold rounded-lg border border-outline-variant transition-colors text-on-surface"
+                onClick={() => setPaymentAmount(paymentSummaries[selectedOrder.id].remainingToPay.toString())}
               >
-                HỦY
-              </button>
-              <button
-                className="px-6 py-2 bg-primary text-on-primary hover:bg-primary/90 font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
-                onClick={handleProcessPayment}
-                disabled={isPaying || !paymentAmount}
-              >
-                {isPaying ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN THU TIỀN'}
+                Thu hết số còn lại
               </button>
             </div>
-          </div>
-        </div>
+          </ModalLayout>
+        </DetailModal>
       )}
     </div>
   )

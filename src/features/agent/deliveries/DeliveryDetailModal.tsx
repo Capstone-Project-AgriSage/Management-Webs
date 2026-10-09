@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
 import { MapPin, Package, Truck, UserCircle, CheckCircle, XCircle, AlertTriangle, Image as ImageIcon } from 'lucide-react'
 import DetailModal from '@/components/ui/DetailModal'
@@ -108,7 +109,7 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
       showToast(success, 'success')
       if (result && typeof result === 'object' && 'deliveryNumber' in result) {
         setDelivery(result as DeliveryResponse)
-        deliveriesApi.getIncidents(delivery.id).then(setIncidents).catch(() => {})
+        deliveriesApi.getIncidents(delivery.id).then(setIncidents).catch(() => { })
       } else {
         await load(delivery.id)
       }
@@ -144,15 +145,15 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
     const ok =
       cancelTarget === 'attempt' && activeAttempt
         ? await run(
-            () => deliveriesApi.cancelAttempt(delivery.id, activeAttempt.id, { reason: cancelReason.trim() }),
-            'Đã hủy lần giao đang chạy',
-            'Lỗi hủy lần giao',
-          )
+          () => deliveriesApi.cancelAttempt(delivery.id, activeAttempt.id, { reason: cancelReason.trim() }),
+          'Đã hủy lần giao đang chạy',
+          'Lỗi hủy lần giao',
+        )
         : await run(
-            () => deliveriesApi.cancelDelivery(delivery.id, { reason: cancelReason.trim() }),
-            'Đã hủy phiếu giao',
-            'Lỗi hủy phiếu giao',
-          )
+          () => deliveriesApi.cancelDelivery(delivery.id, { reason: cancelReason.trim() }),
+          'Đã hủy phiếu giao',
+          'Lỗi hủy phiếu giao',
+        )
     if (ok) {
       setCancelTarget(null)
       setCancelReason('')
@@ -182,24 +183,106 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
     <>
       <DetailModal open={deliveryId !== null} onClose={onClose} widthClassName="max-w-2xl">
         {!delivery ? (
-          <div className="p-8 text-center text-sm text-slate-500">{isLoading ? 'Đang tải chi tiết...' : ''}</div>
+          <ModalLayout bodyClassName="space-y-4">{isLoading ? 'Đang tải chi tiết...' : ''}
+          </ModalLayout>
         ) : (
-          <>
-            <div className="p-4 bg-slate-50 border-b border-slate-200 rounded-t-xl">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-mono font-bold text-sm text-slate-900">{delivery.deliveryNumber}</span>
-                <StatusBadge label={labelOf(DELIVERY_STATUS_LABEL, delivery.status)} />
+          <ModalLayout header={<div className="">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-mono font-bold text-sm text-slate-900">{delivery.deliveryNumber}</span>
+              <StatusBadge label={labelOf(DELIVERY_STATUS_LABEL, delivery.status)} />
+            </div>
+            <div className="text-xs text-slate-500 mt-1">
+              Đơn gốc: <span className="font-mono font-medium text-slate-700">{delivery.orderNumber}</span>
+              {' · '}Tạo lúc {formatDateTime(delivery.createdAt)}
+            </div>
+            {delivery.cancelReason && (
+              <div className="text-xs text-rose-600 mt-1">Lý do hủy: {delivery.cancelReason}</div>
+            )}
+          </div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
+            {isEditable && (
+              <div>
+                <label htmlFor="driver-select" className="text-xs font-bold text-slate-700 block mb-1">Phân công tài xế</label>
+                <div className="flex gap-2">
+                  <select
+                    id="driver-select"
+                    className="flex-1 h-9 px-3 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
+                    value={selectedDriverId}
+                    onChange={(e) => setSelectedDriverId(e.target.value)}
+                    disabled={isProcessing}
+                  >
+                    <option value="">-- Chọn tài xế --</option>
+                    {drivers.map((d) => (
+                      <option key={d.id} value={d.id}>{d.fullName}{d.phoneNumber ? ` · ${d.phoneNumber}` : ''}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="px-4 h-9 bg-slate-800 text-white hover:bg-slate-900 font-medium rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center gap-1"
+                    onClick={handleAssign}
+                    disabled={!selectedDriverId || isProcessing || delivery.assignedTo?.userId === selectedDriverId}
+                  >
+                    <UserCircle size={16} />
+                    Lưu
+                  </button>
+                </div>
+                {driversForbidden ? (
+                  <p className="text-xs text-amber-700 mt-1">Tài khoản này chưa được cấp quyền xem danh sách tài xế. Nhờ Đại lý phân công.</p>
+                ) : drivers.length === 0 ? (
+                  <p className="text-xs text-slate-500 mt-1">Chưa có tài xế đang hoạt động.</p>
+                ) : null}
               </div>
-              <div className="text-xs text-slate-500 mt-1">
-                Đơn gốc: <span className="font-mono font-medium text-slate-700">{delivery.orderNumber}</span>
-                {' · '}Tạo lúc {formatDateTime(delivery.createdAt)}
+            )}
+
+            {canDispatch && (
+              <button
+                type="button"
+                className="w-full h-10 bg-primary text-on-primary hover:bg-primary/90 font-bold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                onClick={handleDispatch}
+                disabled={isProcessing}
+              >
+                <CheckCircle size={18} />
+                {delivery.status === 'ASSIGNED' ? 'Xuất kho & đi giao' : 'Xuất phát lại'}
+              </button>
+            )}
+            {isEditable && !delivery.assignedTo && (
+              <p className="text-xs text-slate-500">Phân công tài xế trước khi xuất phát.</p>
+            )}
+
+            {delivery.status === 'OUT_FOR_DELIVERY' && (
+              <div className="bg-amber-50 text-amber-800 border border-amber-200 rounded-lg p-3 text-sm flex items-start gap-2">
+                <Truck size={18} className="shrink-0 mt-0.5 text-amber-600" />
+                <div>
+                  <div className="font-bold">{activeAttempt ? `Đang giao (lần ${activeAttempt.attemptNumber})` : 'Đã xuất phát'}</div>
+                  <div className="text-xs mt-0.5 opacity-90">
+                    {activeAttempt ? 'Tài xế đang trên đường giao hàng.' : 'Chờ tài xế bấm bắt đầu giao trên ứng dụng.'}
+                  </div>
+                </div>
               </div>
-              {delivery.cancelReason && (
-                <div className="text-xs text-rose-600 mt-1">Lý do hủy: {delivery.cancelReason}</div>
+            )}
+
+            <div className="flex flex-wrap gap-2 justify-end">
+              {activeAttempt && (
+                <button
+                  type="button"
+                  className="px-3 h-9 rounded-lg border border-amber-300 text-amber-800 hover:bg-amber-50 text-sm font-medium flex items-center gap-1"
+                  onClick={() => setCancelTarget('attempt')}
+                  disabled={isProcessing}
+                >
+                  <XCircle size={16} /> Hủy lần giao đang chạy
+                </button>
+              )}
+              {canCancelDelivery && (
+                <button
+                  type="button"
+                  className="px-3 h-9 rounded-lg border border-rose-300 text-rose-700 hover:bg-rose-50 text-sm font-medium flex items-center gap-1"
+                  onClick={() => setCancelTarget('delivery')}
+                  disabled={isProcessing}
+                >
+                  <XCircle size={16} /> Hủy phiếu giao
+                </button>
               )}
             </div>
-
-            <div className="p-4 border-b border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          </div>} bodyClassName="space-y-4"><div className="p-4 border-b border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Người nhận</span>
                 <div className="text-sm font-bold text-slate-900 mt-1">{delivery.deliveryAddress?.recipientName || '--'}</div>
@@ -221,10 +304,7 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
                 </div>
                 {delivery.note && <div className="italic">Ghi chú: {delivery.note}</div>}
               </div>
-            </div>
-
-            {/* Lines + lots */}
-            <div className="p-4 border-b border-slate-200">
+            </div><div className="p-4 border-b border-slate-200">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Mặt hàng &amp; lô xuất</span>
               <div className="space-y-3">
                 {delivery.items.map((item) => (
@@ -267,10 +347,7 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Attempts history */}
-            {delivery.attempts.length > 0 && (
+            </div>{delivery.attempts.length > 0 && (
               <div className="p-4 border-b border-slate-200">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Các lần giao</span>
                 <ul className="space-y-2">
@@ -299,10 +376,7 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
                   ))}
                 </ul>
               </div>
-            )}
-
-            {/* Incidents (Q5) */}
-            {incidents.length > 0 && (
+            )}{incidents.length > 0 && (
               <div className="p-4 border-b border-slate-200">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Sự cố giao hàng</span>
                 <div className="space-y-2">
@@ -341,117 +415,18 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
                 </div>
               </div>
             )}
-
-            {/* Actions (Q4) */}
-            <div className="p-4 bg-slate-50 rounded-b-xl flex flex-col gap-3">
-              {isEditable && (
-                <div>
-                  <label htmlFor="driver-select" className="text-xs font-bold text-slate-700 block mb-1">Phân công tài xế</label>
-                  <div className="flex gap-2">
-                    <select
-                      id="driver-select"
-                      className="flex-1 h-9 px-3 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
-                      value={selectedDriverId}
-                      onChange={(e) => setSelectedDriverId(e.target.value)}
-                      disabled={isProcessing}
-                    >
-                      <option value="">-- Chọn tài xế --</option>
-                      {drivers.map((d) => (
-                        <option key={d.id} value={d.id}>{d.fullName}{d.phoneNumber ? ` · ${d.phoneNumber}` : ''}</option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      className="px-4 h-9 bg-slate-800 text-white hover:bg-slate-900 font-medium rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center gap-1"
-                      onClick={handleAssign}
-                      disabled={!selectedDriverId || isProcessing || delivery.assignedTo?.userId === selectedDriverId}
-                    >
-                      <UserCircle size={16} />
-                      Lưu
-                    </button>
-                  </div>
-                  {driversForbidden ? (
-                    <p className="text-xs text-amber-700 mt-1">Tài khoản này chưa được cấp quyền xem danh sách tài xế. Nhờ Đại lý phân công.</p>
-                  ) : drivers.length === 0 ? (
-                    <p className="text-xs text-slate-500 mt-1">Chưa có tài xế đang hoạt động.</p>
-                  ) : null}
-                </div>
-              )}
-
-              {canDispatch && (
-                <button
-                  type="button"
-                  className="w-full h-10 bg-primary text-on-primary hover:bg-primary/90 font-bold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                  onClick={handleDispatch}
-                  disabled={isProcessing}
-                >
-                  <CheckCircle size={18} />
-                  {delivery.status === 'ASSIGNED' ? 'Xuất kho & đi giao' : 'Xuất phát lại'}
-                </button>
-              )}
-              {isEditable && !delivery.assignedTo && (
-                <p className="text-xs text-slate-500">Phân công tài xế trước khi xuất phát.</p>
-              )}
-
-              {delivery.status === 'OUT_FOR_DELIVERY' && (
-                <div className="bg-amber-50 text-amber-800 border border-amber-200 rounded-lg p-3 text-sm flex items-start gap-2">
-                  <Truck size={18} className="shrink-0 mt-0.5 text-amber-600" />
-                  <div>
-                    <div className="font-bold">{activeAttempt ? `Đang giao (lần ${activeAttempt.attemptNumber})` : 'Đã xuất phát'}</div>
-                    <div className="text-xs mt-0.5 opacity-90">
-                      {activeAttempt ? 'Tài xế đang trên đường giao hàng.' : 'Chờ tài xế bấm bắt đầu giao trên ứng dụng.'}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex flex-wrap gap-2 justify-end">
-                {activeAttempt && (
-                  <button
-                    type="button"
-                    className="px-3 h-9 rounded-lg border border-amber-300 text-amber-800 hover:bg-amber-50 text-sm font-medium flex items-center gap-1"
-                    onClick={() => setCancelTarget('attempt')}
-                    disabled={isProcessing}
-                  >
-                    <XCircle size={16} /> Hủy lần giao đang chạy
-                  </button>
-                )}
-                {canCancelDelivery && (
-                  <button
-                    type="button"
-                    className="px-3 h-9 rounded-lg border border-rose-300 text-rose-700 hover:bg-rose-50 text-sm font-medium flex items-center gap-1"
-                    onClick={() => setCancelTarget('delivery')}
-                    disabled={isProcessing}
-                  >
-                    <XCircle size={16} /> Hủy phiếu giao
-                  </button>
-                )}
-              </div>
-            </div>
-          </>
+          </ModalLayout>
         )}
       </DetailModal>
 
       {/* Cancel delivery / attempt — reason is mandatory */}
       <DetailModal open={cancelTarget !== null} onClose={() => setCancelTarget(null)}>
-        <div className="p-4 border-b border-slate-200 bg-slate-50 rounded-t-xl">
+        <ModalLayout header={<div className="">
           <h3 className="font-bold text-slate-900">{cancelTarget === 'attempt' ? 'Hủy lần giao đang chạy' : 'Hủy phiếu giao'}</h3>
           {cancelTarget === 'delivery' && delivery?.status === 'PARTIALLY_DELIVERED' && (
             <p className="text-xs text-slate-600 mt-1">Phần đã giao được giữ nguyên; phần chưa giao trả về đơn để lập phiếu mới.</p>
           )}
-        </div>
-        <div className="p-4">
-          <label htmlFor="cancel-reason" className="text-sm font-medium text-slate-700 block mb-1">Lý do <span className="text-rose-600">*</span></label>
-          <textarea
-            id="cancel-reason"
-            className="w-full p-3 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
-            rows={3}
-            value={cancelReason}
-            onChange={(e) => setCancelReason(e.target.value)}
-            placeholder="Nhập lý do hủy..."
-          />
-        </div>
-        <div className="p-4 bg-slate-50 flex justify-end gap-2 rounded-b-xl">
+        </div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
           <button type="button" className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg" onClick={() => setCancelTarget(null)}>
             Đóng
           </button>
@@ -463,48 +438,26 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
           >
             {isProcessing ? 'Đang xử lý...' : 'Xác nhận hủy'}
           </button>
-        </div>
+        </div>}><div className="p-4">
+            <label htmlFor="cancel-reason" className="text-sm font-medium text-slate-700 block mb-1">Lý do <span className="text-rose-600">*</span></label>
+            <textarea
+              id="cancel-reason"
+              className="w-full p-3 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              rows={3}
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="Nhập lý do hủy..."
+            />
+          </div>
+        </ModalLayout>
       </DetailModal>
 
       {/* Resolve incident (Q5) */}
       <DetailModal open={resolvingIncident !== null} onClose={() => setResolvingIncident(null)}>
-        <div className="p-4 border-b border-slate-200 bg-slate-50 rounded-t-xl">
+        <ModalLayout header={<div className="">
           <h3 className="font-bold text-slate-900">Xử lý sự cố</h3>
           {resolvingIncident && <p className="text-xs text-slate-600 mt-1">{resolvingIncident.description}</p>}
-        </div>
-        <div className="p-4 space-y-4">
-          <div>
-            <label htmlFor="resolution-type" className="text-sm font-medium text-slate-700 block mb-1">Hướng giải quyết</label>
-            <select
-              id="resolution-type"
-              className="w-full h-10 px-3 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              value={resolutionType}
-              onChange={(e) => setResolutionType(e.target.value as ResolutionType)}
-            >
-              {(Object.keys(RESOLUTION_TYPE_LABEL) as ResolutionType[]).map((t) => (
-                <option key={t} value={t}>{RESOLUTION_TYPE_LABEL[t]}</option>
-              ))}
-            </select>
-            {STOCK_CHANGING_RESOLUTIONS.includes(resolutionType) && (
-              <p className="mt-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-2 flex gap-1.5">
-                <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-                Thao tác này không tự trừ kho. Cần lập phiếu điều chỉnh kho riêng nếu hàng bị hư hỏng hoặc mất.
-              </p>
-            )}
-          </div>
-          <div>
-            <label htmlFor="resolution-note" className="text-sm font-medium text-slate-700 block mb-1">Ghi chú xử lý</label>
-            <textarea
-              id="resolution-note"
-              className="w-full p-3 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              rows={3}
-              value={resolutionNote}
-              onChange={(e) => setResolutionNote(e.target.value)}
-              placeholder="VD: Hẹn giao lại sáng mai"
-            />
-          </div>
-        </div>
-        <div className="p-4 bg-slate-50 flex justify-end gap-2 rounded-b-xl">
+        </div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
           <button type="button" className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg" onClick={() => setResolvingIncident(null)}>
             Hủy
           </button>
@@ -516,7 +469,39 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
           >
             {isProcessing ? 'Đang xử lý...' : 'Xác nhận xử lý'}
           </button>
-        </div>
+        </div>}><div className="p-4 space-y-4">
+            <div>
+              <label htmlFor="resolution-type" className="text-sm font-medium text-slate-700 block mb-1">Hướng giải quyết</label>
+              <select
+                id="resolution-type"
+                className="w-full h-10 px-3 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                value={resolutionType}
+                onChange={(e) => setResolutionType(e.target.value as ResolutionType)}
+              >
+                {(Object.keys(RESOLUTION_TYPE_LABEL) as ResolutionType[]).map((t) => (
+                  <option key={t} value={t}>{RESOLUTION_TYPE_LABEL[t]}</option>
+                ))}
+              </select>
+              {STOCK_CHANGING_RESOLUTIONS.includes(resolutionType) && (
+                <p className="mt-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-2 flex gap-1.5">
+                  <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                  Thao tác này không tự trừ kho. Cần lập phiếu điều chỉnh kho riêng nếu hàng bị hư hỏng hoặc mất.
+                </p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="resolution-note" className="text-sm font-medium text-slate-700 block mb-1">Ghi chú xử lý</label>
+              <textarea
+                id="resolution-note"
+                className="w-full p-3 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                rows={3}
+                value={resolutionNote}
+                onChange={(e) => setResolutionNote(e.target.value)}
+                placeholder="VD: Hẹn giao lại sáng mai"
+              />
+            </div>
+          </div>
+        </ModalLayout>
       </DetailModal>
 
       {editingItem && delivery && (

@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useState, useEffect } from 'react'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { creditTiersApi, type CreditTierResponse } from '@/api/creditTiersApi'
@@ -241,9 +242,8 @@ export default function CreditConfigPage() {
             key={tab}
             role="tab"
             aria-selected={activeTab === tab}
-            className={`px-6 py-2 rounded-md font-label-md text-label-md transition-colors ${
-              activeTab === tab ? 'bg-white shadow text-primary font-bold' : 'text-on-surface-variant hover:text-on-surface'
-            }`}
+            className={`px-6 py-2 rounded-md font-label-md text-label-md transition-colors ${activeTab === tab ? 'bg-white shadow text-primary font-bold' : 'text-on-surface-variant hover:text-on-surface'
+              }`}
             onClick={() => setActiveTab(tab)}
           >
             {tab === 'GROUPS' ? 'Nhóm khách hàng' : 'Hạng tín dụng'}
@@ -366,23 +366,21 @@ export default function CreditConfigPage() {
 
       <DetailModal open={history !== null} onClose={() => setHistory(null)} widthClassName="max-w-lg">
         {history && (
-          <div className="p-5 space-y-3">
-            <h3 className="text-lg font-bold text-slate-900">Lịch sử bảng giá — {history.group.name}</h3>
-            {history.links.length === 0 ? (
-              <p className="text-sm text-slate-500">Nhóm chưa từng gắn bảng giá.</p>
-            ) : (
-              <ul className="divide-y divide-slate-100 text-sm">
-                {history.links.map((l) => (
-                  <li key={l.id} className="py-2 flex justify-between gap-3">
-                    <span className="font-medium">{l.priceList.name ?? l.priceList.code}</span>
-                    <span className="text-slate-500">
-                      {formatDay(l.effectiveFrom)} → {l.effectiveTo ? formatDay(l.effectiveTo) : 'nay'}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <ModalLayout header={<h3 className="text-lg font-bold text-slate-900">Lịch sử bảng giá — {history.group.name}</h3>} bodyClassName="space-y-3">{history.links.length === 0 ? (
+            <p className="text-sm text-slate-500">Nhóm chưa từng gắn bảng giá.</p>
+          ) : (
+            <ul className="divide-y divide-slate-100 text-sm">
+              {history.links.map((l) => (
+                <li key={l.id} className="py-2 flex justify-between gap-3">
+                  <span className="font-medium">{l.priceList.name ?? l.priceList.code}</span>
+                  <span className="text-slate-500">
+                    {formatDay(l.effectiveFrom)} → {l.effectiveTo ? formatDay(l.effectiveTo) : 'nay'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          </ModalLayout>
         )}
       </DetailModal>
     </div>

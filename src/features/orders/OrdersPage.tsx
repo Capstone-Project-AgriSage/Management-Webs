@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronRight, Download, Plus, Receipt, Clock, PackageCheck, CheckCircle, FilterX, Phone, StickyNote, Pencil, ArrowRight } from 'lucide-react'
@@ -102,7 +103,7 @@ export default function OrdersPage() {
   const [isLoading, setIsLoading] = useState(false)
 
   const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(null)
-  
+
   // Payment state
   const [paymentSummary, setPaymentSummary] = useState<OrderPaymentsSummary | null>(null)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
@@ -257,7 +258,7 @@ export default function OrdersPage() {
   /** After an action on the open order: show the server's copy, reload its payments, refresh the list. */
   const refreshSelected = (order: OrderResponse) => {
     setSelectedOrder(order)
-    paymentsApi.getOrderPayments(order.id).then(setPaymentSummary).catch(() => {})
+    paymentsApi.getOrderPayments(order.id).then(setPaymentSummary).catch(() => { })
     fetchOrders()
   }
 
@@ -335,7 +336,7 @@ export default function OrdersPage() {
       showToast(`Đã lập phiếu giao ${created.deliveryNumber}. Bấm "Phân công tài xế" để chọn tài xế.`, 'success')
       setIsDeliveryModalOpen(false)
       // Stay on the order so the new delivery shows up with its "Phân công tài xế" shortcut.
-      deliveriesApi.getOrderDeliveries(selectedOrder.id).then(setOrderDeliveries).catch(() => {})
+      deliveriesApi.getOrderDeliveries(selectedOrder.id).then(setOrderDeliveries).catch(() => { })
       fetchOrders()
     } catch (err) {
       // 422 errors are keyed by line ("items[i]"); name the product in the message.
@@ -347,7 +348,7 @@ export default function OrdersPage() {
       } else {
         showToast(err instanceof Error ? err.message : 'Lỗi khi lập phiếu giao hàng', 'error')
       }
-      deliveriesApi.getOrderDeliveries(selectedOrder.id).then(setOrderDeliveries).catch(() => {})
+      deliveriesApi.getOrderDeliveries(selectedOrder.id).then(setOrderDeliveries).catch(() => { })
     } finally {
       setIsCreatingDelivery(false)
     }
@@ -435,11 +436,11 @@ export default function OrdersPage() {
 
       <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-center justify-between gap-4 mt-4">
         <div className="flex flex-wrap items-center gap-3 flex-1">
-          <SearchInput 
-            value={search} 
-            onChange={(val) => { setSearch(val); setPage(1) }} 
-            placeholder="Tìm theo mã đơn, SĐT..." 
-            className="relative flex-1 min-w-[240px]" 
+          <SearchInput
+            value={search}
+            onChange={(val) => { setSearch(val); setPage(1) }}
+            placeholder="Tìm theo mã đơn, SĐT..."
+            className="relative flex-1 min-w-[240px]"
           />
           <div className="relative min-w-[180px]">
             <select
@@ -470,7 +471,7 @@ export default function OrdersPage() {
               <ChevronRight size={16} className="text-on-surface-variant rotate-90" />
             </div>
           </div>
-          
+
           <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
             <input
               type="date"
@@ -528,9 +529,8 @@ export default function OrdersPage() {
                   <tr
                     key={order.id}
                     onClick={() => handleOpenDetail(order)}
-                    className={`transition-colors cursor-pointer group ${
-                      isSelected ? 'bg-primary/5 hover:bg-primary/10 border-l-2 border-l-primary' : 'hover:bg-surface-container-low'
-                    }`}
+                    className={`transition-colors cursor-pointer group ${isSelected ? 'bg-primary/5 hover:bg-primary/10 border-l-2 border-l-primary' : 'hover:bg-surface-container-low'
+                      }`}
                   >
                     <td className="py-4.5 pl-4 px-3">
                       <div className="font-bold text-sm text-on-surface">{order.customerName}</div>
@@ -589,17 +589,157 @@ export default function OrdersPage() {
 
       <DetailModal open={selectedOrder !== null} onClose={() => setSelectedOrder(null)}>
         {selectedOrder ? (
-          <>
-            <div className="p-4 bg-surface-container-low border-b border-outline-variant flex items-center justify-between rounded-t-xl">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-bold text-sm text-on-surface">#{selectedOrder.orderNumber}</span>
-                  <StatusBadge label={STATUS_MAP[selectedOrder.status]} className={STATUS_VISUALS[selectedOrder.status]?.className} />
-                </div>
-                <div className="text-label-sm text-on-surface-variant mt-1">Tạo lúc: {new Date(selectedOrder.createdAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+          <ModalLayout header={<div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono font-bold text-sm text-on-surface">#{selectedOrder.orderNumber}</span>
+                <StatusBadge label={STATUS_MAP[selectedOrder.status]} className={STATUS_VISUALS[selectedOrder.status]?.className} />
               </div>
+              <div className="text-label-sm text-on-surface-variant mt-1">Tạo lúc: {new Date(selectedOrder.createdAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
             </div>
-            <div className="p-4 space-y-2 border-b border-outline-variant">
+          </div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
+            <div className="flex justify-between items-center text-sm">
+              <span className="font-medium text-on-surface-variant">Trạng thái thanh toán:</span>
+              <span className={`font-bold ${getPaymentStatus().color}`}>{getPaymentStatus().label}</span>
+            </div>
+
+            {selectedOrder.status === 'PENDING_CONFIRMATION' && selectedOrder.items && (
+              <button
+                type="button"
+                className="w-full h-10 mt-2 border border-outline-variant text-on-surface hover:bg-surface-container rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
+                onClick={() => setEditingOrder(selectedOrder)}
+              >
+                <Pencil size={15} /> SỬA ĐƠN (DÒNG HÀNG, GIÁ, GHI CHÚ)
+              </button>
+            )}
+
+            {/* Online orders (farmer web / mobile) are paid through payOS or put on credit: cash is only for counter orders. */}
+            <div className={isCounterOrder(selectedOrder) ? 'grid grid-cols-2 gap-3 mt-2' : 'mt-2'}>
+              {isCounterOrder(selectedOrder) && (
+                <button
+                  className="w-full h-10 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg font-bold flex items-center justify-center transition-colors disabled:opacity-50"
+                  disabled={!paymentSummary || paymentSummary.remainingToPay <= 0 || ['COMPLETED', 'CANCELLED', 'PARTIALLY_CANCELLED'].includes(selectedOrder.status)}
+                  onClick={() => setIsPaymentModalOpen(true)}
+                >
+                  <Receipt size={16} className="mr-2" />
+                  THU TIỀN TẠI QUẦY
+                </button>
+              )}
+              <button
+                className="w-full h-10 bg-primary text-on-primary hover:bg-primary/90 rounded-lg font-bold flex items-center justify-center transition-colors disabled:opacity-50"
+                // A FULL_PAYMENT order is confirmed only once it is fully paid (server: "Payment does not cover the order total"); CREDIT orders are not.
+                disabled={selectedOrder.status !== 'PENDING_CONFIRMATION' || (selectedOrder.settlementType === 'FULL_PAYMENT' && (!paymentSummary || paymentSummary.remainingToPay > 0))}
+                title={selectedOrder.settlementType === 'FULL_PAYMENT' && (paymentSummary?.remainingToPay ?? 0) > 0 ? 'Đơn trả ngay: cần thu đủ tiền trước khi xác nhận' : undefined}
+                onClick={() => setConfirmFor(selectedOrder)}
+              >
+                <CheckCircle size={16} className="mr-2" />
+                XÁC NHẬN ĐƠN (M5)
+              </button>
+            </div>
+            <div className="text-xs text-center text-on-surface-variant mt-1">
+              {selectedOrder.settlementType === 'CREDIT' ? '* Đơn mua chịu: xác nhận không cần thu tiền trước' : '* Chỉ có thể xác nhận đơn khi đã thu đủ tiền'}
+            </div>
+
+            {/* Optional tracking steps (FE_GUIDE_FLOW_1 §M5/§M9): skipping them does not block the hand-over. */}
+            {['CONFIRMED', 'PREPARING'].includes(selectedOrder.status) && (
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  className="h-9 rounded-lg border border-outline-variant text-sm font-semibold hover:bg-surface-container disabled:opacity-40"
+                  disabled={stepping || selectedOrder.status !== 'CONFIRMED'}
+                  onClick={() => runStep(() => ordersApi.startPreparing(selectedOrder.id), 'Đã chuyển sang Đang chuẩn bị')}
+                >
+                  Bắt đầu chuẩn bị
+                </button>
+                <button
+                  type="button"
+                  className="h-9 rounded-lg border border-outline-variant text-sm font-semibold hover:bg-surface-container disabled:opacity-40"
+                  disabled={stepping}
+                  onClick={() => runStep(() => ordersApi.markReady(selectedOrder.id), 'Đơn đã sẵn sàng giao')}
+                >
+                  Sẵn sàng giao
+                </button>
+              </div>
+            )}
+
+            {selectedOrder.status === 'PENDING_CONFIRMATION' && selectedOrder.settlementType === 'FULL_PAYMENT' && paymentSummary && paymentSummary.remainingToPay > 0 && (
+              <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                {isCounterOrder(selectedOrder)
+                  ? 'Đơn trả ngay chưa thanh toán đủ: chờ khách trả qua payOS hoặc thu tiền tại quầy rồi mới xác nhận được.'
+                  : 'Đơn online trả ngay chưa thanh toán đủ: chờ khách thanh toán qua payOS rồi mới xác nhận được.'}
+              </p>
+            )}
+
+            {['CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT', 'PARTIALLY_FULFILLED'].includes(selectedOrder.status) && selectedOrder.fulfillmentType === 'PICKUP' && (
+              <button
+                className="w-full h-10 mt-1 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg font-bold flex items-center justify-center transition-colors shadow-sm"
+                onClick={() => setPickupFor(selectedOrder)}
+              >
+                <PackageCheck size={16} className="mr-2" />
+                GIAO HÀNG TẠI QUẦY (M6)
+              </button>
+            )}
+
+            {selectedOrder.fulfillmentType === 'DELIVERY' && orderDeliveries.length > 0 && (
+              <div className="rounded-lg border border-outline-variant bg-surface-container-lowest p-3 text-sm">
+                <div className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Phiếu giao của đơn</div>
+                <ul className="space-y-1">
+                  {orderDeliveries.map((d) => {
+                    // A draft or retry without a driver needs one; anything else is just opened to follow it.
+                    const needsDriver = !d.assignedTo && (d.status === 'DRAFT' || d.status === 'RETRY_PENDING')
+                    return (
+                      <li key={d.id} className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="font-mono">{d.deliveryNumber}</div>
+                          <div className="text-xs text-on-surface-variant">
+                            {labelOf(DELIVERY_STATUS_LABEL, d.status)}
+                            {d.assignedTo ? ` · ${d.assignedTo.fullName}` : ''}
+                            {d.scheduledAt ? ` · ${formatDate(d.scheduledAt)}` : ''}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`${base}/deliveries?open=${d.id}`)}
+                          className={`shrink-0 h-8 px-3 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${needsDriver ? 'bg-blue-600 text-white hover:bg-blue-700' : 'border border-outline-variant text-on-surface hover:bg-surface-container'
+                            }`}
+                        >
+                          {needsDriver ? 'Phân công tài xế' : 'Mở phiếu giao'} <ArrowRight size={14} />
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {['CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT', 'PARTIALLY_FULFILLED'].includes(selectedOrder.status) && selectedOrder.fulfillmentType === 'DELIVERY' && (
+              <button
+                className="w-full h-10 mt-1 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-bold flex items-center justify-center transition-colors shadow-sm"
+                onClick={handleOpenDeliveryModal}
+              >
+                <PackageCheck size={16} className="mr-2" />
+                LẬP PHIẾU GIAO HÀNG (M7)
+              </button>
+            )}
+
+            {['PENDING_CONFIRMATION', 'CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT'].includes(selectedOrder.status) && (
+              <button
+                className="w-full h-10 mt-1 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 rounded-lg font-bold flex items-center justify-center transition-colors shadow-sm"
+                onClick={() => setCancelModal({ open: true, type: 'ORDER', title: `Hủy toàn bộ đơn hàng #${selectedOrder.orderNumber}` })}
+              >
+                HỦY ĐƠN HÀNG (M8)
+              </button>
+            )}
+
+            {['COMPLETED', 'PARTIALLY_FULFILLED', 'PARTIALLY_CANCELLED'].includes(selectedOrder.status) && (
+              <button
+                className="w-full h-10 mt-1 bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 rounded-lg font-bold flex items-center justify-center transition-colors shadow-sm"
+                onClick={() => navigate(`${base}/returns/new?orderId=${selectedOrder.id}`)}
+              >
+                TẠO YÊU CẦU TRẢ HÀNG
+              </button>
+            )}
+          </div>} bodyClassName="space-y-4"><div className="p-4 space-y-2 border-b border-outline-variant">
               <div>
                 <span className="text-label-sm font-bold text-on-surface-variant uppercase tracking-wider block">Khách hàng</span>
                 <div className="text-sm text-on-surface font-bold mt-1">{selectedOrder.customerName}</div>
@@ -620,8 +760,7 @@ export default function OrdersPage() {
                   </div>
                 </div>
               ) : null}
-            </div>
-            <div className="p-4 space-y-2 border-b border-outline-variant">
+            </div><div className="p-4 space-y-2 border-b border-outline-variant">
               <span className="text-label-sm font-bold text-on-surface-variant uppercase tracking-wider block">Danh sách sản phẩm</span>
               <div className="space-y-3 pt-2 text-xs">
                 {selectedOrder.items?.map((item) => (
@@ -663,7 +802,7 @@ export default function OrdersPage() {
                       <span className="text-on-surface-variant">Còn phải thu:</span>
                       <span className="text-rose-600">{formatVnd(paymentSummary.remainingToPay)}</span>
                     </div>
-                    
+
                     {/* Hiển thị hoàn tiền M8 */}
                     {paymentSummary.refunds && paymentSummary.refunds.length > 0 && (
                       <div className="mt-2 space-y-1">
@@ -684,204 +823,44 @@ export default function OrdersPage() {
                 )}
               </div>
             </div>
-            
-            {/* Actions for Detail Modal */}
-            <div className="p-4 bg-surface-container-low border-t border-outline-variant flex flex-col gap-3 rounded-b-xl">
-              <div className="flex justify-between items-center text-sm">
-                <span className="font-medium text-on-surface-variant">Trạng thái thanh toán:</span>
-                <span className={`font-bold ${getPaymentStatus().color}`}>{getPaymentStatus().label}</span>
-              </div>
-
-              {selectedOrder.status === 'PENDING_CONFIRMATION' && selectedOrder.items && (
-                <button
-                  type="button"
-                  className="w-full h-10 mt-2 border border-outline-variant text-on-surface hover:bg-surface-container rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
-                  onClick={() => setEditingOrder(selectedOrder)}
-                >
-                  <Pencil size={15} /> SỬA ĐƠN (DÒNG HÀNG, GIÁ, GHI CHÚ)
-                </button>
-              )}
-
-              {/* Online orders (farmer web / mobile) are paid through payOS or put on credit: cash is only for counter orders. */}
-              <div className={isCounterOrder(selectedOrder) ? 'grid grid-cols-2 gap-3 mt-2' : 'mt-2'}>
-                {isCounterOrder(selectedOrder) && (
-                  <button
-                    className="w-full h-10 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg font-bold flex items-center justify-center transition-colors disabled:opacity-50"
-                    disabled={!paymentSummary || paymentSummary.remainingToPay <= 0 || ['COMPLETED', 'CANCELLED', 'PARTIALLY_CANCELLED'].includes(selectedOrder.status)}
-                    onClick={() => setIsPaymentModalOpen(true)}
-                  >
-                    <Receipt size={16} className="mr-2" />
-                    THU TIỀN TẠI QUẦY
-                  </button>
-                )}
-                <button
-                  className="w-full h-10 bg-primary text-on-primary hover:bg-primary/90 rounded-lg font-bold flex items-center justify-center transition-colors disabled:opacity-50"
-                  // A FULL_PAYMENT order is confirmed only once it is fully paid (server: "Payment does not cover the order total"); CREDIT orders are not.
-                  disabled={selectedOrder.status !== 'PENDING_CONFIRMATION' || (selectedOrder.settlementType === 'FULL_PAYMENT' && (!paymentSummary || paymentSummary.remainingToPay > 0))}
-                  title={selectedOrder.settlementType === 'FULL_PAYMENT' && (paymentSummary?.remainingToPay ?? 0) > 0 ? 'Đơn trả ngay: cần thu đủ tiền trước khi xác nhận' : undefined}
-                  onClick={() => setConfirmFor(selectedOrder)}
-                >
-                  <CheckCircle size={16} className="mr-2" />
-                  XÁC NHẬN ĐƠN (M5)
-                </button>
-              </div>
-              <div className="text-xs text-center text-on-surface-variant mt-1">
-                {selectedOrder.settlementType === 'CREDIT' ? '* Đơn mua chịu: xác nhận không cần thu tiền trước' : '* Chỉ có thể xác nhận đơn khi đã thu đủ tiền'}
-              </div>
-
-              {/* Optional tracking steps (FE_GUIDE_FLOW_1 §M5/§M9): skipping them does not block the hand-over. */}
-              {['CONFIRMED', 'PREPARING'].includes(selectedOrder.status) && (
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    className="h-9 rounded-lg border border-outline-variant text-sm font-semibold hover:bg-surface-container disabled:opacity-40"
-                    disabled={stepping || selectedOrder.status !== 'CONFIRMED'}
-                    onClick={() => runStep(() => ordersApi.startPreparing(selectedOrder.id), 'Đã chuyển sang Đang chuẩn bị')}
-                  >
-                    Bắt đầu chuẩn bị
-                  </button>
-                  <button
-                    type="button"
-                    className="h-9 rounded-lg border border-outline-variant text-sm font-semibold hover:bg-surface-container disabled:opacity-40"
-                    disabled={stepping}
-                    onClick={() => runStep(() => ordersApi.markReady(selectedOrder.id), 'Đơn đã sẵn sàng giao')}
-                  >
-                    Sẵn sàng giao
-                  </button>
-                </div>
-              )}
-
-              {selectedOrder.status === 'PENDING_CONFIRMATION' && selectedOrder.settlementType === 'FULL_PAYMENT' && paymentSummary && paymentSummary.remainingToPay > 0 && (
-                <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                  {isCounterOrder(selectedOrder)
-                    ? 'Đơn trả ngay chưa thanh toán đủ: chờ khách trả qua payOS hoặc thu tiền tại quầy rồi mới xác nhận được.'
-                    : 'Đơn online trả ngay chưa thanh toán đủ: chờ khách thanh toán qua payOS rồi mới xác nhận được.'}
-                </p>
-              )}
-
-              {['CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT', 'PARTIALLY_FULFILLED'].includes(selectedOrder.status) && selectedOrder.fulfillmentType === 'PICKUP' && (
-                <button
-                  className="w-full h-10 mt-1 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg font-bold flex items-center justify-center transition-colors shadow-sm"
-                  onClick={() => setPickupFor(selectedOrder)}
-                >
-                  <PackageCheck size={16} className="mr-2" />
-                  GIAO HÀNG TẠI QUẦY (M6)
-                </button>
-              )}
-
-              {selectedOrder.fulfillmentType === 'DELIVERY' && orderDeliveries.length > 0 && (
-                <div className="rounded-lg border border-outline-variant bg-surface-container-lowest p-3 text-sm">
-                  <div className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Phiếu giao của đơn</div>
-                  <ul className="space-y-1">
-                    {orderDeliveries.map((d) => {
-                      // A draft or retry without a driver needs one; anything else is just opened to follow it.
-                      const needsDriver = !d.assignedTo && (d.status === 'DRAFT' || d.status === 'RETRY_PENDING')
-                      return (
-                        <li key={d.id} className="flex items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="font-mono">{d.deliveryNumber}</div>
-                            <div className="text-xs text-on-surface-variant">
-                              {labelOf(DELIVERY_STATUS_LABEL, d.status)}
-                              {d.assignedTo ? ` · ${d.assignedTo.fullName}` : ''}
-                              {d.scheduledAt ? ` · ${formatDate(d.scheduledAt)}` : ''}
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => navigate(`${base}/deliveries?open=${d.id}`)}
-                            className={`shrink-0 h-8 px-3 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                              needsDriver ? 'bg-blue-600 text-white hover:bg-blue-700' : 'border border-outline-variant text-on-surface hover:bg-surface-container'
-                            }`}
-                          >
-                            {needsDriver ? 'Phân công tài xế' : 'Mở phiếu giao'} <ArrowRight size={14} />
-                          </button>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </div>
-              )}
-
-              {['CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT', 'PARTIALLY_FULFILLED'].includes(selectedOrder.status) && selectedOrder.fulfillmentType === 'DELIVERY' && (
-                <button
-                  className="w-full h-10 mt-1 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-bold flex items-center justify-center transition-colors shadow-sm"
-                  onClick={handleOpenDeliveryModal}
-                >
-                  <PackageCheck size={16} className="mr-2" />
-                  LẬP PHIẾU GIAO HÀNG (M7)
-                </button>
-              )}
-
-              {['PENDING_CONFIRMATION', 'CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT'].includes(selectedOrder.status) && (
-                <button
-                  className="w-full h-10 mt-1 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 rounded-lg font-bold flex items-center justify-center transition-colors shadow-sm"
-                  onClick={() => setCancelModal({ open: true, type: 'ORDER', title: `Hủy toàn bộ đơn hàng #${selectedOrder.orderNumber}` })}
-                >
-                  HỦY ĐƠN HÀNG (M8)
-                </button>
-              )}
-
-              {['COMPLETED', 'PARTIALLY_FULFILLED', 'PARTIALLY_CANCELLED'].includes(selectedOrder.status) && (
-                <button
-                  className="w-full h-10 mt-1 bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 rounded-lg font-bold flex items-center justify-center transition-colors shadow-sm"
-                  onClick={() => navigate(`${base}/returns/new?orderId=${selectedOrder.id}`)}
-                >
-                  TẠO YÊU CẦU TRẢ HÀNG
-                </button>
-              )}
-            </div>
-          </>
+          </ModalLayout>
         ) : null}
       </DetailModal>
 
       {/* Payment Modal */}
       {isPaymentModalOpen && paymentSummary && selectedOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-surface w-full max-w-md rounded-2xl shadow-xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-outline-variant bg-surface-container-low flex justify-between items-center">
-              <h3 className="font-bold text-lg text-on-surface">Thu tiền đơn #{selectedOrder.orderNumber}</h3>
-              <button onClick={() => setIsPaymentModalOpen(false)} className="text-on-surface-variant hover:text-on-surface">
-                <FilterX size={20} />
-              </button>
-            </div>
-            <div className="p-5 space-y-4">
-              <div className="flex justify-between items-center bg-surface-container-lowest p-3 rounded-lg border border-outline-variant">
-                <span className="text-sm font-medium text-on-surface-variant">Còn phải thu:</span>
-                <span className="text-xl font-bold text-rose-600">{formatVnd(paymentSummary.remainingToPay)}</span>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-bold text-on-surface mb-2">Số tiền thu (VNĐ)</label>
-                <input
-                  type="number"
-                  className="w-full h-12 px-4 rounded-xl border border-outline-variant bg-surface focus:outline-none focus:ring-2 focus:ring-primary/50 text-lg font-mono font-bold"
-                  placeholder="Nhập số tiền..."
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
-                />
-              </div>
-              
-              <div className="flex gap-2">
-                <button
-                  className="flex-1 py-2 bg-surface-container-high hover:bg-surface-container-highest text-sm font-bold rounded-lg border border-outline-variant transition-colors text-on-surface"
-                  onClick={() => setPaymentAmount(paymentSummary.remainingToPay.toString())}
-                >
-                  Thu hết số còn lại
-                </button>
-              </div>
-            </div>
-            
-            <div className="p-4 border-t border-outline-variant bg-surface-container-lowest">
+        <DetailModal open onClose={() => setIsPaymentModalOpen(false)}>
+          <ModalLayout header={<div className="space-y-1"><h3 className="font-bold text-lg text-on-surface">Thu tiền đơn #{selectedOrder.orderNumber}</h3></div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
+            <button
+              className="w-full h-12 bg-primary text-on-primary hover:bg-primary/90 font-bold rounded-xl transition-colors disabled:opacity-50"
+              onClick={handleProcessPayment}
+              disabled={isPaying || !paymentAmount}
+            >
+              {isPaying ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN THU TIỀN (TIỀN MẶT)'}
+            </button>
+          </div>}>
+            <div className="flex justify-between items-center bg-surface-container-lowest p-3 rounded-lg border border-outline-variant">
+              <span className="text-sm font-medium text-on-surface-variant">Còn phải thu:</span>
+              <span className="text-xl font-bold text-rose-600">{formatVnd(paymentSummary.remainingToPay)}</span>
+            </div><div>
+              <label className="block text-sm font-bold text-on-surface mb-2">Số tiền thu (VNĐ)</label>
+              <input
+                type="number"
+                className="w-full h-12 px-4 rounded-xl border border-outline-variant bg-surface focus:outline-none focus:ring-2 focus:ring-primary/50 text-lg font-mono font-bold"
+                placeholder="Nhập số tiền..."
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+              />
+            </div><div className="flex gap-2">
               <button
-                className="w-full h-12 bg-primary text-on-primary hover:bg-primary/90 font-bold rounded-xl transition-colors disabled:opacity-50"
-                onClick={handleProcessPayment}
-                disabled={isPaying || !paymentAmount}
+                className="flex-1 py-2 bg-surface-container-high hover:bg-surface-container-highest text-sm font-bold rounded-lg border border-outline-variant transition-colors text-on-surface"
+                onClick={() => setPaymentAmount(paymentSummary.remainingToPay.toString())}
               >
-                {isPaying ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN THU TIỀN (TIỀN MẶT)'}
+                Thu hết số còn lại
               </button>
             </div>
-          </div>
-        </div>
+          </ModalLayout>
+        </DetailModal>
       )}
 
       <ConfirmOrderModal
@@ -906,40 +885,44 @@ export default function OrdersPage() {
 
       {/* Delivery Modal M7 */}
       {isDeliveryModalOpen && selectedOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-surface w-full max-w-2xl rounded-2xl shadow-xl flex flex-col overflow-hidden max-h-[90vh]">
-            <div className="p-4 border-b border-outline-variant bg-blue-50 flex justify-between items-center">
-              <h3 className="font-bold text-lg text-blue-900">Lập phiếu giao hàng #{selectedOrder.orderNumber}</h3>
-              <button onClick={() => setIsDeliveryModalOpen(false)} className="text-blue-500 hover:text-blue-800">
-                <FilterX size={20} />
-              </button>
-            </div>
-            
-            <div className="p-5 overflow-y-auto flex-1 space-y-4">
-              <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-sm mb-4">
-                Điền số lượng (theo quy cách) cho chuyến này. Lô hàng được chọn sẵn theo hạn dùng; có thể đổi lô trong chi tiết phiếu giao.
-              </div>
-              
-              <div className="bg-surface rounded-lg overflow-hidden border border-outline-variant text-sm">
-                <table className="w-full text-left">
-                  <thead className="bg-surface-container-low text-xs text-on-surface-variant">
+        <DetailModal open onClose={() => setIsDeliveryModalOpen(false)}>
+          <ModalLayout header={<div className="space-y-1"><h3 className="font-bold text-lg text-blue-900">Lập phiếu giao hàng #{selectedOrder.orderNumber}</h3></div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
+            <button
+              className="px-6 py-2 bg-surface-container-high hover:bg-surface-container-highest font-bold rounded-xl transition-colors text-on-surface"
+              onClick={() => setIsDeliveryModalOpen(false)}
+            >
+              HỦY
+            </button>
+            <button
+              className="px-6 py-2 bg-blue-600 text-white hover:bg-blue-700 font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
+              onClick={handleCreateDelivery}
+              disabled={isCreatingDelivery || Object.values(deliveryQuantities).every(q => q === 0)}
+            >
+              {isCreatingDelivery ? 'ĐANG XỬ LÝ...' : 'LẬP PHIẾU GIAO'}
+            </button>
+          </div>}>
+            <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-sm mb-4">
+              Điền số lượng (theo quy cách) cho chuyến này. Lô hàng được chọn sẵn theo hạn dùng; có thể đổi lô trong chi tiết phiếu giao.
+            </div><div className="bg-surface rounded-lg overflow-hidden border border-outline-variant text-sm">
+              <table className="w-full text-left">
+                <thead className="bg-surface-container-low text-xs text-on-surface-variant">
+                  <tr>
+                    <th className="p-3 font-medium">Sản phẩm</th>
+                    <th className="p-3 font-medium text-right">Cần giao</th>
+                    <th className="p-3 font-medium text-right text-blue-600 w-32">SL lập phiếu</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/50">
+                  {selectedOrder.items?.filter(i => availableToPlan(i) > 0).length === 0 ? (
                     <tr>
-                      <th className="p-3 font-medium">Sản phẩm</th>
-                      <th className="p-3 font-medium text-right">Cần giao</th>
-                      <th className="p-3 font-medium text-right text-blue-600 w-32">SL lập phiếu</th>
+                      <td colSpan={3} className="p-4 text-center text-on-surface-variant italic text-xs">
+                        Mọi sản phẩm còn lại đã nằm trên các phiếu giao khác
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-outline-variant/50">
-                    {selectedOrder.items?.filter(i => availableToPlan(i) > 0).length === 0 ? (
-                      <tr>
-                        <td colSpan={3} className="p-4 text-center text-on-surface-variant italic text-xs">
-                          Mọi sản phẩm còn lại đã nằm trên các phiếu giao khác
-                        </td>
-                      </tr>
-                    ) : (
-                      selectedOrder.items?.filter(i => availableToPlan(i) > 0).map((item) => {
-                        const maxPlanned = availableToPlan(item)
-                        return (
+                  ) : (
+                    selectedOrder.items?.filter(i => availableToPlan(i) > 0).map((item) => {
+                      const maxPlanned = availableToPlan(item)
+                      return (
                         <tr key={item.id}>
                           <td className="p-3">
                             <div className="font-bold">{item.productName}</div>
@@ -962,99 +945,68 @@ export default function OrdersPage() {
                             />
                           </td>
                         </tr>
-                      )})
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label className="block text-sm">
-                  <span className="font-medium text-on-surface-variant block mb-1">Hẹn giao lúc</span>
-                  <input
-                    type="datetime-local"
-                    value={deliveryScheduledAt}
-                    onChange={(e) => setDeliveryScheduledAt(e.target.value)}
-                    className="w-full h-9 px-2 rounded-lg border border-outline-variant focus:outline-none focus:border-blue-500"
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="font-medium text-on-surface-variant block mb-1">Ghi chú cho tài xế</span>
-                  <input
-                    type="text"
-                    value={deliveryNote}
-                    onChange={(e) => setDeliveryNote(e.target.value)}
-                    placeholder="VD: Gọi trước 15 phút"
-                    className="w-full h-9 px-2 rounded-lg border border-outline-variant focus:outline-none focus:border-blue-500"
-                  />
-                </label>
-              </div>
+                      )
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div><div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="block text-sm">
+                <span className="font-medium text-on-surface-variant block mb-1">Hẹn giao lúc</span>
+                <input
+                  type="datetime-local"
+                  value={deliveryScheduledAt}
+                  onChange={(e) => setDeliveryScheduledAt(e.target.value)}
+                  className="w-full h-9 px-2 rounded-lg border border-outline-variant focus:outline-none focus:border-blue-500"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="font-medium text-on-surface-variant block mb-1">Ghi chú cho tài xế</span>
+                <input
+                  type="text"
+                  value={deliveryNote}
+                  onChange={(e) => setDeliveryNote(e.target.value)}
+                  placeholder="VD: Gọi trước 15 phút"
+                  className="w-full h-9 px-2 rounded-lg border border-outline-variant focus:outline-none focus:border-blue-500"
+                />
+              </label>
             </div>
-
-            <div className="p-4 border-t border-outline-variant bg-surface-container-lowest flex justify-end gap-3">
-              <button
-                className="px-6 py-2 bg-surface-container-high hover:bg-surface-container-highest font-bold rounded-xl transition-colors text-on-surface"
-                onClick={() => setIsDeliveryModalOpen(false)}
-              >
-                HỦY
-              </button>
-              <button
-                className="px-6 py-2 bg-blue-600 text-white hover:bg-blue-700 font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
-                onClick={handleCreateDelivery}
-                disabled={isCreatingDelivery || Object.values(deliveryQuantities).every(q => q === 0)}
-              >
-                {isCreatingDelivery ? 'ĐANG XỬ LÝ...' : 'LẬP PHIẾU GIAO'}
-              </button>
-            </div>
-          </div>
-        </div>
+          </ModalLayout>
+        </DetailModal>
       )}
 
       {/* Cancel Modal M8 */}
       {cancelModal.open && selectedOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-surface w-full max-w-md rounded-2xl shadow-xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-outline-variant bg-rose-50 flex justify-between items-center">
-              <h3 className="font-bold text-lg text-rose-900">{cancelModal.title}</h3>
-              <button onClick={() => setCancelModal({ open: false, type: 'ORDER', title: '' })} className="text-rose-500 hover:text-rose-800">
-                <FilterX size={20} />
-              </button>
+        <DetailModal open onClose={() => setCancelModal({ open: false, type: 'ORDER', title: '' })}>
+          <ModalLayout header={<div className="space-y-1"><h3 className="font-bold text-lg text-rose-900">{cancelModal.title}</h3></div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
+            <button
+              className="px-6 py-2 bg-surface-container-high hover:bg-surface-container-highest font-bold rounded-xl transition-colors text-on-surface"
+              onClick={() => setCancelModal({ open: false, type: 'ORDER', title: '' })}
+            >
+              ĐÓNG
+            </button>
+            <button
+              className="px-6 py-2 bg-rose-600 text-white hover:bg-rose-700 font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
+              onClick={handleCancelSubmit}
+              disabled={isCancelling || !cancelReason.trim()}
+            >
+              {isCancelling ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN HỦY'}
+            </button>
+          </div>}>
+            <div className="text-sm text-on-surface-variant">
+              Vui lòng nhập lý do hủy. Hành động này không thể hoàn tác. Nếu đã thu tiền, hệ thống sẽ tự động tạo khoản cần hoàn.
+            </div><div>
+              <label className="block text-sm font-bold text-on-surface mb-2">Lý do hủy <span className="text-rose-600">*</span></label>
+              <textarea
+                className="w-full h-24 p-3 rounded-xl border border-outline-variant bg-surface focus:outline-none focus:ring-2 focus:ring-rose-500/50 text-sm resize-none"
+                placeholder="Nhập lý do hủy (tối đa 1000 ký tự)..."
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                maxLength={1000}
+              />
             </div>
-            
-            <div className="p-5 space-y-4">
-              <div className="text-sm text-on-surface-variant">
-                Vui lòng nhập lý do hủy. Hành động này không thể hoàn tác. Nếu đã thu tiền, hệ thống sẽ tự động tạo khoản cần hoàn.
-              </div>
-              
-              <div>
-                <label className="block text-sm font-bold text-on-surface mb-2">Lý do hủy <span className="text-rose-600">*</span></label>
-                <textarea
-                  className="w-full h-24 p-3 rounded-xl border border-outline-variant bg-surface focus:outline-none focus:ring-2 focus:ring-rose-500/50 text-sm resize-none"
-                  placeholder="Nhập lý do hủy (tối đa 1000 ký tự)..."
-                  value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  maxLength={1000}
-                />
-              </div>
-            </div>
-            
-            <div className="p-4 border-t border-outline-variant bg-surface-container-lowest flex justify-end gap-3">
-              <button
-                className="px-6 py-2 bg-surface-container-high hover:bg-surface-container-highest font-bold rounded-xl transition-colors text-on-surface"
-                onClick={() => setCancelModal({ open: false, type: 'ORDER', title: '' })}
-              >
-                ĐÓNG
-              </button>
-              <button
-                className="px-6 py-2 bg-rose-600 text-white hover:bg-rose-700 font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
-                onClick={handleCancelSubmit}
-                disabled={isCancelling || !cancelReason.trim()}
-              >
-                {isCancelling ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN HỦY'}
-              </button>
-            </div>
-          </div>
-        </div>
+          </ModalLayout>
+        </DetailModal>
       )}
 
       <OrderEditModal
@@ -1067,7 +1019,7 @@ export default function OrdersPage() {
           // Lines and total changed: refresh the detail and its payment summary (remaining to pay).
           setEditingOrder(order)
           setSelectedOrder(order)
-          paymentsApi.getOrderPayments(order.id).then(setPaymentSummary).catch(() => {})
+          paymentsApi.getOrderPayments(order.id).then(setPaymentSummary).catch(() => { })
         }}
       />
     </div>

@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useRef, useState, useMemo } from 'react'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { useToast } from '@/context/ToastContext'
@@ -140,30 +141,30 @@ export default function AiRecommendationsPage() {
       prev.map((c) =>
         c.id === id
           ? {
-              ...c,
-              diseaseLabel: correctedDisease.split('(')[0].replace('Bệnh ', '').trim(),
-              diseaseFullLabel: correctedDisease,
-              statusBadge: { label: 'Đã phê duyệt', className: 'bg-emerald-100 text-emerald-800 border border-emerald-300', dotClassName: 'bg-emerald-600' },
-              panelBadge: { label: 'Đã hiệu chỉnh & gửi', className: 'bg-emerald-100 text-emerald-800', dotClassName: 'bg-emerald-600' },
-              actionsMode: 'sent' as const,
-              rowClassName: undefined,
-              agentNote: note || `Đại lý đã hiệu chỉnh bệnh thành: ${correctedDisease}. Chỉ định thuốc ${matchedProduct?.name}.`,
-              productLine: matchedProduct?.name,
-              productSubLine: matchedProduct?.description,
-              product: matchedProduct
-                ? {
-                    name: matchedProduct.name,
-                    category: matchedProduct.categoryLabel,
-                    activeIngredient: matchedProduct.description,
-                    fitTag: 'Đại lý hiệu chỉnh phác đồ',
-                    price: matchedProduct.price,
-                    priceUnit: `/ ${matchedProduct.unit}`,
-                    stockLabel: `Kho: ${matchedProduct.stockQuantity} ${matchedProduct.unit}`,
-                    stockNote: 'Sẵn hàng tại kho Thới Lai',
-                    reasoning: 'Thẩm định viên chuyên môn đã hiệu chỉnh bệnh thực tế và chỉ định thuốc đặc trị phù hợp.',
-                  }
-                : c.product,
-            }
+            ...c,
+            diseaseLabel: correctedDisease.split('(')[0].replace('Bệnh ', '').trim(),
+            diseaseFullLabel: correctedDisease,
+            statusBadge: { label: 'Đã phê duyệt', className: 'bg-emerald-100 text-emerald-800 border border-emerald-300', dotClassName: 'bg-emerald-600' },
+            panelBadge: { label: 'Đã hiệu chỉnh & gửi', className: 'bg-emerald-100 text-emerald-800', dotClassName: 'bg-emerald-600' },
+            actionsMode: 'sent' as const,
+            rowClassName: undefined,
+            agentNote: note || `Đại lý đã hiệu chỉnh bệnh thành: ${correctedDisease}. Chỉ định thuốc ${matchedProduct?.name}.`,
+            productLine: matchedProduct?.name,
+            productSubLine: matchedProduct?.description,
+            product: matchedProduct
+              ? {
+                name: matchedProduct.name,
+                category: matchedProduct.categoryLabel,
+                activeIngredient: matchedProduct.description,
+                fitTag: 'Đại lý hiệu chỉnh phác đồ',
+                price: matchedProduct.price,
+                priceUnit: `/ ${matchedProduct.unit}`,
+                stockLabel: `Kho: ${matchedProduct.stockQuantity} ${matchedProduct.unit}`,
+                stockNote: 'Sẵn hàng tại kho Thới Lai',
+                reasoning: 'Thẩm định viên chuyên môn đã hiệu chỉnh bệnh thực tế và chỉ định thuốc đặc trị phù hợp.',
+              }
+              : c.product,
+          }
           : c,
       ),
     )
@@ -486,20 +487,15 @@ export default function AiRecommendationsPage() {
       {/* DETAIL MODAL (No changes to internal layout, keeps its excellent ergonomic design) */}
       <DetailModal open={selected !== null} onClose={() => setSelectedId(null)} widthClassName="max-w-3xl">
         {selected ? (
-          <div className="flex flex-col bg-white rounded-xl overflow-hidden shadow-xl">
-            {/* Modal Header */}
-            <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="px-2.5 py-1 rounded font-mono font-bold text-xs bg-emerald-100 text-emerald-800">#{selected.id}</span>
-                <span className="font-bold text-slate-900 text-lg">Chi tiết ca thẩm định</span>
-              </div>
-              <div className="flex items-center gap-2">
-                {selected.panelBadge && <StatusBadge label={selected.panelBadge.label} className={selected.panelBadge.className} />}
-              </div>
+          <ModalLayout header={<div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="px-2.5 py-1 rounded font-mono font-bold text-xs bg-emerald-100 text-emerald-800">#{selected.id}</span>
+              <span className="font-bold text-slate-900 text-lg">Chi tiết ca thẩm định</span>
             </div>
-
-            {/* Modal 2-Column Body */}
-            <div className="p-5 grid grid-cols-1 md:grid-cols-12 gap-5">
+            <div className="flex items-center gap-2">
+              {selected.panelBadge && <StatusBadge label={selected.panelBadge.label} className={selected.panelBadge.className} />}
+            </div>
+          </div>} bodyClassName="space-y-4"><div className="p-5 grid grid-cols-1 md:grid-cols-12 gap-5">
               {/* Left Column: Leaf Image & AI Result */}
               <div className="md:col-span-5 flex flex-col gap-4">
                 <div className="relative w-full h-56 rounded-xl overflow-hidden border border-slate-200 bg-slate-900">
@@ -708,7 +704,7 @@ export default function AiRecommendationsPage() {
                 </div>
               </div>
             </div>
-          </div>
+          </ModalLayout>
         ) : null}
       </DetailModal>
     </div>

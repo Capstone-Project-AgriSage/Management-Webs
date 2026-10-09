@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import type { ReactNode } from 'react'
 import DetailModal from '@/components/ui/DetailModal'
 
@@ -35,14 +36,14 @@ interface FormModalProps {
   widthClassName?: string
 }
 
-/** Groups consecutive fields that share a `group` id into rows of up to 2; everything else (and every 'note') is its own row. */
+/** Pair adjacent fields by default; explicit groups and notes keep their own boundaries. */
 function groupFields(fields: FormFieldSpec[] = []) {
   if (!fields || !Array.isArray(fields)) return []
   const rows: FormFieldSpec[][] = []
   for (const field of fields) {
     const lastRow = rows[rows.length - 1]
     const lastField = lastRow?.[lastRow.length - 1]
-    if (field.group && field.type !== 'note' && lastField?.group === field.group && lastField.type !== 'note' && lastRow.length < 2) {
+    if (lastField && field.type !== 'note' && lastField.type !== 'note' && field.group === lastField.group && lastRow.length < 2) {
       lastRow.push(field)
     } else {
       rows.push([field])
@@ -61,82 +62,80 @@ export default function FormModal({
   title,
   fields = [],
   values = {},
-  onChange = () => {},
+  onChange = () => { },
   onSubmit,
   submitLabel,
   cancelLabel = 'Hủy',
   children,
-  widthClassName = 'max-w-md',
+  widthClassName = 'max-w-2xl',
 }: FormModalProps) {
   return (
     <DetailModal open={open} onClose={onClose} widthClassName={widthClassName}>
-      <div className="p-5 space-y-4">
-        <h3 className="text-lg text-slate-900 font-bold">{title}</h3>
-        {children ? (
-          children
-        ) : (
-          <>
-            {groupFields(fields).map((row, i) => (
-              <div key={i} className={row.length > 1 ? 'grid grid-cols-2 gap-3' : undefined}>
-                {row.map((field) =>
-                  field.type === 'note' ? (
-                    <div key={field.key}>{field.content}</div>
-                  ) : (
-                    <div key={field.key} className="space-y-1">
-                      {field.label ? (
-                        <label className="text-sm font-medium text-slate-700">
-                          {field.label}
-                          {field.required ? <span className="text-rose-600 ml-0.5">*</span> : null}
-                        </label>
-                      ) : null}
-                      {field.type === 'select' ? (
-                        <select className={inputClassName} value={values[field.key] ?? ''} onChange={(e) => onChange(field.key, e.target.value)}>
-                          {(field.options ?? []).map((option) => {
-                            const optValue = typeof option === 'string' ? option : option.value
-                            const optLabel = typeof option === 'string' ? (field.renderOption?.(option) ?? option) : option.label
-                            return (
-                              <option key={optValue} value={optValue}>
-                                {optLabel}
-                              </option>
-                            )
-                          })}
-                        </select>
-                      ) : (
-                        <input
-                          className={inputClassName}
-                          type={field.type === 'number' ? 'number' : 'text'}
-                          min={field.min}
-                          placeholder={field.placeholder}
-                          value={values[field.key] ?? ''}
-                          onChange={(e) => onChange(field.key, e.target.value)}
-                        />
-                      )}
-                    </div>
-                  ),
-                )}
-              </div>
-            ))}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 mt-2">
-              <button
-                className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors font-medium text-sm shadow-sm"
-                type="button"
-                onClick={onClose}
-              >
-                {cancelLabel}
-              </button>
-              {onSubmit && submitLabel ? (
-                <button
-                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors text-sm shadow-sm"
-                  type="button"
-                  onClick={onSubmit}
-                >
-                  {submitLabel}
-                </button>
-              ) : null}
+      <ModalLayout footer={!children ? (<div className="flex flex-wrap items-center justify-end gap-3">
+        <button
+          className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors font-medium text-sm shadow-sm"
+          type="button"
+          onClick={onClose}
+        >
+          {cancelLabel}
+        </button>
+        {onSubmit && submitLabel ? (
+          <button
+            className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors text-sm shadow-sm"
+            type="button"
+            onClick={onSubmit}
+          >
+            {submitLabel}
+          </button>
+        ) : null}
+      </div>) : undefined} header={<h3 className="text-lg text-slate-900 font-bold">{title}</h3>} bodyClassName="space-y-4">{children ? (
+        children
+      ) : (
+        <>
+          {groupFields(fields).map((row, i) => (
+            <div key={i} className={row.length > 1 ? 'grid grid-cols-1 sm:grid-cols-2 gap-5' : undefined}>
+              {row.map((field) =>
+                field.type === 'note' ? (
+                  <div key={field.key}>{field.content}</div>
+                ) : (
+                  <div key={field.key} className="space-y-1">
+                    {field.label ? (
+                      <label className="text-sm font-medium text-slate-700">
+                        {field.label}
+                        {field.required ? <span className="text-rose-600 ml-0.5">*</span> : null}
+                      </label>
+                    ) : null}
+                    {field.type === 'select' ? (
+                      <select className={inputClassName} value={values[field.key] ?? ''} onChange={(e) => onChange(field.key, e.target.value)}>
+                        {(field.options ?? []).map((option) => {
+                          const optValue = typeof option === 'string' ? option : option.value
+                          const optLabel = typeof option === 'string' ? (field.renderOption?.(option) ?? option) : option.label
+                          return (
+                            <option key={optValue} value={optValue}>
+                              {optLabel}
+                            </option>
+                          )
+                        })}
+                      </select>
+                    ) : (
+                      <input
+                        className={inputClassName}
+                        type={field.type === 'number' ? 'number' : 'text'}
+                        min={field.min}
+                        placeholder={field.placeholder}
+                        value={values[field.key] ?? ''}
+                        onChange={(e) => onChange(field.key, e.target.value)}
+                      />
+                    )}
+                  </div>
+                ),
+              )}
             </div>
-          </>
-        )}
-      </div>
+          ))}
+
+        </>
+      )}
+      </ModalLayout>
     </DetailModal>
   )
 }

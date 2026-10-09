@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ClipboardList, Plus, X } from 'lucide-react'
@@ -195,13 +196,17 @@ function CreateStocktakeModal({ onClose, onCreated }: { onClose: () => void; onC
 
   return (
     <DetailModal open onClose={busy ? () => undefined : onClose} widthClassName="max-w-xl">
-      <div className="p-5 space-y-4">
-        <div>
-          <h3 className="text-lg text-slate-900 font-bold">Tạo phiếu kiểm kê</h3>
-          <p className="text-sm text-slate-600 mt-1">Hệ thống chụp số tồn hiện tại của từng lô làm số liệu sổ sách để so với số đếm thực tế.</p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Phạm vi kiểm kê">
+      <ModalLayout header={<div>
+        <h3 className="text-lg text-slate-900 font-bold">Tạo phiếu kiểm kê</h3>
+        <p className="text-sm text-slate-600 mt-1">Hệ thống chụp số tồn hiện tại của từng lô làm số liệu sổ sách để so với số đếm thực tế.</p>
+      </div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
+        <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm shadow-sm disabled:opacity-50" onClick={onClose} disabled={busy}>
+          Hủy
+        </button>
+        <button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={!canSubmit}>
+          {busy ? 'Đang tạo...' : 'Tạo phiếu'}
+        </button>
+      </div>} bodyClassName="space-y-4"><div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Phạm vi kiểm kê">
           {(
             [
               ['ALL', 'Toàn bộ sản phẩm'],
@@ -214,16 +219,13 @@ function CreateStocktakeModal({ onClose, onCreated }: { onClose: () => void; onC
               role="radio"
               aria-checked={scope === value}
               onClick={() => setScope(value)}
-              className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                scope === value ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-              }`}
+              className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${scope === value ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
             >
               {label}
             </button>
           ))}
-        </div>
-
-        {scope === 'PICK' ? (
+        </div>{scope === 'PICK' ? (
           <div className="space-y-2">
             <ProductPicker
               key={pickerKey}
@@ -255,17 +257,13 @@ function CreateStocktakeModal({ onClose, onCreated }: { onClose: () => void; onC
               </ul>
             )}
           </div>
-        ) : null}
-
-        <label className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer select-none">
+        ) : null}<label className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer select-none">
           <input type="checkbox" className="w-4 h-4 mt-0.5 accent-emerald-600" checked={includeEmpty} onChange={(e) => setIncludeEmpty(e.target.checked)} />
           <span>
             Gồm cả lô đã hết hàng (tồn 0)
             <span className="block text-xs text-slate-500">Bật khi muốn kiểm tra xem có hàng thực tế mà sổ kho ghi là hết.</span>
           </span>
-        </label>
-
-        <div className="space-y-1">
+        </label><div className="space-y-1">
           <label className="text-sm font-medium text-slate-700" htmlFor="st-note">
             Ghi chú
           </label>
@@ -278,16 +276,7 @@ function CreateStocktakeModal({ onClose, onCreated }: { onClose: () => void; onC
             placeholder="Ví dụ: Kiểm kê cuối tháng 10, kho thuốc BVTV"
           />
         </div>
-
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-          <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm shadow-sm disabled:opacity-50" onClick={onClose} disabled={busy}>
-            Hủy
-          </button>
-          <button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={!canSubmit}>
-            {busy ? 'Đang tạo...' : 'Tạo phiếu'}
-          </button>
-        </div>
-      </div>
+      </ModalLayout>
     </DetailModal>
   )
 }

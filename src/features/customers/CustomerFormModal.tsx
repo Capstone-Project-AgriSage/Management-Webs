@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
 import Modal from '@/components/ui/Modal'
 import { customersApi, type CustomerAddress, type CustomerResponse } from '@/api/customersApi'
@@ -74,18 +75,18 @@ export default function CustomerFormModal({ open, customer, groups, tiers, onClo
     setV(
       customer
         ? {
-            ...EMPTY,
-            fullName: customer.fullName ?? '',
-            phoneNumber: customer.phoneNumber ?? '',
-            email: customer.email ?? '',
-            notes: customer.notes ?? '',
-            recipientName: customer.address?.recipientName ?? '',
-            recipientPhone: customer.address?.recipientPhone ?? '',
-            addressLine: customer.address?.addressLine ?? '',
-            ward: customer.address?.ward ?? '',
-            district: customer.address?.district ?? '',
-            province: customer.address?.province ?? '',
-          }
+          ...EMPTY,
+          fullName: customer.fullName ?? '',
+          phoneNumber: customer.phoneNumber ?? '',
+          email: customer.email ?? '',
+          notes: customer.notes ?? '',
+          recipientName: customer.address?.recipientName ?? '',
+          recipientPhone: customer.address?.recipientPhone ?? '',
+          addressLine: customer.address?.addressLine ?? '',
+          ward: customer.address?.ward ?? '',
+          district: customer.address?.district ?? '',
+          province: customer.address?.province ?? '',
+        }
         : { ...EMPTY, fullName: initialName, phoneNumber: initialPhone },
     )
   }, [open, customer, initialName, initialPhone])
@@ -112,13 +113,13 @@ export default function CustomerFormModal({ open, customer, groups, tiers, onClo
     const hasAddress = v.addressLine.trim() && v.province.trim()
     const address: CustomerAddress | null = hasAddress
       ? {
-          recipientName: v.recipientName.trim() || v.fullName.trim(),
-          recipientPhone: v.recipientPhone.trim() || v.phoneNumber.trim() || null,
-          addressLine: v.addressLine.trim(),
-          province: v.province.trim(),
-          district: v.district.trim() || null,
-          ward: v.ward.trim() || null,
-        }
+        recipientName: v.recipientName.trim() || v.fullName.trim(),
+        recipientPhone: v.recipientPhone.trim() || v.phoneNumber.trim() || null,
+        addressLine: v.addressLine.trim(),
+        province: v.province.trim(),
+        district: v.district.trim() || null,
+        ward: v.ward.trim() || null,
+      }
       : null
     const common = {
       fullName: v.fullName.trim(),
@@ -131,19 +132,19 @@ export default function CustomerFormModal({ open, customer, groups, tiers, onClo
     try {
       const saved = isCreate
         ? await customersApi.createCustomer({
-            ...common,
-            password: v.password,
-            customerType: 'REGISTERED',
-            customerGroupId: v.customerGroupId || null,
-            ...(v.allowCreditPurchase
-              ? {
-                  allowCreditPurchase: true,
-                  creditTierId: v.creditTierId || null,
-                  creditLimit: v.creditLimit ? Number(v.creditLimit) : null,
-                  creditChangeReason: v.creditChangeReason.trim() || 'Mở tín dụng khi tạo khách',
-                }
-              : {}),
-          })
+          ...common,
+          password: v.password,
+          customerType: 'REGISTERED',
+          customerGroupId: v.customerGroupId || null,
+          ...(v.allowCreditPurchase
+            ? {
+              allowCreditPurchase: true,
+              creditTierId: v.creditTierId || null,
+              creditLimit: v.creditLimit ? Number(v.creditLimit) : null,
+              creditChangeReason: v.creditChangeReason.trim() || 'Mở tín dụng khi tạo khách',
+            }
+            : {}),
+        })
         : await customersApi.updateCustomer(customer.id, common)
       showToast(isCreate ? `Đã tạo khách hàng ${saved.fullName}` : 'Đã cập nhật khách hàng', 'success')
       onSaved(saved)
@@ -158,108 +159,101 @@ export default function CustomerFormModal({ open, customer, groups, tiers, onClo
   return (
     <Modal open={open} onClose={onClose} title={isCreate ? 'Thêm khách hàng' : `Sửa khách hàng — ${customer?.fullName}`} widthClassName="max-w-2xl">
       <form
-        className="space-y-5"
+        className="flex min-h-0 flex-1 flex-col"
         onSubmit={(e) => {
           e.preventDefault()
           handleSubmit()
         }}
       >
-        <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="sm:col-span-2">
-            <Field label="Họ tên" required error={errors.fullName}>
-              <input className={inputClassName} value={v.fullName} onChange={(e) => set('fullName', e.target.value)} />
-            </Field>
-          </div>
-          <Field label="Số điện thoại" error={errors.phoneNumber}>
-            <input className={inputClassName} inputMode="tel" value={v.phoneNumber} onChange={(e) => set('phoneNumber', e.target.value)} placeholder="09xxxxxxxx" />
-          </Field>
-          <Field label="Email" error={errors.email}>
-            <input className={inputClassName} type="email" value={v.email} onChange={(e) => set('email', e.target.value)} />
-          </Field>
-          {isCreate && (
-            <>
-              <Field label="Mật khẩu đăng nhập" required error={errors.password}>
-                <input className={inputClassName} type="password" autoComplete="new-password" value={v.password} onChange={(e) => set('password', e.target.value)} />
-              </Field>
-              <Field label="Nhóm khách hàng">
-                <select className={inputClassName} value={v.customerGroupId} onChange={(e) => set('customerGroupId', e.target.value)}>
-                  <option value="">Nhóm mặc định</option>
-                  {groups.filter((g) => g.isActive).map((g) => (
-                    <option key={g.id} value={g.id}>{g.name}</option>
-                  ))}
-                </select>
-              </Field>
-            </>
-          )}
-        </section>
-
-        <section className="space-y-3">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Địa chỉ mặc định</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field label="Người nhận">
-              <input className={inputClassName} value={v.recipientName} onChange={(e) => set('recipientName', e.target.value)} placeholder="Mặc định: họ tên khách" />
-            </Field>
-            <Field label="SĐT người nhận">
-              <input className={inputClassName} inputMode="tel" value={v.recipientPhone} onChange={(e) => set('recipientPhone', e.target.value)} />
-            </Field>
-            <div className="sm:col-span-2">
-              <Field label="Địa chỉ (số nhà, ấp...)" error={errors.addressLine}>
-                <input className={inputClassName} value={v.addressLine} onChange={(e) => set('addressLine', e.target.value)} />
-              </Field>
-            </div>
-            <Field label="Xã/Phường">
-              <input className={inputClassName} value={v.ward} onChange={(e) => set('ward', e.target.value)} />
-            </Field>
-            <Field label="Quận/Huyện">
-              <input className={inputClassName} value={v.district} onChange={(e) => set('district', e.target.value)} />
-            </Field>
-            <Field label="Tỉnh/Thành" error={errors.province}>
-              <input className={inputClassName} value={v.province} onChange={(e) => set('province', e.target.value)} />
-            </Field>
-          </div>
-        </section>
-
-        <Field label="Ghi chú">
-          <textarea className={`${inputClassName} h-auto py-2`} rows={2} value={v.notes} onChange={(e) => set('notes', e.target.value)} />
-        </Field>
-
-        {isCreate && (
-          <section className="space-y-3 rounded-lg border border-slate-200 p-3">
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
-              <input type="checkbox" className="accent-emerald-600 w-4 h-4" checked={v.allowCreditPurchase} onChange={(e) => set('allowCreditPurchase', e.target.checked)} />
-              Cho phép mua chịu (mở tín dụng ngay)
-            </label>
-            {v.allowCreditPurchase && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Field label="Hạng tín dụng">
-                  <select className={inputClassName} value={v.creditTierId} onChange={(e) => set('creditTierId', e.target.value)}>
-                    <option value="">Theo nhóm khách</option>
-                    {tiers.filter((t) => t.isActive).map((t) => (
-                      <option key={t.id} value={t.id}>{t.name} — {formatVnd(t.defaultCreditLimit)}, {t.defaultPaymentTermDays} ngày</option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Hạn mức (đ)" error={errors.creditLimit}>
-                  <input className={inputClassName} type="number" min={0} value={v.creditLimit} onChange={(e) => set('creditLimit', e.target.value)} placeholder="Mặc định theo hạng" />
-                </Field>
-                <div className="sm:col-span-2">
-                  <Field label="Lý do">
-                    <input className={inputClassName} value={v.creditChangeReason} onChange={(e) => set('creditChangeReason', e.target.value)} />
-                  </Field>
-                </div>
-              </div>
-            )}
-          </section>
-        )}
-
-        <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+        <ModalLayout footer={<div className="flex flex-wrap items-center justify-end gap-3">
           <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm font-medium" onClick={onClose}>
             Hủy
           </button>
           <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium disabled:opacity-50">
             {saving ? 'Đang lưu...' : isCreate ? 'Tạo khách hàng' : 'Lưu thay đổi'}
           </button>
-        </div>
+        </div>} bodyClassName="space-y-5"><section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="sm:col-span-2">
+              <Field label="Họ tên" required error={errors.fullName}>
+                <input className={inputClassName} value={v.fullName} onChange={(e) => set('fullName', e.target.value)} />
+              </Field>
+            </div>
+            <Field label="Số điện thoại" error={errors.phoneNumber}>
+              <input className={inputClassName} inputMode="tel" value={v.phoneNumber} onChange={(e) => set('phoneNumber', e.target.value)} placeholder="09xxxxxxxx" />
+            </Field>
+            <Field label="Email" error={errors.email}>
+              <input className={inputClassName} type="email" value={v.email} onChange={(e) => set('email', e.target.value)} />
+            </Field>
+            {isCreate && (
+              <>
+                <Field label="Mật khẩu đăng nhập" required error={errors.password}>
+                  <input className={inputClassName} type="password" autoComplete="new-password" value={v.password} onChange={(e) => set('password', e.target.value)} />
+                </Field>
+                <Field label="Nhóm khách hàng">
+                  <select className={inputClassName} value={v.customerGroupId} onChange={(e) => set('customerGroupId', e.target.value)}>
+                    <option value="">Nhóm mặc định</option>
+                    {groups.filter((g) => g.isActive).map((g) => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                  </select>
+                </Field>
+              </>
+            )}
+          </section><section className="space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Địa chỉ mặc định</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field label="Người nhận">
+                <input className={inputClassName} value={v.recipientName} onChange={(e) => set('recipientName', e.target.value)} placeholder="Mặc định: họ tên khách" />
+              </Field>
+              <Field label="SĐT người nhận">
+                <input className={inputClassName} inputMode="tel" value={v.recipientPhone} onChange={(e) => set('recipientPhone', e.target.value)} />
+              </Field>
+              <div className="sm:col-span-2">
+                <Field label="Địa chỉ (số nhà, ấp...)" error={errors.addressLine}>
+                  <input className={inputClassName} value={v.addressLine} onChange={(e) => set('addressLine', e.target.value)} />
+                </Field>
+              </div>
+              <Field label="Xã/Phường">
+                <input className={inputClassName} value={v.ward} onChange={(e) => set('ward', e.target.value)} />
+              </Field>
+              <Field label="Quận/Huyện">
+                <input className={inputClassName} value={v.district} onChange={(e) => set('district', e.target.value)} />
+              </Field>
+              <Field label="Tỉnh/Thành" error={errors.province}>
+                <input className={inputClassName} value={v.province} onChange={(e) => set('province', e.target.value)} />
+              </Field>
+            </div>
+          </section><Field label="Ghi chú">
+            <textarea className={`${inputClassName} h-auto py-2`} rows={2} value={v.notes} onChange={(e) => set('notes', e.target.value)} />
+          </Field>{isCreate && (
+            <section className="space-y-3 rounded-lg border border-slate-200 p-3">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
+                <input type="checkbox" className="accent-emerald-600 w-4 h-4" checked={v.allowCreditPurchase} onChange={(e) => set('allowCreditPurchase', e.target.checked)} />
+                Cho phép mua chịu (mở tín dụng ngay)
+              </label>
+              {v.allowCreditPurchase && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Field label="Hạng tín dụng">
+                    <select className={inputClassName} value={v.creditTierId} onChange={(e) => set('creditTierId', e.target.value)}>
+                      <option value="">Theo nhóm khách</option>
+                      {tiers.filter((t) => t.isActive).map((t) => (
+                        <option key={t.id} value={t.id}>{t.name} — {formatVnd(t.defaultCreditLimit)}, {t.defaultPaymentTermDays} ngày</option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Hạn mức (đ)" error={errors.creditLimit}>
+                    <input className={inputClassName} type="number" min={0} value={v.creditLimit} onChange={(e) => set('creditLimit', e.target.value)} placeholder="Mặc định theo hạng" />
+                  </Field>
+                  <div className="sm:col-span-2">
+                    <Field label="Lý do">
+                      <input className={inputClassName} value={v.creditChangeReason} onChange={(e) => set('creditChangeReason', e.target.value)} />
+                    </Field>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+        </ModalLayout>
       </form>
     </Modal>
   )

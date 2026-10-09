@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useState } from 'react'
 
 import { usePageHeader } from '@/context/PageHeaderContext'
@@ -136,7 +137,7 @@ export default function AccountsPage() {
           <p className="text-on-surface-variant text-sm">Quản lý quyền truy cập và tài khoản trên toàn bộ hệ thống Agrisage.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button 
+          <button
             className="flex items-center gap-1.5 px-3 py-1.5 border border-outline-variant rounded bg-white hover:bg-surface-container-low text-on-surface font-medium text-sm shadow-sm"
             onClick={() => downloadCsv('tai-khoan.csv', filteredAccounts.map(a => ({
               ID: a.id,
@@ -150,7 +151,7 @@ export default function AccountsPage() {
           >
             <span className="material-symbols-outlined text-[16px]">download</span> Xuất danh sách
           </button>
-          <button 
+          <button
             className="flex items-center gap-1.5 px-4 py-1.5 bg-[#171833] hover:bg-black text-white rounded font-medium text-sm shadow-sm transition-colors"
             onClick={() => setCreateOpen(true)}
           >
@@ -210,9 +211,9 @@ export default function AccountsPage() {
       <div className="flex items-center justify-between mt-2">
         <div className="relative w-[320px]">
           <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[18px] text-outline">search</span>
-          <input 
-            type="text" 
-            placeholder="Tìm kiếm tài khoản..." 
+          <input
+            type="text"
+            placeholder="Tìm kiếm tài khoản..."
             className="w-full h-9 pl-9 pr-3 text-sm bg-white border border-outline-variant rounded focus:border-primary focus:ring-1 focus:ring-primary text-on-surface shadow-sm"
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -283,7 +284,7 @@ export default function AccountsPage() {
                           {account.fullName.charAt(0)}
                         </div>
                         <div className="min-w-0">
-                          <div 
+                          <div
                             className="font-medium text-on-surface text-sm cursor-pointer hover:underline truncate"
                             onClick={() => setSelectedId(account.id)}
                           >
@@ -342,7 +343,7 @@ export default function AccountsPage() {
             </tbody>
           </table>
         </div>
-        
+
         {/* FOOTER PAGINATION */}
         <div className="px-4 py-3 bg-white flex items-center justify-between text-sm text-on-surface-variant">
           <div>
@@ -395,28 +396,26 @@ export default function AccountsPage() {
           { key: 'role', label: 'Vai trò mới', type: 'select', options: ['Admin', 'Store Owner', 'Sales Staff', 'Delivery Staff', 'Farmer'] },
         ]}
       />
-      
+
       {/* DETAIL MODAL */}
       <DetailModal open={selected !== null} onClose={() => setSelectedId(null)} widthClassName="max-w-md">
         {selected && (
-          <div className="p-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-bold text-lg shrink-0">
-                {selected.fullName.charAt(0)}
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold text-on-surface">{selected.fullName}</h2>
-                <div className="text-sm text-outline font-mono">#{selected.id}</div>
-              </div>
+          <ModalLayout header={<div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-bold text-lg shrink-0">
+              {selected.fullName.charAt(0)}
             </div>
-            
-            <div className="space-y-4 text-sm text-on-surface">
+            <div>
+              <h2 className="text-xl font-semibold text-on-surface">{selected.fullName}</h2>
+              <div className="text-sm text-outline font-mono">#{selected.id}</div>
+            </div>
+          </div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
+            <button className="px-4 py-2 bg-surface-container-low text-on-surface rounded font-medium hover:bg-outline-variant/50 transition-colors" onClick={() => setSelectedId(null)}>Đóng</button>
+          </div>} bodyClassName="space-y-4"><div className="space-y-4 text-sm text-on-surface">
               <div className="flex items-center justify-between border-b border-outline-variant/40 pb-2">
                 <span className="text-on-surface-variant font-medium">Trạng thái:</span>
-                <span className={`px-2.5 py-1 rounded font-semibold text-xs border ${
-                  selected.status === 'Chờ duyệt' ? 'border-amber-400 text-amber-700 bg-amber-50' : 
+                <span className={`px-2.5 py-1 rounded font-semibold text-xs border ${selected.status === 'Chờ duyệt' ? 'border-amber-400 text-amber-700 bg-amber-50' :
                   selected.status === 'Đang hoạt động' ? 'border-outline-variant/60 text-on-surface bg-surface-container-lowest' : 'border-error/40 text-error bg-error/5'
-                }`}>{selected.status}</span>
+                  }`}>{selected.status}</span>
               </div>
               <div className="flex justify-between border-b border-outline-variant/40 pb-2">
                 <span className="text-on-surface-variant font-medium">Vai trò:</span>
@@ -439,10 +438,7 @@ export default function AccountsPage() {
                 <span>{selected.createdAt}</span>
               </div>
             </div>
-            <div className="mt-8 flex justify-end">
-              <button className="px-4 py-2 bg-surface-container-low text-on-surface rounded font-medium hover:bg-outline-variant/50 transition-colors" onClick={() => setSelectedId(null)}>Đóng</button>
-            </div>
-          </div>
+          </ModalLayout>
         )}
       </DetailModal>
     </div>

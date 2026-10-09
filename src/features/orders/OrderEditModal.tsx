@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
 import { Loader2, Pencil, Plus, RotateCcw, Search, Trash2 } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
@@ -55,7 +56,17 @@ export default function OrderEditModal({ order, onClose, onChanged }: OrderEditM
 
   return (
     <Modal open onClose={onClose} title={`Sửa đơn ${order.orderNumber}`} widthClassName="max-w-3xl">
-      <div className="space-y-5 text-sm">
+      <ModalLayout footer={<div className="flex justify-end">
+        <button
+          type="button"
+          disabled={locked || busy !== null || note === (order.note ?? '')}
+          onClick={() => run('note', () => ordersApi.updateNote(order.id, note.trim()))}
+          className="h-9 px-4 rounded-lg bg-slate-800 text-white text-sm font-semibold hover:bg-slate-900 disabled:opacity-40"
+        >
+          Lưu ghi chú
+        </button>
+      </div>}>
+
         {locked && <p className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800">Đơn đã xác nhận, không sửa được.</p>}
         {error && (
           <p className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700" role="alert">
@@ -107,18 +118,10 @@ export default function OrderEditModal({ order, onClose, onChanged }: OrderEditM
             Ghi chú
           </label>
           <textarea id="order-note" rows={2} maxLength={1000} disabled={locked} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none" value={note} onChange={(e) => setNote(e.target.value)} />
-          <div className="flex justify-end">
-            <button
-              type="button"
-              disabled={locked || busy !== null || note === (order.note ?? '')}
-              onClick={() => run('note', () => ordersApi.updateNote(order.id, note.trim()))}
-              className="h-9 px-4 rounded-lg bg-slate-800 text-white text-sm font-semibold hover:bg-slate-900 disabled:opacity-40"
-            >
-              Lưu ghi chú
-            </button>
-          </div>
+
         </div>
-      </div>
+
+      </ModalLayout>
     </Modal>
   )
 }

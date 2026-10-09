@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useState, useEffect } from 'react'
 import DetailModal from '@/components/ui/DetailModal'
 import { useToast } from '@/context/ToastContext'
@@ -107,73 +108,12 @@ export default function EditDeliveryLotsModal({ open, onClose, deliveryId, item,
 
   return (
     <DetailModal open={open} onClose={onClose}>
-      <div className="p-4 border-b border-slate-200 bg-slate-50 rounded-t-xl">
+      <ModalLayout header={<div className="">
         <h3 className="font-bold text-slate-900">Đổi lô hàng xuất kho</h3>
         <p className="text-sm text-slate-600 mt-1">
           {item.productName} ({item.packagingName}) · Cần phân bổ: <strong>{required}</strong> đơn vị gốc
         </p>
-      </div>
-      <div className="p-4 max-h-[60vh] overflow-y-auto">
-        {!storeProductId ? (
-          <div className="text-sm text-rose-600 text-center py-4">Không xác định được sản phẩm của dòng hàng này.</div>
-        ) : loading ? (
-          <div className="text-sm text-slate-500 text-center py-4">Đang tải lô hàng...</div>
-        ) : lots.length === 0 ? (
-          <div className="text-sm text-slate-500 text-center py-4">Không tìm thấy lô hàng khả dụng nào.</div>
-        ) : (
-          <div className="space-y-3">
-            {lots.map((lot) => {
-              const selectedQty = selectedLots.find((l) => l.inventoryLotId === lot.id)?.baseQuantity || 0
-              const isCurrent = currentAllocations.some((a) => a.inventoryLotId === lot.id)
-              return (
-                <div key={lot.id} className="p-3 border border-slate-200 rounded-lg flex items-center justify-between gap-3">
-                  <div>
-                    <div className="font-semibold text-sm flex items-center gap-2">
-                      {lot.lotNumber || 'Không có mã lô'}
-                      {isCurrent && <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded">Đang dùng</span>}
-                    </div>
-                    <div className="text-xs text-slate-500 mt-0.5">
-                      HSD: {formatDate(lot.expiryDate)} · Có thể lấy: {maxForLot(lot)}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      aria-label="Giảm"
-                      className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200"
-                      onClick={() => handleQuantityChange(lot, selectedQty - 1)}
-                    >-</button>
-                    <input
-                      type="number"
-                      min={0}
-                      aria-label={`Số lượng lấy từ lô ${lot.lotNumber ?? ''}`}
-                      className="w-20 h-8 text-center border border-slate-300 rounded text-sm focus:ring-1 focus:ring-primary"
-                      value={selectedQty}
-                      onChange={(e) => handleQuantityChange(lot, parseInt(e.target.value, 10))}
-                    />
-                    <button
-                      type="button"
-                      aria-label="Tăng"
-                      className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200"
-                      onClick={() => handleQuantityChange(lot, selectedQty + 1)}
-                    >+</button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-
-        {!loading && lots.length > 0 && (
-          <div className="mt-4 p-3 bg-blue-50 text-blue-800 rounded-lg text-sm flex justify-between font-medium">
-            <span>Tổng đã chọn:</span>
-            <span className={totalSelected === required ? 'text-emerald-600' : 'text-rose-600'}>
-              {totalSelected} / {required}
-            </span>
-          </div>
-        )}
-      </div>
-      <div className="p-4 bg-slate-50 flex justify-end gap-2 rounded-b-xl border-t border-slate-200">
+      </div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
         <button
           type="button"
           className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
@@ -189,7 +129,67 @@ export default function EditDeliveryLotsModal({ open, onClose, deliveryId, item,
         >
           {isProcessing ? 'Đang lưu...' : 'Lưu thay đổi'}
         </button>
-      </div>
+      </div>}><div className="p-4 max-h-[60vh] overflow-y-auto">
+          {!storeProductId ? (
+            <div className="text-sm text-rose-600 text-center py-4">Không xác định được sản phẩm của dòng hàng này.</div>
+          ) : loading ? (
+            <div className="text-sm text-slate-500 text-center py-4">Đang tải lô hàng...</div>
+          ) : lots.length === 0 ? (
+            <div className="text-sm text-slate-500 text-center py-4">Không tìm thấy lô hàng khả dụng nào.</div>
+          ) : (
+            <div className="space-y-3">
+              {lots.map((lot) => {
+                const selectedQty = selectedLots.find((l) => l.inventoryLotId === lot.id)?.baseQuantity || 0
+                const isCurrent = currentAllocations.some((a) => a.inventoryLotId === lot.id)
+                return (
+                  <div key={lot.id} className="p-3 border border-slate-200 rounded-lg flex items-center justify-between gap-3">
+                    <div>
+                      <div className="font-semibold text-sm flex items-center gap-2">
+                        {lot.lotNumber || 'Không có mã lô'}
+                        {isCurrent && <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded">Đang dùng</span>}
+                      </div>
+                      <div className="text-xs text-slate-500 mt-0.5">
+                        HSD: {formatDate(lot.expiryDate)} · Có thể lấy: {maxForLot(lot)}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        aria-label="Giảm"
+                        className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200"
+                        onClick={() => handleQuantityChange(lot, selectedQty - 1)}
+                      >-</button>
+                      <input
+                        type="number"
+                        min={0}
+                        aria-label={`Số lượng lấy từ lô ${lot.lotNumber ?? ''}`}
+                        className="w-20 h-8 text-center border border-slate-300 rounded text-sm focus:ring-1 focus:ring-primary"
+                        value={selectedQty}
+                        onChange={(e) => handleQuantityChange(lot, parseInt(e.target.value, 10))}
+                      />
+                      <button
+                        type="button"
+                        aria-label="Tăng"
+                        className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200"
+                        onClick={() => handleQuantityChange(lot, selectedQty + 1)}
+                      >+</button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {!loading && lots.length > 0 && (
+            <div className="mt-4 p-3 bg-blue-50 text-blue-800 rounded-lg text-sm flex justify-between font-medium">
+              <span>Tổng đã chọn:</span>
+              <span className={totalSelected === required ? 'text-emerald-600' : 'text-rose-600'}>
+                {totalSelected} / {required}
+              </span>
+            </div>
+          )}
+        </div>
+      </ModalLayout>
     </DetailModal>
   )
 }

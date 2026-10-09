@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { usePageHeader } from '@/context/PageHeaderContext'
@@ -211,15 +212,13 @@ export default function StockMovementsPage() {
 
       <DetailModal open={detail !== null} onClose={() => setDetail(null)} widthClassName="max-w-4xl">
         {detail ? (
-          <div className="p-5 space-y-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <h3 className="text-lg font-bold text-slate-900 font-mono">{detail.movementNumber}</h3>
-              <span className={`text-[11px] font-bold px-2 py-0.5 rounded uppercase tracking-wide ${badge(detail.movementType)}`}>
-                {MOVEMENT_TYPE_LABEL[detail.movementType as MovementType] ?? detail.movementType}
-              </span>
-              <span className="text-xs text-slate-500">{STATUS_LABEL[detail.status] ?? detail.status}</span>
-            </div>
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+          <ModalLayout header={<div className="flex flex-wrap items-center gap-3">
+            <h3 className="text-lg font-bold text-slate-900 font-mono">{detail.movementNumber}</h3>
+            <span className={`text-[11px] font-bold px-2 py-0.5 rounded uppercase tracking-wide ${badge(detail.movementType)}`}>
+              {MOVEMENT_TYPE_LABEL[detail.movementType as MovementType] ?? detail.movementType}
+            </span>
+            <span className="text-xs text-slate-500">{STATUS_LABEL[detail.status] ?? detail.status}</span>
+          </div>} bodyClassName="space-y-4"><dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
               <div>
                 <dt className="text-slate-500">Thời điểm</dt>
                 <dd className="font-medium">{formatDateTime(detail.occurredAt)}</dd>
@@ -247,9 +246,7 @@ export default function StockMovementsPage() {
                 {detail.stocktakeId ? <span className="text-xs bg-slate-100 text-slate-700 rounded px-2 py-0.5">Từ phiếu kiểm kê</span> : null}
                 {detail.reversalOfMovementId ? <span className="text-xs bg-slate-100 text-slate-700 rounded px-2 py-0.5">Đảo một phiếu kho khác</span> : null}
               </div>
-            </dl>
-
-            <div className="rounded-lg border border-outline-variant overflow-hidden">
+            </dl><div className="rounded-lg border border-outline-variant overflow-hidden">
               <table className="w-full text-left">
                 <thead className="bg-surface-container-low text-[11px] text-on-surface-variant uppercase tracking-wider border-b border-outline-variant">
                   <tr>
@@ -283,9 +280,8 @@ export default function StockMovementsPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
-            <p className="text-xs text-slate-500">Phiếu kho đã ghi sổ không sửa hay xóa được; sai sót được sửa bằng phiếu điều chỉnh hoặc phiếu đảo.</p>
-          </div>
+            </div><p className="text-xs text-slate-500">Phiếu kho đã ghi sổ không sửa hay xóa được; sai sót được sửa bằng phiếu điều chỉnh hoặc phiếu đảo.</p>
+          </ModalLayout>
         ) : null}
       </DetailModal>
     </div>

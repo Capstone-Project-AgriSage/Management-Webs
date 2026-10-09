@@ -9,11 +9,16 @@ export const notificationFilters = [
 
 export function notificationIcon(type: string) {
   switch (type) {
+    case 'ORDER_PLACED': return 'receipt_long'
     case 'ORDER_STATUS_CHANGED': return 'task_alt'
-    case 'PAYMENT_CONFIRMED': return 'payments'
-    case 'DELIVERY_ASSIGNED': case 'DELIVERY_COMPLETED': return 'local_shipping'
-    case 'DEBT_OVERDUE': case 'DEBT_DUE_SOON': case 'CREDIT_LIMIT_CHANGED': return 'account_balance_wallet'
-    case 'LOW_STOCK': return 'inventory_2'
+    case 'PAYMENT_CONFIRMED': case 'DEBT_PAYMENT_CONFIRMED': return 'payments'
+    case 'PAYMENT_FAILED': case 'DELIVERY_FAILED': return 'error_outline'
+    case 'RETURN_REQUESTED': case 'RETURN_RESULT': return 'assignment_return'
+    case 'REFUND_REQUESTED': case 'REFUND_RESULT': return 'currency_exchange'
+    case 'AI_DIAGNOSIS_COMPLETED': case 'DIAGNOSIS_REVIEWED': case 'DIAGNOSIS_RECOMMENDATIONS': return 'psychology'
+    case 'DELIVERY_ASSIGNED': case 'DELIVERY_COMPLETED': case 'DELIVERY_REQUIRED': case 'DELIVERY_PARTIAL': return 'local_shipping'
+    case 'DEBT_CREATED': case 'DEBT_DISPUTED': case 'DEBT_OVERDUE': case 'DEBT_DUE_SOON': case 'CREDIT_LIMIT_CHANGED': return 'account_balance_wallet'
+    case 'OUT_OF_STOCK': case 'STOCK_RECEIVED': case 'STOCK_ISSUED': case 'STOCK_ADJUSTED': case 'LOW_STOCK': return 'inventory_2'
     case 'EXPIRY_WARNING': return 'event_busy'
     default: return 'notifications'
   }
@@ -34,6 +39,9 @@ export function notificationTarget(item: NotificationItem, role: string | null):
     case 'ORDER': return prefix + '/orders'
     case 'PAYMENT': return prefix + '/payments'
     case 'DELIVERY': return prefix + '/deliveries'
+    case 'SALES_RETURN': return prefix + '/returns/' + data.entityId
+    case 'REFUND': return role === 'agent' ? prefix + '/refunds' : prefix + '/orders'
+    case 'STOCK_MOVEMENT': return role === 'agent' ? prefix + '/inventory/movements' : null
     case 'STORE_PRODUCT': case 'INVENTORY_LOT': return prefix + '/inventory'
     case 'DEBT_ENTRY': case 'CREDIT_PROFILE': return prefix + '/debts'
     default: return null

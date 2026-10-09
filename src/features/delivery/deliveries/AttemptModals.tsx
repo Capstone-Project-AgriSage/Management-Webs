@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
@@ -130,10 +131,10 @@ export function CompleteAttemptModal({ outcome, lines, loading, onClose, onSubmi
   const items = isFailed
     ? []
     : lines.flatMap((l) =>
-        outcome === 'full'
-          ? l.allocations.map((a) => ({ allocationId: a.allocationId, deliveredBaseQuantity: a.attemptedBaseQuantity }))
-          : spread(l, (packs[l.item.id] ?? 0) * l.conversion),
-      ).filter((i) => i.deliveredBaseQuantity > 0)
+      outcome === 'full'
+        ? l.allocations.map((a) => ({ allocationId: a.allocationId, deliveredBaseQuantity: a.attemptedBaseQuantity }))
+        : spread(l, (packs[l.item.id] ?? 0) * l.conversion),
+    ).filter((i) => i.deliveredBaseQuantity > 0)
 
   const deliveredAnything = items.length > 0
   const canSubmit = isFailed
@@ -153,7 +154,16 @@ export function CompleteAttemptModal({ outcome, lines, loading, onClose, onSubmi
 
   return (
     <Modal open onClose={onClose} title={OUTCOME_TITLE[outcome]}>
-      <div className="space-y-4">
+      <ModalLayout footer={<Button
+        fullWidth
+        variant={isFailed ? 'danger' : 'primary'}
+        icon={isFailed ? 'event_repeat' : 'check_circle'}
+        onClick={submit}
+        disabled={!canSubmit || loading}
+      >
+        {loading ? 'Đang xử lý...' : isFailed ? 'Ghi nhận không giao được' : 'Xác nhận đã giao'}
+      </Button>}>
+
         {outcome === 'partial' && (
           <div className="space-y-2">
             <p className="font-body-sm text-body-sm text-on-surface-variant">Nhập số <strong>thùng/bao thực tế đã giao</strong> cho từng mặt hàng.</p>
@@ -234,16 +244,9 @@ export function CompleteAttemptModal({ outcome, lines, loading, onClose, onSubmi
           </p>
         )}
 
-        <Button
-          fullWidth
-          variant={isFailed ? 'danger' : 'primary'}
-          icon={isFailed ? 'event_repeat' : 'check_circle'}
-          onClick={submit}
-          disabled={!canSubmit || loading}
-        >
-          {loading ? 'Đang xử lý...' : isFailed ? 'Ghi nhận không giao được' : 'Xác nhận đã giao'}
-        </Button>
-      </div>
+
+
+      </ModalLayout>
     </Modal>
   )
 }
@@ -289,7 +292,25 @@ export function ReportIncidentModal({ open, lines, loading, onClose, onSubmit }:
 
   return (
     <Modal open onClose={onClose} title="Báo cáo sự cố">
-      <div className="space-y-4">
+      <ModalLayout footer={<Button
+        fullWidth
+        icon="report"
+        onClick={() =>
+          onSubmit(
+            {
+              incidentType: incidentType as IncidentType,
+              description: description.trim(),
+              allocationId: allocationId || undefined,
+              affectedBaseQuantity: allocationId ? affectedQty : undefined,
+            },
+            photo,
+          )
+        }
+        disabled={!incidentType || !description.trim() || !affectedValid || loading}
+      >
+        {loading ? 'Đang gửi...' : 'Gửi báo cáo sự cố'}
+      </Button>}>
+
         <p className="font-body-sm text-body-sm text-on-surface-variant">
           Báo ngay khi có sự cố trên đường. Khách từ chối nhận trước khi giao cũng báo ở đây (Khách từ chối nhận).
         </p>
@@ -338,25 +359,9 @@ export function ReportIncidentModal({ open, lines, loading, onClose, onSubmit }:
         )}
         {!affectedValid && <p className="text-xs text-error">Số lượng phải lớn hơn 0 và không vượt quá {selectedLot?.max} của lô.</p>}
         <PhotoPicker file={photo} onChange={setPhoto} label="Ảnh hiện trường (nếu có)" />
-        <Button
-          fullWidth
-          icon="report"
-          onClick={() =>
-            onSubmit(
-              {
-                incidentType: incidentType as IncidentType,
-                description: description.trim(),
-                allocationId: allocationId || undefined,
-                affectedBaseQuantity: allocationId ? affectedQty : undefined,
-              },
-              photo,
-            )
-          }
-          disabled={!incidentType || !description.trim() || !affectedValid || loading}
-        >
-          {loading ? 'Đang gửi...' : 'Gửi báo cáo sự cố'}
-        </Button>
-      </div>
+
+
+      </ModalLayout>
     </Modal>
   )
 }

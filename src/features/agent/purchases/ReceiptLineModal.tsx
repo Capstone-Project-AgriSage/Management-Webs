@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useMemo, useState } from 'react'
 import { describeError } from '@/api/client'
 import { goodsReceiptsApi, type GoodsReceipt, type GoodsReceiptItem } from '@/api/goodsReceiptsApi'
@@ -111,63 +112,63 @@ export default function ReceiptLineModal({ receiptId, item, onClose, onSaved }: 
 
   return (
     <DetailModal open onClose={busy ? () => undefined : onClose} widthClassName="max-w-2xl">
-      <div className="p-5 space-y-4">
-        <h3 className="text-lg text-slate-900 font-bold">{editing ? 'Sửa dòng hàng' : 'Thêm dòng hàng'}</h3>
-
-        {editing ? (
-          <div className="text-sm">
-            <div className="font-medium text-slate-900">{item.productName}</div>
-            <div className="font-mono text-xs text-slate-500">
-              {item.sku} · {item.packagingName ?? item.unitName}
-            </div>
+      <ModalLayout header={<h3 className="text-lg text-slate-900 font-bold">{editing ? 'Sửa dòng hàng' : 'Thêm dòng hàng'}</h3>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
+        <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm shadow-sm disabled:opacity-50" onClick={onClose} disabled={busy}>
+          Hủy
+        </button>
+        <button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={!canSubmit}>
+          {busy ? 'Đang lưu...' : editing ? 'Lưu thay đổi' : 'Thêm dòng'}
+        </button>
+      </div>} bodyClassName="space-y-4">{editing ? (
+        <div className="text-sm">
+          <div className="font-medium text-slate-900">{item.productName}</div>
+          <div className="font-mono text-xs text-slate-500">
+            {item.sku} · {item.packagingName ?? item.unitName}
           </div>
-        ) : picked ? (
-          <div className="flex items-center justify-between gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg">
-            <div>
-              <div className="text-sm font-medium text-slate-900">{picked.name}</div>
-              <div className="font-mono text-xs text-slate-500">{picked.storeSku ?? picked.sku}</div>
-            </div>
-            <button
-              type="button"
-              className="text-sm font-medium text-emerald-700 hover:text-emerald-800"
-              onClick={() => {
-                setPicked(null)
-                setProduct(null)
-                setPackagingId('')
-              }}
-            >
-              Đổi sản phẩm
-            </button>
+        </div>
+      ) : picked ? (
+        <div className="flex items-center justify-between gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg">
+          <div>
+            <div className="text-sm font-medium text-slate-900">{picked.name}</div>
+            <div className="font-mono text-xs text-slate-500">{picked.storeSku ?? picked.sku}</div>
           </div>
-        ) : (
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-slate-700">Sản phẩm *</label>
-            <StoreProductSearch
-              onPick={(p) => {
-                setPicked(p)
-                loadProduct(p.productId)
-              }}
-            />
-          </div>
-        )}
-
-        {!editing && picked ? (
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-slate-700" htmlFor="rl-pack">
-              Quy cách nhập *
-            </label>
-            <select id="rl-pack" className={inputClassName} value={packagingId} onChange={(e) => setPackagingId(e.target.value)} disabled={productLoading}>
-              <option value="">{productLoading ? 'Đang tải...' : purchasePackagings.length === 0 ? 'Sản phẩm chưa có quy cách nhập' : 'Chọn quy cách...'}</option>
-              {purchasePackagings.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.packagingName ?? p.unitName} (1 = {formatQty(p.conversionToBase)} {unitLabel(baseUnit ?? p.unitCode)})
-                </option>
-              ))}
-            </select>
-          </div>
-        ) : null}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            type="button"
+            className="text-sm font-medium text-emerald-700 hover:text-emerald-800"
+            onClick={() => {
+              setPicked(null)
+              setProduct(null)
+              setPackagingId('')
+            }}
+          >
+            Đổi sản phẩm
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-slate-700">Sản phẩm *</label>
+          <StoreProductSearch
+            onPick={(p) => {
+              setPicked(p)
+              loadProduct(p.productId)
+            }}
+          />
+        </div>
+      )}{!editing && picked ? (
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-slate-700" htmlFor="rl-pack">
+            Quy cách nhập *
+          </label>
+          <select id="rl-pack" className={inputClassName} value={packagingId} onChange={(e) => setPackagingId(e.target.value)} disabled={productLoading}>
+            <option value="">{productLoading ? 'Đang tải...' : purchasePackagings.length === 0 ? 'Sản phẩm chưa có quy cách nhập' : 'Chọn quy cách...'}</option>
+            {purchasePackagings.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.packagingName ?? p.unitName} (1 = {formatQty(p.conversionToBase)} {unitLabel(baseUnit ?? p.unitCode)})
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1">
             <label className="text-sm font-medium text-slate-700" htmlFor="rl-qty">
               Số lượng nhận *
@@ -204,31 +205,18 @@ export default function ReceiptLineModal({ receiptId, item, onClose, onSaved }: 
             </label>
             <input id="rl-note" className={inputClassName} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
-        </div>
-
-        {qtyOk && costOk && conversion > 0 ? (
+        </div>{qtyOk && costOk && conversion > 0 ? (
           <p className="text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
             Nhập <strong>{formatQty(qty * conversion)}</strong> {unitLabel(baseUnit ?? '')} vào kho
             {' · '}thành tiền <strong>{formatVnd(qty * unitCost)}</strong>
             {' · '}giá vốn <strong>{formatVnd(unitCost / conversion)}</strong>/{unitLabel(baseUnit ?? '') || 'đơn vị cơ sở'}
           </p>
-        ) : null}
-
-        {problem ? (
+        ) : null}{problem ? (
           <p className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2" role="alert">
             {problem}
           </p>
         ) : null}
-
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-          <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm shadow-sm disabled:opacity-50" onClick={onClose} disabled={busy}>
-            Hủy
-          </button>
-          <button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={!canSubmit}>
-            {busy ? 'Đang lưu...' : editing ? 'Lưu thay đổi' : 'Thêm dòng'}
-          </button>
-        </div>
-      </div>
+      </ModalLayout>
     </DetailModal>
   )
 }

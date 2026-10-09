@@ -1,3 +1,4 @@
+import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
 import { Loader2, Plus, Trash2 } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
@@ -130,17 +131,24 @@ export default function PickupModal({ order, onClose, onDone }: PickupModalProps
 
   return (
     <Modal open onClose={onClose} title={`Giao hàng tại quầy · ${order.orderNumber}`} widthClassName="max-w-3xl">
-      <div className="space-y-4 text-sm">
-        <p className="p-3 rounded-lg bg-indigo-50 text-indigo-900">
+      <ModalLayout footer={<div className="flex flex-wrap items-center justify-end gap-3">
+        <span className="text-xs text-slate-500">{lines ? `${sending.length}/${lines.length} dòng sẽ giao` : ''}</span>
+        <div className="flex gap-2">
+          <button type="button" onClick={onClose} className="h-10 px-5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100">
+            Huỷ
+          </button>
+          <button type="button" disabled={!canSubmit} onClick={submit} className="h-10 px-5 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 inline-flex items-center gap-2">
+            {saving && <Loader2 size={15} className="animate-spin" />} Xác nhận giao & trừ kho
+          </button>
+        </div>
+      </div>} bodyClassName="space-y-4"><p className="p-3 rounded-lg bg-indigo-50 text-indigo-900">
           Lô đang giữ cho đơn được điền sẵn (hết hạn trước xuất trước). Sửa số lượng nếu lấy thực tế khác; có thể giao một phần — phần còn lại giao sau hoặc huỷ.
           Số lượng theo <strong>đơn vị cơ sở</strong>.
-        </p>
-        {error && (
+        </p>{error && (
           <p className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700" role="alert">
             {error}
           </p>
-        )}
-        {!lines ? (
+        )}{!lines ? (
           !error && <p className="py-8 text-center text-slate-500">Đang tải lô hàng...</p>
         ) : (
           lines.map((line, idx) => {
@@ -234,27 +242,13 @@ export default function PickupModal({ order, onClose, onDone }: PickupModalProps
               </section>
             )
           })
-        )}
-
-        <div>
+        )}<div>
           <label htmlFor="pickup-note" className="block text-xs font-semibold text-slate-600 mb-1">
             Ghi chú phiếu xuất
           </label>
           <input id="pickup-note" maxLength={1000} className="w-full h-9 px-3 rounded-lg border border-slate-200 text-sm" value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
-
-        <div className="flex items-center justify-between gap-3 pt-1">
-          <span className="text-xs text-slate-500">{lines ? `${sending.length}/${lines.length} dòng sẽ giao` : ''}</span>
-          <div className="flex gap-2">
-            <button type="button" onClick={onClose} className="h-10 px-5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100">
-              Huỷ
-            </button>
-            <button type="button" disabled={!canSubmit} onClick={submit} className="h-10 px-5 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 inline-flex items-center gap-2">
-              {saving && <Loader2 size={15} className="animate-spin" />} Xác nhận giao & trừ kho
-            </button>
-          </div>
-        </div>
-      </div>
+      </ModalLayout>
     </Modal>
   )
 }
