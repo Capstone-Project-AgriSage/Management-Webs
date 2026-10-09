@@ -1,12 +1,7 @@
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { pushToast, toastDuration, type Toast, type ToastType } from './toastState'
 
-export type ToastType = 'success' | 'error' | 'info' | 'warning'
-
-interface Toast {
-  id: number
-  message: string
-  type: ToastType
-}
+export type { ToastType } from './toastState'
 
 interface ToastContextValue {
   showToast: (message: string, type?: ToastType) => void
@@ -23,15 +18,44 @@ const TOAST_ICON: Record<ToastType, { icon: string; className: string }> = {
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
+  // The latest list, so a burst of showToast calls in the same tick each sees the previous one's result.
+  const current = useRef<Toast[]>([])
   const nextId = useRef(0)
+  const timers = useRef(new Map<number, number>())
+
+  const commit = useCallback((next: Toast[]) => {
+    current.current = next
+    setToasts(next)
+  }, [])
+
+  const clearTimer = useCallback((id: number) => {
+    const timer = timers.current.get(id)
+    if (timer !== undefined) window.clearTimeout(timer)
+    timers.current.delete(id)
+  }, [])
+
+  const dismiss = useCallback((id: number) => {
+    clearTimer(id)
+    commit(current.current.filter((toast) => toast.id !== id))
+  }, [clearTimer, commit])
 
   const showToast = useCallback((message: string, type: ToastType = 'success') => {
-    const id = nextId.current++
-    setToasts((prev) => [...prev, { id, message, type }])
-    // Errors stay longer so staff can read the server's reason.
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id))
-    }, type === 'error' ? 5000 : 3000)
+    const result = pushToast(current.current, message, type, nextId.current)
+    if (result.isNew) nextId.current += 1
+    result.droppedIds.forEach(clearTimer)
+    commit(result.toasts)
+
+    // Showing the same message again restarts its countdown instead of stacking another popup.
+    clearTimer(result.shownId)
+    timers.current.set(result.shownId, window.setTimeout(() => dismiss(result.shownId), toastDuration(type)))
+  }, [clearTimer, commit, dismiss])
+
+  useEffect(() => {
+    const pending = timers.current
+    return () => {
+      pending.forEach((timer) => window.clearTimeout(timer))
+      pending.clear()
+    }
   }, [])
 
   return (
@@ -50,6 +74,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               {TOAST_ICON[toast.type].icon}
             </span>
             <span>{toast.message}</span>
+            {toast.count > 1 && (
+              <span className="shrink-0 rounded-full bg-white/20 px-1.5 text-xs tabular-nums" aria-label={`${toast.count} lần`}>
+                ×{toast.count}
+              </span>
+            )}
           </div>
         ))}
       </div>

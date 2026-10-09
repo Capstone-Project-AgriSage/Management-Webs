@@ -1,3 +1,5 @@
+import { friendlyServerDetail } from './serverMessages'
+
 export class ApiError extends Error {
   status: number
   title: string
@@ -38,7 +40,7 @@ function handleUnauthorized(): never {
 
 async function toApiError(res: Response): Promise<ApiError> {
   const p = await res.json().catch(() => ({}))
-  return new ApiError(res.status, p.title ?? res.statusText, p.detail, p.errors, p.traceId)
+  return new ApiError(res.status, p.title ?? res.statusText, friendlyServerDetail(res.status, p.detail), p.errors, p.traceId)
 }
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
