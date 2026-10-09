@@ -5,6 +5,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import RequirePermission from '@/components/auth/RequirePermission'
 import RequireRole from '@/components/auth/RequireRole'
 import LoginPage from '@/features/auth/LoginPage'
+import NotificationsPage from '@/features/notifications/NotificationsPage'
 import ForgotPasswordPage from '@/features/auth/ForgotPasswordPage'
 
 // =======================
@@ -19,7 +20,6 @@ import ActiveIngredientsPage from '@/features/admin/products/ActiveIngredientsPa
 import AiModelsPage from '@/features/admin/ai-models/AiModelsPage'
 import AiPolicyConfigsPage from '@/features/admin/ai-models/AiPolicyConfigsPage'
 import ArticlesPage from '@/features/admin/content/ArticlesPage'
-import SystemNotificationsPage from '@/features/admin/system/SystemNotificationsPage'
 import AuditLogsPage from '@/features/admin/system/AuditLogsPage'
 import CreditConfigPage from '@/features/admin/credit-config/CreditConfigPage'
 
@@ -93,6 +93,7 @@ export const router = createBrowserRouter([
         children: [
           // Index route directs to correct dashboard based on role
           { index: true, element: <RootRedirect /> },
+          { path: 'notifications', element: <NotificationsPage /> },
 
           // --- ADMIN ROUTES ---
           {
@@ -129,7 +130,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'admin/notifications',
-            element: <RequireRole role="admin"><RequirePermission module="notifications"><SystemNotificationsPage /></RequirePermission></RequireRole>,
+            element: <RequireRole role="admin"><NotificationsPage /></RequireRole>,
           },
           {
             path: 'admin/audit-logs',
@@ -366,4 +367,3 @@ export const router = createBrowserRouter([
     ],
   },
 ])
-

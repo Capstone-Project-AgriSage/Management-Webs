@@ -24,9 +24,15 @@ function apiUrl(path: string): string {
   return `${import.meta.env.VITE_API_URL || ''}${path}`
 }
 
+// Parallel background requests may receive 401 together; navigate to login once.
+let redirectingToLogin = false
+
 function handleUnauthorized(): never {
   localStorage.removeItem('agrisage_token')
-  window.location.assign('/login')
+  if (!redirectingToLogin) {
+    redirectingToLogin = true
+    window.location.assign('/login')
+  }
   throw new ApiError(401, 'Unauthorized')
 }
 

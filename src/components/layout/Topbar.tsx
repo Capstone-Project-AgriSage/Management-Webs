@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePageHeaderValue } from '@/context/PageHeaderContext'
 import { useAuth } from '@/context/AuthContext'
+import { useNotifications } from '@/hooks/useNotifications'
 import { useToast } from '@/context/ToastContext'
 
 interface TopbarProps {
@@ -15,7 +16,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const navigate = useNavigate()
 
   const [searchQuery, setSearchQuery] = useState('')
-  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(true)
+  const { unreadCount } = useNotifications()
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -49,14 +50,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
     setSearchQuery('')
   }
 
-  const handleNotificationsClick = () => {
-    if (hasUnreadNotifications) {
-      setHasUnreadNotifications(false)
-      showToast('Đã xem thông báo hệ thống')
-    } else {
-      showToast('Không có thông báo mới')
-    }
-  }
+  const handleNotificationsClick = () => navigate('/notifications')
 
   const badgeIcon = currentRole === 'admin' ? 'verified_user' : 'agriculture'
   const searchPlaceholder = currentRole === 'admin'
@@ -110,13 +104,14 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         <div className="flex items-center gap-1">
           <button
             className="w-8 h-8 flex items-center justify-center rounded border border-transparent hover:border-outline-variant/60 hover:bg-surface-container-low text-on-surface-variant relative transition-colors"
-            title="Thông báo hệ thống"
+            title="Thông báo của tôi"
+            aria-label={unreadCount > 0 ? `Thông báo, ${unreadCount} chưa đọc` : 'Thông báo'}
             type="button"
             onClick={handleNotificationsClick}
           >
             <span className="material-symbols-outlined text-[18px]">notifications</span>
-            {hasUnreadNotifications ? (
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-error ring-2 ring-white"></span>
+            {unreadCount > 0 ? (
+              <span aria-hidden="true" className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-error text-white text-[10px] flex items-center justify-center ring-2 ring-white">{unreadCount > 99 ? '99+' : unreadCount}</span>
             ) : null}
           </button>
           <button

@@ -1138,3 +1138,40 @@ export interface PriceListItem {
 
 export interface ProblemDetails { title: string; status: number; detail?: string; traceId?: string; errors?: Record<string, string[]> }
 ```
+
+## Thông báo cá nhân
+
+Trang `/notifications` và chuông trên thanh điều hướng dùng dữ liệu thật từ backend:
+
+| Thao tác | API |
+| --- | --- |
+| Danh sách, phân trang, lọc trạng thái | `GET /api/me/notifications?page=1&pageSize=20&status=UNREAD` |
+| Badge chưa đọc | `GET /api/me/notifications/unread-count` |
+| Đánh dấu một thông báo đã đọc | `POST /api/me/notifications/{id}/read` |
+| Đánh dấu tất cả đã đọc | `POST /api/me/notifications/read-all` |
+| Lưu trữ thông báo | `DELETE /api/me/notifications/{id}` |
+
+Không truyền user ID; API client hiện có gửi JWT của người đăng nhập. Bộ lọc mặc định bỏ qua thông báo đã lưu trữ;
+`UNREAD`, `READ`, `ARCHIVED` được lọc và phân trang ở server. Lưu trữ không xóa dữ liệu.
+Badge cập nhật ngay sau thao tác thành công, kiểm tra lại mỗi 30 giây khi tab hiển thị và khi cửa sổ nhận focus.
+Phản hồi cũ bị hủy khi chuyển bộ lọc/trang hoặc đổi người đăng nhập; thao tác thất bại giữ nguyên dữ liệu đã xác nhận.
+Thông báo đơn hàng/công nợ/giao hàng/tồn kho có liên kết đến màn hình phù hợp khi vai trò và metadata hỗ trợ.
+
+Backend cần migration Auth/Notifications đã áp dụng và `BackgroundJobs__Enabled=true` để tự chuyển sự kiện outbox
+thành thông báo/cảnh báo. Frontend hiển thị trạng thái rỗng khi tài khoản chưa có thông báo.
+
+### Kiểm tra thông báo
+
+- TypeScript: `node node_modules/typescript/bin/tsc -b`
+- Production build: `npm run build`
+- Lint: `npm run lint` (project hiện có một số cảnh báo ngoài phần thông báo).
+- Browser regression: khởi động dev server, cấu hình `NOTIFICATION_TEST_URL` trỏ tới server đó rồi chạy
+  `node scripts/test-notifications.mjs`. Cần Playwright trong môi trường kiểm thử; có thể truyền đường dẫn
+  module `index.mjs` bằng `NOTIFICATION_PLAYWRIGHT_MODULE`. Dùng `NOTIFICATION_BROWSER_CHANNEL=msedge`
+  hoặc `chrome` để kiểm tra bằng browser cài sẵn, hoặc dùng Chromium của Playwright mặc định.
+
+Browser test dùng JWT giả và chặn toàn bộ request `/api/*`; không gửi thao tác tới backend/Supabase.
+Các tình huống bao gồm phân trang/badge, đọc một mục/tất cả, lưu trữ, API lỗi/retry, phản hồi đến sai thứ tự,
+hết phiên và mobile/99+. Management còn kiểm tra trang cá nhân cho Admin, chủ cửa hàng và nhân viên giao hàng.
+
+Đường dẫn Admin cũ /admin/notifications cũng mở trang thông báo cá nhân dùng API. Các nút chiến dịch/gửi thông báo mẫu không còn nằm trong route này vì backend hiện chỉ có API thông báo của người đăng nhập.
