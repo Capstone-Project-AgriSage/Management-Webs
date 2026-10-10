@@ -13,6 +13,7 @@ import PromptModal, { type PromptField } from '@/components/ui/PromptModal'
 import { describeApiError } from '@/utils/apiError'
 import { formatDay, todayVn, useCanManage } from '@/utils/creditLabels'
 import PriceListItemsModal from './PriceListItemsModal'
+import ListReportCards from '@/features/agent/reports/ListReportCards'
 
 const PAGE_SIZE = 15
 
@@ -38,6 +39,7 @@ export default function PriceListsPage() {
 
   const [data, setData] = useState<Paged<PriceList> | null>(null)
   const [loading, setLoading] = useState(true)
+  const [listError, setListError] = useState(false)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -55,6 +57,7 @@ export default function PriceListsPage() {
 
   const load = async () => {
     setLoading(true)
+    setListError(false)
     try {
       const [lists, walkIn] = await Promise.all([
         priceListsApi.getPriceLists({ search: debouncedSearch || undefined, status: status || undefined, page, pageSize: PAGE_SIZE }),
@@ -64,6 +67,7 @@ export default function PriceListsPage() {
       setHasWalkInDefault(walkIn.totalCount > 0)
     } catch (err) {
       showToast(describeApiError(err, 'Không tải được danh sách bảng giá'), 'error')
+      setListError(true)
     } finally {
       setLoading(false)
     }
@@ -144,6 +148,11 @@ export default function PriceListsPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
+      <ListReportCards title="Tổng hợp bảng giá" totalCount={data?.totalCount ?? null} unit="bảng giá" loading={loading} error={listError} metrics={[
+        { label: 'Bảng giá nháp', value: items.filter(item => item.status === 'DRAFT').length },
+        { label: 'Đang áp dụng', value: items.filter(item => item.status === 'ACTIVE').length },
+        { label: 'Ngưng áp dụng', value: items.filter(item => item.status === 'INACTIVE').length },
+      ]} />
       {!loading && !hasWalkInDefault && (
         <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50 text-amber-900">
           <AlertTriangle size={20} className="shrink-0 mt-0.5" />

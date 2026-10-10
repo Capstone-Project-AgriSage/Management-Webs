@@ -13,6 +13,7 @@ import DetailModal from '@/components/ui/DetailModal'
 import { formatVnd } from '@/utils/money'
 import { formatDate, formatDateTime, formatQty } from '@/utils/units'
 import { ADJUSTMENT_REASONS, MOVEMENT_TYPE_BADGE_CLASS, MOVEMENT_TYPE_LABEL, MOVEMENT_TYPE_OPTIONS } from './stockLabels'
+import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 
 const PAGE_SIZE = 15
 
@@ -81,6 +82,7 @@ export default function StockMovementsPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
+      <BusinessReportCards kind="inventory" fromDate={from} toDate={to} onFromDateChange={value => { setFrom(value); setPage(1) }} onToDateChange={value => { setTo(value); setPage(1) }} searchResult={{ count: data?.totalCount ?? 0, unit: 'phiếu kho' }} />
       <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-end gap-3">
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Loại phiếu</label>

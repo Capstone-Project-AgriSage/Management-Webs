@@ -18,9 +18,11 @@ const pages = [
   ['/agent/debts', 'Tổng hợp công nợ', ['debt-aging', 'debt-collections', 'debt-by-customer-group']],
   ['/agent/credit-config', 'Mức sử dụng tín dụng', ['credit-exposure']],
   ['/agent/inventory', 'Tổng hợp xuất nhập tồn', ['inventory-movement', 'inventory-valuation']],
+  ['/agent/products', 'Giá trị tồn kho', ['inventory-valuation']],
+  ['/agent/inventory/movements', 'Tổng hợp xuất nhập tồn', ['inventory-movement']],
   ['/agent', 'Doanh thu và bán hàng', ['sales', 'revenue', 'revenue-summary']],
 ]
-const businessCodes = ['ORDERS.READ', 'PAYMENTS.READ', 'GOODS_RECEIPTS.READ', 'SUPPLIERS.READ', 'RETURNS.READ', 'REFUNDS.READ', 'DELIVERIES.READ', 'DEBT.READ', 'CUSTOMER_GROUPS.READ', 'CREDIT_TIERS.READ', 'INVENTORY.READ', 'STAFF.READ']
+const businessCodes = ['ORDERS.READ', 'PAYMENTS.READ', 'GOODS_RECEIPTS.READ', 'SUPPLIERS.READ', 'RETURNS.READ', 'REFUNDS.READ', 'DELIVERIES.READ', 'DEBT.READ', 'CUSTOMER_GROUPS.READ', 'CREDIT_TIERS.READ', 'INVENTORY.READ', 'STAFF.READ', 'STORE_PRODUCTS.READ', 'PRODUCTS.READ']
 const metrics = { orderCount: 3, fulfilledValue: 3000000, costOfGoods: 2000000, grossProfit: 1000000, returnValue: 100000, netSales: 2900000, averageOrderValue: 1000000, grossMarginPercent: 33.33 }
 const operational = {
   sales: metrics,
@@ -49,6 +51,9 @@ async function fixture(role = 'STORE_OWNER', withReports = true, path = '/agent/
     if (url.pathname === '/api/auth/me') return json({ id: 'test-user', fullName: 'Người kiểm thử', name: 'Người kiểm thử', initials: 'KT', role, status: 'ACTIVE' })
     if (url.pathname === '/api/me/permissions') return json({ role, storeId: 'test-store', roleVersion: 1, memberVersion: 1, permissions: state.codes })
     if (url.pathname.endsWith('/unread-count')) return json({ count: 0 })
+    if (url.pathname === '/api/store-products') return json({ ...list, totalPages: 1 })
+    if (url.pathname === '/api/products' && url.searchParams.get('Search')) return json({ ...list, totalCount: 4, totalPages: 1 })
+    if (url.pathname === '/api/inventory/stock-movements' && url.searchParams.get('type')) return json({ ...list, totalCount: 9, totalPages: 1 })
     if (url.pathname === '/api/orders' && url.searchParams.get('status') === 'CANCELLED') return json({ ...list, totalCount: 0, totalPages: 0 })
     if (!url.pathname.startsWith('/api/reports/')) return json(list)
     const report = url.pathname.split('/').at(-1)
@@ -113,6 +118,43 @@ try {
   assert(owner.state.requests.every(request => request.method === 'GET'))
   assert.deepEqual(owner.errors, [])
   pass('All 15 reporting APIs are integrated into their business pages, with no report sidebar items')
+
+  await owner.page.goto(base + '/agent/products')
+  const products = await ready(owner.page, 'Giá trị tồn kho')
+  await products.getByText(/121\s*sản phẩm/).waitFor()
+  assert.equal(await products.getByText('1.300.000 đ', { exact: true }).count(), 1)
+  const productReports = owner.state.requests.filter(request => request.path === '/api/reports/inventory-valuation').length
+  await owner.page.getByPlaceholder('Tìm theo tên hoặc mã SKU...').fill('lúa')
+  await products.getByText(/4\s*sản phẩm/).waitFor()
+  assert.equal(owner.state.requests.filter(request => request.path === '/api/reports/inventory-valuation').length, productReports)
+  if (process.env.REPORT_SCREENSHOT_DIR) await owner.page.screenshot({ path: join(process.env.REPORT_SCREENSHOT_DIR, 'inline-products-desktop.png'), fullPage: true })
+  pass('Products displays the filtered result count beside current inventory values; searching does not refetch totals')
+
+  await owner.page.goto(base + '/agent/inventory/movements')
+  const movements = await ready(owner.page, 'Tổng hợp xuất nhập tồn')
+  await movements.getByText(/121\s*phiếu kho/).waitFor()
+  const movementReports = owner.state.requests.filter(request => request.path === '/api/reports/inventory-movement').length
+  await owner.page.locator('main select').selectOption('SALE')
+  await movements.getByText(/9\s*phiếu kho/).waitFor()
+  assert.equal(owner.state.requests.filter(request => request.path === '/api/reports/inventory-movement').length, movementReports)
+  await owner.page.getByLabel('Tổng hợp xuất nhập tồn: từ ngày').fill('2026-10-02')
+  await ready(owner.page, 'Tổng hợp xuất nhập tồn')
+  await owner.page.waitForFunction(() => document.getElementById('mv-from')?.value === '2026-10-02')
+  assert.equal(owner.state.requests.filter(request => request.path === '/api/reports/inventory-movement').at(-1).query.fromDate, '2026-10-02')
+  const movementList = owner.state.requests.filter(request => request.path === '/api/inventory/stock-movements').at(-1)
+  assert.equal(movementList.query.fromDate, '2026-10-02')
+  assert.equal(movementList.query.page, '1')
+  if (process.env.REPORT_SCREENSHOT_DIR) await owner.page.screenshot({ path: join(process.env.REPORT_SCREENSHOT_DIR, 'inline-movements-desktop.png'), fullPage: true })
+  pass('Stock movements preserves the type-filtered count and shares period changes with the list')
+
+  for (const [path, unit] of [['/agent/products', 'sản phẩm'], ['/agent/inventory/movements', 'phiếu kho']]) {
+    const limited = await fixture('STORE_OWNER', false, path)
+    await limited.page.getByText(new RegExp(`121\\s*${unit}`)).first().waitFor()
+    assert.equal(limited.state.requests.filter(request => request.path.startsWith('/api/reports/')).length, 0)
+    assert.deepEqual(limited.errors, [])
+    await limited.context.close()
+  }
+  pass('Products and stock movements show search results without requesting reports when REPORTS.READ is absent')
 
   await owner.page.goto(base + '/agent/orders')
   await ready(owner.page, 'Tổng hợp đơn hàng')

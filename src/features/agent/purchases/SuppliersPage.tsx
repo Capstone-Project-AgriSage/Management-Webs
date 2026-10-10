@@ -14,6 +14,7 @@ import Pagination from '@/components/ui/Pagination'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import DetailModal from '@/components/ui/DetailModal'
 import ConfirmModal from '@/components/ui/ConfirmModal'
+import ListReportCards from '@/features/agent/reports/ListReportCards'
 
 const PAGE_SIZE = 10
 
@@ -46,6 +47,7 @@ export default function SuppliersPage() {
   const [page, setPage] = useState(1)
   const [data, setData] = useState<Paged<Supplier> | null>(null)
   const [loading, setLoading] = useState(false)
+  const [listError, setListError] = useState(false)
   const request = useRef(0)
 
   const [editing, setEditing] = useState<Supplier | 'new' | null>(null)
@@ -55,6 +57,7 @@ export default function SuppliersPage() {
   const load = useCallback(async () => {
     const id = ++request.current
     setLoading(true)
+    setListError(false)
     try {
       const res = await suppliersApi.list({
         search: debouncedSearch.trim() || undefined,
@@ -64,7 +67,7 @@ export default function SuppliersPage() {
       })
       if (id === request.current) setData(res)
     } catch (err) {
-      if (id === request.current) showToast(describeError(err, 'Không tải được danh sách nhà cung cấp'), 'error')
+      if (id === request.current) { setListError(true); showToast(describeError(err, 'Không tải được danh sách nhà cung cấp'), 'error') }
     } finally {
       if (id === request.current) setLoading(false)
     }
@@ -109,6 +112,11 @@ export default function SuppliersPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
+      <ListReportCards title="Tổng hợp nhà cung cấp" totalCount={data?.totalCount ?? null} unit="nhà cung cấp" loading={loading} error={listError} metrics={[
+        { label: 'Đang hợp tác', value: items.filter(item => item.isActive).length },
+        { label: 'Ngừng hợp tác', value: items.filter(item => !item.isActive).length },
+        { label: 'Có thông tin liên hệ', value: items.filter(item => item.phoneNumber || item.email).length },
+      ]} />
       <div className="flex flex-wrap items-center gap-3 justify-between">
         <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-center gap-3 flex-1">
           <SearchInput

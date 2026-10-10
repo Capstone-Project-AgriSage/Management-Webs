@@ -5,6 +5,7 @@ import { staffApi, type StaffResponse } from '@/api/staffApi'
 import { describeError } from '@/api/client'
 import Pagination from '@/components/ui/Pagination'
 import MemberPermissionEditor from './MemberPermissionEditor'
+import ListReportCards from '@/features/agent/reports/ListReportCards'
 export default function StaffPage() {
   usePageHeader({ title: 'Quản lý nhân sự', subtitle: 'Nhân viên và quyền truy cập tại đại lý' })
   const [staff, setStaff] = useState<StaffResponse[]>([])
@@ -12,7 +13,7 @@ export default function StaffPage() {
   const [total, setTotal] = useState(0)
   const [target, setTarget] = useState<string | null>(null)
   const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState(true)
   const [refreshKey, setRefreshKey] = useState(0)
   const { has } = usePermission()
   useEffect(() => {
@@ -21,6 +22,11 @@ export default function StaffPage() {
     return () => { active = false }
   }, [page, refreshKey])
   return <div className="space-y-4">
+    <ListReportCards title="Tổng hợp nhân sự" totalCount={total} unit="nhân viên" loading={busy} error={!!error} metrics={[
+      { label: 'Đang làm việc', value: staff.filter(item => item.memberStatus === 'ACTIVE' && item.status === 'ACTIVE').length },
+      { label: 'Ngừng hoạt động', value: staff.filter(item => item.memberStatus !== 'ACTIVE' || item.status !== 'ACTIVE').length },
+      { label: 'Nhân viên bán hàng', value: staff.filter(item => item.role === 'SALES_STAFF').length },
+    ]} />
     {target && <MemberPermissionEditor key={target} userId={target} onClose={() => setTarget(null)} />}
     <div className="bg-white border rounded-xl p-4">
       <div className="flex justify-between mb-4"><h2 className="font-bold">Danh sách nhân viên</h2><button disabled={busy} onClick={() => setRefreshKey(k => k + 1)}>Làm mới</button></div>

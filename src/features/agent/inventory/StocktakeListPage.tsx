@@ -18,6 +18,7 @@ import { formatDateTime } from '@/utils/units'
 import ProductPicker, { type PickedProduct } from './ProductPicker'
 import { STOCKTAKE_STATUS_BADGE_CLASS, STOCKTAKE_STATUS_LABEL } from './stockLabels'
 import { useStocktakeBase } from './stocktakePaths'
+import ListReportCards from '@/features/agent/reports/ListReportCards'
 
 const PAGE_SIZE = 10
 
@@ -33,6 +34,7 @@ export default function StocktakeListPage() {
   const [page, setPage] = useState(1)
   const [data, setData] = useState<Paged<StocktakeListItem> | null>(null)
   const [loading, setLoading] = useState(false)
+  const [listError, setListError] = useState(false)
   const request = useRef(0)
 
   const [createOpen, setCreateOpen] = useState(false)
@@ -40,6 +42,7 @@ export default function StocktakeListPage() {
   const load = useCallback(async () => {
     const id = ++request.current
     setLoading(true)
+    setListError(false)
     try {
       const res = await stocktakeApi.list({
         status: (status || undefined) as StocktakeStatus | undefined,
@@ -49,7 +52,7 @@ export default function StocktakeListPage() {
       })
       if (id === request.current) setData(res)
     } catch (err) {
-      if (id === request.current) showToast(describeError(err, 'Không tải được danh sách kiểm kê'), 'error')
+      if (id === request.current) { setListError(true); showToast(describeError(err, 'Không tải được danh sách kiểm kê'), 'error') }
     } finally {
       if (id === request.current) setLoading(false)
     }
@@ -63,6 +66,11 @@ export default function StocktakeListPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
+      <ListReportCards title="Tổng hợp kiểm kê kho" totalCount={data?.totalCount ?? null} unit="phiếu kiểm kê" loading={loading} error={listError} metrics={[
+        { label: 'Đang kiểm kê', value: items.filter(item => item.status === 'IN_PROGRESS').length },
+        { label: 'Kiểm kê hoàn tất', value: items.filter(item => item.status === 'COMPLETED').length },
+        { label: 'Dòng kiểm kê chênh lệch', value: items.reduce((sum, item) => sum + item.differenceCount, 0) },
+      ]} />
       <div className="flex flex-wrap items-center gap-3 justify-between">
         <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-center gap-3 flex-1">
           <SearchInput

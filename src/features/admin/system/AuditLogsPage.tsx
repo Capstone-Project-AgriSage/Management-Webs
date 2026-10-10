@@ -9,6 +9,7 @@ import { usePageHeader } from '@/context/PageHeaderContext'
 import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/context/AuthContext'
 import { downloadCsv } from '@/utils/csv'
+import ListReportCards from '@/features/agent/reports/ListReportCards'
 import { actionLabel, actionLabels, actorLabel, browserLabel, changeRows, entityLabels, eventStatus,
   resourceLabel, roleLabels, valueLabel } from './auditLogPresentation'
 
@@ -209,6 +210,11 @@ export default function AuditLogsPage() {
 
   return (
     <div className="w-full min-w-0 max-w-[1600px] mx-auto flex flex-col gap-space-lg">
+      <ListReportCards title={ownerView ? 'Tổng hợp nhật ký đại lý' : 'Tổng hợp nhật ký hệ thống'} totalCount={result?.totalCount ?? null} unit="nhật ký" loading={loading} error={!!loadError} metrics={[
+        { label: 'Thao tác thành công', value: result?.items.filter(item => eventStatus(item) === 'SUCCESS').length ?? 0 },
+        { label: 'Thao tác thất bại', value: result?.items.filter(item => eventStatus(item) === 'FAILURE').length ?? 0 },
+        { label: 'Người thực hiện', value: new Set(result?.items.map(item => item.actorUserId).filter(Boolean) ?? []).size },
+      ]} />
       <div className="flex flex-wrap items-start justify-between gap-3 mt-2">
         <div className="flex flex-col gap-1.5">
           <h1 className="text-3xl font-semibold text-on-surface">{ownerView ? 'Nhật ký đại lý' : 'Nhật ký Hệ thống'}</h1>

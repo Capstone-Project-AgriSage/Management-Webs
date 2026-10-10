@@ -15,6 +15,7 @@ import { formatVnd } from '@/utils/money'
 import { CUSTOMER_STATUS_LABEL, label } from '@/utils/creditLabels'
 import CustomerFormModal from './CustomerFormModal'
 import CustomerDetailModal from './CustomerDetailModal'
+import ListReportCards from '@/features/agent/reports/ListReportCards'
 
 const PAGE_SIZE = 15
 
@@ -34,6 +35,7 @@ export default function CustomersPage() {
 
   const [data, setData] = useState<PagedResult<CustomerResponse> | null>(null)
   const [loading, setLoading] = useState(true)
+  const [listError, setListError] = useState(false)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -59,6 +61,7 @@ export default function CustomersPage() {
 
   const load = async () => {
     setLoading(true)
+    setListError(false)
     const s = SORT_OPTIONS.find((o) => o.value === sort) ?? SORT_OPTIONS[0]
     try {
       setData(
@@ -75,6 +78,7 @@ export default function CustomersPage() {
       )
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Không tải được danh sách khách hàng', 'error')
+      setListError(true)
     } finally {
       setLoading(false)
     }
@@ -100,6 +104,11 @@ export default function CustomersPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
+      <ListReportCards title="Tổng hợp khách hàng" totalCount={data?.totalCount ?? null} unit="khách hàng" loading={loading} error={listError} metrics={[
+        { label: 'Dư nợ khách hàng', value: items.reduce((sum, item) => sum + item.currentDebt, 0), kind: 'money' },
+        { label: 'Nợ quá hạn', value: items.some(item => !item.debtSummary) ? null : items.reduce((sum, item) => sum + (item.debtSummary?.overdueDebt ?? 0), 0), kind: 'money' },
+        { label: 'Khách được mua chịu', value: items.filter(item => item.allowCreditPurchase).length },
+      ]} />
       <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col xl:flex-row xl:items-center gap-3">
         <SearchInput value={search} onChange={setSearch} placeholder="Tìm theo tên hoặc số điện thoại..." className="relative flex-1 min-w-[220px]" />
         <div className="flex flex-wrap items-center gap-2">

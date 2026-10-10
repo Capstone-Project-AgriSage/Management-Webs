@@ -24,6 +24,7 @@ import RowActionsMenu, { type RowAction } from '@/components/ui/RowActionsMenu'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import ProductThumb from '@/components/ui/ProductThumb'
 import ProductFormModal from './ProductFormModal'
+import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 
 const PAGE_SIZE = 15
 
@@ -219,6 +220,7 @@ export default function ProductManagementPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
+      <BusinessReportCards kind="valuation" searchResult={{ count: data?.totalCount ?? 0, unit: 'sản phẩm' }} />
       <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col xl:flex-row xl:items-center gap-3">
         <SearchInput value={search} onChange={setSearch} placeholder="Tìm theo tên hoặc mã SKU..." className="relative flex-1 min-w-[220px]" />
         <div className="flex flex-wrap items-center gap-2">
