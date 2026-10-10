@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 import { ChevronDown, ChevronRight, Coins, Hourglass } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { useToast } from '@/context/ToastContext'
@@ -145,6 +146,7 @@ export default function RefundsPage() {
         />
       </div>
 
+      <BusinessReportCards kind="refunds" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1 shadow-sm" role="tablist">
           {(

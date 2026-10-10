@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useState, useEffect } from 'react'
 import DetailModal from '@/components/ui/DetailModal'
@@ -121,14 +122,14 @@ export default function EditDeliveryLotsModal({ open, onClose, deliveryId, item,
         >
           Hủy
         </button>
-        <button
+        <PermissionAction codes={["DELIVERIES.UPDATE"]}><button
           type="button"
           className="px-4 py-2 text-sm font-bold bg-primary text-on-primary hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50"
           onClick={handleSave}
           disabled={isProcessing || loading || !storeProductId || totalSelected !== required}
         >
           {isProcessing ? 'Đang lưu...' : 'Lưu thay đổi'}
-        </button>
+        </button></PermissionAction>
       </div>}><div className="p-4 max-h-[60vh] overflow-y-auto">
           {!storeProductId ? (
             <div className="text-sm text-rose-600 text-center py-4">Không xác định được sản phẩm của dòng hàng này.</div>

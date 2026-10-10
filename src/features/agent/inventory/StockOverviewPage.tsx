@@ -1,3 +1,5 @@
+import PermissionAction from '@/components/auth/PermissionAction'
+import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, CalendarClock, ChevronDown, ChevronRight, ChevronsRight, History, PackageX, Wallet } from 'lucide-react'
@@ -306,6 +308,7 @@ export default function StockOverviewPage() {
       </div>
 
       {/* Tabs + actions */}
+      <BusinessReportCards kind="inventory" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1 shadow-sm" role="tablist">
           {(
@@ -715,7 +718,7 @@ export default function StockOverviewPage() {
         }}
       />
 
-      <ConfirmModal
+      <PermissionAction codes={["INVENTORY.EXPIRE_DUE_LOTS"]}><ConfirmModal
         open={expireOpen}
         title="Đánh dấu các lô đã quá hạn"
         message="Mọi lô đang bán đã quá hạn dùng sẽ chuyển sang trạng thái Hết hạn trong một lần. Hệ thống vốn đã không bán lô quá hạn, thao tác này chỉ cập nhật trạng thái cho màn hình và báo cáo. Số tồn không thay đổi, hàng vẫn cần xuất hủy bằng phiếu điều chỉnh."
@@ -723,9 +726,9 @@ export default function StockOverviewPage() {
         busy={expireBusy}
         onConfirm={confirmExpireDue}
         onClose={() => setExpireOpen(false)}
-      />
+      /></PermissionAction>
 
-      <ConfirmModal
+      <PermissionAction codes={["INVENTORY.CHANGE_LOT_STATUS"]}><ConfirmModal
         open={lotToToggle !== null}
         title={lotToToggle?.next === 'BLOCKED' ? 'Khóa lô hàng' : 'Mở khóa lô hàng'}
         message={
@@ -738,7 +741,7 @@ export default function StockOverviewPage() {
         busy={toggleBusy}
         onConfirm={confirmToggleLot}
         onClose={() => setLotToToggle(null)}
-      />
+      /></PermissionAction>
     </div>
   )
 }

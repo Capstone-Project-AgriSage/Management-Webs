@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Download, FileUp, ListChecks } from 'lucide-react'
@@ -179,14 +180,14 @@ export default function ReceiptImportPage() {
             <FileUp size={16} /> Chọn file Excel
           </button>
           <span className="text-sm text-slate-600">{file ? `${file.name} (${Math.max(1, Math.round(file.size / 1024))} KB)` : 'Chưa chọn file'}</span>
-          <button
+          <PermissionAction codes={["GOODS_RECEIPTS.PREVIEW_IMPORT"]}><button
             type="button"
             onClick={check}
             disabled={!file || !supplierId || busy !== null}
             className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-sm font-medium shadow-sm disabled:opacity-50 ml-auto"
           >
             <ListChecks size={16} /> {busy === 'preview' ? 'Đang kiểm tra...' : 'Kiểm tra file'}
-          </button>
+          </button></PermissionAction>
         </div>
         {fileProblem ? (
           <p className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2" role="alert">
@@ -206,14 +207,14 @@ export default function ReceiptImportPage() {
                   : `${badRows} trên ${preview.rowCount} dòng có lỗi. Sửa trong file Excel rồi chọn lại file để kiểm tra; chưa tạo phiếu được.`}
               </p>
             </div>
-            <button
+            <PermissionAction codes={["GOODS_RECEIPTS.IMPORT"]}><button
               type="button"
               onClick={create}
               disabled={!allValid || busy !== null}
               className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm disabled:opacity-50"
             >
               {busy === 'import' ? 'Đang tạo...' : 'Tạo phiếu nhập nháp'}
-            </button>
+            </button></PermissionAction>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">

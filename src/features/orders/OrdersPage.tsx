@@ -1,5 +1,7 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronRight, Download, Plus, Receipt, Clock, PackageCheck, CheckCircle, FilterX, Phone, StickyNote, Pencil, ArrowRight } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
@@ -13,7 +15,7 @@ import SearchInput from '@/components/ui/SearchInput'
 import StatusBadge from '@/components/ui/StatusBadge'
 import { formatVnd } from '@/utils/money'
 import { downloadCsv } from '@/utils/csv'
-import KpiCard from '@/components/ui/KpiCard'
+import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 import { ordersApi } from '@/api/ordersApi'
 import { paymentsApi } from '@/api/paymentsApi'
 import type { OrderResponse, OrderStatus } from '@/api/types'
@@ -100,7 +102,9 @@ export default function OrdersPage() {
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
   const [rowPayments, setRowPayments] = useState<Record<string, OrderPaymentsSummary>>({})
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const debouncedSearch = useDebouncedValue(search)
+  const listRequest = useRef<AbortController | null>(null)
 
   const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(null)
 
@@ -130,36 +134,44 @@ export default function OrdersPage() {
   const [deliveryScheduledAt, setDeliveryScheduledAt] = useState('')
   const [deliveryNote, setDeliveryNote] = useState('')
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
+    listRequest.current?.abort()
+    const controller = new AbortController()
+    listRequest.current = controller
     setIsLoading(true)
     try {
       const res = await ordersApi.getOrders({
         page,
         pageSize: 10,
-        search,
+        search: debouncedSearch,
         status: statusFilter || undefined,
         source: sourceFilter || undefined,
         fromDate: fromDate || undefined,
         toDate: toDate || undefined,
-      })
+      }, controller.signal)
+      if (controller.signal.aborted) return
       setOrders(res.items)
+      setRowPayments({})
       // One payments call per visible row (≤ page size), as FE_GUIDE_FLOW_1 §M9 suggests until the list carries it.
-      Promise.allSettled(res.items.map((o) => paymentsApi.getOrderPayments(o.id))).then((all) =>
-        setRowPayments(Object.fromEntries(all.flatMap((r, i) => (r.status === 'fulfilled' ? [[res.items[i].id, r.value]] : [])))),
-      )
+      void Promise.allSettled(res.items.map((o) => paymentsApi.getOrderPayments(o.id, controller.signal))).then((all) => {
+        if (!controller.signal.aborted) setRowPayments(Object.fromEntries(all.flatMap((r, i) => (r.status === 'fulfilled' ? [[res.items[i].id, r.value]] : []))))
+      })
       setTotalCount(res.totalCount)
       setTotalPages(res.totalPages)
     } catch (err: any) {
-      showToast(err.detail || 'Lỗi tải danh sách đơn hàng', 'error')
+      if (!controller.signal.aborted) showToast(err.detail || 'Lỗi tải danh sách đơn hàng', 'error')
     } finally {
-      setIsLoading(false)
+      if (!controller.signal.aborted) setIsLoading(false)
     }
-  }
+  }, [page, debouncedSearch, statusFilter, sourceFilter, fromDate, toDate, showToast])
 
   useEffect(() => {
-    const timer = setTimeout(fetchOrders, 300)
-    return () => clearTimeout(timer)
-  }, [page, search, statusFilter, sourceFilter, fromDate, toDate])
+    if (search !== debouncedSearch) { listRequest.current?.abort(); return }
+    // Only typing is debounced; navigation and other filters load immediately.
+    let active = true
+    void Promise.resolve().then(() => { if (active) void fetchOrders() })
+    return () => { active = false; listRequest.current?.abort() }
+  }, [fetchOrders, search, debouncedSearch])
 
   const handleClearFilters = () => {
     setSearch('')
@@ -423,16 +435,7 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard
-          layout="stacked"
-          icon={Receipt}
-          iconClassName="bg-primary/10 text-primary"
-          title="Kết quả tìm kiếm"
-          value={totalCount}
-          valueSuffix={<span className="text-xs font-medium text-on-surface-variant">đơn hàng</span>}
-        />
-      </div>
+      <BusinessReportCards kind="orders" fromDate={fromDate} toDate={toDate} onFromDateChange={value => { setFromDate(value); setPage(1) }} onToDateChange={value => { setToDate(value); setPage(1) }} searchResult={{ count: totalCount, unit: 'đơn hàng' }} />
 
       <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-center justify-between gap-4 mt-4">
         <div className="flex flex-wrap items-center gap-3 flex-1">
@@ -505,7 +508,7 @@ export default function OrdersPage() {
 
       <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col mt-4">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table aria-busy={isLoading} className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-outline-variant text-on-surface text-label-md font-bold bg-surface-container-low">
                 <th className="py-4 pl-4 px-3 w-[220px]">Khách hàng</th>
@@ -517,9 +520,9 @@ export default function OrdersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant/50 text-sm text-on-surface">
-              {isLoading ? (
+              {isLoading && orders.length === 0 ? (
                 <EmptyTableRow colSpan={6} message="Đang tải dữ liệu..." />
-              ) : !orders || orders.length === 0 ? (
+              ) : !isLoading && orders.length === 0 ? (
                 <EmptyTableRow colSpan={6} message="Không tìm thấy đơn hàng." />
               ) : null}
               {orders?.map((order) => {
@@ -604,28 +607,28 @@ export default function OrdersPage() {
             </div>
 
             {selectedOrder.status === 'PENDING_CONFIRMATION' && selectedOrder.items && (
-              <button
+              <PermissionAction codes={['ORDERS.UPDATE']}><button
                 type="button"
                 className="w-full h-10 mt-2 border border-outline-variant text-on-surface hover:bg-surface-container rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
                 onClick={() => setEditingOrder(selectedOrder)}
               >
                 <Pencil size={15} /> SỬA ĐƠN (DÒNG HÀNG, GIÁ, GHI CHÚ)
-              </button>
+              </button></PermissionAction>
             )}
 
             {/* Online orders (farmer web / mobile) are paid through payOS or put on credit: cash is only for counter orders. */}
             <div className={isCounterOrder(selectedOrder) ? 'grid grid-cols-2 gap-3 mt-2' : 'mt-2'}>
               {isCounterOrder(selectedOrder) && (
-                <button
+                <PermissionAction codes={['PAYMENTS.RECEIVE_CASH']}><button
                   className="w-full h-10 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg font-bold flex items-center justify-center transition-colors disabled:opacity-50"
                   disabled={!paymentSummary || paymentSummary.remainingToPay <= 0 || ['COMPLETED', 'CANCELLED', 'PARTIALLY_CANCELLED'].includes(selectedOrder.status)}
                   onClick={() => setIsPaymentModalOpen(true)}
                 >
                   <Receipt size={16} className="mr-2" />
                   THU TIỀN TẠI QUẦY
-                </button>
+                </button></PermissionAction>
               )}
-              <button
+              <PermissionAction codes={['ORDERS.CONFIRM']}><button
                 className="w-full h-10 bg-primary text-on-primary hover:bg-primary/90 rounded-lg font-bold flex items-center justify-center transition-colors disabled:opacity-50"
                 // A FULL_PAYMENT order is confirmed only once it is fully paid (server: "Payment does not cover the order total"); CREDIT orders are not.
                 disabled={selectedOrder.status !== 'PENDING_CONFIRMATION' || (selectedOrder.settlementType === 'FULL_PAYMENT' && (!paymentSummary || paymentSummary.remainingToPay > 0))}
@@ -634,7 +637,7 @@ export default function OrdersPage() {
               >
                 <CheckCircle size={16} className="mr-2" />
                 XÁC NHẬN ĐƠN (M5)
-              </button>
+              </button></PermissionAction>
             </div>
             <div className="text-xs text-center text-on-surface-variant mt-1">
               {selectedOrder.settlementType === 'CREDIT' ? '* Đơn mua chịu: xác nhận không cần thu tiền trước' : '* Chỉ có thể xác nhận đơn khi đã thu đủ tiền'}
@@ -643,22 +646,22 @@ export default function OrdersPage() {
             {/* Optional tracking steps (FE_GUIDE_FLOW_1 §M5/§M9): skipping them does not block the hand-over. */}
             {['CONFIRMED', 'PREPARING'].includes(selectedOrder.status) && (
               <div className="grid grid-cols-2 gap-3">
-                <button
+                <PermissionAction codes={["ORDERS.START_PREPARING"]}><button
                   type="button"
                   className="h-9 rounded-lg border border-outline-variant text-sm font-semibold hover:bg-surface-container disabled:opacity-40"
                   disabled={stepping || selectedOrder.status !== 'CONFIRMED'}
                   onClick={() => runStep(() => ordersApi.startPreparing(selectedOrder.id), 'Đã chuyển sang Đang chuẩn bị')}
                 >
                   Bắt đầu chuẩn bị
-                </button>
-                <button
+                </button></PermissionAction>
+                <PermissionAction codes={["ORDERS.MARK_READY"]}><button
                   type="button"
                   className="h-9 rounded-lg border border-outline-variant text-sm font-semibold hover:bg-surface-container disabled:opacity-40"
                   disabled={stepping}
                   onClick={() => runStep(() => ordersApi.markReady(selectedOrder.id), 'Đơn đã sẵn sàng giao')}
                 >
                   Sẵn sàng giao
-                </button>
+                </button></PermissionAction>
               </div>
             )}
 
@@ -671,13 +674,13 @@ export default function OrdersPage() {
             )}
 
             {['CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT', 'PARTIALLY_FULFILLED'].includes(selectedOrder.status) && selectedOrder.fulfillmentType === 'PICKUP' && (
-              <button
+              <PermissionAction codes={['ORDERS.PICKUP']}><button
                 className="w-full h-10 mt-1 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg font-bold flex items-center justify-center transition-colors shadow-sm"
                 onClick={() => setPickupFor(selectedOrder)}
               >
                 <PackageCheck size={16} className="mr-2" />
                 GIAO HÀNG TẠI QUẦY (M6)
-              </button>
+              </button></PermissionAction>
             )}
 
             {selectedOrder.fulfillmentType === 'DELIVERY' && orderDeliveries.length > 0 && (
@@ -713,31 +716,31 @@ export default function OrdersPage() {
             )}
 
             {['CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT', 'PARTIALLY_FULFILLED'].includes(selectedOrder.status) && selectedOrder.fulfillmentType === 'DELIVERY' && (
-              <button
+              <PermissionAction codes={['DELIVERIES.CREATE']}><button
                 className="w-full h-10 mt-1 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-bold flex items-center justify-center transition-colors shadow-sm"
                 onClick={handleOpenDeliveryModal}
               >
                 <PackageCheck size={16} className="mr-2" />
                 LẬP PHIẾU GIAO HÀNG (M7)
-              </button>
+              </button></PermissionAction>
             )}
 
             {['PENDING_CONFIRMATION', 'CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT'].includes(selectedOrder.status) && (
-              <button
+              <PermissionAction codes={["ORDERS.CANCEL"]}><button
                 className="w-full h-10 mt-1 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 rounded-lg font-bold flex items-center justify-center transition-colors shadow-sm"
                 onClick={() => setCancelModal({ open: true, type: 'ORDER', title: `Hủy toàn bộ đơn hàng #${selectedOrder.orderNumber}` })}
               >
                 HỦY ĐƠN HÀNG (M8)
-              </button>
+              </button></PermissionAction>
             )}
 
             {['COMPLETED', 'PARTIALLY_FULFILLED', 'PARTIALLY_CANCELLED'].includes(selectedOrder.status) && (
-              <button
+              <PermissionAction codes={['RETURNS.CREATE']}><button
                 className="w-full h-10 mt-1 bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 rounded-lg font-bold flex items-center justify-center transition-colors shadow-sm"
                 onClick={() => navigate(`${base}/returns/new?orderId=${selectedOrder.id}`)}
               >
                 TẠO YÊU CẦU TRẢ HÀNG
-              </button>
+              </button></PermissionAction>
             )}
           </div>} bodyClassName="space-y-4"><div className="p-4 space-y-2 border-b border-outline-variant">
               <div>
@@ -776,12 +779,12 @@ export default function OrdersPage() {
                     </div>
                     {item.remainingBaseQuantity > 0 && ['CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT', 'PARTIALLY_FULFILLED'].includes(selectedOrder.status) && (
                       <div className="flex justify-end">
-                        <button
+                        <PermissionAction codes={["ORDERS.CANCEL_REMAINING"]}><button
                           className="text-rose-600 hover:text-rose-800 text-[11px] font-bold underline"
                           onClick={() => setCancelModal({ open: true, type: 'ITEM', itemId: item.id, title: `Hủy phần chưa giao của ${item.productName}` })}
                         >
                           Hủy phần còn lại ({item.remainingBaseQuantity} đơn vị cơ sở)
-                        </button>
+                        </button></PermissionAction>
                       </div>
                     )}
                   </div>
@@ -831,13 +834,13 @@ export default function OrdersPage() {
       {isPaymentModalOpen && paymentSummary && selectedOrder && (
         <DetailModal open onClose={() => setIsPaymentModalOpen(false)}>
           <ModalLayout header={<div className="space-y-1"><h3 className="font-bold text-lg text-on-surface">Thu tiền đơn #{selectedOrder.orderNumber}</h3></div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
-            <button
+            <PermissionAction codes={["PAYMENTS.RECEIVE_CASH"]}><button
               className="w-full h-12 bg-primary text-on-primary hover:bg-primary/90 font-bold rounded-xl transition-colors disabled:opacity-50"
               onClick={handleProcessPayment}
               disabled={isPaying || !paymentAmount}
             >
               {isPaying ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN THU TIỀN (TIỀN MẶT)'}
-            </button>
+            </button></PermissionAction>
           </div>}>
             <div className="flex justify-between items-center bg-surface-container-lowest p-3 rounded-lg border border-outline-variant">
               <span className="text-sm font-medium text-on-surface-variant">Còn phải thu:</span>
@@ -893,13 +896,13 @@ export default function OrdersPage() {
             >
               HỦY
             </button>
-            <button
+            <PermissionAction codes={["DELIVERIES.CREATE"]}><button
               className="px-6 py-2 bg-blue-600 text-white hover:bg-blue-700 font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
               onClick={handleCreateDelivery}
               disabled={isCreatingDelivery || Object.values(deliveryQuantities).every(q => q === 0)}
             >
               {isCreatingDelivery ? 'ĐANG XỬ LÝ...' : 'LẬP PHIẾU GIAO'}
-            </button>
+            </button></PermissionAction>
           </div>}>
             <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-sm mb-4">
               Điền số lượng (theo quy cách) cho chuyến này. Lô hàng được chọn sẵn theo hạn dùng; có thể đổi lô trong chi tiết phiếu giao.
@@ -985,13 +988,13 @@ export default function OrdersPage() {
             >
               ĐÓNG
             </button>
-            <button
+            <PermissionAction codes={[cancelModal.type === 'ORDER' ? 'ORDERS.CANCEL' : 'ORDERS.CANCEL_REMAINING']}><button
               className="px-6 py-2 bg-rose-600 text-white hover:bg-rose-700 font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
               onClick={handleCancelSubmit}
               disabled={isCancelling || !cancelReason.trim()}
             >
               {isCancelling ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN HỦY'}
-            </button>
+            </button></PermissionAction>
           </div>}>
             <div className="text-sm text-on-surface-variant">
               Vui lòng nhập lý do hủy. Hành động này không thể hoàn tác. Nếu đã thu tiền, hệ thống sẽ tự động tạo khoản cần hoàn.

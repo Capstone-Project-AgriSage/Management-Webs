@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import { useEffect, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Pencil, Plus, Power, PowerOff, RefreshCw, Trash2 } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
@@ -28,7 +29,7 @@ type FormState = { list: PriceList | null } | null
 
 // FE_GUIDE_FLOW_1 §M12 — the store owner (and admin) maintain price lists; sales staff only look prices up.
 export default function PriceListsPage() {
-  const canManage = useCanManage()
+  const canManage = useCanManage(["PRICING.CREATE", "PRICING.UPDATE", "PRICING.DELETE", "PRICING.ACTIVATE", "PRICING.DEACTIVATE"])
   usePageHeader({
     title: 'Bảng giá',
     subtitle: canManage ? 'Tạo bảng giá, nhập giá theo quy cách và chọn bảng giá khách lẻ' : 'Tra cứu giá bán theo quy cách',
@@ -173,9 +174,9 @@ export default function PriceListsPage() {
             <RefreshCw size={14} /> Xóa lọc
           </button>
           {canManage && (
-            <button type="button" className="h-9 px-4 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 flex items-center gap-1.5" onClick={() => setForm({ list: null })}>
+            <PermissionAction codes={["PRICING.CREATE"]}><button type="button" className="h-9 px-4 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 flex items-center gap-1.5" onClick={() => setForm({ list: null })}>
               <Plus size={16} /> Tạo bảng giá
-            </button>
+            </button></PermissionAction>
           )}
         </div>
       </div>
@@ -228,11 +229,11 @@ export default function PriceListsPage() {
                     </td>
                     {canManage && (
                       <td className="py-3.5 px-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                        <button type="button" title="Sửa thông tin" aria-label="Sửa thông tin" className={`${iconButton} text-slate-500 hover:bg-slate-100 hover:text-slate-900`} onClick={() => setForm({ list })}>
+                        <PermissionAction codes={["PRICING.UPDATE"]}><button type="button" title="Sửa thông tin" aria-label="Sửa thông tin" className={`${iconButton} text-slate-500 hover:bg-slate-100 hover:text-slate-900`} onClick={() => setForm({ list })}>
                           <Pencil size={15} />
-                        </button>
+                        </button></PermissionAction>
                         {list.status === 'ACTIVE' ? (
-                          <button
+                          <PermissionAction codes={["PRICING.DEACTIVATE"]}><button
                             type="button"
                             title="Ngưng áp dụng"
                             aria-label="Ngưng áp dụng"
@@ -243,9 +244,9 @@ export default function PriceListsPage() {
                             }}
                           >
                             <PowerOff size={15} />
-                          </button>
+                          </button></PermissionAction>
                         ) : (
-                          <button
+                          <PermissionAction codes={["PRICING.ACTIVATE"]}><button
                             type="button"
                             title="Kích hoạt"
                             aria-label="Kích hoạt"
@@ -256,10 +257,10 @@ export default function PriceListsPage() {
                             }}
                           >
                             <Power size={15} />
-                          </button>
+                          </button></PermissionAction>
                         )}
                         {list.status === 'DRAFT' && (
-                          <button
+                          <PermissionAction codes={["PRICING.DELETE"]}><button
                             type="button"
                             title="Xóa bảng giá nháp"
                             aria-label="Xóa bảng giá nháp"
@@ -269,7 +270,7 @@ export default function PriceListsPage() {
                             }}
                           >
                             <Trash2 size={15} />
-                          </button>
+                          </button></PermissionAction>
                         )}
                       </td>
                     )}

@@ -1,9 +1,11 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AlertTriangle, ArrowLeft, CheckCircle2, ClipboardCheck, Layers, RefreshCw, Scale, Search, Sigma } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/context/AuthContext'
+import { usePermission } from '@/context/PermissionContext'
 import { describeError } from '@/api/client'
 import { stocktakeApi, type Stocktake, type StocktakeCount, type StocktakeItem, type StocktakeReason } from '@/api/stocktakeApi'
 import KpiCard from '@/components/ui/KpiCard'
@@ -40,8 +42,9 @@ export default function StocktakeDetailPage() {
   const navigate = useNavigate()
   const base = useStocktakeBase()
   const { showToast } = useToast()
-  const { currentRole, user } = useAuth()
-  const canComplete = currentRole === 'agent' || currentRole === 'admin'
+  const { user } = useAuth()
+  const { has } = usePermission()
+  const canComplete = has('STOCKTAKES.COMPLETE')
 
   const [st, setSt] = useState<Stocktake | null>(null)
   const [loading, setLoading] = useState(true)
@@ -239,36 +242,36 @@ export default function StocktakeDetailPage() {
           </button>
           {st.status === 'DRAFT' ? (
             <>
-              <button type="button" onClick={() => setDialog('delete')} className="h-10 px-3 rounded-lg border border-rose-200 bg-white text-rose-700 hover:bg-rose-50 text-sm font-medium shadow-sm">
+              <PermissionAction codes={["STOCKTAKES.DELETE"]}><button type="button" onClick={() => setDialog('delete')} className="h-10 px-3 rounded-lg border border-rose-200 bg-white text-rose-700 hover:bg-rose-50 text-sm font-medium shadow-sm">
                 Xóa phiếu nháp
-              </button>
-              <button type="button" onClick={() => setDialog('start')} className="h-10 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm">
+              </button></PermissionAction>
+              <PermissionAction codes={["STOCKTAKES.START"]}><button type="button" onClick={() => setDialog('start')} className="h-10 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm">
                 Bắt đầu kiểm kê
-              </button>
+              </button></PermissionAction>
             </>
           ) : null}
           {editable ? (
             <>
-              <button type="button" onClick={() => setDialog('cancel')} className="h-10 px-3 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-medium shadow-sm">
+              <PermissionAction codes={["STOCKTAKES.CANCEL"]}><button type="button" onClick={() => setDialog('cancel')} className="h-10 px-3 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-medium shadow-sm">
                 Hủy phiếu
-              </button>
-              <button
+              </button></PermissionAction>
+              <PermissionAction codes={["STOCKTAKES.UPDATE"]}><button
                 type="button"
                 onClick={saveCounts}
                 disabled={saving || dirtyItems.length === 0}
                 className="h-10 px-4 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-sm font-medium shadow-sm disabled:opacity-50"
               >
                 {saving ? 'Đang lưu...' : dirtyItems.length > 0 ? `Lưu số đếm (${dirtyItems.length})` : 'Lưu số đếm'}
-              </button>
+              </button></PermissionAction>
               {canComplete ? (
-                <button
+                <PermissionAction codes={["STOCKTAKES.COMPLETE"]}><button
                   type="button"
                   onClick={() => setDialog('complete')}
                   disabled={!canPressComplete}
                   className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm disabled:opacity-50"
                 >
                   <CheckCircle2 size={16} /> Hoàn thành kiểm kê
-                </button>
+                </button></PermissionAction>
               ) : null}
             </>
           ) : null}
@@ -316,9 +319,9 @@ export default function StocktakeDetailPage() {
               </span>
             </span>
           </span>
-          <button type="button" onClick={() => setDialog('refresh')} className="h-9 px-3 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium shadow-sm shrink-0">
+          <PermissionAction codes={["STOCKTAKES.REFRESH_STALE"]}><button type="button" onClick={() => setDialog('refresh')} className="h-9 px-3 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium shadow-sm shrink-0">
             Làm mới các dòng bị cũ
-          </button>
+          </button></PermissionAction>
         </div>
       ) : null}
 
@@ -502,7 +505,7 @@ export default function StocktakeDetailPage() {
         Số lượng tính theo đơn vị cơ sở của sản phẩm. Chênh lệch = số đếm trừ số sổ sách; chênh lệch khác 0 phải có lý do. Nhấn Enter trong ô số đếm để nhảy xuống lô kế tiếp.
       </p>
 
-      <ConfirmModal
+      <PermissionAction codes={["STOCKTAKES.START"]}><ConfirmModal
         open={dialog === 'start'}
         title="Bắt đầu kiểm kê"
         message="Phiếu chuyển sang trạng thái Đang kiểm kê và cho phép nhập số đếm. Việc bán hàng vẫn diễn ra bình thường; lô nào có phiếu kho phát sinh trong lúc đếm sẽ bị đánh dấu cần đếm lại."
@@ -510,8 +513,8 @@ export default function StocktakeDetailPage() {
         busy={busy}
         onConfirm={() => run(() => stocktakeApi.start(id), (r) => r && setSt(r), 'Không bắt đầu được phiếu')}
         onClose={() => setDialog(null)}
-      />
-      <ConfirmModal
+      /></PermissionAction>
+      <PermissionAction codes={["STOCKTAKES.REFRESH_STALE"]}><ConfirmModal
         open={dialog === 'refresh'}
         title="Làm mới các dòng bị cũ"
         message={`${staleItems.length} lô sẽ được chụp lại số sổ sách mới nhất và xóa số đếm đã nhập của chúng, bạn cần đếm lại đúng những lô này. Các lô khác không đổi.`}
@@ -531,8 +534,8 @@ export default function StocktakeDetailPage() {
           )
         }
         onClose={() => setDialog(null)}
-      />
-      <ConfirmModal
+      /></PermissionAction>
+      <PermissionAction codes={["STOCKTAKES.COMPLETE"]}><ConfirmModal
         open={dialog === 'complete'}
         title="Hoàn thành kiểm kê"
         message={
@@ -570,7 +573,7 @@ export default function StocktakeDetailPage() {
           )
         }
         onClose={() => setDialog(null)}
-      />
+      /></PermissionAction>
       <ConfirmModal
         open={dialog === 'cancel'}
         title="Hủy phiếu kiểm kê"
@@ -594,7 +597,7 @@ export default function StocktakeDetailPage() {
           />
         </div>
       </ConfirmModal>
-      <ConfirmModal
+      <PermissionAction codes={["STOCKTAKES.DELETE"]}><ConfirmModal
         open={dialog === 'delete'}
         title="Xóa phiếu nháp"
         message="Phiếu nháp chưa bắt đầu đếm sẽ bị xóa."
@@ -612,7 +615,7 @@ export default function StocktakeDetailPage() {
           )
         }
         onClose={() => setDialog(null)}
-      />
+      /></PermissionAction>
     </div>
   )
 }

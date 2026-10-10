@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
 import { Loader2, Pencil, Plus, RotateCcw, Search, Trash2 } from 'lucide-react'
@@ -57,14 +58,14 @@ export default function OrderEditModal({ order, onClose, onChanged }: OrderEditM
   return (
     <Modal open onClose={onClose} title={`Sửa đơn ${order.orderNumber}`} widthClassName="max-w-3xl">
       <ModalLayout footer={<div className="flex justify-end">
-        <button
+        <PermissionAction codes={["ORDERS.UPDATE"]}><button
           type="button"
           disabled={locked || busy !== null || note === (order.note ?? '')}
           onClick={() => run('note', () => ordersApi.updateNote(order.id, note.trim()))}
           className="h-9 px-4 rounded-lg bg-slate-800 text-white text-sm font-semibold hover:bg-slate-900 disabled:opacity-40"
         >
           Lưu ghi chú
-        </button>
+        </button></PermissionAction>
       </div>}>
 
         {locked && <p className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800">Đơn đã xác nhận, không sửa được.</p>}

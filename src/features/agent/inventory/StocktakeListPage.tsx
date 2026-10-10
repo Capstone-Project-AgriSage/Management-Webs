@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -85,13 +86,13 @@ export default function StocktakeListPage() {
             ]}
           />
         </div>
-        <button
+        <PermissionAction codes={["STOCKTAKES.CREATE"]}><button
           type="button"
           onClick={() => setCreateOpen(true)}
           className="inline-flex items-center gap-2 h-11 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm"
         >
           <Plus size={16} /> Tạo phiếu kiểm kê
-        </button>
+        </button></PermissionAction>
       </div>
 
       <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">
@@ -203,9 +204,9 @@ function CreateStocktakeModal({ onClose, onCreated }: { onClose: () => void; onC
         <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm shadow-sm disabled:opacity-50" onClick={onClose} disabled={busy}>
           Hủy
         </button>
-        <button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={!canSubmit}>
+        <PermissionAction codes={["STOCKTAKES.CREATE"]}><button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={!canSubmit}>
           {busy ? 'Đang tạo...' : 'Tạo phiếu'}
-        </button>
+        </button></PermissionAction>
       </div>} bodyClassName="space-y-4"><div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Phạm vi kiểm kê">
           {(
             [

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { canAccessRoute } from '@/components/auth/PermissionRoute'
+import { usePermission } from '@/context/PermissionContext'
+import { NavLink } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
-import { ordersApi } from '@/api/ordersApi'
 import type { NavItem } from '@/types'
 
 /* ── Admin-only imports (used for dynamic badges) ── */
@@ -26,28 +26,8 @@ interface SidebarProps {
   onClose: () => void
 }
 
-/** Orders waiting for confirmation, refreshed on every navigation so the badge follows the staff's work. */
-function usePendingOrderCount(enabled: boolean) {
-  const { pathname } = useLocation()
-  const [count, setCount] = useState<number | null>(null)
-  useEffect(() => {
-    if (!enabled) return
-    let alive = true
-    ordersApi
-      .getOrders({ status: 'PENDING_CONFIRMATION', page: 1, pageSize: 1 })
-      .then((res) => alive && setCount(res.totalCount))
-      .catch(() => alive && setCount(null))
-    return () => {
-      alive = false
-    }
-  }, [enabled, pathname])
-  return count
-}
-
 function useNavConfig() {
   const { user, currentRole } = useAuth()
-  const pendingOrders = usePendingOrderCount(currentRole === 'agent' || currentRole === 'sales_staff')
-  const pendingBadge = pendingOrders ? { badge: String(pendingOrders), badgeTone: 'primary' as const } : {}
 
   if (currentRole === 'admin') {
     const pendingAccountCount = accountsService.list().filter((a) => a.status === 'Chờ duyệt').length
@@ -75,8 +55,8 @@ function useNavConfig() {
         title: 'Chung',
         items: [
           { label: 'Tổng quan', to: '/', icon: 'dashboard', iconTone: 'primary' as const },
-          { label: 'Bán tại quầy', to: '/agent/counter-sales', icon: 'point_of_sale', iconTone: 'primary' as const },
-          { label: 'Đơn hàng', to: '/agent/orders', icon: 'receipt_long', ...pendingBadge },
+          { label: 'Bán tại quầy', to: '/agent/counter-sales', icon: 'point_of_sale' },
+          { label: 'Đơn hàng', to: '/agent/orders', icon: 'receipt_long' },
           { label: 'Thanh toán', to: '/agent/payments', icon: 'payments' },
           { label: 'Trả hàng', to: '/agent/returns', icon: 'assignment_return' },
           { label: 'Hoàn tiền', to: '/agent/refunds', icon: 'currency_exchange' },
@@ -91,9 +71,7 @@ function useNavConfig() {
           { label: 'Biến động kho', to: '/agent/inventory/movements', icon: 'sync_alt' },
           { label: 'Thẻ kho', to: '/agent/inventory/stock-card', icon: 'menu_book' },
           { label: 'Kiểm kê', to: '/agent/inventory/stocktake', icon: 'fact_check' },
-          { label: 'Báo cáo kho', to: '/agent/inventory/reports', icon: 'assessment' },
           { label: 'Giao hàng', to: '/agent/deliveries', icon: 'local_shipping' },
-          { label: 'Báo cáo giao hàng', to: '/agent/deliveries/reports', icon: 'analytics' },
         ]
       },
       {
@@ -102,7 +80,6 @@ function useNavConfig() {
           { label: 'Nhà cung cấp', to: '/agent/purchases/suppliers', icon: 'storefront' },
           { label: 'Phiếu nhập hàng', to: '/agent/purchases/receipts', icon: 'shopping_cart' },
           { label: 'Công nợ', to: '/agent/debts', icon: 'pending_actions' },
-          { label: 'Báo cáo công nợ', to: '/agent/debts/reports', icon: 'analytics' },
           { label: 'Nhóm khách & tín dụng', to: '/agent/credit-config', icon: 'credit_score' },
           { label: 'Bảng giá', to: '/agent/price-lists', icon: 'price_change' },
         ]
@@ -124,10 +101,10 @@ function useNavConfig() {
   if (currentRole === 'sales_staff') {
     const items: NavItem[] = [
       { label: 'Tổng quan', to: '/', icon: 'dashboard', iconTone: 'primary' },
-      { label: 'Bán tại quầy', to: '/sales/counter-sales', icon: 'point_of_sale', iconTone: 'primary' },
+      { label: 'Bán tại quầy', to: '/sales/counter-sales', icon: 'point_of_sale' },
       { label: 'Khách hàng', to: '/sales/farmers', icon: 'groups' },
       { label: 'Sản phẩm', to: '/sales/products', icon: 'category' },
-      { label: 'Đơn hàng', to: '/sales/orders', icon: 'receipt_long', ...pendingBadge },
+      { label: 'Đơn hàng', to: '/sales/orders', icon: 'receipt_long' },
       { label: 'Giao hàng', to: '/sales/deliveries', icon: 'local_shipping' },
       { label: 'Thanh toán', to: '/sales/payments', icon: 'payments' },
       { label: 'Trả hàng', to: '/sales/returns', icon: 'assignment_return' },
@@ -138,6 +115,12 @@ function useNavConfig() {
       ...(user.can_review_ai ? [{ label: 'AI Review', to: '/sales/ai-review', icon: 'psychology', iconTone: 'primary' as const }] : []),
       { label: 'Cài đặt', to: '/sales/settings', icon: 'settings' },
     ]
+    items.push(
+      { label: 'Hoàn tiền', to: '/agent/refunds', icon: 'currency_exchange' },
+      { label: 'Nhà cung cấp', to: '/agent/purchases/suppliers', icon: 'storefront' },
+      { label: 'Phiếu nhập hàng', to: '/agent/purchases/receipts', icon: 'shopping_cart' },
+      { label: 'Nhóm khách & tín dụng', to: '/agent/credit-config', icon: 'credit_score' },
+    )
     return { groups: [{ title: '', items }], brandIcon: 'eco', brandLabel: 'Sales', hubLabel: user.storeName }
   }
 
@@ -151,7 +134,9 @@ function useNavConfig() {
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
   const { user } = useAuth()
-  const { groups, brandIcon, brandLabel, hubLabel } = useNavConfig()
+  const { groups: allGroups, brandIcon, brandLabel, hubLabel } = useNavConfig()
+  const { has } = usePermission()
+  const groups = allGroups.map(group => ({ ...group, items: group.items.filter(item => canAccessRoute(item.to, has)) })).filter(group => group.items.length > 0)
 
   return (
     <>
@@ -228,6 +213,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                     <>
                       <div className="flex items-center gap-space-sm flex-1 min-w-0">
                         <span
+                          aria-hidden="true"
                           className={`material-symbols-outlined text-[20px] flex-shrink-0 ${
                             isActive || item.iconTone === 'primary' ? 'text-primary' : ''
                           }`}

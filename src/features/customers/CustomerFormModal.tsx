@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
 import Modal from '@/components/ui/Modal'
@@ -5,6 +6,7 @@ import { customersApi, type CustomerAddress, type CustomerResponse } from '@/api
 import type { CustomerGroupResponse } from '@/api/customerGroupsApi'
 import type { CreditTierResponse } from '@/api/creditTiersApi'
 import { useToast } from '@/context/ToastContext'
+import { usePermission } from '@/context/PermissionContext'
 import { ApiError } from '@/api/client'
 import { formatVnd } from '@/utils/money'
 
@@ -64,10 +66,13 @@ function Field({ label, required, error, children }: { label: string; required?:
 // are changed from their own tabs (they need a reason), so the edit form leaves them untouched.
 export default function CustomerFormModal({ open, customer, groups, tiers, onClose, onSaved, initialName = '', initialPhone = '' }: CustomerFormModalProps) {
   const { showToast } = useToast()
+  const { has } = usePermission()
   const [v, setV] = useState(EMPTY)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const isCreate = customer === null
+  const canSave = has(isCreate ? 'CUSTOMERS.CREATE' : 'CUSTOMERS.UPDATE')
+  const canCreateCredit = has('CREDIT.CREATE')
 
   useEffect(() => {
     if (!open) return
@@ -91,6 +96,10 @@ export default function CustomerFormModal({ open, customer, groups, tiers, onClo
     )
   }, [open, customer, initialName, initialPhone])
 
+  useEffect(() => {
+    if (!canCreateCredit) setV((previous) => ({ ...previous, allowCreditPurchase: false, creditTierId: '', creditLimit: '', creditChangeReason: '' }))
+  }, [canCreateCredit])
+
   const set = (key: keyof typeof EMPTY, value: string | boolean) => setV((prev) => ({ ...prev, [key]: value }))
 
   const validate = () => {
@@ -103,12 +112,13 @@ export default function CustomerFormModal({ open, customer, groups, tiers, onClo
     const hasAddress = [v.recipientName, v.recipientPhone, v.addressLine, v.province, v.district, v.ward].some((x) => x.trim())
     if (hasAddress && !v.addressLine.trim()) e.addressLine = 'Nhập địa chỉ'
     if (hasAddress && !v.province.trim()) e.province = 'Nhập tỉnh/thành'
-    if (isCreate && v.allowCreditPurchase && v.creditLimit && Number(v.creditLimit) < 0) e.creditLimit = 'Hạn mức ≥ 0'
+    if (isCreate && canCreateCredit && v.allowCreditPurchase && v.creditLimit && Number(v.creditLimit) < 0) e.creditLimit = 'Hạn mức ≥ 0'
     setErrors(e)
     return Object.keys(e).length === 0
   }
 
   const handleSubmit = async () => {
+    if (!canSave) return
     if (!validate()) return
     const hasAddress = v.addressLine.trim() && v.province.trim()
     const address: CustomerAddress | null = hasAddress
@@ -136,7 +146,7 @@ export default function CustomerFormModal({ open, customer, groups, tiers, onClo
           password: v.password,
           customerType: 'REGISTERED',
           customerGroupId: v.customerGroupId || null,
-          ...(v.allowCreditPurchase
+          ...(canCreateCredit && v.allowCreditPurchase
             ? {
               allowCreditPurchase: true,
               creditTierId: v.creditTierId || null,
@@ -157,7 +167,7 @@ export default function CustomerFormModal({ open, customer, groups, tiers, onClo
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={isCreate ? 'Thêm khách hàng' : `Sửa khách hàng — ${customer?.fullName}`} widthClassName="max-w-2xl">
+    <Modal open={open && canSave} onClose={onClose} title={isCreate ? 'Thêm khách hàng' : `Sửa khách hàng — ${customer?.fullName}`} widthClassName="max-w-2xl">
       <form
         className="flex min-h-0 flex-1 flex-col"
         onSubmit={(e) => {
@@ -169,9 +179,9 @@ export default function CustomerFormModal({ open, customer, groups, tiers, onClo
           <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm font-medium" onClick={onClose}>
             Hủy
           </button>
-          <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium disabled:opacity-50">
+          <PermissionAction codes={[customer ? 'CUSTOMERS.UPDATE' : 'CUSTOMERS.CREATE']}><button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium disabled:opacity-50">
             {saving ? 'Đang lưu...' : isCreate ? 'Tạo khách hàng' : 'Lưu thay đổi'}
-          </button>
+          </button></PermissionAction>
         </div>} bodyClassName="space-y-5"><section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2">
               <Field label="Họ tên" required error={errors.fullName}>
@@ -225,7 +235,7 @@ export default function CustomerFormModal({ open, customer, groups, tiers, onClo
             </div>
           </section><Field label="Ghi chú">
             <textarea className={`${inputClassName} h-auto py-2`} rows={2} value={v.notes} onChange={(e) => set('notes', e.target.value)} />
-          </Field>{isCreate && (
+          </Field>{isCreate && canCreateCredit && (
             <section className="space-y-3 rounded-lg border border-slate-200 p-3">
               <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
                 <input type="checkbox" className="accent-emerald-600 w-4 h-4" checked={v.allowCreditPurchase} onChange={(e) => set('allowCreditPurchase', e.target.checked)} />

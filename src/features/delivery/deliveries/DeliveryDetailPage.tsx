@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import { useState, useEffect, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { usePageHeader } from '@/context/PageHeaderContext'
@@ -283,9 +284,9 @@ export default function DeliveryDetailPage() {
 
       {canStart && (
         <StickyActionBar>
-          <Button fullWidth icon="local_shipping" onClick={handleStart} disabled={actionLoading}>
+          <PermissionAction codes={["DELIVERY_ATTEMPTS.START"]}><Button fullWidth icon="local_shipping" onClick={handleStart} disabled={actionLoading}>
             {actionLoading ? 'Đang xử lý...' : delivery.attempts.length > 0 ? 'Bắt đầu giao lại' : 'Bắt đầu chuyến giao'}
-          </Button>
+          </Button></PermissionAction>
         </StickyActionBar>
       )}
 
@@ -313,8 +314,8 @@ export default function DeliveryDetailPage() {
         </StickyActionBar>
       )}
 
-      <CompleteAttemptModal outcome={outcome} lines={lines} loading={actionLoading} onClose={() => setOutcome(null)} onSubmit={handleComplete} />
-      <ReportIncidentModal open={incidentOpen} lines={lines} loading={actionLoading} onClose={() => setIncidentOpen(false)} onSubmit={handleReportIncident} />
+      <PermissionAction codes={["DELIVERY_ATTEMPTS.COMPLETE"]}><CompleteAttemptModal outcome={outcome} lines={lines} loading={actionLoading} onClose={() => setOutcome(null)} onSubmit={handleComplete} /></PermissionAction>
+      <PermissionAction codes={["DELIVERY_INCIDENTS.REPORT"]}><ReportIncidentModal open={incidentOpen} lines={lines} loading={actionLoading} onClose={() => setIncidentOpen(false)} onSubmit={handleReportIncident} /></PermissionAction>
     </div>
   )
 }

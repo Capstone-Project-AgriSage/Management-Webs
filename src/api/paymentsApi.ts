@@ -53,8 +53,8 @@ export const paymentsApi = {
     })
   },
 
-  getOrderPayments: (orderId: Uuid) => {
-    return api<OrderPaymentsSummary>(`/api/orders/${orderId}/payments`)
+  getOrderPayments: (orderId: Uuid, signal?: AbortSignal) => {
+    return api<OrderPaymentsSummary>(`/api/orders/${orderId}/payments`, { signal })
   },
 
   getPayments: (q: PaymentListQuery = {}) =>

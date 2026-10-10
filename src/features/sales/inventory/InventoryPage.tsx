@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 import { Link } from 'react-router-dom'
 import { ChevronRight, PackageSearch, PackageOpen, AlertTriangle } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
@@ -96,6 +97,8 @@ export default function InventoryPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
+      <BusinessReportCards kind="valuation" />
+      <BusinessReportCards kind="inventory" />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <nav className="flex items-center gap-1 text-body-sm text-on-surface-variant" aria-label="Breadcrumb">
           <Link className="hover:text-primary transition-colors" to="/">Bảng điều khiển</Link>

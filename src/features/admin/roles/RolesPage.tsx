@@ -1,146 +1,40 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import * as rolesService from '@/features/admin/services/rolesService'
-import type { Role } from '@/types'
-
-const { permissionModules } = rolesService
-
+import { permissionsApi, type Permission, type RolePermissions } from '@/api/permissionsApi'
+import { ApiError, describeError } from '@/api/client'
+import PermissionChecklist from '@/components/auth/PermissionChecklist'
+import { usePermission } from '@/context/PermissionContext'
 export default function RolesPage() {
-  usePageHeader({ title: 'Phân quyền', subtitle: 'Cấu hình quyền truy cập cho từng vai trò trong hệ thống AgriSage' })
-
-  // Local draft state, seeded from rolesService — toggling a checkbox only edits
-  // this draft; "Lưu thay đổi" is what actually persists it back to rolesService
-  // (the same store PermissionContext reads from for route/nav gating).
-  const [roleList, setRoleList] = useState<Role[]>(() => rolesService.list())
-  const { showToast } = useToast()
-  const [selectedRoleId, setSelectedRoleId] = useState(roleList[0].id)
-  const [dirty, setDirty] = useState(false)
-
-  const selectedRole = roleList.find((r) => r.id === selectedRoleId) as Role
-
-  const togglePermission = (key: string) => {
-    if (!selectedRole.editable) {
-      showToast('Không thể chỉnh sửa quyền của vai trò Quản trị viên')
-      return
-    }
-    setRoleList((prev) =>
-      prev.map((r) =>
-        r.id === selectedRole.id
-          ? { ...r, grantedKeys: r.grantedKeys.includes(key) ? r.grantedKeys.filter((k) => k !== key) : [...r.grantedKeys, key] }
-          : r,
-      ),
-    )
-    setDirty(true)
+  usePageHeader({ title: 'Phân quyền', subtitle: 'Cấu hình quyền mặc định theo vai trò' })
+  const [roles, setRoles] = useState<RolePermissions[]>([])
+  const [catalog, setCatalog] = useState<Permission[]>([])
+  const [roleId, setRoleId] = useState('')
+  const [selected, setSelected] = useState<string[]>([])
+  const [reason, setReason] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [stale, setStale] = useState(false)
+  const { refresh } = usePermission()
+  const role = roles.find(r => r.id === roleId)
+  const load = useCallback(async (selectedRoleId = '') => {
+    setBusy(true); setError('')
+    try { const [rs, cs] = await Promise.all([permissionsApi.roles(), permissionsApi.catalog()]); setRoles(rs); setCatalog(cs); const current = rs.find(r => r.id === selectedRoleId) ?? rs[0]; setRoleId(current?.id ?? ''); setSelected(current?.permissionCodes ?? []); setStale(false); setReason('') }
+    catch (err) { setError(describeError(err)) } finally { setBusy(false) }
+  }, [])
+  useEffect(() => { void load() }, [load])
+  const dirty = role && (selected.length !== role.permissionCodes.length || selected.some(c => !role.permissionCodes.includes(c)))
+  async function save() {
+    if (!role || !role.editable || !reason.trim() || !dirty || stale) return
+    setBusy(true); setError('')
+    try { const updated = await permissionsApi.setRole(role, selected, reason.trim()); setRoles(prev => prev.map(r => r.id === updated.id ? updated : r)); setSelected(updated.permissionCodes); setReason(''); await refresh(); window.dispatchEvent(new Event('agrisage-permissions-changed')) }
+    catch (err) { setError(describeError(err)); if (err instanceof ApiError && err.status === 409) setStale(true) } finally { setBusy(false) }
   }
-
-  const handleSave = () => {
-    rolesService.updatePermissions(selectedRole.id, selectedRole.grantedKeys)
-    setDirty(false)
-    showToast(`Đã lưu cấu hình quyền cho vai trò "${selectedRole.name}"`)
-  }
-
-  return (
-    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-space-md">
-        {roleList.map((role) => (
-          <button
-            key={role.id}
-            type="button"
-            onClick={() => setSelectedRoleId(role.id)}
-            className={`text-left p-space-base rounded-xl bg-surface-container-lowest border shadow-sm transition-colors ${
-              role.id === selectedRoleId ? 'border-primary ring-1 ring-primary' : 'border-outline-variant hover:border-outline'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className={`w-9 h-9 rounded-lg flex items-center justify-center border ${role.colorClassName}`}>
-                <span className="material-symbols-outlined text-[20px]">{role.icon}</span>
-              </span>
-              <span className="text-xs font-semibold text-outline">{role.accountCount} tài khoản</span>
-            </div>
-            <div className="mt-space-sm">
-              <div className="font-title-lg text-title-lg text-on-surface font-semibold flex items-center gap-1.5">
-                {role.name}
-                {!role.editable ? (
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-surface-container text-outline border border-outline-variant">
-                    Cố định
-                  </span>
-                ) : null}
-              </div>
-              <p className="font-body-sm text-body-sm text-on-surface-variant mt-1 leading-relaxed">{role.description}</p>
-            </div>
-          </button>
-        ))}
-      </div>
-
-      <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">
-        <div className="px-space-md py-space-sm border-b border-outline-variant flex items-center justify-between bg-surface-container-low/40">
-          <div className="flex items-center gap-2">
-            <span className="font-title-md text-title-md text-on-surface font-semibold">
-              Ma trận quyền — {selectedRole.name}
-            </span>
-            {!selectedRole.editable ? (
-              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-surface-container text-outline">Toàn quyền, không thể chỉnh sửa</span>
-            ) : null}
-          </div>
-          <button
-            type="button"
-            disabled={!dirty || !selectedRole.editable}
-            onClick={handleSave}
-            className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md shadow-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
-          >
-            <span className="material-symbols-outlined text-[16px]">save</span>
-            Lưu thay đổi
-          </button>
-        </div>
-
-        <div className="overflow-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-surface-container-low/80 border-b border-outline-variant">
-                <th className="py-2.5 px-3 font-label-sm text-label-sm text-outline uppercase tracking-wider w-64">Module</th>
-                <th className="py-2.5 px-3 font-label-sm text-label-sm text-outline uppercase tracking-wider">Quyền hạn</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/60">
-              {permissionModules.map((module) => (
-                <tr key={module.key} className="hover:bg-surface-container-low/50">
-                  <td className="py-3 px-3 align-top">
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[18px] text-primary">{module.icon}</span>
-                      <span className="font-medium text-on-surface text-sm">{module.label}</span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-3">
-                    <div className="flex flex-wrap gap-2">
-                      {module.permissions.map((perm) => {
-                        const key = `${module.key}:${perm.key}`
-                        const granted = selectedRole.grantedKeys.includes(key)
-                        return (
-                          <button
-                            key={key}
-                            type="button"
-                            onClick={() => togglePermission(key)}
-                            disabled={!selectedRole.editable}
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors disabled:cursor-not-allowed ${
-                              granted
-                                ? 'bg-primary/10 text-primary border-primary/40'
-                                : 'bg-surface-container-lowest text-on-surface-variant border-outline-variant hover:bg-surface-container-low'
-                            } ${!selectedRole.editable ? 'opacity-70' : ''}`}
-                          >
-                            <span className="material-symbols-outlined text-[15px]">{granted ? 'check_box' : 'check_box_outline_blank'}</span>
-                            {perm.label}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  )
+  return <div className="bg-white border rounded-xl p-5 space-y-4">
+    <div className="flex flex-wrap gap-3"><label>Vai trò <select aria-label="Vai trò" value={roleId} disabled={busy} onChange={e => { const next = roles.find(r => r.id === e.target.value); setRoleId(e.target.value); setSelected(next?.permissionCodes ?? []); setReason(''); setStale(false); setError('') }} className="border rounded-lg p-2 ml-2">{roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></label><button disabled={busy} onClick={() => void load(roleId)}>Tải lại cấu hình</button></div>
+    {error && <p role="alert" className="text-red-700">{error}</p>}
+    {role && <><p className="text-sm text-slate-600">{role.editable ? 'Quyền mặc định áp dụng cho mọi tài khoản thuộc vai trò. Sale vẫn chịu giới hạn quyền của Owner và quyền riêng tại đại lý.' : 'Admin có toàn bộ quyền hệ thống. Cấu hình này được bảo vệ.'}</p>
+      <PermissionChecklist catalog={catalog.filter(p => p.allowedRoles.includes(role.code))} selected={selected} editable={p => role.editable && !busy && !stale && p.allowedRoles.includes(role.code)} onToggle={(code, checked) => setSelected(prev => checked ? [...prev, code] : prev.filter(c => c !== code))} />
+      {role.editable && <><label className="block text-sm">Lý do thay đổi <textarea maxLength={500} value={reason} disabled={busy || stale} onChange={e => setReason(e.target.value)} className="block w-full border rounded-lg p-2 mt-1" /></label><button disabled={busy || stale || !dirty || !reason.trim()} onClick={() => void save()} className="bg-emerald-600 text-white px-4 py-2 rounded-lg disabled:opacity-40">Lưu thay đổi</button></>}
+    </>}
+  </div>
 }

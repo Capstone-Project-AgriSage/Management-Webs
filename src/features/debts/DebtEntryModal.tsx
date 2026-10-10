@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
 import DetailModal from '@/components/ui/DetailModal'
@@ -33,7 +34,7 @@ const errorText = (err: unknown, fallback: string) => (err instanceof Error && e
 // FLOW_3 §6: DISPUTE / KEEP / CHANGE_DUE_DATE (Operate), ADJUST / CANCEL (Manage). Posted rows are never edited.
 export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntryModalProps) {
   const { showToast } = useToast()
-  const canManage = useCanManage()
+  const canManage = useCanManage(["DEBT.ADJUST", "DEBT.CANCEL"])
   const [entry, setEntry] = useState<DebtEntry | null>(null)
   const [action, setAction] = useState<Action | null>(null)
   const [busy, setBusy] = useState(false)
@@ -162,26 +163,26 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
         </div>} bodyClassName="space-y-4">{!closed && (
           <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap gap-2">
             {!disputed && (
-              <button type="button" className={`${btn} border-amber-300 text-amber-800 hover:bg-amber-50`} onClick={() => setAction('dispute')}>
+              <PermissionAction codes={["DEBT.DISPUTE"]}><button type="button" className={`${btn} border-amber-300 text-amber-800 hover:bg-amber-50`} onClick={() => setAction('dispute')}>
                 Khiếu nại
-              </button>
+              </button></PermissionAction>
             )}
             {disputed && (
-              <button type="button" className={`${btn} border-slate-200 hover:bg-slate-50`} onClick={() => setAction('keep')}>
+              <PermissionAction codes={["DEBT.KEEP"]}><button type="button" className={`${btn} border-slate-200 hover:bg-slate-50`} onClick={() => setAction('keep')}>
                 Giữ nguyên
-              </button>
+              </button></PermissionAction>
             )}
-            <button type="button" className={`${btn} border-slate-200 hover:bg-slate-50`} onClick={() => setAction('changeDueDate')}>
+            <PermissionAction codes={["DEBT.DUE_DATE"]}><button type="button" className={`${btn} border-slate-200 hover:bg-slate-50`} onClick={() => setAction('changeDueDate')}>
               Đổi hạn trả
-            </button>
+            </button></PermissionAction>
             {canManage && (
               <>
-                <button type="button" className={`${btn} border-slate-200 hover:bg-slate-50`} onClick={() => setAction('adjust')}>
+                <PermissionAction codes={["DEBT.ADJUST"]}><button type="button" className={`${btn} border-slate-200 hover:bg-slate-50`} onClick={() => setAction('adjust')}>
                   Điều chỉnh giảm
-                </button>
-                <button type="button" className={`${btn} border-rose-300 text-rose-700 hover:bg-rose-50`} onClick={() => setAction('cancel')}>
+                </button></PermissionAction>
+                <PermissionAction codes={["DEBT.CANCEL"]}><button type="button" className={`${btn} border-rose-300 text-rose-700 hover:bg-rose-50`} onClick={() => setAction('cancel')}>
                   Hủy khoản nợ
-                </button>
+                </button></PermissionAction>
               </>
             )}
           </div>
@@ -271,7 +272,7 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
       )}
 
       {action && specs && (
-        <PromptModal
+        <PermissionAction codes={[({ dispute: 'DEBT.DISPUTE', keep: 'DEBT.KEEP', changeDueDate: 'DEBT.DUE_DATE', adjust: 'DEBT.ADJUST', cancel: 'DEBT.CANCEL' })[action]]}><PromptModal
           open
           loading={busy}
           title={specs[action].title}
@@ -281,7 +282,7 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
           danger={specs[action].danger}
           onClose={() => setAction(null)}
           onSubmit={submit}
-        />
+        /></PermissionAction>
       )}
     </DetailModal>
   )

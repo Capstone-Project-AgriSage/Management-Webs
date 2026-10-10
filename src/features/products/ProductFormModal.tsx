@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useRef, useState } from 'react'
 import Modal from '@/components/ui/Modal'
@@ -207,9 +208,9 @@ export default function ProductFormModal({ open, product, categories, brands, un
           <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm font-medium" onClick={dismiss}>
             Hủy
           </button>
-          <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium disabled:opacity-50">
+          <PermissionAction codes={[product ? 'PRODUCTS.UPDATE' : 'PRODUCTS.CREATE']}><button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium disabled:opacity-50">
             {saving ? 'Đang lưu...' : isCreate ? 'Tạo sản phẩm' : 'Lưu thay đổi'}
-          </button>
+          </button></PermissionAction>
         </div>} bodyClassName="space-y-5"><section className="space-y-2">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Ảnh sản phẩm</h4>
             <ImageUploader url={imageUrl} onUploaded={onUploaded} onRemove={onRemoveImage} disabled={saving} />

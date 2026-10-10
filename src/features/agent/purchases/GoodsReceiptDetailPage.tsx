@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -107,13 +108,13 @@ export default function GoodsReceiptDetailPage() {
         </div>
         {draft ? (
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={() => setDialog('delete')} className="h-10 px-3 rounded-lg border border-rose-200 bg-white text-rose-700 hover:bg-rose-50 text-sm font-medium shadow-sm">
+            <PermissionAction codes={["GOODS_RECEIPTS.DELETE"]}><button type="button" onClick={() => setDialog('delete')} className="h-10 px-3 rounded-lg border border-rose-200 bg-white text-rose-700 hover:bg-rose-50 text-sm font-medium shadow-sm">
               Xóa phiếu nháp
-            </button>
-            <button type="button" onClick={() => setDialog('cancel')} className="h-10 px-3 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-medium shadow-sm">
+            </button></PermissionAction>
+            <PermissionAction codes={["GOODS_RECEIPTS.CANCEL"]}><button type="button" onClick={() => setDialog('cancel')} className="h-10 px-3 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-medium shadow-sm">
               Hủy phiếu
-            </button>
-            <button
+            </button></PermissionAction>
+            <PermissionAction codes={["GOODS_RECEIPTS.CONFIRM"]}><button
               type="button"
               onClick={() => setDialog('confirm')}
               disabled={cannotConfirm !== null}
@@ -121,7 +122,7 @@ export default function GoodsReceiptDetailPage() {
               className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm disabled:opacity-50"
             >
               <CheckCircle2 size={16} /> Xác nhận nhập kho
-            </button>
+            </button></PermissionAction>
           </div>
         ) : null}
       </div>
@@ -165,9 +166,9 @@ export default function GoodsReceiptDetailPage() {
             ) : null}
           </dl>
           {draft ? (
-            <button type="button" onClick={() => setHeaderOpen(true)} className="inline-flex items-center gap-1 text-sm font-medium text-emerald-700 hover:text-emerald-800 shrink-0">
+            <PermissionAction codes={["GOODS_RECEIPTS.UPDATE"]}><button type="button" onClick={() => setHeaderOpen(true)} className="inline-flex items-center gap-1 text-sm font-medium text-emerald-700 hover:text-emerald-800 shrink-0">
               <Pencil size={14} /> Sửa thông tin
-            </button>
+            </button></PermissionAction>
           ) : null}
         </div>
       </div>
@@ -190,9 +191,9 @@ export default function GoodsReceiptDetailPage() {
         <div className="flex items-center justify-between px-4 py-3 border-b border-outline-variant">
           <h3 className="font-semibold text-on-surface">Các dòng hàng ({receipt.items.length})</h3>
           {draft ? (
-            <button type="button" onClick={() => setLineEditor('new')} className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm">
+            <PermissionAction codes={["GOODS_RECEIPTS.ADD_ITEM"]}><button type="button" onClick={() => setLineEditor('new')} className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm">
               <Plus size={16} /> Thêm dòng hàng
-            </button>
+            </button></PermissionAction>
           ) : null}
         </div>
         <div className="overflow-x-auto">
@@ -231,12 +232,12 @@ export default function GoodsReceiptDetailPage() {
                       <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap font-semibold">{formatVnd(it.lineTotalAmount)}</td>
                       {draft ? (
                         <td className="py-2.5 px-4 text-right whitespace-nowrap">
-                          <button type="button" aria-label={`Sửa dòng ${it.productName}`} className="p-1.5 rounded text-slate-500 hover:text-emerald-700 hover:bg-slate-100" onClick={() => setLineEditor(it)}>
+                          <PermissionAction codes={["GOODS_RECEIPTS.UPDATE"]}><button type="button" aria-label={`Sửa dòng ${it.productName}`} className="p-1.5 rounded text-slate-500 hover:text-emerald-700 hover:bg-slate-100" onClick={() => setLineEditor(it)}>
                             <Pencil size={16} />
-                          </button>
-                          <button type="button" aria-label={`Xóa dòng ${it.productName}`} className="p-1.5 rounded text-slate-500 hover:text-rose-700 hover:bg-slate-100" onClick={() => setItemToRemove(it)}>
+                          </button></PermissionAction>
+                          <PermissionAction codes={["GOODS_RECEIPTS.DELETE"]}><button type="button" aria-label={`Xóa dòng ${it.productName}`} className="p-1.5 rounded text-slate-500 hover:text-rose-700 hover:bg-slate-100" onClick={() => setItemToRemove(it)}>
                             <Trash2 size={16} />
-                          </button>
+                          </button></PermissionAction>
                         </td>
                       ) : null}
                     </tr>
@@ -279,7 +280,7 @@ export default function GoodsReceiptDetailPage() {
         />
       ) : null}
 
-      <ConfirmModal
+      <PermissionAction codes={["GOODS_RECEIPTS.DELETE"]}><ConfirmModal
         open={itemToRemove !== null}
         title="Xóa dòng hàng"
         message={`Xóa dòng "${itemToRemove?.productName ?? ''}" khỏi phiếu nháp?`}
@@ -288,9 +289,9 @@ export default function GoodsReceiptDetailPage() {
         busy={busy}
         onConfirm={removeItem}
         onClose={() => setItemToRemove(null)}
-      />
+      /></PermissionAction>
 
-      <ConfirmModal
+      <PermissionAction codes={["GOODS_RECEIPTS.CONFIRM"]}><ConfirmModal
         open={dialog === 'confirm'}
         title="Xác nhận nhập kho"
         message={
@@ -316,7 +317,7 @@ export default function GoodsReceiptDetailPage() {
           )
         }
         onClose={() => setDialog(null)}
-      />
+      /></PermissionAction>
 
       <ConfirmModal
         open={dialog === 'cancel'}
@@ -342,7 +343,7 @@ export default function GoodsReceiptDetailPage() {
         </div>
       </ConfirmModal>
 
-      <ConfirmModal
+      <PermissionAction codes={["GOODS_RECEIPTS.DELETE"]}><ConfirmModal
         open={dialog === 'delete'}
         title="Xóa phiếu nháp"
         message="Phiếu nháp sẽ bị xóa khỏi danh sách."
@@ -360,7 +361,7 @@ export default function GoodsReceiptDetailPage() {
           )
         }
         onClose={() => setDialog(null)}
-      />
+      /></PermissionAction>
     </div>
   )
 }
@@ -401,9 +402,9 @@ function ReceiptHeaderModal({ receipt, onClose, onSaved }: { receipt: GoodsRecei
         <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm shadow-sm disabled:opacity-50" onClick={onClose} disabled={busy}>
           Hủy
         </button>
-        <button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={busy || !supplierId}>
+        <PermissionAction codes={["GOODS_RECEIPTS.UPDATE"]}><button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={busy || !supplierId}>
           {busy ? 'Đang lưu...' : 'Lưu'}
-        </button>
+        </button></PermissionAction>
       </div>} bodyClassName="space-y-4"><div className="space-y-1">
           <label className="text-sm font-medium text-slate-700" htmlFor="rh-supplier">
             Nhà cung cấp *

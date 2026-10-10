@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
 import { Loader2, Plus, Trash2 } from 'lucide-react'
@@ -137,9 +138,9 @@ export default function PickupModal({ order, onClose, onDone }: PickupModalProps
           <button type="button" onClick={onClose} className="h-10 px-5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100">
             Huỷ
           </button>
-          <button type="button" disabled={!canSubmit} onClick={submit} className="h-10 px-5 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 inline-flex items-center gap-2">
+          <PermissionAction codes={["ORDERS.PICKUP"]}><button type="button" disabled={!canSubmit} onClick={submit} className="h-10 px-5 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 inline-flex items-center gap-2">
             {saving && <Loader2 size={15} className="animate-spin" />} Xác nhận giao & trừ kho
-          </button>
+          </button></PermissionAction>
         </div>
       </div>} bodyClassName="space-y-4"><p className="p-3 rounded-lg bg-indigo-50 text-indigo-900">
           Lô đang giữ cho đơn được điền sẵn (hết hạn trước xuất trước). Sửa số lượng nếu lấy thực tế khác; có thể giao một phần — phần còn lại giao sau hoặc huỷ.

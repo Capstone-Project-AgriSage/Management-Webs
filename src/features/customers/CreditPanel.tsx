@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import { useEffect, useState } from 'react'
 import { ApiError } from '@/api/client'
 import { customerCreditApi, type CreditEligibility, type CreditLimitHistory, type CreditReservation, type CreditSummary } from '@/api/customerCreditApi'
@@ -31,7 +32,7 @@ function Figure({ title, value, tone }: { title: string; value: string; tone?: '
 // FLOW_3 §4.3 — open the profile, change limit/tier (Operate, reason required), activate/suspend/block (Manage).
 export default function CreditPanel({ farmerProfileId, tiers, onChanged }: CreditPanelProps) {
   const { showToast } = useToast()
-  const canManage = useCanManage()
+  const canManage = useCanManage(["CREDIT.CREATE", "CREDIT.UPDATE", "CREDIT.ACTIVATE", "CREDIT.SUSPEND", "CREDIT.BLOCK"])
   const [credit, setCredit] = useState<CreditSummary | null>(null)
   const [noProfile, setNoProfile] = useState(false)
   const [history, setHistory] = useState<CreditLimitHistory[]>([])
@@ -166,9 +167,9 @@ export default function CreditPanel({ farmerProfileId, tiers, onChanged }: Credi
       {noProfile ? (
         <div className="rounded-lg border border-dashed border-slate-300 p-5 text-center space-y-3">
           <p className="text-sm text-slate-600">Khách chưa có hồ sơ tín dụng nên chưa được mua chịu.</p>
-          <button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700" onClick={() => setPrompt('open')}>
+          <PermissionAction codes={["CREDIT.CREATE"]}><button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700" onClick={() => setPrompt('open')}>
             Mở tín dụng
-          </button>
+          </button></PermissionAction>
         </div>
       ) : credit ? (
         <>
@@ -194,26 +195,26 @@ export default function CreditPanel({ farmerProfileId, tiers, onChanged }: Credi
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button type="button" className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50" onClick={() => setPrompt('limit')}>
+            <PermissionAction codes={["CREDIT.UPDATE"]}><button type="button" className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50" onClick={() => setPrompt('limit')}>
               Đổi hạn mức / hạng
-            </button>
-            <button type="button" className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50" onClick={() => setPrompt('eligibility')}>
+            </button></PermissionAction>
+            <PermissionAction codes={["CREDIT.CHECK"]}><button type="button" className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50" onClick={() => setPrompt('eligibility')}>
               Kiểm tra mua chịu
-            </button>
+            </button></PermissionAction>
             {canManage && credit.status !== 'ACTIVE' && (
-              <button type="button" className="px-3 py-1.5 rounded-lg border border-emerald-300 text-emerald-700 text-sm font-medium hover:bg-emerald-50" onClick={() => setPrompt('activate')}>
+              <PermissionAction codes={["CREDIT.ACTIVATE"]}><button type="button" className="px-3 py-1.5 rounded-lg border border-emerald-300 text-emerald-700 text-sm font-medium hover:bg-emerald-50" onClick={() => setPrompt('activate')}>
                 Kích hoạt
-              </button>
+              </button></PermissionAction>
             )}
             {canManage && credit.status === 'ACTIVE' && (
-              <button type="button" className="px-3 py-1.5 rounded-lg border border-amber-300 text-amber-800 text-sm font-medium hover:bg-amber-50" onClick={() => setPrompt('suspend')}>
+              <PermissionAction codes={["CREDIT.SUSPEND"]}><button type="button" className="px-3 py-1.5 rounded-lg border border-amber-300 text-amber-800 text-sm font-medium hover:bg-amber-50" onClick={() => setPrompt('suspend')}>
                 Tạm dừng
-              </button>
+              </button></PermissionAction>
             )}
             {canManage && credit.status !== 'BLOCKED' && (
-              <button type="button" className="px-3 py-1.5 rounded-lg border border-rose-300 text-rose-700 text-sm font-medium hover:bg-rose-50" onClick={() => setPrompt('block')}>
+              <PermissionAction codes={["CREDIT.BLOCK"]}><button type="button" className="px-3 py-1.5 rounded-lg border border-rose-300 text-rose-700 text-sm font-medium hover:bg-rose-50" onClick={() => setPrompt('block')}>
                 Khóa
-              </button>
+              </button></PermissionAction>
             )}
           </div>
 
@@ -263,7 +264,7 @@ export default function CreditPanel({ farmerProfileId, tiers, onChanged }: Credi
         </>
       ) : null}
 
-      {promptSpec && <PromptModal open loading={busy} onClose={() => setPrompt(null)} {...promptSpec} />}
+      {promptSpec && prompt && <PermissionAction codes={[({ open: 'CREDIT.CREATE', limit: 'CREDIT.UPDATE', activate: 'CREDIT.ACTIVATE', suspend: 'CREDIT.SUSPEND', block: 'CREDIT.BLOCK', eligibility: 'CREDIT.CHECK' })[prompt]]}><PromptModal open loading={busy} onClose={() => setPrompt(null)} {...promptSpec} /></PermissionAction>}
     </div>
   )
 }

@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -10,6 +11,7 @@ import type { CustomerGroupResponse } from '@/api/customerGroupsApi'
 import type { CreditTierResponse } from '@/api/creditTiersApi'
 import type { PagedResult } from '@/api/types'
 import { useToast } from '@/context/ToastContext'
+import { usePermission } from '@/context/PermissionContext'
 import { formatVnd } from '@/utils/money'
 import {
   CUSTOMER_STATUS_LABEL,
@@ -19,7 +21,6 @@ import {
   formatDay,
   formatDayTime,
   label,
-  useCanManage,
   useRoleBase,
 } from '@/utils/creditLabels'
 import CreditPanel from './CreditPanel'
@@ -69,7 +70,7 @@ function Stat({ title, value, tone }: { title: string; value: string; tone?: 'da
 
 export default function CustomerDetailModal({ customerId, groups, tiers, onClose, onEdit, onChanged }: CustomerDetailModalProps) {
   const { showToast } = useToast()
-  const canManage = useCanManage()
+  const { has } = usePermission()
   const base = useRoleBase()
   const [tab, setTab] = useState<Tab>('overview')
   const [customer, setCustomer] = useState<CustomerResponse | null>(null)
@@ -81,6 +82,10 @@ export default function CustomerDetailModal({ customerId, groups, tiers, onClose
   const [prompt, setPrompt] = useState<'group' | 'status' | null>(null)
   const [busy, setBusy] = useState(false)
 
+  useEffect(() => {
+    if (prompt && !has(prompt === 'status' ? 'CUSTOMERS.STATUS' : 'CUSTOMERS.UPDATE')) setPrompt(null)
+  }, [has, prompt])
+
   const loadCustomer = async (id: string) => {
     try {
       setCustomer(await customersApi.getCustomer(id))
@@ -91,6 +96,7 @@ export default function CustomerDetailModal({ customerId, groups, tiers, onClose
   }
 
   useEffect(() => {
+    setPrompt(null)
     if (!customerId) return
     setTab('overview')
     setCustomer(null)
@@ -152,20 +158,22 @@ export default function CustomerDetailModal({ customerId, groups, tiers, onClose
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button type="button" className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50" onClick={() => onEdit(c)}>
+            <PermissionAction codes={["CUSTOMERS.UPDATE"]}><button type="button" className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50" onClick={() => onEdit(c)}>
               Sửa thông tin
-            </button>
-            {canManage && (
+            </button></PermissionAction>
+            <PermissionAction codes={["CUSTOMERS.STATUS"]}>
               <button type="button" className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50" onClick={() => setPrompt('status')}>
                 Đổi trạng thái
               </button>
-            )}
+            </PermissionAction>
+            <PermissionAction codes={["DEBT.READ"]}>
             <Link to={`${base}/debts/${c.id}`} className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700">
               Công nợ
             </Link>
+            </PermissionAction>
           </div>
         </div>} bodyClassName="space-y-4"><div className="px-5 border-b border-slate-100 flex gap-1 overflow-x-auto" role="tablist">
-            {TABS.map((t) => (
+            {TABS.filter(t => t.key !== 'credit' || has('CREDIT.READ')).map((t) => (
               <button
                 key={t.key}
                 role="tab"
@@ -210,7 +218,7 @@ export default function CustomerDetailModal({ customerId, groups, tiers, onClose
               </div>
             )}
 
-            {tab === 'credit' && <CreditPanel farmerProfileId={c.id} tiers={tiers} onChanged={refresh} />}
+            {tab === 'credit' && <PermissionAction codes={['CREDIT.READ']}><CreditPanel farmerProfileId={c.id} tiers={tiers} onChanged={refresh} /></PermissionAction>}
 
             {tab === 'group' && (
               <div className="space-y-4">
@@ -218,9 +226,9 @@ export default function CustomerDetailModal({ customerId, groups, tiers, onClose
                   <p className="text-sm text-slate-700">
                     Nhóm hiện tại: <strong>{c.customerGroup?.name ?? 'Nhóm mặc định'}</strong>
                   </p>
-                  <button type="button" className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50" onClick={() => setPrompt('group')}>
+                  <PermissionAction codes={["CUSTOMERS.UPDATE"]}><button type="button" className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50" onClick={() => setPrompt('group')}>
                     Chuyển nhóm
-                  </button>
+                  </button></PermissionAction>
                 </div>
                 <p className="text-xs text-slate-500">Chuyển nhóm đổi bảng giá áp dụng; nếu khách có hồ sơ tín dụng, hạng tín dụng theo nhóm mới (hạn mức giữ nguyên).</p>
                 {groupHistory.length === 0 ? (
@@ -327,7 +335,7 @@ export default function CustomerDetailModal({ customerId, groups, tiers, onClose
       )}
 
       {c && prompt === 'group' && (
-        <PromptModal
+        <PermissionAction codes={["CUSTOMERS.UPDATE"]}><PromptModal
           open
           loading={busy}
           title={`Chuyển nhóm cho ${c.fullName}`}
@@ -345,11 +353,11 @@ export default function CustomerDetailModal({ customerId, groups, tiers, onClose
           submitLabel="Chuyển nhóm"
           onClose={() => setPrompt(null)}
           onSubmit={(v) => run(() => customersApi.assignGroup(c.id, v.customerGroupId, v.reason.trim()), 'Đã chuyển nhóm khách')}
-        />
+        /></PermissionAction>
       )}
 
       {c && prompt === 'status' && (
-        <PromptModal
+        <PermissionAction codes={["CUSTOMERS.STATUS"]}><PromptModal
           open
           loading={busy}
           title={`Trạng thái tài khoản — ${c.fullName}`}
@@ -366,7 +374,7 @@ export default function CustomerDetailModal({ customerId, groups, tiers, onClose
           submitLabel="Lưu"
           onClose={() => setPrompt(null)}
           onSubmit={(v) => run(() => customersApi.setStatus(c.id, v.status as CustomerStatus), 'Đã đổi trạng thái khách')}
-        />
+        /></PermissionAction>
       )}
     </DetailModal>
   )

@@ -1,6 +1,9 @@
+import PermissionAction from '@/components/auth/PermissionAction'
+import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
+import { usePermission } from '@/context/PermissionContext'
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { BarChart3, RefreshCw } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { RefreshCw } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { useToast } from '@/context/ToastContext'
 import { debtApi, type DebtAccountListItem, type DebtDashboard, type DebtEntryListItem, type DebtEntrySortBy } from '@/api/debtApi'
@@ -41,10 +44,12 @@ function Kpi({ title, value, sub, tone }: { title: string; value: string; sub?: 
 
 // FLOW_3 §6–§7: debt accounts, debt entries and pending bank-transfer repayments.
 export default function DebtsPage() {
+  const { has } = usePermission()
   usePageHeader({ title: 'Công nợ', subtitle: 'Sổ nợ khách hàng, khoản nợ và thu hồi công nợ' })
   const { showToast } = useToast()
   const navigate = useNavigate()
-  const canManage = useCanManage()
+  const canManage = useCanManage(["DEBT.ADJUST", "DEBT.CANCEL", "BANK_PAYMENTS.CONFIRM", "BANK_PAYMENTS.REJECT"])
+  const canReadDashboard = has('DEBT.READ_DASHBOARD')
   const base = useRoleBase()
 
   const [tab, setTab] = useState<Tab>('accounts')
@@ -70,7 +75,8 @@ export default function DebtsPage() {
   }, [search])
 
   const loadDashboard = () => {
-    if (canManage) debtApi.getDashboard().then(setDashboard).catch(() => setDashboard(null))
+    if (canReadDashboard) debtApi.getDashboard().then(setDashboard).catch(() => setDashboard(null))
+    else setDashboard(null)
   }
 
   const load = async () => {
@@ -101,7 +107,7 @@ export default function DebtsPage() {
     }
   }
 
-  useEffect(loadDashboard, [canManage])
+  useEffect(loadDashboard, [canReadDashboard])
 
   useEffect(() => {
     load()
@@ -148,7 +154,7 @@ export default function DebtsPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
-      {canManage && dashboard && (
+      {canReadDashboard && dashboard && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <Kpi title="Tổng dư nợ" value={formatVnd(dashboard.totalOutstandingDebt)} sub={`${dashboard.customersWithDebt} khách đang nợ`} />
           <Kpi title="Quá hạn" value={formatVnd(dashboard.totalOverdueDebt)} sub={`${dashboard.customersWithOverdueDebt} khách quá hạn`} tone={dashboard.totalOverdueDebt > 0 ? 'danger' : undefined} />
@@ -157,6 +163,7 @@ export default function DebtsPage() {
         </div>
       )}
 
+      <BusinessReportCards kind="debt" />
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col">
         <div className="px-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
           <div className="flex gap-1" role="tablist">
@@ -176,11 +183,6 @@ export default function DebtsPage() {
               </button>
             ))}
           </div>
-          {canManage && (
-            <Link to={`${base}/debts/reports`} className="text-sm font-medium text-emerald-700 hover:underline flex items-center gap-1 py-2">
-              <BarChart3 size={16} /> Báo cáo công nợ
-            </Link>
-          )}
         </div>
 
         <div className="p-3 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center gap-3">
@@ -297,14 +299,14 @@ export default function DebtsPage() {
                             >
                               Từ chối
                             </button>
-                            <button
+                            <PermissionAction codes={["BANK_PAYMENTS.CONFIRM"]}><button
                               type="button"
                               disabled={busyId === p.id}
                               className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-700 disabled:opacity-50"
                               onClick={() => confirmTransfer(p)}
                             >
                               Xác nhận đã nhận
-                            </button>
+                            </button></PermissionAction>
                           </div>
                         )}
                       </td>
@@ -331,7 +333,7 @@ export default function DebtsPage() {
       <DebtEntryModal entryId={selectedEntryId} onClose={() => setSelectedEntryId(null)} onChanged={refresh} />
 
       {rejecting && (
-        <PromptModal
+        <PermissionAction codes={["BANK_PAYMENTS.REJECT"]}><PromptModal
           open
           danger
           loading={busyId === rejecting.id}
@@ -341,7 +343,7 @@ export default function DebtsPage() {
           submitLabel="Từ chối"
           onClose={() => setRejecting(null)}
           onSubmit={(v) => rejectTransfer(v.reason.trim())}
-        />
+        /></PermissionAction>
       )}
     </div>
   )

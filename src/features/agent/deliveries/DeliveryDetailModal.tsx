@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
 import { MapPin, Package, Truck, UserCircle, CheckCircle, XCircle, AlertTriangle, Image as ImageIcon } from 'lucide-react'
@@ -215,7 +216,7 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
                       <option key={d.id} value={d.id}>{d.fullName}{d.phoneNumber ? ` · ${d.phoneNumber}` : ''}</option>
                     ))}
                   </select>
-                  <button
+                  <PermissionAction codes={["DELIVERIES.ASSIGN"]}><button
                     type="button"
                     className="px-4 h-9 bg-slate-800 text-white hover:bg-slate-900 font-medium rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center gap-1"
                     onClick={handleAssign}
@@ -223,7 +224,7 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
                   >
                     <UserCircle size={16} />
                     Lưu
-                  </button>
+                  </button></PermissionAction>
                 </div>
                 {driversForbidden ? (
                   <p className="text-xs text-amber-700 mt-1">Tài khoản này chưa được cấp quyền xem danh sách tài xế. Nhờ Đại lý phân công.</p>
@@ -234,7 +235,7 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
             )}
 
             {canDispatch && (
-              <button
+              <PermissionAction codes={["DELIVERIES.DISPATCH"]}><button
                 type="button"
                 className="w-full h-10 bg-primary text-on-primary hover:bg-primary/90 font-bold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                 onClick={handleDispatch}
@@ -242,7 +243,7 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
               >
                 <CheckCircle size={18} />
                 {delivery.status === 'ASSIGNED' ? 'Xuất kho & đi giao' : 'Xuất phát lại'}
-              </button>
+              </button></PermissionAction>
             )}
             {isEditable && !delivery.assignedTo && (
               <p className="text-xs text-slate-500">Phân công tài xế trước khi xuất phát.</p>
@@ -262,24 +263,24 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
 
             <div className="flex flex-wrap gap-2 justify-end">
               {activeAttempt && (
-                <button
+                <PermissionAction codes={['DELIVERY_ATTEMPTS.CANCEL']}><button
                   type="button"
                   className="px-3 h-9 rounded-lg border border-amber-300 text-amber-800 hover:bg-amber-50 text-sm font-medium flex items-center gap-1"
                   onClick={() => setCancelTarget('attempt')}
                   disabled={isProcessing}
                 >
                   <XCircle size={16} /> Hủy lần giao đang chạy
-                </button>
+                </button></PermissionAction>
               )}
               {canCancelDelivery && (
-                <button
+                <PermissionAction codes={['DELIVERIES.CANCEL']}><button
                   type="button"
                   className="px-3 h-9 rounded-lg border border-rose-300 text-rose-700 hover:bg-rose-50 text-sm font-medium flex items-center gap-1"
                   onClick={() => setCancelTarget('delivery')}
                   disabled={isProcessing}
                 >
                   <XCircle size={16} /> Hủy phiếu giao
-                </button>
+                </button></PermissionAction>
               )}
             </div>
           </div>} bodyClassName="space-y-4"><div className="p-4 border-b border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -336,13 +337,13 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
                       ))}
                     </ul>
                     {isEditable && item.remainingBaseQuantity > 0 && (
-                      <button
+                      <PermissionAction codes={['DELIVERIES.UPDATE']}><button
                         type="button"
                         className="ml-6 text-xs text-primary font-medium hover:underline mt-1"
                         onClick={() => setEditingItem(item)}
                       >
                         Đổi lô
-                      </button>
+                      </button></PermissionAction>
                     )}
                   </div>
                 ))}
@@ -401,13 +402,13 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
                           )}
                         </div>
                         {inc.status === 'OPEN' && (
-                          <button
+                          <PermissionAction codes={['DELIVERY_INCIDENTS.RESOLVE']}><button
                             type="button"
                             className="px-2.5 py-1 bg-rose-100 text-rose-700 hover:bg-rose-200 rounded text-xs font-medium shrink-0"
                             onClick={() => setResolvingIncident(inc)}
                           >
                             Xử lý
-                          </button>
+                          </button></PermissionAction>
                         )}
                       </div>
                     </div>
@@ -430,14 +431,14 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
           <button type="button" className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg" onClick={() => setCancelTarget(null)}>
             Đóng
           </button>
-          <button
+          <PermissionAction codes={[cancelTarget === 'attempt' ? 'DELIVERY_ATTEMPTS.CANCEL' : 'DELIVERIES.CANCEL']}><button
             type="button"
             className="px-4 py-2 text-sm font-bold bg-rose-600 text-white hover:bg-rose-700 rounded-lg disabled:opacity-50"
             onClick={handleConfirmCancel}
             disabled={isProcessing || !cancelReason.trim()}
           >
             {isProcessing ? 'Đang xử lý...' : 'Xác nhận hủy'}
-          </button>
+          </button></PermissionAction>
         </div>}><div className="p-4">
             <label htmlFor="cancel-reason" className="text-sm font-medium text-slate-700 block mb-1">Lý do <span className="text-rose-600">*</span></label>
             <textarea
@@ -461,14 +462,14 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
           <button type="button" className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg" onClick={() => setResolvingIncident(null)}>
             Hủy
           </button>
-          <button
+          <PermissionAction codes={["DELIVERY_INCIDENTS.RESOLVE"]}><button
             type="button"
             className="px-4 py-2 text-sm font-bold bg-primary text-on-primary hover:bg-primary/90 rounded-lg disabled:opacity-50"
             onClick={handleResolve}
             disabled={isProcessing}
           >
             {isProcessing ? 'Đang xử lý...' : 'Xác nhận xử lý'}
-          </button>
+          </button></PermissionAction>
         </div>}><div className="p-4 space-y-4">
             <div>
               <label htmlFor="resolution-type" className="text-sm font-medium text-slate-700 block mb-1">Hướng giải quyết</label>

@@ -1,7 +1,9 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { Link } from 'react-router-dom'
-import { ChevronRight, Download, FilterX, Receipt, Banknote } from 'lucide-react'
+import { ChevronRight, Download, FilterX, Banknote } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { useToast } from '@/context/ToastContext'
 import RowActionsMenu from '@/components/ui/RowActionsMenu'
@@ -12,7 +14,7 @@ import SearchInput from '@/components/ui/SearchInput'
 import StatusBadge from '@/components/ui/StatusBadge'
 import { formatVnd } from '@/utils/money'
 import { downloadCsv } from '@/utils/csv'
-import KpiCard from '@/components/ui/KpiCard'
+import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 import { ordersApi } from '@/api/ordersApi'
 import { paymentsApi } from '@/api/paymentsApi'
 import type { OrderResponse } from '@/api/types'
@@ -37,7 +39,9 @@ export default function PaymentsPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const debouncedSearch = useDebouncedValue(search)
+  const listRequest = useRef<AbortController | null>(null)
 
   const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(null)
 
@@ -46,18 +50,25 @@ export default function PaymentsPage() {
   const [paymentAmount, setPaymentAmount] = useState('')
   const [isPaying, setIsPaying] = useState(false)
 
-  const fetchOrdersAndPayments = async () => {
+  const fetchOrdersAndPayments = useCallback(async () => {
+    listRequest.current?.abort()
+    const controller = new AbortController()
+    listRequest.current = controller
     setIsLoading(true)
     try {
-      const res = await ordersApi.getOrders({ page, pageSize: 10, search })
+      const res = await ordersApi.getOrders({ page, pageSize: 10, search: debouncedSearch }, controller.signal)
+      if (controller.signal.aborted) return
       setOrders(res.items)
+      setPaymentSummaries({})
       setTotalCount(res.totalCount)
       setTotalPages(res.totalPages)
+      // Show the list while its per-order payment summaries load in parallel.
+      setIsLoading(false)
 
       // Fetch payment summaries in parallel
       const summariesPromises = res.items.map(async (order) => {
         try {
-          const summary = await paymentsApi.getOrderPayments(order.id)
+          const summary = await paymentsApi.getOrderPayments(order.id, controller.signal)
           return { id: order.id, summary }
         } catch {
           return null
@@ -68,19 +79,21 @@ export default function PaymentsPage() {
       results.forEach(r => {
         if (r) newSummaries[r.id] = r.summary
       })
-      setPaymentSummaries(prev => ({ ...prev, ...newSummaries }))
+      if (!controller.signal.aborted) setPaymentSummaries(newSummaries)
 
     } catch (err: any) {
-      showToast(err.detail || 'Lỗi tải danh sách', 'error')
+      if (!controller.signal.aborted) showToast(err.detail || 'Lỗi tải danh sách', 'error')
     } finally {
-      setIsLoading(false)
+      if (!controller.signal.aborted) setIsLoading(false)
     }
-  }
+  }, [page, debouncedSearch, showToast])
 
   useEffect(() => {
-    const timer = setTimeout(fetchOrdersAndPayments, 300)
-    return () => clearTimeout(timer)
-  }, [page, search])
+    if (search !== debouncedSearch) { listRequest.current?.abort(); return }
+    let active = true
+    void Promise.resolve().then(() => { if (active) void fetchOrdersAndPayments() })
+    return () => { active = false; listRequest.current?.abort() }
+  }, [fetchOrdersAndPayments, search, debouncedSearch])
 
   const getPaymentStatus = (summary?: OrderPaymentsSummary): PaymentStatusLabel => {
     if (!summary) return 'Đang tải...'
@@ -158,16 +171,7 @@ export default function PaymentsPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <KpiCard
-          layout="stacked"
-          icon={Receipt}
-          iconClassName="bg-primary/10 text-primary"
-          title="Đơn hàng"
-          value={totalCount}
-          valueSuffix={<span className="text-xs font-medium text-on-surface-variant">đơn</span>}
-        />
-      </div>
+      <BusinessReportCards kind="payments" searchResult={{ count: totalCount, unit: 'đơn hàng' }} />
 
       <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-center justify-between gap-4 mt-4">
         <div className="flex flex-wrap items-center gap-3 flex-1">
@@ -190,7 +194,7 @@ export default function PaymentsPage() {
 
       <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col mt-4">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table aria-busy={isLoading} className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-outline-variant text-on-surface text-label-md font-bold bg-surface-container-low">
                 <th className="py-4 pl-4 px-3 w-[200px]">Đơn hàng</th>
@@ -203,9 +207,9 @@ export default function PaymentsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant/50 text-sm text-on-surface">
-              {isLoading ? (
+              {isLoading && orders.length === 0 ? (
                 <EmptyTableRow colSpan={7} message="Đang tải dữ liệu..." />
-              ) : orders.length === 0 ? (
+              ) : !isLoading && orders.length === 0 ? (
                 <EmptyTableRow colSpan={7} message="Không tìm thấy dữ liệu." />
               ) : null}
               {orders.map((order) => {
@@ -269,14 +273,14 @@ export default function PaymentsPage() {
               <span className="font-mono font-bold text-lg text-on-surface">#{selectedOrder.orderNumber}</span>
             </div>
           </div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
-            <button
+            <PermissionAction codes={['PAYMENTS.RECEIVE_CASH']}><button
               className="flex-1 h-11 bg-primary text-on-primary hover:bg-primary/90 rounded-lg font-bold flex items-center justify-center transition-colors disabled:opacity-50"
               disabled={!paymentSummaries[selectedOrder.id] || paymentSummaries[selectedOrder.id].remainingToPay <= 0 || ['COMPLETED', 'CANCELLED', 'PARTIALLY_CANCELLED'].includes(selectedOrder.status)}
               onClick={() => setIsPaymentModalOpen(true)}
             >
               <Banknote size={18} className="mr-2" />
               THU TIỀN ĐƠN NÀY (M4)
-            </button>
+            </button></PermissionAction>
           </div>} bodyClassName="space-y-4"><div className="p-4 bg-surface-container-lowest">
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="p-3 border border-outline-variant rounded-xl bg-surface">
@@ -349,13 +353,13 @@ export default function PaymentsPage() {
             >
               HỦY
             </button>
-            <button
+            <PermissionAction codes={["PAYMENTS.RECEIVE_CASH"]}><button
               className="px-6 py-2 bg-primary text-on-primary hover:bg-primary/90 font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
               onClick={handleProcessPayment}
               disabled={isPaying || !paymentAmount}
             >
               {isPaying ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN THU TIỀN'}
-            </button>
+            </button></PermissionAction>
           </div>}>
             <div className="flex justify-between items-center bg-surface-container-lowest p-3 rounded-lg border border-outline-variant">
               <span className="text-sm font-medium text-on-surface-variant">Còn phải thu:</span>

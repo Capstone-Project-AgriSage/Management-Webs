@@ -1,3 +1,5 @@
+import PermissionAction from '@/components/auth/PermissionAction'
+import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -65,6 +67,7 @@ export default function GoodsReceiptsPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
+      <BusinessReportCards kind="purchases" searchResult={{ count: data?.totalCount ?? 0, unit: 'phiếu nhập' }} />
       <div className="flex flex-wrap items-center gap-3 justify-between">
         <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-center gap-3 flex-1">
           <SearchInput
@@ -103,13 +106,13 @@ export default function GoodsReceiptsPage() {
           >
             <FileSpreadsheet size={16} /> Nhập từ Excel
           </Link>
-          <button
+          <PermissionAction codes={["GOODS_RECEIPTS.CREATE"]}><button
             type="button"
             onClick={() => setCreateOpen(true)}
             className="inline-flex items-center gap-2 h-11 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm"
           >
             <Plus size={16} /> Tạo phiếu nhập
-          </button>
+          </button></PermissionAction>
         </div>
       </div>
 
@@ -217,9 +220,9 @@ function CreateReceiptModal({ onClose, onCreated }: { onClose: () => void; onCre
         <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm shadow-sm disabled:opacity-50" onClick={onClose} disabled={busy}>
           Hủy
         </button>
-        <button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={!canSubmit}>
+        <PermissionAction codes={["GOODS_RECEIPTS.CREATE"]}><button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={!canSubmit}>
           {busy ? 'Đang tạo...' : 'Tạo phiếu nháp'}
-        </button>
+        </button></PermissionAction>
       </div>} bodyClassName="space-y-4"><div className="space-y-1">
           <label className="text-sm font-medium text-slate-700" htmlFor="gr-supplier">
             Nhà cung cấp *

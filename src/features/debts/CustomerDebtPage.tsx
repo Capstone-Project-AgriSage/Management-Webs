@@ -1,8 +1,10 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Banknote, Landmark, FilePlus2 } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { useToast } from '@/context/ToastContext'
+import { usePermission } from '@/context/PermissionContext'
 import { ApiError } from '@/api/client'
 import { customersApi, type CustomerResponse } from '@/api/customersApi'
 import { debtApi, type DebtAccount, type DebtEntryListItem, type DebtTransaction } from '@/api/debtApi'
@@ -11,7 +13,7 @@ import type { PagedResult } from '@/api/types'
 import PromptModal from '@/components/ui/PromptModal'
 import ServerPagination from '@/components/ui/ServerPagination'
 import { formatVnd } from '@/utils/money'
-import { DEBT_TRANSACTION_LABEL, formatDay, formatDayTime, label, todayVn, useCanManage, useRoleBase } from '@/utils/creditLabels'
+import { DEBT_TRANSACTION_LABEL, formatDay, formatDayTime, label, todayVn, useRoleBase } from '@/utils/creditLabels'
 import DebtEntriesTable from './DebtEntriesTable'
 import DebtEntryModal from './DebtEntryModal'
 import CollectCashModal from './CollectCashModal'
@@ -34,7 +36,7 @@ function Kpi({ title, value, tone }: { title: string; value: string; tone?: 'dan
 export default function CustomerDebtPage() {
   const { id = '' } = useParams()
   const { showToast } = useToast()
-  const canManage = useCanManage()
+  const { has } = usePermission()
   const base = useRoleBase()
 
   const [customer, setCustomer] = useState<CustomerResponse | null>(null)
@@ -50,6 +52,11 @@ export default function CustomerDebtPage() {
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null)
   const [modal, setModal] = useState<'cash' | 'bank' | 'manual' | null>(null)
   const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    const permission = modal === 'cash' ? 'PAYMENTS.RECEIVE_CASH' : modal === 'bank' ? 'BANK_PAYMENTS.RECORD' : 'DEBT.MANUAL'
+    if (modal && !has(permission)) setModal(null)
+  }, [has, modal])
 
   usePageHeader({ title: customer ? `Công nợ — ${customer.fullName}` : 'Công nợ khách hàng', subtitle: 'Khoản nợ, sổ cái và thu nợ' })
 
@@ -148,23 +155,23 @@ export default function CustomerDebtPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button
+          <PermissionAction codes={["PAYMENTS.RECEIVE_CASH"]}><button
             type="button"
             disabled={noAccount || balance <= 0}
             className="h-9 px-4 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-1.5"
             onClick={() => setModal('cash')}
           >
             <Banknote size={16} /> Thu tiền mặt
-          </button>
-          <button
+          </button></PermissionAction>
+          <PermissionAction codes={["BANK_PAYMENTS.RECORD"]}><button
             type="button"
             disabled={noAccount || balance <= 0}
             className="h-9 px-4 rounded-lg border border-slate-200 bg-white text-sm font-medium hover:bg-slate-50 disabled:opacity-50 flex items-center gap-1.5"
             onClick={() => setModal('bank')}
           >
             <Landmark size={16} /> Ghi nhận chuyển khoản
-          </button>
-          {canManage && (
+          </button></PermissionAction>
+          <PermissionAction codes={["DEBT.MANUAL"]}>
             <button
               type="button"
               disabled={noAccount}
@@ -173,7 +180,7 @@ export default function CustomerDebtPage() {
             >
               <FilePlus2 size={16} /> Ghi nợ thủ công
             </button>
-          )}
+          </PermissionAction>
         </div>
       </div>
 
@@ -257,7 +264,7 @@ export default function CustomerDebtPage() {
 
       <DebtEntryModal entryId={selectedEntryId} onClose={() => setSelectedEntryId(null)} onChanged={refreshAll} />
 
-      <CollectCashModal
+      <PermissionAction codes={["PAYMENTS.RECEIVE_CASH"]}><CollectCashModal
         open={modal === 'cash'}
         farmerProfileId={id}
         customerName={name}
@@ -268,10 +275,10 @@ export default function CustomerDebtPage() {
           setModal(null)
           refreshAll()
         }}
-      />
+      /></PermissionAction>
 
       {modal === 'bank' && (
-        <PromptModal
+        <PermissionAction codes={["BANK_PAYMENTS.RECORD"]}><PromptModal
           open
           loading={busy}
           title={`Ghi nhận chuyển khoản — ${name}`}
@@ -298,11 +305,11 @@ export default function CustomerDebtPage() {
               'Đã ghi nhận chuyển khoản, chờ chủ cửa hàng xác nhận',
             )
           }
-        />
+        /></PermissionAction>
       )}
 
       {modal === 'manual' && (
-        <PromptModal
+        <PermissionAction codes={["DEBT.MANUAL"]}><PromptModal
           open
           loading={busy}
           title={`Ghi nợ thủ công — ${name}`}
@@ -315,7 +322,7 @@ export default function CustomerDebtPage() {
           submitLabel="Ghi nợ"
           onClose={() => setModal(null)}
           onSubmit={(v) => run(() => debtApi.createManualEntry(id, { amount: Number(v.amount), dueDate: v.dueDate, reason: v.reason.trim() }), 'Đã ghi khoản nợ thủ công')}
-        />
+        /></PermissionAction>
       )}
     </div>
   )

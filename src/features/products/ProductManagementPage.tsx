@@ -1,3 +1,5 @@
+import { usePermission } from '@/context/PermissionContext'
+import PermissionAction from '@/components/auth/PermissionAction'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { PackagePlus, RefreshCw } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
@@ -147,7 +149,9 @@ export default function ProductManagementPage() {
 
   const refresh = () => Promise.all([loadList(), loadStores()])
 
+  const { has } = usePermission()
   const openEdit = async (row: ProductListItem) => {
+    if (!has('PRODUCTS.UPDATE')) return
     setOpening(row.id)
     try {
       setForm({ product: await productsApi.get(row.id) })
@@ -182,23 +186,24 @@ export default function ProductManagementPage() {
 
   const buildActions = (row: ProductListItem): RowAction[] => {
     const state = storeStateOf(storeByProduct.get(row.id))
-    const actions: RowAction[] = [{ label: 'Sửa sản phẩm và ảnh', icon: 'edit', onClick: () => void openEdit(row) }]
+    const actions: RowAction[] = [{ permissionCodes: ['PRODUCTS.UPDATE'], label: 'Sửa sản phẩm và ảnh', icon: 'edit', onClick: () => void openEdit(row) }]
     if (state === 'ON_SALE') {
       actions.push({
+        permissionCodes: ['STORE_PRODUCTS.MARK_NOT_SELLABLE'],
         label: 'Ngừng bán',
         icon: 'block',
         onClick: () => void run(() => productsApi.setSellable(storeByProduct.get(row.id)!.id, false), `Đã ngừng bán ${row.name}`),
       })
     } else if (row.status === 'ACTIVE') {
-      actions.push({ label: 'Đưa vào bán', icon: 'storefront', tone: 'primary', onClick: () => void putOnSale(row) })
+      actions.push({ permissionCodes: ['STORE_PRODUCTS.MARK_SELLABLE', ...(storeByProduct.has(row.id) ? [] : ['STORE_PRODUCTS.CREATE']), ...(storeByProduct.get(row.id)?.isActive ? [] : ['STORE_PRODUCTS.ACTIVATE'])], label: 'Đưa vào bán', icon: 'storefront', tone: 'primary', onClick: () => void putOnSale(row) })
     }
     if (row.status === 'ACTIVE') {
-      actions.push({ label: 'Tạm ngưng kinh doanh', icon: 'pause_circle', onClick: () => void run(() => productsApi.changeStatus(row.id, 'INACTIVE'), `Đã tạm ngưng ${row.name}`) })
+      actions.push({ permissionCodes: ["PRODUCTS.CHANGE_STATUS"], label: 'Tạm ngưng kinh doanh', icon: 'pause_circle', onClick: () => void run(() => productsApi.changeStatus(row.id, 'INACTIVE'), `Đã tạm ngưng ${row.name}`) })
     } else {
-      actions.push({ label: 'Kinh doanh lại', icon: 'play_circle', tone: 'primary', onClick: () => void run(() => productsApi.changeStatus(row.id, 'ACTIVE'), `${row.name} đã kinh doanh lại`) })
+      actions.push({ permissionCodes: ["PRODUCTS.CHANGE_STATUS"], label: 'Kinh doanh lại', icon: 'play_circle', tone: 'primary', onClick: () => void run(() => productsApi.changeStatus(row.id, 'ACTIVE'), `${row.name} đã kinh doanh lại`) })
     }
     if (row.status !== 'DISCONTINUED') {
-      actions.push({ label: 'Ngừng kinh doanh', icon: 'delete', tone: 'danger', onClick: () => setDiscontinuing(row) })
+      actions.push({ permissionCodes: ['PRODUCTS.DELETE'], label: 'Ngừng kinh doanh', icon: 'delete', tone: 'danger', onClick: () => setDiscontinuing(row) })
     }
     return actions
   }
@@ -222,9 +227,9 @@ export default function ProductManagementPage() {
           <button type="button" className="h-9 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-1.5" onClick={resetFilters}>
             <RefreshCw size={14} /> Xóa lọc
           </button>
-          <button type="button" className="h-9 px-4 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 flex items-center gap-1.5" onClick={() => setForm({ product: null })}>
+          <PermissionAction codes={["PRODUCTS.CREATE"]}><button type="button" className="h-9 px-4 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 flex items-center gap-1.5" onClick={() => setForm({ product: null })}>
             <PackagePlus size={16} /> Thêm sản phẩm
-          </button>
+          </button></PermissionAction>
         </div>
       </div>
 
@@ -290,7 +295,7 @@ export default function ProductManagementPage() {
         }}
       />
 
-      <ConfirmModal
+      <PermissionAction codes={["PRODUCTS.DELETE"]}><ConfirmModal
         open={discontinuing !== null}
         title={`Ngừng kinh doanh ${discontinuing?.name ?? ''}?`}
         message="Sản phẩm chuyển sang 'Ngừng kinh doanh' và ngừng bán tại cửa hàng. Lịch sử đơn hàng, tồn kho vẫn giữ nguyên. Có thể kinh doanh lại sau."
@@ -304,7 +309,7 @@ export default function ProductManagementPage() {
           await run(() => productsApi.discontinue(target.id), `Đã ngừng kinh doanh ${target.name}`)
           setDiscontinuing(null)
         }}
-      />
+      /></PermissionAction>
     </div>
   )
 }

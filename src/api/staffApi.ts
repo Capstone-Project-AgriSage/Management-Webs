@@ -8,7 +8,14 @@ export interface StaffResponse {
   phoneNumber: string
   email: string
   role: string
-  isActive: boolean
+  status: string
+  memberStatus: string
+  employeeCode: string | null
+  joinedAt: string | null
+  leftAt: string | null
+  canReviewAi: boolean
+  createdAt: string
+  isActive?: boolean
 }
 
 export const staffApi = {

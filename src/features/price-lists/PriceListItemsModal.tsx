@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useRef, useState } from 'react'
 import { Loader2, Plus, Search, Trash2, X } from 'lucide-react'
@@ -164,7 +165,7 @@ export default function PriceListItemsModal({ list, canEdit, onClose, onChanged 
       <ModalLayout footer={canEdit && (
         <div className="flex items-center justify-between gap-3 pt-1">
           <p className="text-xs text-slate-500">Một giá sai thì cả lần lưu bị từ chối. Giá chỉ áp dụng cho quy cách bán đang hoạt động.</p>
-          <button
+          <PermissionAction codes={["PRICING.UPDATE"]}><button
             type="button"
             disabled={saving || pendingCount === 0}
             onClick={save}
@@ -172,7 +173,7 @@ export default function PriceListItemsModal({ list, canEdit, onClose, onChanged 
           >
             {saving && <Loader2 size={16} className="animate-spin" />}
             Lưu thay đổi{pendingCount > 0 ? ` (${pendingCount})` : ''}
-          </button>
+          </button></PermissionAction>
         </div>
       )}>
 
@@ -261,9 +262,9 @@ export default function PriceListItemsModal({ list, canEdit, onClose, onChanged 
                       </td>
                       {canEdit && (
                         <td className="py-2 pr-3">
-                          <button type="button" aria-label="Xóa giá" className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-rose-500 hover:bg-rose-50" onClick={() => removeItem(item)}>
+                          <PermissionAction codes={["PRICING.DELETE"]}><button type="button" aria-label="Xóa giá" className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-rose-500 hover:bg-rose-50" onClick={() => removeItem(item)}>
                             <Trash2 size={15} />
-                          </button>
+                          </button></PermissionAction>
                         </td>
                       )}
                     </tr>

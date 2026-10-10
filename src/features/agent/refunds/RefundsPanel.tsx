@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useRef, useState } from 'react'
 import { ExternalLink, Plus } from 'lucide-react'
@@ -92,9 +93,9 @@ export default function RefundsPanel({ scope, refunds, refundable, canManage, on
           </p>
         </div>
         {canManage && (remaining === null || remaining > 0) ? (
-          <button type="button" onClick={() => setAction({ kind: 'request' })} className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm">
+          <PermissionAction codes={[scope.kind === 'return' ? 'REFUNDS.CREATE_RETURN' : 'REFUNDS.CREATE_ORDER']}><button type="button" onClick={() => setAction({ kind: 'request' })} className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm">
             <Plus size={16} /> Tạo khoản hoàn tiền
-          </button>
+          </button></PermissionAction>
         ) : null}
       </div>
 
@@ -140,15 +141,15 @@ export default function RefundsPanel({ scope, refunds, refundable, canManage, on
                     <td className="py-2.5 px-4 text-right whitespace-nowrap">
                       {r.status === 'PENDING' ? (
                         <>
-                          <button type="button" className="text-sm font-medium text-emerald-700 hover:text-emerald-800 mr-3" onClick={() => setAction({ kind: 'complete', refund: r })}>
+                          <PermissionAction codes={[scope.kind === 'return' ? 'REFUNDS.COMPLETE_RETURN' : 'REFUNDS.COMPLETE_ORDER']}><button type="button" className="text-sm font-medium text-emerald-700 hover:text-emerald-800 mr-3" onClick={() => setAction({ kind: 'complete', refund: r })}>
                             Đã hoàn tiền
-                          </button>
-                          <button type="button" className="text-sm font-medium text-amber-700 hover:text-amber-800 mr-3" onClick={() => setAction({ kind: 'fail', refund: r })}>
+                          </button></PermissionAction>
+                          <PermissionAction codes={[scope.kind === 'return' ? 'REFUNDS.FAIL_RETURN' : 'REFUNDS.FAIL_ORDER']}><button type="button" className="text-sm font-medium text-amber-700 hover:text-amber-800 mr-3" onClick={() => setAction({ kind: 'fail', refund: r })}>
                             Thất bại
-                          </button>
-                          <button type="button" className="text-sm font-medium text-rose-700 hover:text-rose-800" onClick={() => setAction({ kind: 'cancel', refund: r })}>
+                          </button></PermissionAction>
+                          <PermissionAction codes={[scope.kind === 'return' ? 'REFUNDS.CANCEL_RETURN' : 'REFUNDS.CANCEL_ORDER']}><button type="button" className="text-sm font-medium text-rose-700 hover:text-rose-800" onClick={() => setAction({ kind: 'cancel', refund: r })}>
                             Hủy
-                          </button>
+                          </button></PermissionAction>
                         </>
                       ) : null}
                     </td>
@@ -169,8 +170,8 @@ export default function RefundsPanel({ scope, refunds, refundable, canManage, on
       {action?.kind === 'complete' ? (
         <CompleteRefundModal scope={scope} refund={action.refund} onClose={() => setAction(null)} onDone={() => finish('Đã ghi nhận hoàn tiền cho khách')} />
       ) : null}
-      {action?.kind === 'fail' ? <NoteDialog title="Đánh dấu hoàn tiền thất bại" message="Dùng khi chuyển khoản lỗi hoặc không trả được tiền. Khoản này đóng lại, bạn tạo khoản hoàn mới để thử lại." label="Ghi chú (không bắt buộc)" confirmLabel="Đánh dấu thất bại" tone="danger" busy={busy} requireText={false} onClose={() => setAction(null)} onConfirm={(text) => fail(action.refund, text)} /> : null}
-      {action?.kind === 'cancel' ? <NoteDialog title="Hủy khoản hoàn tiền" message="Khoản hoàn bị hủy, số tiền này được tính lại là chưa hoàn." label="Lý do hủy (bắt buộc)" confirmLabel="Hủy khoản hoàn" tone="danger" busy={busy} requireText onClose={() => setAction(null)} onConfirm={(text) => cancel(action.refund, text)} /> : null}
+      {action?.kind === 'fail' ? <PermissionAction codes={[scope.kind === 'return' ? 'REFUNDS.FAIL_RETURN' : 'REFUNDS.FAIL_ORDER']}><NoteDialog title="Đánh dấu hoàn tiền thất bại" message="Dùng khi chuyển khoản lỗi hoặc không trả được tiền. Khoản này đóng lại, bạn tạo khoản hoàn mới để thử lại." label="Ghi chú (không bắt buộc)" confirmLabel="Đánh dấu thất bại" tone="danger" busy={busy} requireText={false} onClose={() => setAction(null)} onConfirm={(text) => fail(action.refund, text)} /></PermissionAction> : null}
+      {action?.kind === 'cancel' ? <PermissionAction codes={[scope.kind === 'return' ? 'REFUNDS.CANCEL_RETURN' : 'REFUNDS.CANCEL_ORDER']}><NoteDialog title="Hủy khoản hoàn tiền" message="Khoản hoàn bị hủy, số tiền này được tính lại là chưa hoàn." label="Lý do hủy (bắt buộc)" confirmLabel="Hủy khoản hoàn" tone="danger" busy={busy} requireText onClose={() => setAction(null)} onConfirm={(text) => cancel(action.refund, text)} /></PermissionAction> : null}
     </div>
   )
 }
@@ -261,9 +262,9 @@ function CompleteRefundModal({ scope, refund, onClose, onDone }: { scope: Refund
         <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm shadow-sm disabled:opacity-50" onClick={onClose} disabled={busy}>
           Hủy
         </button>
-        <button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={busy || uploading}>
+        <PermissionAction codes={[scope.kind === 'return' ? 'REFUNDS.COMPLETE_RETURN' : 'REFUNDS.COMPLETE_ORDER']}><button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={busy || uploading}>
           {busy ? 'Đang ghi...' : 'Đã hoàn tiền'}
-        </button>
+        </button></PermissionAction>
       </div>} bodyClassName="space-y-4"><div className="space-y-1">
           <label className="text-sm font-medium text-slate-700" htmlFor="rf-ref">
             Mã giao dịch / số chứng từ (không bắt buộc)
@@ -346,9 +347,9 @@ function RequestRefundModal({ scope, remaining, onClose, onDone }: { scope: Refu
         <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm shadow-sm disabled:opacity-50" onClick={onClose} disabled={busy}>
           Hủy
         </button>
-        <button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={!canSubmit}>
+        <PermissionAction codes={[scope.kind === 'return' ? 'REFUNDS.CREATE_RETURN' : 'REFUNDS.CREATE_ORDER']}><button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={!canSubmit}>
           {busy ? 'Đang tạo...' : 'Tạo khoản hoàn'}
-        </button>
+        </button></PermissionAction>
       </div>} bodyClassName="space-y-4"><div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <label className="text-sm font-medium text-slate-700" htmlFor="rq-method">

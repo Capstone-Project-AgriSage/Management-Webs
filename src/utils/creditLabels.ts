@@ -1,3 +1,4 @@
+import { usePermission } from '@/context/PermissionContext'
 import { useAuth } from '@/context/AuthContext'
 
 // Vietnamese labels for FLOW_3 enums. Unknown codes fall back to the raw value.
@@ -89,9 +90,9 @@ export function todayVn(): string {
 }
 
 /** "Manage" in the API = ADMIN or STORE_OWNER; "Operate" adds SALES_STAFF (FLOW_3 B-D5). */
-export function useCanManage(): boolean {
-  const { currentRole } = useAuth()
-  return currentRole === 'agent' || currentRole === 'admin'
+export function useCanManage(codes: string[]): boolean {
+  const { has } = usePermission()
+  return codes.some(has)
 }
 
 /** Base path of the current role's area, e.g. "/agent" or "/sales". */

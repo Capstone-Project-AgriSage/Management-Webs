@@ -1,3 +1,5 @@
+import PermissionAction from '@/components/auth/PermissionAction'
+import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useState, useEffect } from 'react'
 import { usePageHeader } from '@/context/PageHeaderContext'
@@ -5,6 +7,7 @@ import { creditTiersApi, type CreditTierResponse } from '@/api/creditTiersApi'
 import { customerGroupsApi, type CustomerGroupResponse, type GroupPriceListLink } from '@/api/customerGroupsApi'
 import { priceListsApi } from '@/api/priceListsApi'
 import { useToast } from '@/context/ToastContext'
+import { usePermission } from '@/context/PermissionContext'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import StatusBadge from '@/components/ui/StatusBadge'
@@ -25,6 +28,15 @@ type Prompt =
   | { kind: 'tier-create' }
   | { kind: 'tier-edit'; tier: CreditTierResponse }
 
+const PROMPT_PERMISSIONS: Record<Prompt['kind'], string> = {
+  'group-create': 'CUSTOMER_GROUPS.CREATE',
+  'group-edit': 'CUSTOMER_GROUPS.UPDATE',
+  'group-price-list': 'CUSTOMER_GROUPS.UPDATE',
+  'group-tier': 'CUSTOMER_GROUPS.UPDATE',
+  'tier-create': 'CREDIT_TIERS.CREATE',
+  'tier-edit': 'CREDIT_TIERS.UPDATE',
+}
+
 interface PromptSpec {
   title: string
   description?: string
@@ -40,6 +52,10 @@ const errorText = (err: unknown, fallback: string) => (err instanceof Error && e
 export default function CreditConfigPage() {
   usePageHeader({ title: 'Nhóm khách hàng & Hạng tín dụng', subtitle: 'Nhóm khách quyết định bảng giá và hạng tín dụng (thời hạn nợ)' })
   const { showToast } = useToast()
+  const { has } = usePermission()
+  const canReadGroups = has('CUSTOMER_GROUPS.READ')
+  const canReadTiers = has('CREDIT_TIERS.READ')
+  const canReadPrices = has('PRICING.READ')
 
   const [activeTab, setActiveTab] = useState<Tab>('GROUPS')
   const [tiers, setTiers] = useState<CreditTierResponse[]>([])
@@ -49,14 +65,25 @@ export default function CreditConfigPage() {
   const [busy, setBusy] = useState(false)
   const [prompt, setPrompt] = useState<Prompt | null>(null)
   const [history, setHistory] = useState<{ group: CustomerGroupResponse; links: GroupPriceListLink[] } | null>(null)
+  const promptPermission = prompt ? PROMPT_PERMISSIONS[prompt.kind] : null
+
+  useEffect(() => {
+    if (promptPermission && !has(promptPermission)) setPrompt(null)
+    if (!canReadGroups) setHistory(null)
+  }, [has, promptPermission, canReadGroups])
+
+  useEffect(() => {
+    if (activeTab === 'GROUPS' && !canReadGroups && canReadTiers) setActiveTab('TIERS')
+    if (activeTab === 'TIERS' && !canReadTiers && canReadGroups) setActiveTab('GROUPS')
+  }, [activeTab, canReadGroups, canReadTiers])
 
   const load = async () => {
     setLoading(true)
     try {
       const [t, g, p] = await Promise.all([
-        creditTiersApi.getCreditTiers({ pageSize: 100 }),
-        customerGroupsApi.getCustomerGroups({ pageSize: 100 }),
-        priceListsApi.getPriceLists().catch(() => ({ items: [] })),
+        canReadTiers ? creditTiersApi.getCreditTiers({ pageSize: 100 }) : Promise.resolve({ items: [] }),
+        canReadGroups ? customerGroupsApi.getCustomerGroups({ pageSize: 100 }) : Promise.resolve({ items: [] }),
+        canReadPrices ? priceListsApi.getPriceLists().catch(() => ({ items: [] })) : Promise.resolve({ items: [] }),
       ])
       setTiers(t.items || [])
       setGroups((g.items || []).sort((a, b) => a.priority - b.priority))
@@ -71,7 +98,7 @@ export default function CreditConfigPage() {
   useEffect(() => {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [canReadGroups, canReadTiers, canReadPrices])
 
   const run = async (action: () => Promise<unknown>, success: string) => {
     setBusy(true)
@@ -88,6 +115,7 @@ export default function CreditConfigPage() {
   }
 
   const openHistory = async (group: CustomerGroupResponse) => {
+    if (!canReadGroups) return
     try {
       setHistory({ group, links: await customerGroupsApi.getPriceListHistory(group.id) })
     } catch (err) {
@@ -96,28 +124,28 @@ export default function CreditConfigPage() {
   }
 
   const groupActions = (g: CustomerGroupResponse): RowAction[] => [
-    { label: 'Sửa thông tin', icon: 'edit', onClick: () => setPrompt({ kind: 'group-edit', group: g }) },
-    { label: 'Gắn bảng giá', icon: 'price_change', onClick: () => setPrompt({ kind: 'group-price-list', group: g }) },
-    { label: 'Gắn hạng tín dụng', icon: 'credit_score', onClick: () => setPrompt({ kind: 'group-tier', group: g }) },
-    { label: 'Lịch sử bảng giá', icon: 'history', onClick: () => openHistory(g) },
+    { permissionCodes: ['CUSTOMER_GROUPS.UPDATE'], label: 'Sửa thông tin', icon: 'edit', onClick: () => setPrompt({ kind: 'group-edit', group: g }) },
+    { permissionCodes: ['CUSTOMER_GROUPS.UPDATE'], label: 'Gắn bảng giá', icon: 'price_change', onClick: () => setPrompt({ kind: 'group-price-list', group: g }) },
+    { permissionCodes: ['CUSTOMER_GROUPS.UPDATE'], label: 'Gắn hạng tín dụng', icon: 'credit_score', onClick: () => setPrompt({ kind: 'group-tier', group: g }) },
+    { permissionCodes: ['CUSTOMER_GROUPS.READ'], label: 'Lịch sử bảng giá', icon: 'history', onClick: () => openHistory(g) },
     ...(!g.isDefault && g.isActive
-      ? [{ label: 'Đặt làm nhóm mặc định', icon: 'star', onClick: () => run(() => customerGroupsApi.setDefault(g.id), `Đã đặt "${g.name}" làm nhóm mặc định`) }]
+      ? [{ permissionCodes: ["CUSTOMER_GROUPS.SET_DEFAULT"], label: 'Đặt làm nhóm mặc định', icon: 'star', onClick: () => run(() => customerGroupsApi.setDefault(g.id), `Đã đặt "${g.name}" làm nhóm mặc định`) }]
       : []),
     ...(g.isDefault
       ? []
       : g.isActive
-        ? [{ label: 'Ngừng hoạt động', icon: 'block', tone: 'danger' as const, onClick: () => run(() => customerGroupsApi.deactivate(g.id), 'Đã ngừng nhóm khách') }]
-        : [{ label: 'Kích hoạt', icon: 'check_circle', onClick: () => run(() => customerGroupsApi.activate(g.id), 'Đã kích hoạt nhóm khách') }]),
+        ? [{ permissionCodes: ["CUSTOMER_GROUPS.DEACTIVATE"], label: 'Ngừng hoạt động', icon: 'block', tone: 'danger' as const, onClick: () => run(() => customerGroupsApi.deactivate(g.id), 'Đã ngừng nhóm khách') }]
+        : [{ permissionCodes: ["CUSTOMER_GROUPS.ACTIVATE"], label: 'Kích hoạt', icon: 'check_circle', onClick: () => run(() => customerGroupsApi.activate(g.id), 'Đã kích hoạt nhóm khách') }]),
     ...(!g.isDefault && g.memberCount === 0
-      ? [{ label: 'Xóa nhóm', icon: 'delete', tone: 'danger' as const, onClick: () => window.confirm(`Xóa nhóm "${g.name}"?`) && run(() => customerGroupsApi.deleteCustomerGroup(g.id), 'Đã xóa nhóm khách') }]
+      ? [{ permissionCodes: ["CUSTOMER_GROUPS.DELETE"], label: 'Xóa nhóm', icon: 'delete', tone: 'danger' as const, onClick: () => window.confirm(`Xóa nhóm "${g.name}"?`) && run(() => customerGroupsApi.deleteCustomerGroup(g.id), 'Đã xóa nhóm khách') }]
       : []),
   ]
 
   const tierActions = (t: CreditTierResponse): RowAction[] => [
-    { label: 'Sửa', icon: 'edit', onClick: () => setPrompt({ kind: 'tier-edit', tier: t }) },
+    { permissionCodes: ['CREDIT_TIERS.UPDATE'], label: 'Sửa', icon: 'edit', onClick: () => setPrompt({ kind: 'tier-edit', tier: t }) },
     t.isActive
-      ? { label: 'Ngừng sử dụng', icon: 'block', tone: 'danger', onClick: () => run(() => creditTiersApi.deactivateCreditTier(t.id), 'Đã ngừng hạng tín dụng') }
-      : { label: 'Kích hoạt', icon: 'check_circle', onClick: () => run(() => creditTiersApi.activateCreditTier(t.id), 'Đã kích hoạt hạng tín dụng') },
+      ? { permissionCodes: ["CREDIT_TIERS.DEACTIVATE"], label: 'Ngừng sử dụng', icon: 'block', tone: 'danger', onClick: () => run(() => creditTiersApi.deactivateCreditTier(t.id), 'Đã ngừng hạng tín dụng') }
+      : { permissionCodes: ["CREDIT_TIERS.ACTIVATE"], label: 'Kích hoạt', icon: 'check_circle', onClick: () => run(() => creditTiersApi.activateCreditTier(t.id), 'Đã kích hoạt hạng tín dụng') },
   ]
 
   // ── Prompt definitions ─────────────────────────────────────────────────────
@@ -236,8 +264,9 @@ export default function CreditConfigPage() {
 
   return (
     <div className="max-w-[1200px] mx-auto flex flex-col gap-space-lg pb-10">
+      <BusinessReportCards kind="credit" />
       <div className="flex bg-surface-container-low p-1 rounded-lg w-fit" role="tablist">
-        {(['GROUPS', 'TIERS'] as Tab[]).map((tab) => (
+        {(['GROUPS', 'TIERS'] as Tab[]).filter(tab => tab === 'GROUPS' ? canReadGroups : canReadTiers).map((tab) => (
           <button
             key={tab}
             role="tab"
@@ -251,14 +280,14 @@ export default function CreditConfigPage() {
         ))}
       </div>
 
-      {activeTab === 'GROUPS' && (
+      {activeTab === 'GROUPS' && canReadGroups && (
         <Card className="flex flex-col gap-space-md">
           <div className="flex justify-between items-center gap-3">
             <div>
               <h3 className="font-title-md text-title-md font-bold">Nhóm khách hàng</h3>
               <p className="text-xs text-on-surface-variant mt-0.5">Khách chưa được xếp nhóm thuộc nhóm mặc định. Luôn có đúng một nhóm mặc định.</p>
             </div>
-            <Button icon="add" onClick={() => setPrompt({ kind: 'group-create' })}>Thêm nhóm</Button>
+            <PermissionAction codes={['CUSTOMER_GROUPS.CREATE']}><Button icon="add" onClick={() => setPrompt({ kind: 'group-create' })}>Thêm nhóm</Button></PermissionAction>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[900px]">
@@ -307,14 +336,14 @@ export default function CreditConfigPage() {
         </Card>
       )}
 
-      {activeTab === 'TIERS' && (
+      {activeTab === 'TIERS' && canReadTiers && (
         <Card className="flex flex-col gap-space-md">
           <div className="flex justify-between items-center gap-3">
             <div>
               <h3 className="font-title-md text-title-md font-bold">Hạng tín dụng</h3>
               <p className="text-xs text-on-surface-variant mt-0.5">Thời hạn nợ của hạng là kỳ hạn trả của khoản nợ bán chịu.</p>
             </div>
-            <Button icon="add" onClick={() => setPrompt({ kind: 'tier-create' })}>Thêm hạng</Button>
+            <PermissionAction codes={['CREDIT_TIERS.CREATE']}><Button icon="add" onClick={() => setPrompt({ kind: 'tier-create' })}>Thêm hạng</Button></PermissionAction>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[900px]">
@@ -360,8 +389,8 @@ export default function CreditConfigPage() {
         </Card>
       )}
 
-      {promptProps && (
-        <PromptModal open onClose={() => setPrompt(null)} loading={busy} {...promptProps} />
+      {promptProps && promptPermission && (
+        <PermissionAction codes={[promptPermission]}><PromptModal open onClose={() => setPrompt(null)} loading={busy} {...promptProps} /></PermissionAction>
       )}
 
       <DetailModal open={history !== null} onClose={() => setHistory(null)} widthClassName="max-w-lg">

@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Search } from 'lucide-react'
@@ -327,14 +328,14 @@ export default function ReturnCreatePage() {
                   </>
                 )}
               </div>
-              <button
+              <PermissionAction codes={["RETURNS.CREATE"]}><button
                 type="button"
                 onClick={submit}
                 disabled={!canSubmit}
                 className="h-10 px-5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm disabled:opacity-50"
               >
                 {busy ? 'Đang tạo...' : 'Gửi yêu cầu trả hàng'}
-              </button>
+              </button></PermissionAction>
             </div>
             <p className="text-xs text-slate-500">Yêu cầu cần Chủ cửa hàng duyệt. Số tiền hoàn thực tế được tính khi kiểm tra hàng: trừ vào công nợ chưa trả của đơn trước, phần còn lại hoàn cho khách.</p>
           </div>

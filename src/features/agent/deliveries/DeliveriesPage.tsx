@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { ChevronRight, RefreshCw, MapPin, UserCircle } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
@@ -103,6 +104,7 @@ export default function DeliveriesPage() {
         ))}
       </div>
 
+      <BusinessReportCards kind="deliveries" />
       <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
         <SearchInput value={search} onChange={setSearch} placeholder="Tìm mã phiếu, mã đơn, người nhận, tài xế..." className="relative flex-1" />
         <div className="flex flex-wrap items-center gap-2.5">

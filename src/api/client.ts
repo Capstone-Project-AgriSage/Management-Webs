@@ -58,9 +58,15 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 
   if (res.ok) {
-    return (res.status === 204 ? undefined : await res.json()) as T
+    const result = (res.status === 204 ? undefined : await res.json()) as T
+    // Summaries refresh after a successful business write, never after a list GET.
+    if (init.method && !['GET', 'HEAD', 'OPTIONS'].includes(init.method.toUpperCase()) && /^\/api\/(orders|payments|refunds|returns|goods-receipts|deliveries|inventory|stock-adjustments|stocktakes|customers|customer-groups|credit-tiers)(\/|\?|$)/.test(path)) {
+      window.dispatchEvent(new Event('agrisage-business-data-changed'))
+    }
+    return result
   }
 
+  if (res.status === 403 && path !== '/api/me/permissions') window.dispatchEvent(new Event('agrisage-permissions-changed'))
   throw await toApiError(res)
 }
 
@@ -73,7 +79,8 @@ export async function apiBlob(path: string): Promise<{ blob: Blob; fileName: str
   }
 
   if (!res.ok) {
-    throw await toApiError(res)
+    if (res.status === 403 && path !== '/api/me/permissions') window.dispatchEvent(new Event('agrisage-permissions-changed'))
+  throw await toApiError(res)
   }
 
   const disposition = res.headers.get('Content-Disposition') ?? ''

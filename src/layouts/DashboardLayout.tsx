@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
+import { PermissionRoute } from '@/components/auth/PermissionRoute'
 import Sidebar from '@/components/layout/Sidebar'
 import Topbar from '@/components/layout/Topbar'
 import { PageHeaderProvider } from '@/context/PageHeaderContext'
@@ -24,7 +25,7 @@ export default function DashboardLayout() {
         <div className="lg:pl-nav-sidebar-width flex-1 flex flex-col min-w-0">
           <Topbar onMenuClick={() => setSidebarOpen(true)} />
           <main className="flex-1 px-layout-margin-desktop py-3 space-y-3 overflow-x-hidden">
-            <Outlet />
+            <PermissionRoute><Outlet /></PermissionRoute>
           </main>
         </div>
       </div>

@@ -1,33 +1,28 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { PageHeaderState } from '@/types'
 
 const DEFAULT_HEADER: PageHeaderState = { title: 'Tổng quan hệ thống' }
 
-interface PageHeaderContextValue {
-  header: PageHeaderState
-  setHeader: (header: PageHeaderState) => void
-}
-
-const PageHeaderContext = createContext<PageHeaderContextValue | undefined>(undefined)
+const PageHeaderContext = createContext<PageHeaderState | undefined>(undefined)
+const PageHeaderSetterContext = createContext<((header: PageHeaderState) => void) | undefined>(undefined)
 
 export function PageHeaderProvider({ children }: { children: ReactNode }) {
-  const [header, setHeader] = useState<PageHeaderState>(DEFAULT_HEADER)
-  const value = useMemo(() => ({ header, setHeader }), [header])
-  return <PageHeaderContext.Provider value={value}>{children}</PageHeaderContext.Provider>
-}
-
-function usePageHeaderContext() {
-  const ctx = useContext(PageHeaderContext)
-  if (!ctx) throw new Error('usePageHeaderContext must be used within PageHeaderProvider')
-  return ctx
+  const [header, updateHeader] = useState<PageHeaderState>(DEFAULT_HEADER)
+  const setHeader = useCallback((next: PageHeaderState) => {
+    updateHeader(previous => previous.title === next.title && previous.subtitle === next.subtitle && previous.badge === next.badge ? previous : next)
+  }, [])
+  return <PageHeaderSetterContext.Provider value={setHeader}><PageHeaderContext.Provider value={header}>{children}</PageHeaderContext.Provider></PageHeaderSetterContext.Provider>
 }
 
 export function usePageHeaderValue() {
-  return usePageHeaderContext().header
+  const header = useContext(PageHeaderContext)
+  if (!header) throw new Error('usePageHeaderValue must be used within PageHeaderProvider')
+  return header
 }
 
 export function usePageHeader(header: PageHeaderState) {
-  const { setHeader } = usePageHeaderContext()
+  const setHeader = useContext(PageHeaderSetterContext)
+  if (!setHeader) throw new Error('usePageHeader must be used within PageHeaderProvider')
   const { title, subtitle, badge } = header
   useEffect(() => {
     setHeader({ title, subtitle, badge })

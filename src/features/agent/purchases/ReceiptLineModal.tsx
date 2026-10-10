@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useMemo, useState } from 'react'
 import { describeError } from '@/api/client'
@@ -116,9 +117,9 @@ export default function ReceiptLineModal({ receiptId, item, onClose, onSaved }: 
         <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm shadow-sm disabled:opacity-50" onClick={onClose} disabled={busy}>
           Hủy
         </button>
-        <button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={!canSubmit}>
+        <PermissionAction codes={[editing ? 'GOODS_RECEIPTS.UPDATE' : 'GOODS_RECEIPTS.ADD_ITEM']}><button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={!canSubmit}>
           {busy ? 'Đang lưu...' : editing ? 'Lưu thay đổi' : 'Thêm dòng'}
-        </button>
+        </button></PermissionAction>
       </div>} bodyClassName="space-y-4">{editing ? (
         <div className="text-sm">
           <div className="font-medium text-slate-900">{item.productName}</div>

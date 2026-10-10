@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Plus } from 'lucide-react'
@@ -182,15 +183,15 @@ export default function SuppliersPage() {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right whitespace-nowrap">
-                      <button type="button" className="text-sm font-medium text-emerald-700 hover:text-emerald-800 mr-3" onClick={() => setEditing(s)}>
+                      <PermissionAction codes={["SUPPLIERS.UPDATE"]}><button type="button" className="text-sm font-medium text-emerald-700 hover:text-emerald-800 mr-3" onClick={() => setEditing(s)}>
                         Sửa
-                      </button>
-                      <button type="button" className="text-sm font-medium text-slate-700 hover:text-slate-900 mr-3" onClick={() => toggleActive(s)}>
+                      </button></PermissionAction>
+                      <PermissionAction codes={[s.isActive ? 'SUPPLIERS.DEACTIVATE' : 'SUPPLIERS.ACTIVATE']}><button type="button" className="text-sm font-medium text-slate-700 hover:text-slate-900 mr-3" onClick={() => toggleActive(s)}>
                         {s.isActive ? 'Ngừng hợp tác' : 'Kích hoạt lại'}
-                      </button>
-                      <button type="button" className="text-sm font-medium text-rose-700 hover:text-rose-800" onClick={() => setToDelete(s)}>
+                      </button></PermissionAction>
+                      <PermissionAction codes={["SUPPLIERS.DELETE"]}><button type="button" className="text-sm font-medium text-rose-700 hover:text-rose-800" onClick={() => setToDelete(s)}>
                         Xóa
-                      </button>
+                      </button></PermissionAction>
                     </td>
                   </tr>
                 ))
@@ -222,7 +223,7 @@ export default function SuppliersPage() {
         />
       ) : null}
 
-      <ConfirmModal
+      <PermissionAction codes={["SUPPLIERS.DELETE"]}><ConfirmModal
         open={toDelete !== null}
         title="Xóa nhà cung cấp"
         message={`Xóa "${toDelete?.name ?? ''}"? Nếu đã có phiếu nhập hàng từ nhà cung cấp này thì hệ thống sẽ từ chối, khi đó hãy chọn Ngừng hợp tác.`}
@@ -231,7 +232,7 @@ export default function SuppliersPage() {
         busy={busy}
         onConfirm={confirmDelete}
         onClose={() => setToDelete(null)}
-      />
+      /></PermissionAction>
     </div>
   )
 }
@@ -286,9 +287,9 @@ function SupplierFormModal({ supplier, onClose, onSaved }: { supplier: Supplier 
         <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm shadow-sm disabled:opacity-50" onClick={onClose} disabled={busy}>
           Hủy
         </button>
-        <button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={!canSubmit}>
+        <PermissionAction codes={[supplier ? 'SUPPLIERS.UPDATE' : 'SUPPLIERS.CREATE']}><button type="button" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm disabled:opacity-50" onClick={submit} disabled={!canSubmit}>
           {busy ? 'Đang lưu...' : 'Lưu'}
-        </button>
+        </button></PermissionAction>
       </div>} bodyClassName="space-y-4"><div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {field('name', 'Tên nhà cung cấp *', { maxLength: 255, placeholder: 'Ví dụ: Công ty Vật tư Nông nghiệp Miền Tây' })}
           {field('code', 'Mã nhà cung cấp', { maxLength: 50, placeholder: 'Bỏ trống nếu chưa có' })}

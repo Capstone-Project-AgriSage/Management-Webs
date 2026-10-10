@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
 import DetailModal from '@/components/ui/DetailModal'
@@ -119,14 +120,14 @@ export default function StockAdjustmentModal({ target, defaultReason, onClose, o
         >
           Hủy
         </button>
-        <button
+        <PermissionAction codes={["STOCK_ADJUSTMENTS.CREATE"]}><button
           type="button"
           className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors text-sm shadow-sm disabled:opacity-50"
           onClick={submit}
           disabled={!canSubmit}
         >
           {busy ? 'Đang ghi...' : 'Ghi phiếu điều chỉnh'}
-        </button>
+        </button></PermissionAction>
       </div>} bodyClassName="space-y-4"><div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Hướng điều chỉnh">
           {(
             [

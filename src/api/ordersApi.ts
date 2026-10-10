@@ -73,7 +73,7 @@ export const ordersApi = {
     })
   },
   /** fromDate/toDate are Vietnam days (yyyy-MM-dd) on the creation date (FE_GUIDE_FLOW_1 §0.9). */
-  getOrders: (params?: { page?: number; pageSize?: number; search?: string; status?: OrderStatus; source?: string; fromDate?: string; toDate?: string }) => {
+  getOrders: (params?: { page?: number; pageSize?: number; search?: string; status?: OrderStatus; source?: string; fromDate?: string; toDate?: string }, signal?: AbortSignal) => {
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.append('page', params.page.toString())
     if (params?.pageSize) searchParams.append('pageSize', params.pageSize.toString())
@@ -83,7 +83,7 @@ export const ordersApi = {
     if (params?.fromDate) searchParams.append('fromDate', params.fromDate)
     if (params?.toDate) searchParams.append('toDate', params.toDate)
     const qs = searchParams.toString()
-    return api<Paged<OrderResponse>>(`/api/orders${qs ? `?${qs}` : ''}`)
+    return api<Paged<OrderResponse>>(`/api/orders${qs ? `?${qs}` : ''}`, { signal })
   },
 
   // Optional tracking steps after confirmation (FE_GUIDE_FLOW_1 §M5); skipping them does not block the hand-over.

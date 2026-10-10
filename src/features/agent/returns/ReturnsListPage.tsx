@@ -1,3 +1,5 @@
+import PermissionAction from '@/components/auth/PermissionAction'
+import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Undo2 } from 'lucide-react'
@@ -58,6 +60,7 @@ export default function ReturnsListPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
+      <BusinessReportCards kind="returns" searchResult={{ count: data?.totalCount ?? 0, unit: 'phiếu trả' }} />
       <div className="flex flex-wrap items-center gap-3 justify-between">
         <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-center gap-3 flex-1">
           <SearchInput
@@ -78,13 +81,13 @@ export default function ReturnsListPage() {
             options={[{ value: '', label: 'Tất cả trạng thái' }, ...(Object.keys(RETURN_STATUS_LABEL) as ReturnStatus[]).map((s) => ({ value: s, label: RETURN_STATUS_LABEL[s] }))]}
           />
         </div>
-        <button
+        <PermissionAction codes={['RETURNS.CREATE']}><button
           type="button"
           onClick={() => navigate(`${base}/new`)}
           className="inline-flex items-center gap-2 h-11 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm"
         >
           <Plus size={16} /> Tạo yêu cầu trả hàng
-        </button>
+        </button></PermissionAction>
       </div>
 
       <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">

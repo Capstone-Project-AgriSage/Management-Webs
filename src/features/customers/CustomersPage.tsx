@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import { useEffect, useState } from 'react'
 import { RefreshCw, UserPlus } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
@@ -127,9 +128,9 @@ export default function CustomersPage() {
           <button type="button" className="h-9 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-1.5" onClick={resetFilters}>
             <RefreshCw size={14} /> Xóa lọc
           </button>
-          <button type="button" className="h-9 px-4 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 flex items-center gap-1.5" onClick={() => setForm({ customer: null })}>
+          <PermissionAction codes={["CUSTOMERS.CREATE"]}><button type="button" className="h-9 px-4 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 flex items-center gap-1.5" onClick={() => setForm({ customer: null })}>
             <UserPlus size={16} /> Thêm khách hàng
-          </button>
+          </button></PermissionAction>
         </div>
       </div>
 

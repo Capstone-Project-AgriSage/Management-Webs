@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
@@ -64,9 +65,9 @@ export default function ConfirmOrderModal({ order, onClose, onConfirmed }: Confi
         <button type="button" onClick={onClose} className="h-10 px-5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100">
           Huỷ
         </button>
-        <button type="button" disabled={busy || !fefo || shortage} onClick={confirm} className="h-10 px-5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 inline-flex items-center gap-2">
+        <PermissionAction codes={["ORDERS.CONFIRM"]}><button type="button" disabled={busy || !fefo || shortage} onClick={confirm} className="h-10 px-5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 inline-flex items-center gap-2">
           {busy && <Loader2 size={15} className="animate-spin" />} Xác nhận và giữ hàng
-        </button>
+        </button></PermissionAction>
       </div>} bodyClassName="space-y-4"><p className="p-3 rounded-lg bg-emerald-50 text-emerald-900">
           Hàng được giữ theo lô hết hạn trước (FEFO) — chưa xuất kho; lô thực tế chọn khi giao.
           {order.settlementType === 'CREDIT' && ' Đơn mua chịu: xác nhận sẽ giữ hạn mức của khách.'}

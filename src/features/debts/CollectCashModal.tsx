@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
 import Modal from '@/components/ui/Modal'
@@ -94,9 +95,9 @@ export default function CollectCashModal({ open, farmerProfileId, customerName, 
           <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50" onClick={onClose}>
             Hủy
           </button>
-          <button type="button" disabled={!canSubmit} className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50" onClick={submit}>
+          <PermissionAction codes={["PAYMENTS.RECEIVE_CASH"]}><button type="button" disabled={!canSubmit} className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50" onClick={submit}>
             {saving ? 'Đang thu...' : 'Xác nhận thu tiền'}
-          </button>
+          </button></PermissionAction>
         </div>
       </div>} bodyClassName="space-y-4"><p className="text-sm text-slate-600">
           Dư nợ hiện tại: <strong className="text-slate-900">{formatVnd(outstanding)}</strong>

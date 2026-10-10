@@ -148,91 +148,91 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/orders',
-            element: <RequireRole role="agent"><OrdersPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><OrdersPage /></RequireRole>,
           },
           {
             path: 'agent/counter-sales',
-            element: <RequireRole role="agent"><CounterSalesPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><CounterSalesPage /></RequireRole>,
           },
           {
             path: 'agent/payments',
-            element: <RequireRole role="agent"><PaymentsPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><PaymentsPage /></RequireRole>,
           },
           {
             path: 'agent/ai-recommendations',
-            element: <RequireRole role="agent"><AgentAiRecommendationsPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><AgentAiRecommendationsPage /></RequireRole>,
           },
           {
             path: 'agent/products',
-            element: <RequireRole role="agent"><ProductManagementPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><ProductManagementPage /></RequireRole>,
           },
           {
             path: 'agent/inventory',
-            element: <RequireRole role="agent"><AgentInventoryPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><AgentInventoryPage /></RequireRole>,
           },
           {
             path: 'agent/farmers',
-            element: <RequireRole role="agent"><CustomersPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><CustomersPage /></RequireRole>,
           },
           {
             path: 'agent/debts',
-            element: <RequireRole role="agent"><DebtsPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><DebtsPage /></RequireRole>,
           },
           {
             path: 'agent/debts/reports',
-            element: <RequireRole role="agent"><DebtReportsPage /></RequireRole>,
+            element: <RequireRole role={["admin", "agent", "sales_staff"]}><DebtReportsPage /></RequireRole>,
           },
           {
             path: 'agent/debts/:id',
-            element: <RequireRole role="agent"><CustomerDebtPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><CustomerDebtPage /></RequireRole>,
           },
           {
             path: 'agent/inventory/movements',
-            element: <RequireRole role="agent"><AgentInventoryMovementsPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><AgentInventoryMovementsPage /></RequireRole>,
           },
           {
             path: 'agent/refunds',
-            element: <RequireRole role="agent"><RefundsPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><RefundsPage /></RequireRole>,
           },
           {
             path: 'agent/returns',
-            element: <RequireRole role="agent"><ReturnsListPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><ReturnsListPage /></RequireRole>,
           },
           {
             path: 'agent/returns/new',
-            element: <RequireRole role="agent"><ReturnCreatePage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><ReturnCreatePage /></RequireRole>,
           },
           {
             path: 'agent/returns/:id',
-            element: <RequireRole role="agent"><ReturnDetailPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><ReturnDetailPage /></RequireRole>,
           },
           {
             path: 'agent/inventory/stock-card',
-            element: <RequireRole role="agent"><AgentStockCardPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><AgentStockCardPage /></RequireRole>,
           },
           {
             path: 'agent/inventory/reports',
-            element: <RequireRole role="agent"><AgentInventoryReportsPage /></RequireRole>,
+            element: <RequireRole role={["admin", "agent", "sales_staff"]}><AgentInventoryReportsPage /></RequireRole>,
           },
           {
             path: 'agent/inventory/stocktake',
-            element: <RequireRole role="agent"><AgentStocktakePage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><AgentStocktakePage /></RequireRole>,
           },
           {
             path: 'agent/inventory/stocktake/:id',
-            element: <RequireRole role="agent"><StocktakeDetailPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><StocktakeDetailPage /></RequireRole>,
           },
           {
             path: 'agent/deliveries',
-            element: <RequireRole role="agent"><AgentDeliveriesPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><AgentDeliveriesPage /></RequireRole>,
           },
           {
             path: 'agent/deliveries/reports',
-            element: <RequireRole role="agent"><AgentDeliveryReportsPage /></RequireRole>,
+            element: <RequireRole role={["admin", "agent", "sales_staff"]}><AgentDeliveryReportsPage /></RequireRole>,
           },
           {
             path: 'agent/purchases/suppliers',
-            element: <RequireRole role="agent"><AgentSuppliersPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><AgentSuppliersPage /></RequireRole>,
           },
           {
             path: 'agent/purchases/orders',
@@ -240,27 +240,27 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/purchases/receipts',
-            element: <RequireRole role="agent"><AgentGoodsReceiptsPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><AgentGoodsReceiptsPage /></RequireRole>,
           },
           {
             path: 'agent/purchases/receipts/import',
-            element: <RequireRole role="agent"><ReceiptImportPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><ReceiptImportPage /></RequireRole>,
           },
           {
             path: 'agent/purchases/receipts/:id',
-            element: <RequireRole role="agent"><GoodsReceiptDetailPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><GoodsReceiptDetailPage /></RequireRole>,
           },
           {
             path: 'agent/price-lists',
-            element: <RequireRole role="agent"><PriceListsPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><PriceListsPage /></RequireRole>,
           },
           {
             path: 'agent/credit-config',
-            element: <RequireRole role="agent"><CreditConfigPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><CreditConfigPage /></RequireRole>,
           },
           {
             path: 'agent/products/reviews',
-            element: <RequireRole role="agent"><AgentProductReviewsPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><AgentProductReviewsPage /></RequireRole>,
           },
           {
             path: 'agent/staff',

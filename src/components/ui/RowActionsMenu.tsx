@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
+import { usePermission } from '@/context/PermissionContext'
 import { MoreVertical } from 'lucide-react'
 
 export interface RowAction {
+  permissionCodes?: string[]
   label: string
   icon?: string
   onClick?: () => void
@@ -14,7 +16,9 @@ interface RowActionsMenuProps {
   triggerLabel?: string
 }
 
-export default function RowActionsMenu({ actions, triggerLabel = 'Thao tác' }: RowActionsMenuProps) {
+export default function RowActionsMenu({ actions: allActions, triggerLabel = 'Thao tác' }: RowActionsMenuProps) {
+  const { has } = usePermission()
+  const actions = allActions.filter(action => !action.permissionCodes || action.permissionCodes.every(has))
   const [open, setOpen] = useState(false)
   const [menuStyle, setMenuStyle] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -47,6 +51,8 @@ export default function RowActionsMenu({ actions, triggerLabel = 'Thao tác' }: 
       window.removeEventListener('resize', close)
     }
   }, [open])
+
+  if (!actions.length) return null
 
   const toggleOpen = () => {
     if (!open && triggerRef.current) {

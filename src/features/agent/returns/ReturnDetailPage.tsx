@@ -1,9 +1,10 @@
+import { usePermission } from '@/context/PermissionContext'
+import PermissionAction from '@/components/auth/PermissionAction'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Check, Trash2 } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { useToast } from '@/context/ToastContext'
-import { useAuth } from '@/context/AuthContext'
 import { describeError } from '@/api/client'
 import { returnsApi, type ReturnCondition, type ReturnItem, type SalesReturn } from '@/api/returnsApi'
 import { stockApi } from '@/api/stockApi'
@@ -35,8 +36,8 @@ export default function ReturnDetailPage() {
   const { id = '' } = useParams()
   const base = useReturnsBase()
   const { showToast } = useToast()
-  const { currentRole } = useAuth()
-  const canManage = currentRole === 'agent' || currentRole === 'admin'
+  const { has } = usePermission()
+  const canManage = ['RETURNS.APPROVE', 'RETURNS.REJECT', 'RETURNS.COMPLETE_INSPECTION', 'REFUNDS.CREATE_RETURN', 'REFUNDS.COMPLETE_RETURN', 'REFUNDS.FAIL_RETURN', 'REFUNDS.CANCEL_RETURN'].some(has)
 
   const [ret, setRet] = useState<SalesReturn | null>(null)
   const [infos, setInfos] = useState<Map<string, OrderItemInfo>>(new Map())
@@ -175,27 +176,27 @@ export default function ReturnDetailPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {(status === 'REQUESTED' || status === 'APPROVED') && (
-            <button type="button" onClick={() => setDialog('cancel')} className="h-10 px-3 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-medium shadow-sm">
+            <PermissionAction codes={["RETURNS.CANCEL"]}><button type="button" onClick={() => setDialog('cancel')} className="h-10 px-3 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-medium shadow-sm">
               Hủy yêu cầu
-            </button>
+            </button></PermissionAction>
           )}
           {status === 'REQUESTED' && canManage ? (
             <>
-              <button type="button" onClick={() => setDialog('reject')} className="h-10 px-3 rounded-lg border border-rose-200 bg-white text-rose-700 hover:bg-rose-50 text-sm font-medium shadow-sm">
+              <PermissionAction codes={["RETURNS.REJECT"]}><button type="button" onClick={() => setDialog('reject')} className="h-10 px-3 rounded-lg border border-rose-200 bg-white text-rose-700 hover:bg-rose-50 text-sm font-medium shadow-sm">
                 Từ chối
-              </button>
-              <button type="button" onClick={() => setDialog('approve')} className="h-10 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm">
+              </button></PermissionAction>
+              <PermissionAction codes={["RETURNS.APPROVE"]}><button type="button" onClick={() => setDialog('approve')} className="h-10 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm">
                 Duyệt yêu cầu
-              </button>
+              </button></PermissionAction>
             </>
           ) : null}
           {status === 'APPROVED' ? (
-            <button type="button" onClick={() => setDialog('receive')} className="h-10 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium shadow-sm">
+            <PermissionAction codes={["RETURNS.RECEIVE"]}><button type="button" onClick={() => setDialog('receive')} className="h-10 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium shadow-sm">
               Đã nhận hàng trả về
-            </button>
+            </button></PermissionAction>
           ) : null}
           {inspecting && canManage ? (
-            <button
+            <PermissionAction codes={["RETURNS.COMPLETE_INSPECTION"]}><button
               type="button"
               onClick={() => setDialog('complete')}
               disabled={uninspected > 0}
@@ -203,7 +204,7 @@ export default function ReturnDetailPage() {
               className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm disabled:opacity-50"
             >
               <Check size={16} /> Chốt kết quả kiểm tra
-            </button>
+            </button></PermissionAction>
           ) : null}
         </div>
       </div>
@@ -352,14 +353,14 @@ export default function ReturnDetailPage() {
                             value={edit?.note ?? it.inspectionNote ?? ''}
                             onChange={(e) => setInspection((prev) => ({ ...prev, [it.id]: { condition: prev[it.id]?.condition ?? ((inspected ? it.conditionStatus : '') as Inspectable | ''), note: e.target.value } }))}
                           />
-                          <button
+                          <PermissionAction codes={["RETURNS.UPDATE"]}><button
                             type="button"
                             className="h-9 px-3 rounded-md bg-sky-600 hover:bg-sky-700 text-white text-sm font-medium disabled:opacity-50"
                             disabled={!edit?.condition || savingItem === it.id}
                             onClick={() => saveInspection(it)}
                           >
                             {savingItem === it.id ? '...' : 'Lưu'}
-                          </button>
+                          </button></PermissionAction>
                           {inspected && !edit ? <span className="text-xs text-emerald-700 font-medium">Đã kiểm tra</span> : null}
                         </div>
                       ) : inspected ? (
@@ -401,7 +402,7 @@ export default function ReturnDetailPage() {
         />
       ) : null}
 
-      <ConfirmModal
+      <PermissionAction codes={["RETURNS.APPROVE"]}><ConfirmModal
         open={dialog === 'approve'}
         title="Duyệt yêu cầu trả hàng"
         message="Sau khi duyệt, khách mang hàng về cửa hàng; nhân viên bấm “Đã nhận hàng trả về” rồi kiểm tra từng dòng. Chưa có hàng hay tiền nào thay đổi."
@@ -409,7 +410,7 @@ export default function ReturnDetailPage() {
         busy={busy}
         onConfirm={() => run(() => returnsApi.approve(id), 'Đã duyệt yêu cầu trả hàng', 'Không duyệt được yêu cầu')}
         onClose={closeDialog}
-      />
+      /></PermissionAction>
       <ConfirmModal
         open={dialog === 'reject'}
         title="Từ chối yêu cầu trả hàng"
@@ -436,7 +437,7 @@ export default function ReturnDetailPage() {
       >
         <ReasonField value={reason} onChange={setReason} id="rt-cancel" label="Lý do hủy (bắt buộc)" />
       </ConfirmModal>
-      <ConfirmModal
+      <PermissionAction codes={["RETURNS.RECEIVE"]}><ConfirmModal
         open={dialog === 'receive'}
         title="Xác nhận đã nhận hàng trả về"
         message="Hàng khách trả đã thực sự về cửa hàng. Bước tiếp theo là kiểm tra tình trạng từng dòng."
@@ -444,8 +445,8 @@ export default function ReturnDetailPage() {
         busy={busy}
         onConfirm={() => run(() => returnsApi.receive(id), 'Đã ghi nhận hàng trả về', 'Không ghi nhận được')}
         onClose={closeDialog}
-      />
-      <ConfirmModal
+      /></PermissionAction>
+      <PermissionAction codes={["RETURNS.COMPLETE_INSPECTION"]}><ConfirmModal
         open={dialog === 'complete'}
         title="Chốt kết quả kiểm tra"
         message={
@@ -460,8 +461,8 @@ export default function ReturnDetailPage() {
         busy={busy}
         onConfirm={() => run(() => returnsApi.completeInspection(id), 'Đã chốt kiểm tra và nhập lại kho các dòng còn bán được', 'Không chốt được kết quả kiểm tra')}
         onClose={closeDialog}
-      />
-      <ConfirmModal
+      /></PermissionAction>
+      <PermissionAction codes={["RETURNS.DELETE"]}><ConfirmModal
         open={toRemove !== null}
         title="Bỏ dòng khỏi yêu cầu"
         message="Dòng này sẽ không còn trong yêu cầu trả hàng."
@@ -470,7 +471,7 @@ export default function ReturnDetailPage() {
         busy={busy}
         onConfirm={removeLine}
         onClose={() => setToRemove(null)}
-      />
+      /></PermissionAction>
     </div>
   )
 }

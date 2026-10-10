@@ -1,3 +1,4 @@
+import PermissionAction from '@/components/auth/PermissionAction'
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader2, ShoppingCart, Trash2 } from 'lucide-react'
@@ -219,15 +220,15 @@ export default function CounterSalesPage() {
           <span className="font-bold text-3xl text-emerald-600 tracking-tight tabular-nums">{formatVnd(total)}</span>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <button
+          <PermissionAction codes={["ORDERS.CREATE"]}><button
             type="button"
             disabled={items.length === 0 || busy !== null}
             onClick={createOrder}
             className="h-12 rounded-xl border-2 border-emerald-600 text-emerald-700 font-bold text-sm hover:bg-emerald-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {busy === 'create' && <Loader2 className="w-4 h-4 animate-spin" />} TẠO ĐƠN
-          </button>
-          <button
+          </button></PermissionAction>
+          <PermissionAction codes={["COUNTER_SALES.PREVIEW"]}><button
             type="button"
             disabled={items.length === 0 || busy !== null || !quickSaleAllowed}
             title={quickSaleAllowed ? undefined : 'Bán nhanh chỉ khi khách trả đủ và lấy hàng tại quầy'}
@@ -235,7 +236,7 @@ export default function CounterSalesPage() {
             className="h-12 rounded-xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {busy === 'review' && <Loader2 className="w-4 h-4 animate-spin" />} BÁN NHANH
-          </button>
+          </button></PermissionAction>
         </div>
         {!quickSaleAllowed && items.length > 0 && <p className="text-[11px] text-on-surface-variant text-center">Bán nhanh chỉ dùng khi khách trả đủ và lấy hàng ngay.</p>}
       </div>

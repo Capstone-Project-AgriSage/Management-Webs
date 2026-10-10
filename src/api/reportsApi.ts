@@ -40,24 +40,24 @@ export interface DeliveryReportResponse {
 }
 
 export const reportsApi = {
-  getDeliveryReports: (params: { fromDate: string; toDate: string; groupBy?: 'STAFF' | 'DAY' }) => {
+  getDeliveryReports: (params: { fromDate: string; toDate: string; groupBy?: 'STAFF' | 'DAY' }, signal?: AbortSignal) => {
     const searchParams = new URLSearchParams()
     searchParams.append('fromDate', params.fromDate)
     searchParams.append('toDate', params.toDate)
     if (params.groupBy) searchParams.append('groupBy', params.groupBy)
 
-    return api<DeliveryReportResponse>(`/api/reports/deliveries?${searchParams.toString()}`)
+    return api<DeliveryReportResponse>(`/api/reports/deliveries?${searchParams.toString()}`, { signal })
   },
 
   /** FLOW_3 §8 (Manage): asOf = Vietnam day, default today. */
-  getDebtAging: (params: { asOf?: string; customerGroupId?: string } = {}) =>
-    api<DebtAgingReport>(`/api/reports/debt-aging${toQuery({ asOf: params.asOf, customerGroupId: params.customerGroupId })}`),
+  getDebtAging: (params: { asOf?: string; customerGroupId?: string } = {}, signal?: AbortSignal) =>
+    api<DebtAgingReport>(`/api/reports/debt-aging${toQuery({ asOf: params.asOf, customerGroupId: params.customerGroupId })}`, { signal }),
 
   /** ≤ 366 days; groupBy DAY (default) | METHOD | STAFF. */
-  getDebtCollections: (params: { fromDate: string; toDate: string; groupBy?: 'DAY' | 'METHOD' | 'STAFF' }) =>
-    api<DebtCollectionReport>(`/api/reports/debt-collections${toQuery({ fromDate: params.fromDate, toDate: params.toDate, groupBy: params.groupBy })}`),
+  getDebtCollections: (params: { fromDate: string; toDate: string; groupBy?: 'DAY' | 'METHOD' | 'STAFF' }, signal?: AbortSignal) =>
+    api<DebtCollectionReport>(`/api/reports/debt-collections${toQuery({ fromDate: params.fromDate, toDate: params.toDate, groupBy: params.groupBy })}`, { signal }),
 
-  getDebtByGroup: () => api<DebtByGroupReport>('/api/reports/debt-by-customer-group'),
+  getDebtByGroup: (signal?: AbortSignal) => api<DebtByGroupReport>('/api/reports/debt-by-customer-group', { signal }),
 }
 
 export interface AgingBuckets {
