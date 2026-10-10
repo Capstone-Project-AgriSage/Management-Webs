@@ -29,7 +29,8 @@ import CreditConfigPage from '@/features/admin/credit-config/CreditConfigPage'
 import AgentDashboardPage from '@/features/agent/dashboard/DashboardPage'
 import OrdersPage from '@/features/orders/OrdersPage'
 import PaymentsPage from '@/features/payments/PaymentsPage'
-import AgentAiRecommendationsPage from '@/features/agent/ai-recommendations/AiRecommendationsPage'
+import DiagnosisQueuePage from '@/features/diagnosis/DiagnosisQueuePage'
+import DiagnosisCasePage from '@/features/diagnosis/DiagnosisCasePage'
 import AgentInventoryPage from '@/features/agent/inventory/StockOverviewPage'
 import AgentInventoryMovementsPage from '@/features/agent/inventory/StockMovementsPage'
 import AgentStockCardPage from '@/features/agent/inventory/StockCardPage'
@@ -63,7 +64,6 @@ import DebtsPage from '@/features/debts/DebtsPage'
 import CustomerDebtPage from '@/features/debts/CustomerDebtPage'
 import SalesInventoryPage from '@/features/sales/inventory/InventoryPage'
 import PriceListsPage from '@/features/price-lists/PriceListsPage'
-import SalesAiReviewPage from '@/features/sales/ai-review/AiReviewPage'
 import SalesSettingsPage from '@/features/sales/settings/SettingsPage'
 
 // =======================
@@ -160,7 +160,11 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/ai-recommendations',
-            element: <RequireRole role={["agent", "sales_staff"]}><AgentAiRecommendationsPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><DiagnosisQueuePage /></RequireRole>,
+          },
+          {
+            path: 'agent/ai-recommendations/:id',
+            element: <RequireRole role={["agent", "sales_staff"]}><DiagnosisCasePage /></RequireRole>,
           },
           {
             path: 'agent/products',
@@ -342,7 +346,11 @@ export const router = createBrowserRouter([
           },
           {
             path: 'sales/ai-review',
-            element: <RequireRole role="sales_staff"><SalesAiReviewPage /></RequireRole>,
+            element: <RequireRole role="sales_staff"><DiagnosisQueuePage /></RequireRole>,
+          },
+          {
+            path: 'sales/ai-review/:id',
+            element: <RequireRole role="sales_staff"><DiagnosisCasePage /></RequireRole>,
           },
           {
             path: 'sales/settings',

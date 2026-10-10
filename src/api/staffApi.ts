@@ -27,5 +27,9 @@ export const staffApi = {
     if (params?.pageSize) searchParams.append('PageSize', params.pageSize.toString())
     
     return api<PagedResult<StaffResponse>>(`/api/staff?${searchParams.toString()}`)
-  }
+  },
+
+  /** Admin and Store Owner. Whether the member may decide AI diagnosis cases (not a role); only Sales staff and Store Owners. */
+  setAiReview: (userId: string, enabled: boolean, reason?: string) =>
+    api<StaffResponse>(`/api/staff/${userId}/ai-review`, { method: 'PUT', body: JSON.stringify({ enabled, reason: reason ?? null }) })
 }

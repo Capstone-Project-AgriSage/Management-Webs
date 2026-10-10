@@ -2,7 +2,9 @@ import { useEffect, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import { usePermission } from '@/context/PermissionContext'
 const routes: [RegExp, string[]][] = [
-  [/^\/$|^\/(agent|sales|delivery)$|^\/notifications$|\/(settings|ai-review|ai-recommendations)$/, []],
+  [/^\/$|^\/(agent|sales|delivery)$|^\/notifications$|\/settings$/, []],
+  // AI diagnosis queue and case pages (the API additionally needs the member's review right to decide a case).
+  [/\/(ai-review|ai-recommendations)(?:\/|$)/, ['DIAGNOSIS.READ']],
   [/^\/admin\/roles/, ['PERMISSIONS.MANAGE_ROLES']],
   [/^\/admin\/accounts/, ['STAFF.READ']],
   [/^\/admin\/products\/categories/, ['CATEGORIES.READ']],
