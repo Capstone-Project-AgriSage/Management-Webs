@@ -1,24 +1,25 @@
+import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import PermissionAction from '@/components/auth/PermissionAction'
-import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Banknote, Landmark, FilePlus2 } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { usePermission } from '@/context/PermissionContext'
-import { ApiError } from '@/api/client'
-import { customersApi, type CustomerResponse } from '@/api/customersApi'
-import { debtApi, type DebtAccount, type DebtEntryListItem, type DebtTransaction } from '@/api/debtApi'
-import { paymentsApi } from '@/api/paymentsApi'
-import type { PagedResult } from '@/api/types'
+import { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft, Banknote, Landmark, FilePlus2 } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+import { usePermission } from '@/context/PermissionContext';
+import { ApiError } from '@/api/client';
+import { customersApi, type CustomerResponse } from '@/api/customersApi';
+import { debtApi, type DebtAccount, type DebtEntryListItem, type DebtTransaction } from '@/api/debtApi';
+import { paymentsApi } from '@/api/paymentsApi';
+import type { PagedResult } from '@/api/types';
 import PromptModal from '@/components/ui/PromptModal'
 import ServerPagination from '@/components/ui/ServerPagination'
-import { formatVnd } from '@/utils/money'
-import { DEBT_TRANSACTION_LABEL, formatDay, formatDayTime, label, todayVn, useRoleBase } from '@/utils/creditLabels'
+import { formatVnd } from '@/utils/money';
+import { DEBT_TRANSACTION_LABEL, formatDay, formatDayTime, label, todayVn, useRoleBase } from '@/utils/creditLabels';
 import DebtEntriesTable from './DebtEntriesTable'
 import DebtEntryModal from './DebtEntryModal'
 import CollectCashModal from './CollectCashModal'
 
-const PAGE_SIZE = 15
+const PAGE_SIZE = LIST_PAGE_SIZE
 type Tab = 'entries' | 'ledger'
 
 const errorText = (err: unknown, fallback: string) => (err instanceof Error && err.message ? err.message : fallback)

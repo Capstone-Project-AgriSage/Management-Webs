@@ -1,10 +1,15 @@
-import { useMemo, useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { deliveriesApi } from '@/api/deliveriesApi'
+import ListToolbar from '@/components/ui/ListToolbar'
+import FilterSelect from '@/components/ui/FilterSelect'
+import ServerPagination from '@/components/ui/ServerPagination'
+import { LIST_PAGE_SIZE } from '@/utils/pagination';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { deliveriesApi } from '@/api/deliveriesApi';
 import StatusBadge from '@/components/ui/StatusBadge'
-import type { DeliveryListItem, DeliveryStatus } from '@/api/deliveriesApi'
-import { DELIVERY_STATUS_LABEL, formatDate, labelOf } from '@/utils/deliveryLabels'
+import type { DeliveryListItem, DeliveryStatus } from '@/api/deliveriesApi';
+import { DELIVERY_STATUS_LABEL, formatDate, labelOf } from '@/utils/deliveryLabels';
 
 type TabKey = 'pending' | 'retry' | 'done'
 
@@ -39,49 +44,38 @@ export default function DeliveriesPage() {
   const [error, setError] = useState<Error | null>(null)
   const [tab, setTab] = useState<TabKey>('pending')
   const [search, setSearch] = useState('')
+  const [status, setStatus] = useState<DeliveryStatus>('OUT_FOR_DELIVERY')
+  const [page, setPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [counts, setCounts] = useState<Record<TabKey, number>>({ pending: 0, retry: 0, done: 0 })
+  const debouncedSearch = useDebouncedValue(search.trim())
+
+  const activeTab = TABS.find(t => t.key === tab)!
+  const filtered = orders
+  useEffect(() => {
+    const controller = new AbortController()
+    setLoading(true); setError(null)
+    deliveriesApi.getDeliveries({ page, pageSize: LIST_PAGE_SIZE, status, search: debouncedSearch || undefined }, controller.signal)
+      .then(data => {
+        if (controller.signal.aborted) return
+        const lastPage = Math.max(1, data.totalPages)
+        if (page > lastPage) { setPage(lastPage); return }
+        setOrders(data.items); setTotalCount(data.totalCount); setTotalPages(lastPage)
+      })
+      .catch(err => { if (!controller.signal.aborted) { setOrders([]); setError(err instanceof Error ? err : new Error('Không tải được danh sách giao hàng')) } })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false) })
+    return () => controller.abort()
+  }, [page, status, debouncedSearch])
 
   useEffect(() => {
-    let mounted = true
-    const fetchOrders = async () => {
-      try {
-        setLoading(true)
-        const data = await deliveriesApi.getDeliveries()
-        if (mounted) setOrders(data.items || [])
-      } catch (err) {
-        if (mounted) setError(err instanceof Error ? err : new Error('Failed to fetch deliveries'))
-      } finally {
-        if (mounted) setLoading(false)
-      }
-    }
-    fetchOrders()
-    return () => { mounted = false }
+    const controller = new AbortController()
+    Promise.all(TABS.map(async item => {
+      const results = await Promise.all(item.statuses.map(status => deliveriesApi.getDeliveries({ status, page: 1, pageSize: 1 }, controller.signal)))
+      return [item.key, results.reduce((sum, result) => sum + result.totalCount, 0)] as const
+    })).then(entries => { if (!controller.signal.aborted) setCounts(Object.fromEntries(entries) as Record<TabKey, number>) }).catch(() => {})
+    return () => controller.abort()
   }, [])
-
-  const activeTab = TABS.find((t) => t.key === tab)!
-
-  const filtered = useMemo(() => {
-    const keyword = search.trim().toLowerCase()
-    return orders
-      .filter((o) => activeTab.statuses.includes(o.status))
-      .filter(
-        (o) =>
-          !keyword ||
-          o.orderNumber.toLowerCase().includes(keyword) ||
-          o.deliveryNumber.toLowerCase().includes(keyword) ||
-          (o.recipientName || '').toLowerCase().includes(keyword) ||
-          (o.province || '').toLowerCase().includes(keyword),
-      )
-      .sort((a, b) => (a.scheduledAt || a.createdAt).localeCompare(b.scheduledAt || b.createdAt))
-  }, [orders, tab, search])
-
-  const counts = useMemo(
-    () => ({
-      pending: orders.filter((o) => TABS[0].statuses.includes(o.status)).length,
-      retry: orders.filter((o) => TABS[1].statuses.includes(o.status)).length,
-      done: orders.filter((o) => TABS[2].statuses.includes(o.status)).length,
-    }),
-    [orders],
-  )
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
@@ -91,7 +85,7 @@ export default function DeliveriesPage() {
           <button
             key={t.key}
             type="button"
-            onClick={() => setTab(t.key)}
+            onClick={() => { setTab(t.key); setStatus(t.statuses[0]); setPage(1) }}
             className={`shrink-0 inline-flex items-center gap-1.5 px-space-md py-space-sm rounded font-label-md text-label-md border transition-colors ${
               tab === t.key
                 ? 'bg-primary text-on-primary border-primary'
@@ -111,20 +105,9 @@ export default function DeliveriesPage() {
         ))}
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-outline">
-          search
-        </span>
-        <input
-          className="w-full h-10 pl-9 pr-3 text-sm bg-white border border-outline-variant rounded focus:border-primary focus:ring-1 focus:ring-primary text-on-surface transition-all placeholder:text-outline font-body-md"
-          placeholder="Tìm mã đơn, tên Farmer hoặc địa chỉ..."
-          aria-label="Tìm đơn giao hàng"
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
+      <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: 'Tìm mã phiếu, mã đơn, tên hoặc SĐT người nhận...' }} onClear={() => { setSearch(''); setStatus(activeTab.statuses[0]); setPage(1) }}>
+        <FilterSelect label="Lọc trạng thái giao hàng" value={status} onChange={value => { setStatus(value as DeliveryStatus); setPage(1) }} options={activeTab.statuses.map(value => ({ value, label: labelOf(DELIVERY_STATUS_LABEL, value) }))} />
+      </ListToolbar>
 
       {/* Retry pending notice */}
       {tab === 'retry' && counts.retry > 0 && (
@@ -184,6 +167,7 @@ export default function DeliveriesPage() {
           </Link>
         ))}
       </div>
+      {!loading && !error && <ServerPagination page={page} pageSize={LIST_PAGE_SIZE} totalCount={totalCount} totalPages={totalPages} unitLabel="chuyến giao" onPageChange={setPage} />}
     </div>
   )
 }

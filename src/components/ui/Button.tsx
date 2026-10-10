@@ -12,12 +12,12 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary: 'bg-primary text-white hover:bg-primary/90',
-  outlined: 'border border-primary text-primary hover:bg-primary/10',
-  outline: 'border border-primary text-primary hover:bg-primary/10',
-  text: 'text-primary hover:bg-primary/10',
-  danger: 'bg-rose-600 text-white hover:bg-rose-700',
-  'outline-danger': 'border border-rose-300 text-rose-700 hover:bg-rose-50',
+  primary: 'border border-primary bg-primary text-white shadow-sm hover:bg-green-800 hover:border-green-800',
+  outlined: 'border border-slate-200 bg-white text-slate-700 shadow-sm hover:border-green-300 hover:bg-green-50 hover:text-green-800',
+  outline: 'border border-slate-200 bg-white text-slate-700 shadow-sm hover:border-green-300 hover:bg-green-50 hover:text-green-800',
+  text: 'text-green-800 hover:bg-green-50',
+  danger: 'border border-rose-600 bg-rose-600 text-white shadow-sm hover:bg-rose-700 hover:border-rose-700',
+  'outline-danger': 'border border-rose-200 bg-white text-rose-700 hover:bg-rose-50',
 }
 
 export default function Button({
@@ -32,9 +32,9 @@ export default function Button({
   fullWidth = false,
   ...rest
 }: ButtonProps) {
-  const sizeStyle = size === 'small' ? 'px-3 py-1.5 text-xs' : size === 'large' ? 'px-5 py-2.5 text-base' : 'px-4 py-2 text-sm'
+  const sizeStyle = size === 'small' ? 'min-h-9 px-3 py-1.5 text-xs' : size === 'large' ? 'min-h-12 px-5 py-2.5 text-base' : 'min-h-[42px] px-4 py-2 text-sm'
   const iconSize = size === 'small' ? 'text-[16px]' : 'text-[18px]'
-  const baseStyle = `rounded font-medium disabled:opacity-50 transition-colors inline-flex items-center justify-center gap-1.5 ${sizeStyle} ${fullWidth ? 'w-full' : ''}`
+  const baseStyle = `agrisage-button rounded-[10px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors inline-flex items-center justify-center gap-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${sizeStyle} ${fullWidth ? 'w-full' : ''}`
   return (
     <button type={type} onClick={onClick} disabled={disabled} className={`${baseStyle} ${VARIANT_CLASSES[variant]} ${className}`} {...rest}>
       {icon && <span className={`material-symbols-outlined ${iconSize}`} aria-hidden="true">{icon}</span>}

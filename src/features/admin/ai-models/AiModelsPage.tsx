@@ -1,312 +1,81 @@
-import ModalLayout from '@/components/ui/ModalLayout'
-import { useState } from 'react'
-
+import { useCallback, useState } from 'react'
+import { aiModelsApi, searchAiModels, type AiModelInput, type AiModelRow } from '@/api/aiModelsApi'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { useToast } from '@/context/ToastContext'
-import RowActionsMenu from '@/components/ui/RowActionsMenu'
-import FormModal from '@/components/ui/FormModal'
-import DetailModal from '@/components/ui/DetailModal'
-import Pagination from '@/components/ui/Pagination'
-import { useFilteredList } from '@/hooks/useFilteredList'
-import { usePagination } from '@/hooks/usePagination'
-import { useFormValues } from '@/hooks/useFormValues'
-import * as aiService from '@/features/admin/services/aiService'
-import type { AiModel, AiModelStatus, AiModelType, AiModelActionId } from '@/types'
+import { usePermission } from '@/context/PermissionContext'
+import { useServerList } from '@/hooks/useServerList'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
+import { describeError } from '@/api/client'
+import { LIST_PAGE_SIZE } from '@/utils/pagination'
+import ListToolbar from '@/components/ui/ListToolbar'
+import FilterSelect from '@/components/ui/FilterSelect'
+import ServerPagination from '@/components/ui/ServerPagination'
+import Modal from '@/components/ui/Modal'
+import ConfirmModal from '@/components/ui/ConfirmModal'
+import EmptyTableRow from '@/components/ui/EmptyTableRow'
+
+const labels: Record<string, string> = { DRAFT: 'Bản nháp', ACTIVE: 'Đang hoạt động', RETIRED: 'Đã ngừng' }
+const initialManifest = JSON.stringify({ name: '', version: '', framework: 'PyTorch', modelStorageUrl: '', classLabels: ['LEAF_BLAST', 'BACTERIAL_LEAF_BLIGHT', 'BROWN_SPOT', 'SHEATH_BLIGHT', 'HEALTHY'] }, null, 2)
 
 export default function AiModelsPage() {
-  usePageHeader({ title: 'AI Models', subtitle: 'Quản lý các mô hình Trí tuệ nhân tạo' })
-
-  const [modelList, setModelList] = useState<AiModel[]>(() => aiService.listModels())
+  usePageHeader({ title: 'Mô hình AI' })
+  const { has } = usePermission()
   const { showToast } = useToast()
-
-  const [createOpen, setCreateOpen] = useState(false)
-  const createForm = useFormValues({ name: '', version: 'v1.0.0', type: 'Computer Vision', description: '' })
-
-  const [metricsTarget, setMetricsTarget] = useState<AiModel | null>(null)
-
-  const {
-    search,
-    setSearch,
-    statusFilter,
-    setStatusFilter,
-    filtered: filteredModels,
-  } = useFilteredList(
-    modelList,
-    '',
-    (item, keyword, status) =>
-      (!keyword ||
-        item.name.toLowerCase().includes(keyword.toLowerCase()) ||
-        item.id.toLowerCase().includes(keyword.toLowerCase())) &&
-      (!status || item.status === (status as AiModelStatus)),
-    '',
-  )
-
-  const {
-    page,
-    totalPages,
-    paginated: paginatedModels,
-    startIndex,
-    endIndex,
-    totalCount,
-    goPrev,
-    goNext,
-    setPage,
-  } = usePagination(filteredModels, 12)
-
-  const activeCount = modelList.filter(m => m.status === 'Đang chạy').length
-
-  const handleAction = (model: AiModel, actionId: AiModelActionId) => {
-    switch (actionId) {
-      case 'deploy':
-        aiService.updateModelStatus(model.id, 'Đang chạy')
-        setModelList(aiService.listModels())
-        showToast(`Đã khởi chạy mô hình ${model.name}`)
-        break
-      case 'pause':
-        aiService.updateModelStatus(model.id, 'Đã dừng')
-        setModelList(aiService.listModels())
-        showToast(`Đã tạm dừng mô hình ${model.name}`)
-        break
-      case 'view-metrics':
-        setMetricsTarget(model)
-        break
-    }
+  const [search, setSearch] = useState('')
+  const [status, setStatus] = useState('')
+  const keyword = useDebouncedValue(search.trim())
+  const load = useCallback((page: number, signal: AbortSignal) => searchAiModels(page, status, keyword, signal), [status, keyword])
+  const list = useServerList(load)
+  const [creating, setCreating] = useState(false)
+  const [manifest, setManifest] = useState(initialManifest)
+  const [detail, setDetail] = useState<AiModelRow | null>(null)
+  const [retiring, setRetiring] = useState<AiModelRow | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [formError, setFormError] = useState('')
+  const run = async (operation: () => Promise<unknown>) => {
+    if (busy) return
+    setBusy(true); setFormError('')
+    try { await operation(); setCreating(false); setRetiring(null); list.reload(); showToast('Đã lưu thay đổi', 'success') }
+    catch (err) { const error = describeError(err, 'Không lưu được mô hình'); setFormError(error); showToast(error, 'error') }
+    finally { setBusy(false) }
   }
-
-  const handleCreate = () => {
-    const { name, version, type, description } = createForm.values
-    // Giả lập model mới luôn bắt đầu với 0% accuracy
-    aiService.registerModel({ name, version, type: type as AiModelType, description, accuracy: 0 })
-    setModelList(aiService.listModels())
-    showToast(`Đã đăng ký huấn luyện mô hình ${name}`)
-    setCreateOpen(false)
-    createForm.reset({ name: '', version: 'v1.0.0', type: 'Computer Vision', description: '' })
+  const create = () => {
+    if (!has('AI_MODELS.CREATE')) return
+    try {
+      const value = JSON.parse(manifest) as AiModelInput
+      if (!value || typeof value !== 'object' || Array.isArray(value) || !value.name?.trim() || !value.version?.trim() || !value.framework?.trim() || !value.modelStorageUrl?.trim() || !Array.isArray(value.classLabels)) {
+        setFormError('Nhập tên, phiên bản, framework, URL mô hình và danh sách classLabels.'); return
+      }
+      void run(() => aiModelsApi.create(value))
+    } catch { setFormError('Manifest phải là JSON hợp lệ.') }
   }
-
-  return (
-    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
-      {/* HEADER ROW */}
-      <div className="flex items-start justify-between mt-2">
-        <div className="flex flex-col gap-1.5">
-          <h1 className="text-3xl font-semibold text-on-surface">Mô hình Trí tuệ Nhân tạo</h1>
-          <p className="text-on-surface-variant text-sm">Quản lý, theo dõi hiệu suất và vòng đời của các model AI trong hệ thống.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            className="flex items-center gap-1.5 px-4 py-1.5 bg-[#171833] hover:bg-black text-white rounded font-medium text-sm shadow-sm transition-colors"
-            onClick={() => setCreateOpen(true)}
-          >
-            <span className="material-symbols-outlined text-[18px]">add</span>
-            Đăng ký Model mới
-          </button>
-        </div>
-      </div>
-
-      {/* KPI CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
-        <div className="p-4 rounded-xl border border-outline-variant bg-white flex flex-col justify-between h-32 shadow-sm">
-          <span className="text-sm text-on-surface-variant font-medium">Tổng số Models</span>
-          <div>
-            <div className="text-3xl font-medium text-on-surface">{modelList.length}</div>
-            <div className="text-xs text-on-surface-variant mt-1">Đã đăng ký vào hệ thống</div>
-          </div>
-        </div>
-        <div className="p-4 rounded-xl border border-outline-variant bg-white flex flex-col justify-between h-32 shadow-sm">
-          <span className="text-sm text-emerald-700 font-medium flex items-center gap-1"><span className="material-symbols-outlined text-[18px]">check_circle</span> Đang hoạt động (Active)</span>
-          <div>
-            <div className="text-3xl font-medium text-emerald-700">{activeCount}</div>
-            <div className="text-xs text-emerald-700/80 mt-1">Đang phục vụ người dùng</div>
-          </div>
-        </div>
-        <div className="p-4 rounded-xl border-2 border-primary/20 bg-primary/5 flex flex-col justify-between h-32 shadow-sm">
-          <span className="text-sm text-primary font-medium flex items-center gap-1"><span className="material-symbols-outlined text-[18px]">model_training</span> Đang huấn luyện (Training)</span>
-          <div>
-            <div className="text-3xl font-medium text-primary">{modelList.filter(m => m.status === 'Đang huấn luyện').length}</div>
-            <div className="text-xs text-primary/80 mt-1">Jobs đang chạy trên Cluster</div>
-          </div>
-        </div>
-      </div>
-
-      {/* TOOLBAR */}
-      <div className="flex items-center justify-between mt-2">
-        <div className="relative w-[320px]">
-          <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[18px] text-outline">search</span>
-          <input
-            type="text"
-            placeholder="Tìm kiếm model theo tên hoặc ID..."
-            className="w-full h-9 pl-9 pr-3 text-sm bg-white border border-outline-variant rounded focus:border-primary focus:ring-1 focus:ring-primary text-on-surface shadow-sm"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-sm text-on-surface">
-            <span className="text-on-surface-variant font-medium">Trạng thái:</span>
-            <select className="bg-transparent font-medium outline-none cursor-pointer border-b border-dashed border-outline-variant pb-0.5" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-              <option value="">Tất cả</option>
-              <option value="Đang chạy">Đang chạy</option>
-              <option value="Đang huấn luyện">Đang huấn luyện</option>
-              <option value="Đã dừng">Đã dừng</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* FLAT DATA TABLE */}
-      <div className="border border-outline-variant/60 rounded-xl overflow-hidden bg-white shadow-sm mt-2 flex flex-col">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[1000px]">
-            <thead>
-              <tr className="bg-surface-container-lowest border-b border-outline-variant/60">
-                <th className="py-3 px-4 font-semibold text-[13px] text-on-surface border-r border-outline-variant/40 w-[25%] uppercase tracking-wider">Tên mô hình</th>
-                <th className="py-3 px-4 font-semibold text-[13px] text-on-surface border-r border-outline-variant/40 w-[30%] uppercase tracking-wider">Mô tả & Loại</th>
-                <th className="py-3 px-4 font-semibold text-[13px] text-on-surface border-r border-outline-variant/40 text-center w-[15%] uppercase tracking-wider">Độ chính xác</th>
-                <th className="py-3 px-4 font-semibold text-[13px] text-on-surface border-r border-outline-variant/40 text-center w-[15%] uppercase tracking-wider">Trạng thái</th>
-                <th className="py-3 px-2 w-[5%]"></th>
-              </tr>
-            </thead>
-            <tbody className="text-sm divide-y divide-outline-variant/60">
-              {filteredModels.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="py-12 text-center text-on-surface-variant">Không tìm thấy model phù hợp.</td>
-                </tr>
-              )}
-              {paginatedModels.map((model) => {
-                return (
-                  <tr key={model.id} className={`transition-colors group hover:bg-surface-container-low`}>
-                    <td className="py-3 px-4 border-r border-outline-variant/40">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${model.type === 'Computer Vision' ? 'bg-blue-100 text-blue-700' : model.type === 'NLP/Chatbot' ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                          <span className="material-symbols-outlined text-[20px]">
-                            {model.type === 'Computer Vision' ? 'visibility' : model.type === 'NLP/Chatbot' ? 'forum' : 'analytics'}
-                          </span>
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-medium text-on-surface text-sm truncate">
-                            {model.name}
-                            <span className="ml-2 text-xs font-mono text-on-surface-variant bg-surface-container px-1.5 py-0.5 rounded">{model.version}</span>
-                          </div>
-                          <div className="text-[11px] text-outline font-mono mt-0.5 truncate">#{model.id} - Cập nhật: {model.lastUpdated}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 border-r border-outline-variant/40">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs font-semibold text-primary">{model.type}</span>
-                        <span className="text-sm text-on-surface-variant truncate max-w-[300px]">{model.description}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 border-r border-outline-variant/40 text-center">
-                      <div className="flex flex-col items-center gap-1 w-full max-w-[120px] mx-auto">
-                        <span className="font-medium text-on-surface">{model.accuracy}%</span>
-                        <div className="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden">
-                          <div className={`h-full rounded-full ${model.accuracy > 80 ? 'bg-emerald-500' : model.accuracy > 50 ? 'bg-amber-500' : 'bg-error'}`} style={{ width: `${model.accuracy}%` }}></div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 border-r border-outline-variant/40 text-center">
-                      <span className={`px-2.5 py-1 rounded-md border text-[11px] tracking-wider font-semibold shadow-sm whitespace-nowrap uppercase
-                        ${model.status === 'Đang chạy' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' :
-                          model.status === 'Đang huấn luyện' ? 'border-primary/30 text-primary bg-primary/5' :
-                            'border-outline-variant/60 text-on-surface-variant bg-surface-container-lowest'
-                        }
-                      `}>
-                        {model.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-2 text-center">
-                      <div className="flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <RowActionsMenu
-                          triggerLabel="Thao tác"
-                          actions={aiService.modelActionsFor(model.status).map(a => ({ ...a, onClick: () => handleAction(model, a.id) }))}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="px-4 py-3 bg-white flex items-center justify-between text-sm text-on-surface-variant border-t border-outline-variant/40">
-          <div>
-            Hiển thị {startIndex + 1} đến {endIndex} của {totalCount} model
-          </div>
-          <div className="flex items-center gap-6">
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              startIndex={startIndex}
-              endIndex={endIndex}
-              totalCount={totalCount}
-              unitLabel=""
-              goPrev={goPrev}
-              goNext={goNext}
-              setPage={setPage}
-            />
-          </div>
-        </div>
-      </div>
-
-      <FormModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        title="Đăng ký Mô hình AI mới"
-        values={createForm.values}
-        onChange={createForm.update}
-        onSubmit={handleCreate}
-        submitLabel="Đăng ký & Bắt đầu Huấn luyện"
-        fields={[
-          { key: 'name', label: 'Tên mô hình', placeholder: 'Ví dụ: Sâu keo mùa mưa', required: true },
-          { key: 'version', label: 'Phiên bản (Version)', placeholder: 'v1.0.0', required: true },
-          { key: 'type', label: 'Loại mô hình', type: 'select', options: ['Computer Vision', 'NLP/Chatbot', 'Dự báo (Prediction)'] },
-          { key: 'description', label: 'Mô tả ngắn', placeholder: 'Mục đích sử dụng của model này...', type: 'text' },
-        ]}
-      />
-
-      <DetailModal open={metricsTarget !== null} onClose={() => setMetricsTarget(null)} widthClassName="max-w-3xl">
-        {metricsTarget && (
-          <ModalLayout header={<div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-on-surface">Hiệu suất: {metricsTarget.name}</h2>
-              <div className="text-sm text-outline font-mono mt-1">ID: {metricsTarget.id} | Phiên bản: {metricsTarget.version}</div>
-            </div>
-            <span className={`px-3 py-1 rounded-full font-semibold text-xs border uppercase
-                ${metricsTarget.status === 'Đang chạy' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' :
-                metricsTarget.status === 'Đang huấn luyện' ? 'border-primary/30 text-primary bg-primary/5' :
-                  'border-outline-variant/60 text-on-surface-variant bg-surface-container-lowest'
-              }`}>{metricsTarget.status}</span>
-          </div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
-            <button className="px-4 py-2 bg-surface-container-low text-on-surface rounded font-medium hover:bg-outline-variant/50 transition-colors" onClick={() => setMetricsTarget(null)}>Đóng</button>
-          </div>} bodyClassName="space-y-4"><div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="border border-outline-variant/40 rounded-lg p-4 bg-surface-container-lowest text-center">
-                <div className="text-xs text-on-surface-variant font-medium mb-1">Độ chính xác (Accuracy)</div>
-                <div className="text-2xl font-bold text-emerald-600">{metricsTarget.accuracy}%</div>
-              </div>
-              <div className="border border-outline-variant/40 rounded-lg p-4 bg-surface-container-lowest text-center">
-                <div className="text-xs text-on-surface-variant font-medium mb-1">Độ trễ (Latency)</div>
-                <div className="text-2xl font-bold text-blue-600">120ms</div>
-              </div>
-              <div className="border border-outline-variant/40 rounded-lg p-4 bg-surface-container-lowest text-center">
-                <div className="text-xs text-on-surface-variant font-medium mb-1">Request / Giây (RPS)</div>
-                <div className="text-2xl font-bold text-purple-600">45.2</div>
-              </div>
-            </div><div className="border border-outline-variant/40 rounded-lg p-4 bg-surface-container-lowest mb-6">
-              <div className="text-sm font-semibold text-on-surface mb-4">Lịch sử Độ chính xác qua các Epoch</div>
-              <div className="h-48 w-full bg-white border border-outline-variant/20 rounded relative overflow-hidden flex items-end p-2 gap-2">
-                {/* Các thanh biểu đồ cứng */}
-                {[20, 35, 50, 65, 75, 82, 88, 92, 94, metricsTarget.accuracy].map((val, idx) => (
-                  <div key={idx} className="flex-1 bg-primary/20 rounded-t hover:bg-primary/40 transition-colors relative group">
-                    <div className="absolute bottom-0 w-full bg-primary rounded-t" style={{ height: `${val}%` }}></div>
-                    <div className="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] py-1 px-2 rounded whitespace-nowrap z-10">Epoch {idx + 1}: {val}%</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </ModalLayout>
-        )}
-      </DetailModal>
+  return <div className="max-w-[1600px] mx-auto space-y-5">
+    <ListToolbar search={{ value: search, onChange: value => { setSearch(value); list.setPage(1) }, placeholder: 'Tìm theo tên, ID hoặc phiên bản mô hình...' }} onClear={() => { setSearch(''); setStatus(''); list.setPage(1) }} actions={has('AI_MODELS.CREATE') && <button className="bg-primary-dark text-white px-4 rounded-[10px] font-semibold" onClick={() => { setManifest(initialManifest); setFormError(''); setCreating(true) }}>+ Đăng ký mô hình</button>}>
+      <FilterSelect label="Lọc trạng thái" value={status} onChange={value => { setStatus(value); list.setPage(1) }} options={[{ value: '', label: 'Mọi trạng thái' }, ...Object.entries(labels).map(([value, label]) => ({ value, label }))]} />
+    </ListToolbar>
+    {list.error && <div role="alert" className="text-rose-700">{list.error} <button onClick={list.reload}>Thử lại</button></div>}
+    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden" aria-busy={list.loading}>
+      <div className="overflow-x-auto"><table className="w-full text-sm text-left min-w-[700px]">
+        <thead className="bg-slate-50"><tr><th className="p-4">Mô hình</th><th className="p-4">Phiên bản</th><th className="p-4">Framework</th><th className="p-4">Trạng thái</th><th className="p-4">Thao tác</th></tr></thead>
+        <tbody className="divide-y divide-slate-100">
+          {list.items.map(model => <tr key={model.id} className="hover:bg-slate-50"><td className="p-4 font-semibold">{model.name}</td><td className="p-4">{model.version}</td><td className="p-4">{model.framework}</td><td className="p-4">{labels[model.status] ?? model.status}</td><td className="p-4"><div className="flex gap-3 whitespace-nowrap">
+            <button onClick={() => setDetail(model)} className="text-primary font-semibold">Chi tiết</button>
+            {model.status === 'DRAFT' && has('AI_MODELS.ACTIVATE') && <button disabled={busy} onClick={() => void run(() => aiModelsApi.activate(model.id))}>Kích hoạt</button>}
+            {model.status === 'ACTIVE' && has('AI_MODELS.RETIRE') && <button disabled={busy} onClick={() => setRetiring(model)}>Ngừng mô hình</button>}
+          </div></td></tr>)}
+          {!list.items.length && <EmptyTableRow colSpan={5} message={list.loading ? 'Đang tải...' : list.error ? 'Không tải được dữ liệu.' : 'Không có mô hình phù hợp.'} />}
+        </tbody>
+      </table></div>
+      <ServerPagination page={list.page} pageSize={LIST_PAGE_SIZE} totalCount={list.totalCount} totalPages={list.totalPages} unitLabel="mô hình" onPageChange={list.setPage} />
     </div>
-  )
+    <Modal open={creating} onClose={() => { if (!busy) setCreating(false) }} title="Đăng ký mô hình AI">
+      <label className="block text-sm font-semibold">Manifest mô hình (JSON)<textarea className="mt-2 w-full h-80 border rounded-lg p-3 font-mono text-xs" value={manifest} onChange={event => setManifest(event.target.value)} disabled={busy} /></label>
+      {formError && <p role="alert" className="text-rose-700 mt-2">{formError}</p>}
+      <button onClick={create} disabled={busy} className="mt-4 bg-primary-dark text-white px-4 py-2 rounded-lg">{busy ? 'Đang lưu...' : 'Đăng ký'}</button>
+    </Modal>
+    <Modal open={detail !== null} onClose={() => setDetail(null)} title={detail?.name ?? 'Chi tiết mô hình'}>
+      {detail && <div className="space-y-3 text-sm"><p>{detail.version} · {detail.framework} · {detail.architecture || '—'}</p><p>{labels[detail.status] ?? detail.status}</p><pre className="bg-slate-50 p-3 rounded-lg overflow-auto text-xs">{JSON.stringify(detail.metrics ?? {}, null, 2)}</pre></div>}
+    </Modal>
+    <ConfirmModal open={retiring !== null} title="Ngừng mô hình AI" message={retiring?.name} confirmLabel="Ngừng mô hình" busy={busy} onClose={() => setRetiring(null)} onConfirm={() => { if (retiring && has('AI_MODELS.RETIRE')) void run(() => aiModelsApi.retire(retiring.id)) }} />
+  </div>
 }

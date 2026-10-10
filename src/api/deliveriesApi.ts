@@ -183,7 +183,7 @@ export const deliveriesApi = {
     })
   },
 
-  getDeliveries: (params?: { page?: number; pageSize?: number; status?: string; orderId?: string; assignedToUserId?: string; fromDate?: string; toDate?: string; search?: string }) => {
+  getDeliveries: (params?: { page?: number; pageSize?: number; status?: string; orderId?: string; assignedToUserId?: string; fromDate?: string; toDate?: string; search?: string }, signal?: AbortSignal) => {
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.append('page', params.page.toString())
     if (params?.pageSize) searchParams.append('pageSize', params.pageSize.toString())
@@ -194,7 +194,7 @@ export const deliveriesApi = {
     if (params?.toDate) searchParams.append('toDate', params.toDate)
     if (params?.search) searchParams.append('search', params.search)
     const qs = searchParams.toString()
-    return api<Paged<DeliveryListItem>>(`/api/deliveries${qs ? `?${qs}` : ''}`)
+    return api<Paged<DeliveryListItem>>(`/api/deliveries${qs ? `?${qs}` : ''}`, { signal })
   },
 
   /** Q2: summaries of the deliveries of an order (no lines — open the detail for those). */
@@ -212,7 +212,7 @@ export const deliveriesApi = {
       body: JSON.stringify(data),
     })
   },
-  
+
   cancelAttempt: (id: string, attemptId: string, data: { reason: string }) => {
     return api<DeliveryResponse>(`/api/deliveries/${id}/attempts/${attemptId}/cancel`, {
       method: 'POST',

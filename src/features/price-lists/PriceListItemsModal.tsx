@@ -1,19 +1,21 @@
+import ListToolbar from '@/components/ui/ListToolbar'
+import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
-import { useEffect, useRef, useState } from 'react'
-import { Loader2, Plus, Search, Trash2, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react';
+import { Loader2, Plus, Search, Trash2, X } from 'lucide-react';
 import Modal from '@/components/ui/Modal'
-import SearchInput from '@/components/ui/SearchInput'
-import ServerPagination from '@/components/ui/ServerPagination'
-import { useToast } from '@/context/ToastContext'
-import { priceListsApi, type PriceList, type PriceListItem, type PriceListItemInput } from '@/api/priceListsApi'
-import { catalogApi, type ProductPackagingRef, type StoreProductRef } from '@/api/catalogApi'
-import type { Paged } from '@/api/types'
-import { describeApiError, rowErrors } from '@/utils/apiError'
-import { formatVnd } from '@/utils/money'
-import { packagingLabel } from '@/utils/packaging'
 
-const PAGE_SIZE = 50
+import ServerPagination from '@/components/ui/ServerPagination'
+import { useToast } from '@/context/ToastContext';
+import { priceListsApi, type PriceList, type PriceListItem, type PriceListItemInput } from '@/api/priceListsApi';
+import { catalogApi, type ProductPackagingRef, type StoreProductRef } from '@/api/catalogApi';
+import type { Paged } from '@/api/types';
+import { describeApiError, rowErrors } from '@/utils/apiError';
+import { formatVnd } from '@/utils/money';
+import { packagingLabel } from '@/utils/packaging';
+
+const PAGE_SIZE = LIST_PAGE_SIZE
 
 interface NewRow {
   storeProductId: string
@@ -177,10 +179,9 @@ export default function PriceListItemsModal({ list, canEdit, onClose, onChanged 
         </div>
       )}>
 
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1) }} placeholder="Tìm sản phẩm trong bảng giá..." className="relative flex-1" />
-          {canEdit && <StoreProductPicker onPick={addProduct} />}
-        </div>
+        <ListToolbar search={{ value: search, onChange: (v) => { setSearch(v); setPage(1) }, placeholder: "Tìm sản phẩm trong bảng giá..." }} onClear={() => { setSearch(''); setPage(1) }} actions={<>{canEdit && <StoreProductPicker onPick={addProduct} />}</>}>
+
+      </ListToolbar>
 
         {newRows.length > 0 && (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50/40">

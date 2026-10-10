@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
+import { LIST_PAGE_SIZE } from '@/utils/pagination'
 
 /**
  * Slices a list into pages. Resets to page 1 whenever the list's length changes
  * (e.g. after search/filter narrows the result set) so the page never goes stale.
  */
-export function usePagination<T>(items: T[], pageSize = 10) {
+export function usePagination<T>(items: T[], pageSize = LIST_PAGE_SIZE, resetKey?: string) {
   const [page, setPage] = useState(1)
   const totalPages = Math.max(1, Math.ceil(items.length / pageSize))
 
   useEffect(() => {
     setPage(1)
-  }, [items.length, pageSize])
+  }, [items.length, pageSize, resetKey])
 
   const safePage = Math.min(page, totalPages)
   const startIndex = (safePage - 1) * pageSize

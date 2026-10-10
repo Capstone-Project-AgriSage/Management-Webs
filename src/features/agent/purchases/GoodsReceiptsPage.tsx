@@ -1,24 +1,25 @@
+import ListToolbar from '@/components/ui/ListToolbar'
 import PermissionAction from '@/components/auth/PermissionAction'
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 import ModalLayout from '@/components/ui/ModalLayout'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { FileSpreadsheet, Plus } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { useDebouncedValue } from '@/hooks/useDebouncedValue'
-import { describeError } from '@/api/client'
-import { goodsReceiptsApi, type GoodsReceiptListItem, type ReceiptStatus } from '@/api/goodsReceiptsApi'
-import type { Paged } from '@/api/types'
-import SearchInput from '@/components/ui/SearchInput'
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { FileSpreadsheet, Plus } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { describeError } from '@/api/client';
+import { goodsReceiptsApi, type GoodsReceiptListItem, type ReceiptStatus } from '@/api/goodsReceiptsApi';
+import type { Paged } from '@/api/types';
+
 import FilterSelect from '@/components/ui/FilterSelect'
 import Pagination from '@/components/ui/Pagination'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import DetailModal from '@/components/ui/DetailModal'
-import { formatVnd } from '@/utils/money'
-import { formatDateTime } from '@/utils/units'
+import { formatVnd } from '@/utils/money';
+import { formatDateTime } from '@/utils/units';
 import SupplierSelect from './SupplierSelect'
-import { RECEIPTS_BASE, RECEIPT_STATUS_BADGE_CLASS, RECEIPT_STATUS_LABEL, localInputToIso, nowLocalInput } from './receiptLabels'
+import { RECEIPTS_BASE, RECEIPT_STATUS_BADGE_CLASS, RECEIPT_STATUS_LABEL, localInputToIso, nowLocalInput } from './receiptLabels';
 
 const PAGE_SIZE = 10
 
@@ -68,18 +69,23 @@ export default function GoodsReceiptsPage() {
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
       <BusinessReportCards kind="purchases" searchResult={{ count: data?.totalCount ?? 0, unit: 'phiếu nhập' }} />
-      <div className="flex flex-wrap items-center gap-3 justify-between">
-        <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-center gap-3 flex-1">
-          <SearchInput
-            value={search}
-            onChange={(v) => {
+      <ListToolbar search={{ value: search, onChange: (v) => {
               setSearch(v)
               setPage(1)
-            }}
-            placeholder="Tìm theo mã phiếu hoặc số hóa đơn..."
-            className="relative flex-1 min-w-[220px]"
-          />
-          <FilterSelect
+            }, placeholder: "Tìm theo mã phiếu hoặc số hóa đơn..." }} onClear={() => { setSearch(''); setStatus(''); setSupplierId(''); setPage(1) }} actions={<><Link
+            to={`${RECEIPTS_BASE}/import`}
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-medium shadow-sm"
+          >
+            <FileSpreadsheet size={16} /> Nhập từ Excel
+          </Link>
+<PermissionAction codes={["GOODS_RECEIPTS.CREATE"]}><button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm"
+          >
+            <Plus size={16} /> Tạo phiếu nhập
+          </button></PermissionAction></>}>
+<FilterSelect
             value={status}
             onChange={(v) => {
               setStatus(v)
@@ -87,8 +93,7 @@ export default function GoodsReceiptsPage() {
             }}
             options={[{ value: '', label: 'Tất cả trạng thái' }, ...(Object.keys(RECEIPT_STATUS_LABEL) as ReceiptStatus[]).map((s) => ({ value: s, label: RECEIPT_STATUS_LABEL[s] }))]}
           />
-          <div className="min-w-[220px]">
-            <SupplierSelect
+<SupplierSelect
               value={supplierId}
               onChange={(v) => {
                 setSupplierId(v)
@@ -97,24 +102,7 @@ export default function GoodsReceiptsPage() {
               activeOnly={false}
               emptyLabel="Tất cả nhà cung cấp"
             />
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link
-            to={`${RECEIPTS_BASE}/import`}
-            className="inline-flex items-center gap-2 h-11 px-4 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-medium shadow-sm"
-          >
-            <FileSpreadsheet size={16} /> Nhập từ Excel
-          </Link>
-          <PermissionAction codes={["GOODS_RECEIPTS.CREATE"]}><button
-            type="button"
-            onClick={() => setCreateOpen(true)}
-            className="inline-flex items-center gap-2 h-11 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm"
-          >
-            <Plus size={16} /> Tạo phiếu nhập
-          </button></PermissionAction>
-        </div>
-      </div>
+      </ListToolbar>
 
       <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">
         <div className="overflow-x-auto">

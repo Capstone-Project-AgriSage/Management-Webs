@@ -1,21 +1,21 @@
 import ModalLayout from '@/components/ui/ModalLayout'
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
-import { useState } from 'react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { Calendar, DollarSign, Briefcase, Download, ChevronDown, MoreVertical, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react'
+import { useState } from 'react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+import { Calendar, DollarSign, Briefcase, Download, ChevronDown, MoreVertical, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
 import NewLeadsChart from '@/features/agent/dashboard/components/NewLeadsChart'
 import ProposalsSentChart from '@/features/agent/dashboard/components/ProposalsSentChart'
 import RevenueGrowthChart from '@/features/agent/dashboard/components/RevenueGrowthChart'
 import LeadsBySourceChart from '@/features/agent/dashboard/components/LeadsBySourceChart'
 import RevenueVsTargetChart from '@/features/agent/dashboard/components/RevenueVsTargetChart'
 import SalesPipelineChart from '@/features/agent/dashboard/components/SalesPipelineChart'
-import { revenueByRegionData, actionItemsData } from '@/features/agent/dashboard/mockSalesData'
+import { revenueByRegionData, actionItemsData } from '@/features/agent/dashboard/mockSalesData';
 import DetailModal from '@/components/ui/DetailModal'
 
-import { orders as ALL_ORDERS } from '@/features/agent/data/mockOrders'
-import { debtCustomers as ALL_DEBT_CUSTOMERS } from '@/features/agent/data/mockDebts'
-import { parseVnd, formatVnd } from '@/utils/money'
+import { orders as ALL_ORDERS } from '@/features/agent/data/mockOrders';
+import { debtCustomers as ALL_DEBT_CUSTOMERS } from '@/features/agent/data/mockDebts';
+import { parseVnd, formatVnd } from '@/utils/money';
 
 export default function DashboardPage() {
   usePageHeader({
@@ -68,7 +68,7 @@ export default function DashboardPage() {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
+  const pageSize = 10
 
   const totalPages = Math.ceil(ALL_ORDERS.length / pageSize)
 
@@ -87,12 +87,12 @@ export default function DashboardPage() {
 
 
   return (
-    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
+    <div className="agrisage-dashboard max-w-[1440px] min-w-0 mx-auto flex flex-col gap-5">
       <BusinessReportCards kind="sales" />
       {/* 1. TOP METRICS ROW */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         {/* Card 1: New Leads -> Đơn hàng hôm nay */}
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
+        <div className="agrisage-dashboard-kpi min-w-0 bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-semibold text-slate-900">Đơn Hàng Hôm Nay</h3>
             <p className="text-xs text-slate-500">Toàn bộ chi nhánh</p>
@@ -105,7 +105,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Card 2: Proposals Sent -> Công Nợ Thu Hồi */}
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
+        <div className="agrisage-dashboard-kpi min-w-0 bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-semibold text-slate-900">Tiến Độ Thu Nợ</h3>
             <p className="text-xs text-slate-500">Trong tháng</p>
@@ -118,7 +118,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Card 3: Revenue -> Doanh Thu */}
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between relative overflow-hidden">
+        <div className="agrisage-dashboard-kpi min-w-0 bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between relative overflow-hidden">
           <div className="absolute top-4 right-4 w-8 h-8 bg-emerald-50 text-emerald-500 rounded-md flex items-center justify-center">
             <DollarSign size={18} />
           </div>
@@ -127,7 +127,7 @@ export default function DashboardPage() {
             <p className="text-xs text-slate-500">Tất cả đơn hàng</p>
           </div>
           <div className="mt-4">
-            <span className="text-2xl font-bold text-slate-900">{formatVnd(totalRevenue)}</span>
+            <span className="text-2xl font-bold text-slate-900 tabular-nums break-words">{formatVnd(totalRevenue)}</span>
           </div>
           <div className="mt-auto pt-4">
             <span className="text-xs font-semibold text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded">+12.5%</span>
@@ -135,7 +135,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Card 4: Projects Won -> Khách Hàng Nợ */}
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between relative overflow-hidden">
+        <div className="agrisage-dashboard-kpi min-w-0 bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between relative overflow-hidden">
           <div className="absolute top-4 right-4 w-8 h-8 bg-rose-50 text-rose-500 rounded-md flex items-center justify-center">
             <Briefcase size={18} />
           </div>
@@ -144,7 +144,7 @@ export default function DashboardPage() {
             <p className="text-xs text-slate-500">{debtHouseholds.length} hộ chưa thanh toán</p>
           </div>
           <div className="mt-4">
-            <span className="text-2xl font-bold text-slate-900">{formatVnd(totalDebtRemaining)}</span>
+            <span className="text-2xl font-bold text-slate-900 tabular-nums break-words">{formatVnd(totalDebtRemaining)}</span>
           </div>
           <div className="mt-auto pt-4">
             <span className="text-xs font-semibold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded">-5.2%</span>
@@ -152,7 +152,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Card 5: Revenue Growth */}
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between lg:col-span-2">
+        <div className="agrisage-chart-card min-w-0 bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between sm:col-span-2 xl:col-span-4">
           <div>
             <h3 className="text-sm font-semibold text-slate-900">Biểu Đồ Doanh Thu</h3>
             <p className="text-xs text-slate-500">Theo các tháng trong năm</p>
@@ -165,9 +165,9 @@ export default function DashboardPage() {
       </section>
 
       {/* NEW SECTION: Alerts & Pending Actions */}
-      <section className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+      <section className="min-w-0 bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
         <h2 className="text-base font-bold text-slate-900 mb-4">Cần Xử Lý & Cảnh Báo</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
           <div className="p-3 border border-amber-200 bg-amber-50 rounded-lg cursor-pointer hover:bg-amber-100 transition-colors">
             <div className="text-xs font-semibold text-amber-700">Đơn chờ xử lý</div>
             <div className="text-2xl font-bold text-amber-900 mt-1">{pendingOrdersCount}</div>
@@ -177,7 +177,7 @@ export default function DashboardPage() {
             <div className="text-2xl font-bold text-indigo-900 mt-1">{pendingVietQrCount}</div>
           </div>
           <div className="p-3 border border-purple-200 bg-purple-50 rounded-lg cursor-pointer hover:bg-purple-100 transition-colors">
-            <div className="text-xs font-semibold text-purple-700">Ca AI chờ review</div>
+            <div className="text-xs font-semibold text-purple-700">Ca AI chờ duyệt</div>
             <div className="text-2xl font-bold text-purple-900 mt-1">{pendingAiReviewsCount}</div>
           </div>
           <div className="p-3 border border-rose-200 bg-rose-50 rounded-lg cursor-pointer hover:bg-rose-100 transition-colors">
@@ -192,10 +192,10 @@ export default function DashboardPage() {
       </section>
 
       {/* 2. CHARTS ROW 1 */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Leads by Source -> Nguồn Đơn Hàng */}
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-          <h3 className="text-sm font-semibold text-slate-900">Nguồn Khách Hàng</h3>
+        <div className="agrisage-chart-card min-w-0 bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+          <h3 className="text-base font-semibold text-slate-900">Nguồn khách hàng</h3>
           <LeadsBySourceChart />
           <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100">
             <button onClick={() => setIsLeadDetailOpen(true)} className="flex-1 py-1.5 text-xs font-semibold border border-slate-200 rounded-md text-slate-700 hover:bg-slate-50">Xem Chi Tiết</button>
@@ -204,29 +204,29 @@ export default function DashboardPage() {
         </div>
 
         {/* Project Revenue vs Target -> Doanh thu theo SP */}
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-          <h3 className="text-sm font-semibold text-slate-900">Doanh Thu Sản Phẩm vs Chỉ Tiêu</h3>
+        <div className="agrisage-chart-card min-w-0 bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+          <h3 className="text-base font-semibold text-slate-900">Doanh thu sản phẩm và chỉ tiêu</h3>
           <RevenueVsTargetChart />
         </div>
       </section>
 
       {/* 3. CHARTS ROW 2 */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <section className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
         {/* Sales Pipeline -> Phễu đơn hàng */}
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-          <h3 className="text-sm font-semibold text-slate-900">Tiến Trình Xử Lý Đơn</h3>
+        <div className="agrisage-chart-card min-w-0 bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+          <h3 className="text-base font-semibold text-slate-900">Tiến trình xử lý đơn</h3>
           <SalesPipelineChart />
         </div>
 
         {/* Sales by Region -> Doanh Thu Khu Vực */}
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-          <h3 className="text-sm font-semibold text-slate-900">Doanh Thu Theo Khu Vực</h3>
+        <div className="agrisage-chart-card min-w-0 bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+          <h3 className="text-base font-semibold text-slate-900">Doanh thu theo khu vực</h3>
           <p className="text-xs text-slate-500 mt-1">Tổng cộng 823,500,000 ₫</p>
 
           <div className="flex flex-col gap-4 mt-6">
             {revenueByRegionData.map(region => (
               <div key={region.name} className="flex flex-col gap-1.5">
-                <div className="flex justify-between items-end text-xs">
+                <div className="flex flex-wrap justify-between items-end gap-2 text-xs">
                   <span className="font-semibold text-slate-900">{region.name}</span>
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-slate-900">{formatVnd(region.revenue)}</span>
@@ -251,21 +251,21 @@ export default function DashboardPage() {
         </div>
 
         {/* Action Items -> Công việc cần làm */}
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-          <h3 className="text-sm font-semibold text-slate-900 mb-4">Công Việc Cần Xử Lý</h3>
+        <div className="min-w-0 bg-white rounded-xl border border-slate-200 p-5 shadow-sm lg:col-span-2 xl:col-span-1">
+          <h3 className="text-base font-semibold text-slate-900 mb-4">Công việc cần xử lý</h3>
           <div className="flex flex-col gap-3">
             {actionItemsData.map(item => (
               <div key={item.id} className="border border-slate-100 rounded-lg p-3 flex flex-col gap-2">
                 <div className="flex items-start gap-2">
                   <input type="checkbox" defaultChecked={item.completed} className="mt-0.5 w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-600" />
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className={`text-xs font-bold ${item.completed ? 'text-slate-500 line-through' : 'text-slate-900'}`}>{item.title}</span>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${item.priority === 'High' ? 'bg-rose-50 text-rose-600' :
                         item.priority === 'Medium' ? 'bg-amber-50 text-amber-600' :
                           'bg-emerald-50 text-emerald-600'
                         }`}>
-                        {item.priority}
+                        {item.priority === 'High' ? 'Cao' : item.priority === 'Medium' ? 'Vừa' : 'Thấp'}
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-500 mt-0.5">{item.description}</p>
@@ -282,11 +282,10 @@ export default function DashboardPage() {
       </section>
 
       {/* 4. DATA TABLE */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mt-4">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+      <div className="min-w-0 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="agrisage-dashboard-toolbar p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h2 className="text-base font-bold text-slate-900">Đơn Hàng Gần Đây</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Theo dõi và quản lý các đơn hàng nông nghiệp mới nhất.</p>
           </div>
           <div className="flex gap-2">
             <div className="relative">
@@ -414,22 +413,12 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div className="p-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+        <div className="agrisage-dashboard-toolbar p-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
           <span>0 trong {ALL_ORDERS.length} dòng được chọn.</span>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <span>Số dòng mỗi trang</span>
-              <select
-                className="border border-slate-200 rounded px-1 py-0.5 bg-white text-xs"
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-              </select>
+              <span className="font-semibold">10</span>
             </div>
             <span>Trang {currentPage} / {totalPages}</span>
             <div className="flex gap-1">

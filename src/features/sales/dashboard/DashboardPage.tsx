@@ -1,6 +1,6 @@
-import { Banknote, ClipboardList, AlertTriangle, HandCoins } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useAuth } from '@/context/AuthContext'
+import { Banknote, ClipboardList, AlertTriangle, HandCoins } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useAuth } from '@/context/AuthContext';
 import StatusBadge from '@/components/ui/StatusBadge'
 import KpiCard from '@/components/ui/KpiCard'
 import DashboardListCard from '@/features/sales/dashboard/components/DashboardListCard'
@@ -9,12 +9,12 @@ import RevenueTrendChart from '@/features/sales/dashboard/components/RevenueTren
 import PaymentMethodChart from '@/features/sales/dashboard/components/PaymentMethodChart'
 import OrderStatusFunnelChart from '@/features/sales/dashboard/components/OrderStatusFunnelChart'
 import DebtByStatusChart from '@/features/sales/dashboard/components/DebtByStatusChart'
-import { orders } from '@/features/sales/data/mockOrders'
-import { debtCustomers } from '@/features/sales/data/mockDebts'
-import { mockCreditRequests } from '@/features/sales/data/mockCreditRequests'
-import { formatVnd, parseVnd } from '@/utils/money'
-import { TODAY } from '@/features/sales/dashboard/dashboardData'
-import type { Order, DebtCustomer, CreditRequest } from '@/types'
+import { orders } from '@/features/sales/data/mockOrders';
+import { debtCustomers } from '@/features/sales/data/mockDebts';
+import { mockCreditRequests } from '@/features/sales/data/mockCreditRequests';
+import { formatVnd, parseVnd } from '@/utils/money';
+import { TODAY } from '@/features/sales/dashboard/dashboardData';
+import type { Order, DebtCustomer, CreditRequest } from '@/types';
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -36,7 +36,7 @@ export default function DashboardPage() {
   const recentCompletedOrders = orders.filter((o) => o.status === 'Hoàn thành').slice(0, 5)
 
   return (
-    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
+    <div className="agrisage-dashboard max-w-[1440px] min-w-0 mx-auto flex flex-col gap-5">
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <KpiCard
           icon={Banknote}
@@ -73,30 +73,30 @@ export default function DashboardPage() {
         />
       </section>
 
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-          <h3 className="text-sm font-semibold text-slate-900">Doanh thu theo ngày</h3>
+      <section className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        <div className="agrisage-chart-card xl:col-span-2 min-w-0 bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+          <h3 className="text-base font-semibold text-slate-900">Doanh thu theo ngày</h3>
           <p className="text-xs text-slate-500">4 ngày gần nhất</p>
           <RevenueTrendChart />
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-          <h3 className="text-sm font-semibold text-slate-900">Đơn hàng theo phương thức thanh toán</h3>
+        <div className="agrisage-chart-card min-w-0 bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+          <h3 className="text-base font-semibold text-slate-900">Đơn hàng theo phương thức thanh toán</h3>
           <PaymentMethodChart />
         </div>
       </section>
 
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-          <h3 className="text-sm font-semibold text-slate-900">Tiến trình xử lý đơn</h3>
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="agrisage-chart-card min-w-0 bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+          <h3 className="text-base font-semibold text-slate-900">Tiến trình xử lý đơn</h3>
           <OrderStatusFunnelChart />
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-          <h3 className="text-sm font-semibold text-slate-900">Công nợ theo trạng thái</h3>
+        <div className="agrisage-chart-card min-w-0 bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+          <h3 className="text-base font-semibold text-slate-900">Công nợ theo trạng thái</h3>
           <DebtByStatusChart />
         </div>
       </section>
 
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <DashboardListCard<Order>
           title="Đơn hàng cần xử lý"
           linkTo="/orders"
@@ -104,14 +104,14 @@ export default function DashboardPage() {
           getKey={(order) => order.id}
           emptyMessage="Không có đơn nào cần xử lý."
           renderRow={(order) => (
-            <div className="p-4 flex items-center justify-between gap-3">
+            <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-slate-900 truncate">{order.customerName}</p>
                 <p className="text-xs text-slate-500 mt-0.5">
                   {order.id} • {order.createdAgo}
                 </p>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <span className="text-sm font-bold text-slate-900">{order.total}</span>
                 <StatusBadge label={order.statusBadge.label} className={order.statusBadge.className} />
               </div>
@@ -126,7 +126,7 @@ export default function DashboardPage() {
           getKey={(debt) => debt.id}
           emptyMessage="Không có khoản nợ cần chú ý."
           renderRow={(debt) => (
-            <div className="p-4 flex items-center justify-between gap-3">
+            <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-slate-900 truncate">{debt.name}</p>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -134,7 +134,7 @@ export default function DashboardPage() {
                   {debt.isDisputed ? ' • Đang tranh chấp' : ''}
                 </p>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <span className="text-sm font-bold text-rose-700">{debt.remaining}</span>
                 <StatusBadge label={debt.statusBadge.label} className={debt.statusBadge.className} />
               </div>
@@ -150,14 +150,14 @@ export default function DashboardPage() {
         getKey={(request) => request.id}
         emptyMessage="Không có yêu cầu mua chịu đang chờ duyệt."
         renderRow={(request) => (
-          <div className="p-4 flex items-center justify-between gap-3">
+          <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm font-semibold text-slate-900 truncate">{request.farmerName}</p>
               <p className="text-xs text-slate-500 mt-0.5">
                 {request.farmerPhone} • {request.cropSeason}
               </p>
             </div>
-            <div className="text-right shrink-0">
+            <div className="sm:text-right shrink-0">
               <p className="text-sm font-bold text-slate-900">{formatVnd(request.requestedAmount)}</p>
               <p className="text-xs text-slate-500">Còn lại: {formatVnd(request.remainingLimit)}</p>
             </div>
@@ -172,12 +172,12 @@ export default function DashboardPage() {
         getKey={(order) => order.id}
         emptyMessage="Chưa có đơn nào hoàn thành."
         renderRow={(order) => (
-          <div className="p-4 flex items-center justify-between gap-3">
+          <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm font-mono font-medium text-slate-500">{order.id}</p>
               <p className="text-sm font-semibold text-slate-900 truncate">{order.customerName}</p>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
               <StatusBadge label={order.paymentBadge.label} className={order.paymentBadge.className} />
               <span className="text-sm font-bold text-slate-900">{order.total}</span>
             </div>

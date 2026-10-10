@@ -1,16 +1,16 @@
 import PermissionAction from '@/components/auth/PermissionAction'
-import { useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Download, FileUp, ListChecks } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { ApiError, describeError, saveBlob } from '@/api/client'
-import { goodsReceiptsApi, type ReceiptHeaderInput, type ReceiptImportPreview } from '@/api/goodsReceiptsApi'
+import { useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Download, FileUp, ListChecks } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+import { ApiError, describeError, saveBlob } from '@/api/client';
+import { goodsReceiptsApi, type ReceiptHeaderInput, type ReceiptImportPreview } from '@/api/goodsReceiptsApi';
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
-import { formatVnd } from '@/utils/money'
-import { formatDate, formatQty } from '@/utils/units'
+import { formatVnd } from '@/utils/money';
+import { formatDate, formatQty } from '@/utils/units';
 import SupplierSelect from './SupplierSelect'
-import { RECEIPTS_BASE, importColumnLabel, localInputToIso, nowLocalInput, translateImportMessage } from './receiptLabels'
+import { RECEIPTS_BASE, importColumnLabel, localInputToIso, nowLocalInput, translateImportMessage } from './receiptLabels';
 
 const MAX_BYTES = 2 * 1024 * 1024
 
@@ -263,7 +263,6 @@ export default function ReceiptImportPage() {
           </div>
         </div>
       ) : null}
-      <p className="text-xs text-slate-500">Kiểm tra file không lưu gì. Chỉ khi mọi dòng hợp lệ mới tạo được phiếu nháp; phiếu nháp vẫn cần xác nhận ở màn chi tiết thì hàng mới vào kho.</p>
     </div>
   )
 }

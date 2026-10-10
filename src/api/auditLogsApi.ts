@@ -1,3 +1,4 @@
+import { LIST_PAGE_SIZE } from '@/utils/pagination'
 import { api, toQuery } from './client'
 import type { PagedResult } from './types'
 
@@ -38,7 +39,7 @@ export interface AuditLogListParams {
 const base = '/api/audit-logs'
 export const auditLogsApi = {
   list: (params: AuditLogListParams = {}, signal?: AbortSignal) =>
-    api<PagedResult<AuditLogResponse>>(base + toQuery({ page: 1, pageSize: 15, ...params }), { signal }),
+    api<PagedResult<AuditLogResponse>>(base + toQuery({ page: 1, pageSize: LIST_PAGE_SIZE, ...params }), { signal }),
   get: (id: string, signal?: AbortSignal) =>
     api<AuditLogResponse>(base + '/' + encodeURIComponent(id), { signal }),
 }

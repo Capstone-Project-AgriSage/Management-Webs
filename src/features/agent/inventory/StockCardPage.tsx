@@ -1,18 +1,21 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowDownToLine, ArrowUpFromLine, Download, Layers, Scale } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { describeError } from '@/api/client'
-import { stockApi, type StockCard, type StockLot } from '@/api/stockApi'
+import { usePagination } from '@/hooks/usePagination'
+import Pagination from '@/components/ui/Pagination'
+import ListToolbar from '@/components/ui/ListToolbar'
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { ArrowDownToLine, ArrowUpFromLine, Download, Layers, Scale } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+import { describeError } from '@/api/client';
+import { stockApi, type StockCard, type StockLot } from '@/api/stockApi';
 import KpiCard from '@/components/ui/KpiCard'
 import FilterSelect from '@/components/ui/FilterSelect'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
-import { downloadCsv } from '@/utils/csv'
-import { formatVnd } from '@/utils/money'
-import { formatDateTime, formatQty, formatQtyUnit, monthStartInput, rangeDays, todayInput, unitLabel } from '@/utils/units'
-import ProductPicker, { type PickedProduct } from './ProductPicker'
-import { MOVEMENT_TYPE_BADGE_CLASS, MOVEMENT_TYPE_LABEL, REFERENCE_TYPE_LABEL } from './stockLabels'
+import { downloadCsv } from '@/utils/csv';
+import { formatVnd } from '@/utils/money';
+import { formatDateTime, formatQty, formatQtyUnit, monthStartInput, rangeDays, todayInput, unitLabel } from '@/utils/units';
+import ProductPicker, { type PickedProduct } from './ProductPicker';
+import { MOVEMENT_TYPE_BADGE_CLASS, MOVEMENT_TYPE_LABEL, REFERENCE_TYPE_LABEL } from './stockLabels';
 
 const MAX_DAYS = 366
 
@@ -115,26 +118,35 @@ export default function StockCardPage() {
     )
   }
 
+  const linePages = usePagination(card?.lines ?? [], 10, [productId, lotId, from, to].join('|'))
+
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
-      <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-end gap-3">
-        <div className="flex-1 min-w-[260px]">
+      <ListToolbar  onClear={() => { pick(null); setFrom(monthStartInput()); setTo(todayInput()) }} actions={<><button
+          type="button"
+          onClick={exportCsv}
+          disabled={!card || card.lines.length === 0}
+          className="inline-flex items-center gap-2 h-10 px-3 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-medium shadow-sm disabled:opacity-50"
+        >
+          <Download size={16} /> Xuất CSV
+        </button></>}>
+<div className="flex-1 min-w-[260px]">
           <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Sản phẩm</label>
           <ProductPicker value={product} onChange={pick} pendingLabel={productId && !product ? 'Đang tải sản phẩm...' : null} />
         </div>
-        <div>
+<div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1" htmlFor="sc-from">
             Từ ngày
           </label>
           <input id="sc-from" type="date" className={dateInputClassName} value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} />
         </div>
-        <div>
+<div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1" htmlFor="sc-to">
             Đến ngày
           </label>
           <input id="sc-to" type="date" className={dateInputClassName} value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} />
         </div>
-        <div>
+<div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Lô</label>
           <FilterSelect
             value={lotId}
@@ -146,15 +158,7 @@ export default function StockCardPage() {
             ]}
           />
         </div>
-        <button
-          type="button"
-          onClick={exportCsv}
-          disabled={!card || card.lines.length === 0}
-          className="inline-flex items-center gap-2 h-10 px-3 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-medium shadow-sm disabled:opacity-50"
-        >
-          <Download size={16} /> Xuất CSV
-        </button>
-      </div>
+      </ListToolbar>
 
       {rangeProblem ? (
         <p className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2" role="alert">
@@ -214,7 +218,7 @@ export default function StockCardPage() {
                   ) : card && card.lines.length === 0 ? (
                     <EmptyTableRow colSpan={9} message="Không có phát sinh trong khoảng ngày này." />
                   ) : (
-                    card?.lines.map((l, i) => (
+                    linePages.paginated.map((l, i) => (
                       <tr key={`${l.movementId}-${i}`} className="hover:bg-surface-container-low transition-colors">
                         <td className="py-2.5 px-4 whitespace-nowrap">{formatDateTime(l.postedAt)}</td>
                         <td className="py-2.5 px-3 font-mono text-xs">{l.movementNumber}</td>
@@ -255,10 +259,8 @@ export default function StockCardPage() {
                 </tbody>
               </table>
             </div>
+          <Pagination {...linePages} unitLabel="dòng phát sinh" />
           </div>
-          <p className="text-xs text-slate-500">
-            Chỉ gồm phiếu kho đã ghi sổ. Số lượng tính theo đơn vị cơ sở ({unitLabel(unit)}). Chọn một lô để xem riêng lô đó.
-          </p>
         </>
       )}
     </div>

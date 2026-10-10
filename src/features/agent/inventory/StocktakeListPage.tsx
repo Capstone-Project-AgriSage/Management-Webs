@@ -1,23 +1,24 @@
+import ListToolbar from '@/components/ui/ListToolbar'
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ClipboardList, Plus, X } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { useDebouncedValue } from '@/hooks/useDebouncedValue'
-import { describeError } from '@/api/client'
-import { stocktakeApi, type StocktakeListItem, type StocktakeStatus } from '@/api/stocktakeApi'
-import type { Paged } from '@/api/types'
-import SearchInput from '@/components/ui/SearchInput'
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, X } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { describeError } from '@/api/client';
+import { stocktakeApi, type StocktakeListItem, type StocktakeStatus } from '@/api/stocktakeApi';
+import type { Paged } from '@/api/types';
+
 import FilterSelect from '@/components/ui/FilterSelect'
 import Pagination from '@/components/ui/Pagination'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import DetailModal from '@/components/ui/DetailModal'
-import { formatDateTime } from '@/utils/units'
-import ProductPicker, { type PickedProduct } from './ProductPicker'
-import { STOCKTAKE_STATUS_BADGE_CLASS, STOCKTAKE_STATUS_LABEL } from './stockLabels'
-import { useStocktakeBase } from './stocktakePaths'
+import { formatDateTime } from '@/utils/units';
+import ProductPicker, { type PickedProduct } from './ProductPicker';
+import { STOCKTAKE_STATUS_BADGE_CLASS, STOCKTAKE_STATUS_LABEL } from './stockLabels';
+import { useStocktakeBase } from './stocktakePaths';
 import ListReportCards from '@/features/agent/reports/ListReportCards'
 
 const PAGE_SIZE = 10
@@ -71,18 +72,17 @@ export default function StocktakeListPage() {
         { label: 'Kiểm kê hoàn tất', value: items.filter(item => item.status === 'COMPLETED').length },
         { label: 'Dòng kiểm kê chênh lệch', value: items.reduce((sum, item) => sum + item.differenceCount, 0) },
       ]} />
-      <div className="flex flex-wrap items-center gap-3 justify-between">
-        <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-center gap-3 flex-1">
-          <SearchInput
-            value={search}
-            onChange={(v) => {
+      <ListToolbar search={{ value: search, onChange: (v) => {
               setSearch(v)
               setPage(1)
-            }}
-            placeholder="Tìm theo mã phiếu kiểm kê..."
-            className="relative flex-1 min-w-[220px]"
-          />
-          <FilterSelect
+            }, placeholder: "Tìm theo mã phiếu kiểm kê..." }} onClear={() => { setSearch(''); setStatus(''); setPage(1) }} actions={<><PermissionAction codes={["STOCKTAKES.CREATE"]}><button
+          type="button"
+          onClick={() => setCreateOpen(true)}
+          className="inline-flex items-center gap-2 h-11 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm"
+        >
+          <Plus size={16} /> Tạo phiếu kiểm kê
+        </button></PermissionAction></>}>
+<FilterSelect
             value={status}
             onChange={(v) => {
               setStatus(v)
@@ -93,15 +93,7 @@ export default function StocktakeListPage() {
               ...(Object.keys(STOCKTAKE_STATUS_LABEL) as StocktakeStatus[]).map((s) => ({ value: s, label: STOCKTAKE_STATUS_LABEL[s] })),
             ]}
           />
-        </div>
-        <PermissionAction codes={["STOCKTAKES.CREATE"]}><button
-          type="button"
-          onClick={() => setCreateOpen(true)}
-          className="inline-flex items-center gap-2 h-11 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm"
-        >
-          <Plus size={16} /> Tạo phiếu kiểm kê
-        </button></PermissionAction>
-      </div>
+      </ListToolbar>
 
       <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">
         <div className="overflow-x-auto">
@@ -157,10 +149,6 @@ export default function StocktakeListPage() {
         />
       </div>
 
-      <p className="text-xs text-slate-500 flex items-start gap-2">
-        <ClipboardList size={14} className="mt-0.5 shrink-0" />
-        Người đếm và người duyệt hoàn thành phải là hai người khác nhau: nhân viên đếm và lưu số liệu, Chủ cửa hàng (hoặc Admin) kiểm tra rồi hoàn thành.
-      </p>
 
       {createOpen ? (
         <CreateStocktakeModal

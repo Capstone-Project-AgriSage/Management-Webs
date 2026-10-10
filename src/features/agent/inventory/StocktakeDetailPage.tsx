@@ -1,21 +1,21 @@
 import PermissionAction from '@/components/auth/PermissionAction'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { AlertTriangle, ArrowLeft, CheckCircle2, ClipboardCheck, Layers, RefreshCw, Scale, Search, Sigma } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { useAuth } from '@/context/AuthContext'
-import { usePermission } from '@/context/PermissionContext'
-import { describeError } from '@/api/client'
-import { stocktakeApi, type Stocktake, type StocktakeCount, type StocktakeItem, type StocktakeReason } from '@/api/stocktakeApi'
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { AlertTriangle, ArrowLeft, CheckCircle2, ClipboardCheck, Layers, RefreshCw, Scale, Search, Sigma } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/context/PermissionContext';
+import { describeError } from '@/api/client';
+import { stocktakeApi, type Stocktake, type StocktakeCount, type StocktakeItem, type StocktakeReason } from '@/api/stocktakeApi';
 import KpiCard from '@/components/ui/KpiCard'
 import FilterSelect from '@/components/ui/FilterSelect'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import ConfirmModal from '@/components/ui/ConfirmModal'
-import { formatVnd } from '@/utils/money'
-import { formatDate, formatDateTime, formatQty } from '@/utils/units'
-import { STOCKTAKE_REASONS, STOCKTAKE_STATUS_BADGE_CLASS, STOCKTAKE_STATUS_LABEL } from './stockLabels'
-import { useStocktakeBase } from './stocktakePaths'
+import { formatVnd } from '@/utils/money';
+import { formatDate, formatDateTime, formatQty } from '@/utils/units';
+import { STOCKTAKE_REASONS, STOCKTAKE_STATUS_BADGE_CLASS, STOCKTAKE_STATUS_LABEL } from './stockLabels';
+import { useStocktakeBase } from './stocktakePaths';
 
 interface LineEdit {
   counted: string
@@ -501,9 +501,6 @@ export default function StocktakeDetailPage() {
           </table>
         </div>
       </div>
-      <p className="text-xs text-slate-500">
-        Số lượng tính theo đơn vị cơ sở của sản phẩm. Chênh lệch = số đếm trừ số sổ sách; chênh lệch khác 0 phải có lý do. Nhấn Enter trong ô số đếm để nhảy xuống lô kế tiếp.
-      </p>
 
       <PermissionAction codes={["STOCKTAKES.START"]}><ConfirmModal
         open={dialog === 'start'}

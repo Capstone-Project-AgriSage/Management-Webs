@@ -1,24 +1,25 @@
+import ListToolbar from '@/components/ui/ListToolbar'
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useDebouncedValue } from '@/hooks/useDebouncedValue'
-import { Link } from 'react-router-dom'
-import { ChevronRight, Download, FilterX, Banknote } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { Link } from 'react-router-dom';
+import { ChevronRight, Download, Banknote } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
 import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import DetailModal from '@/components/ui/DetailModal'
 import Pagination from '@/components/ui/Pagination'
-import SearchInput from '@/components/ui/SearchInput'
+
 import StatusBadge from '@/components/ui/StatusBadge'
-import { formatVnd } from '@/utils/money'
-import { downloadCsv } from '@/utils/csv'
+import { formatVnd } from '@/utils/money';
+import { downloadCsv } from '@/utils/csv';
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
-import { ordersApi } from '@/api/ordersApi'
-import { paymentsApi } from '@/api/paymentsApi'
-import type { OrderResponse } from '@/api/types'
-import type { OrderPaymentsSummary } from '@/api/paymentsApi'
+import { ordersApi } from '@/api/ordersApi';
+import { paymentsApi } from '@/api/paymentsApi';
+import type { OrderResponse } from '@/api/types';
+import type { OrderPaymentsSummary } from '@/api/paymentsApi';
 
 type PaymentStatusLabel = 'Chưa thanh toán' | 'Thanh toán 1 phần' | 'Đã thanh toán đủ' | 'Đang tải...'
 
@@ -173,24 +174,9 @@ export default function PaymentsPage() {
 
       <BusinessReportCards kind="payments" searchResult={{ count: totalCount, unit: 'đơn hàng' }} />
 
-      <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-center justify-between gap-4 mt-4">
-        <div className="flex flex-wrap items-center gap-3 flex-1">
-          <SearchInput
-            value={search}
-            onChange={(val) => { setSearch(val); setPage(1) }}
-            placeholder="Tìm theo mã đơn, SĐT..."
-            className="relative flex-1 min-w-[240px]"
-          />
-          <button
-            className="h-9 px-3 text-on-surface-variant hover:text-on-surface text-xs font-medium flex items-center gap-1 transition-colors"
-            onClick={() => { setSearch(''); setPage(1) }}
-            type="button"
-          >
-            <FilterX size={14} />
-            <span>Xóa bộ lọc</span>
-          </button>
-        </div>
-      </div>
+      <ListToolbar search={{ value: search, onChange: (val) => { setSearch(val); setPage(1) }, placeholder: "Tìm theo mã đơn, SĐT..." }} onClear={() => { setSearch(''); setPage(1) }}>
+
+      </ListToolbar>
 
       <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col mt-4">
         <div className="overflow-x-auto">

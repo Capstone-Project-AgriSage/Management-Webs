@@ -1,21 +1,23 @@
+import ListToolbar from '@/components/ui/ListToolbar'
+import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import ModalLayout from '@/components/ui/ModalLayout'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { describeError } from '@/api/client'
-import { stockApi, type MovementType, type StockMovement, type StockMovementListItem } from '@/api/stockApi'
-import type { Paged } from '@/api/types'
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+import { describeError } from '@/api/client';
+import { stockApi, type MovementType, type StockMovement, type StockMovementListItem } from '@/api/stockApi';
+import type { Paged } from '@/api/types';
 import FilterSelect from '@/components/ui/FilterSelect'
 import Pagination from '@/components/ui/Pagination'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import DetailModal from '@/components/ui/DetailModal'
-import { formatVnd } from '@/utils/money'
-import { formatDate, formatDateTime, formatQty } from '@/utils/units'
-import { ADJUSTMENT_REASONS, MOVEMENT_TYPE_BADGE_CLASS, MOVEMENT_TYPE_LABEL, MOVEMENT_TYPE_OPTIONS } from './stockLabels'
+import { formatVnd } from '@/utils/money';
+import { formatDate, formatDateTime, formatQty } from '@/utils/units';
+import { ADJUSTMENT_REASONS, MOVEMENT_TYPE_BADGE_CLASS, MOVEMENT_TYPE_LABEL, MOVEMENT_TYPE_OPTIONS } from './stockLabels';
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 
-const PAGE_SIZE = 15
+const PAGE_SIZE = LIST_PAGE_SIZE
 
 const dateInputClassName =
   'h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 shadow-sm'
@@ -83,8 +85,8 @@ export default function StockMovementsPage() {
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
       <BusinessReportCards kind="inventory" fromDate={from} toDate={to} onFromDateChange={value => { setFrom(value); setPage(1) }} onToDateChange={value => { setTo(value); setPage(1) }} searchResult={{ count: data?.totalCount ?? 0, unit: 'phiếu kho' }} />
-      <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-end gap-3">
-        <div>
+      <ListToolbar  onClear={() => { setType(''); setFrom(''); setTo(''); setPage(1) }}>
+<div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Loại phiếu</label>
           <FilterSelect
             value={type}
@@ -96,7 +98,7 @@ export default function StockMovementsPage() {
             options={[{ value: '', label: 'Tất cả loại' }, ...MOVEMENT_TYPE_OPTIONS]}
           />
         </div>
-        <div>
+<div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1" htmlFor="mv-from">
             Từ ngày
           </label>
@@ -112,7 +114,7 @@ export default function StockMovementsPage() {
             }}
           />
         </div>
-        <div>
+<div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1" htmlFor="mv-to">
             Đến ngày
           </label>
@@ -128,7 +130,7 @@ export default function StockMovementsPage() {
             }}
           />
         </div>
-        {type || from || to ? (
+{type || from || to ? (
           <button
             type="button"
             className="h-10 px-3 text-sm font-medium text-slate-600 hover:text-slate-900"
@@ -142,7 +144,7 @@ export default function StockMovementsPage() {
             Xóa bộ lọc
           </button>
         ) : null}
-        <div className="ml-auto">
+<div className="ml-auto">
           <Link
             to="/agent/inventory/stock-card"
             className="inline-flex items-center h-10 px-3 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-medium shadow-sm"
@@ -150,7 +152,7 @@ export default function StockMovementsPage() {
             Xem thẻ kho theo sản phẩm
           </Link>
         </div>
-      </div>
+      </ListToolbar>
 
       {rangeInvalid ? (
         <p className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2" role="alert">
@@ -282,7 +284,7 @@ export default function StockMovementsPage() {
                   ))}
                 </tbody>
               </table>
-            </div><p className="text-xs text-slate-500">Phiếu kho đã ghi sổ không sửa hay xóa được; sai sót được sửa bằng phiếu điều chỉnh hoặc phiếu đảo.</p>
+            </div>
           </ModalLayout>
         ) : null}
       </DetailModal>

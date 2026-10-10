@@ -1,13 +1,12 @@
-import { useCallback, useState } from 'react'
-import { BarChart3, Receipt, RefreshCw } from 'lucide-react'
-import { usePermission } from '@/context/PermissionContext'
+import { useCallback, useState } from 'react';
+import { BarChart3, Receipt, RefreshCw } from 'lucide-react';
+import { usePermission } from '@/context/PermissionContext';
 import KpiCard from '@/components/ui/KpiCard'
-import { todayVn } from '@/utils/creditLabels'
-import { formatVnd } from '@/utils/money'
-import { formatDate } from '@/utils/units'
-import { firstOfMonthVn, periodProblem, reportInputClass } from './reportFilters'
-import { useReportData } from './useReportData'
-import { inlineReports, type InlineReportKind, type InlineReportResult, type ReportMetric } from './inlineReportConfig'
+import { todayVn } from '@/utils/creditLabels';
+import { formatVnd } from '@/utils/money';
+import { firstOfMonthVn, periodProblem, reportInputClass } from './reportFilters';
+import { useReportData } from './useReportData';
+import { inlineReports, type InlineReportKind, type InlineReportResult, type ReportMetric } from './inlineReportConfig';
 
 interface Props {
   kind: InlineReportKind
@@ -45,7 +44,6 @@ function AuthorizedReportCards({ kind, fromDate, toDate, onFromDateChange, onToD
     <div className="flex flex-wrap items-center justify-between gap-2">
       <div>
         <h2 className="text-sm font-semibold text-slate-900">{config.title}</h2>
-        <p className="text-xs text-slate-500">Toàn cửa hàng{config.period ? ` · ${formatDate(from)} → ${formatDate(to)}` : ' · Hiện tại'} · Độc lập với tìm kiếm và phân trang danh sách</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {config.period && <>
@@ -65,6 +63,5 @@ function AuthorizedReportCards({ kind, fromDate, toDate, onFromDateChange, onToD
     </div>
     <p role="status" className="min-h-4 text-xs text-slate-500">{loading ? 'Đang tải số liệu tổng hợp…' : '\u00a0'}</p>
     {(problem || error) && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{problem ?? error}</p>}
-    <p className="text-xs text-slate-500">{config.note}</p>
   </section>
 }

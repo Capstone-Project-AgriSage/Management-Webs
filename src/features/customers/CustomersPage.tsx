@@ -1,23 +1,25 @@
+import ListToolbar from '@/components/ui/ListToolbar'
+import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import PermissionAction from '@/components/auth/PermissionAction'
-import { useEffect, useState } from 'react'
-import { RefreshCw, UserPlus } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { customersApi, type CustomerResponse, type CustomerSortBy } from '@/api/customersApi'
-import { customerGroupsApi, type CustomerGroupResponse } from '@/api/customerGroupsApi'
-import { creditTiersApi, type CreditTierResponse } from '@/api/creditTiersApi'
-import type { PagedResult } from '@/api/types'
-import SearchInput from '@/components/ui/SearchInput'
+import { useEffect, useState } from 'react';
+import { UserPlus } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+import { customersApi, type CustomerResponse, type CustomerSortBy } from '@/api/customersApi';
+import { customerGroupsApi, type CustomerGroupResponse } from '@/api/customerGroupsApi';
+import { creditTiersApi, type CreditTierResponse } from '@/api/creditTiersApi';
+import type { PagedResult } from '@/api/types';
+
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import StatusBadge from '@/components/ui/StatusBadge'
 import ServerPagination from '@/components/ui/ServerPagination'
-import { formatVnd } from '@/utils/money'
-import { CUSTOMER_STATUS_LABEL, label } from '@/utils/creditLabels'
+import { formatVnd } from '@/utils/money';
+import { CUSTOMER_STATUS_LABEL, label } from '@/utils/creditLabels';
 import CustomerFormModal from './CustomerFormModal'
 import CustomerDetailModal from './CustomerDetailModal'
 import ListReportCards from '@/features/agent/reports/ListReportCards'
 
-const PAGE_SIZE = 15
+const PAGE_SIZE = LIST_PAGE_SIZE
 
 const SORT_OPTIONS: { value: string; label: string; sortBy: CustomerSortBy; descending: boolean }[] = [
   { value: 'name', label: 'Tên A → Z', sortBy: 'NAME', descending: false },
@@ -26,7 +28,7 @@ const SORT_OPTIONS: { value: string; label: string; sortBy: CustomerSortBy; desc
   { value: 'newest', label: 'Mới tạo gần đây', sortBy: 'CREATED_AT', descending: true },
 ]
 
-const selectClassName = 'h-9 px-3 rounded-lg border border-slate-200 bg-white text-sm text-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500'
+
 
 // CUSTOMER_MANAGEMENT.md — registered customers (farmers). Shared by the store owner and sales staff.
 export default function CustomersPage() {
@@ -109,39 +111,32 @@ export default function CustomersPage() {
         { label: 'Nợ quá hạn', value: items.some(item => !item.debtSummary) ? null : items.reduce((sum, item) => sum + (item.debtSummary?.overdueDebt ?? 0), 0), kind: 'money' },
         { label: 'Khách được mua chịu', value: items.filter(item => item.allowCreditPurchase).length },
       ]} />
-      <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col xl:flex-row xl:items-center gap-3">
-        <SearchInput value={search} onChange={setSearch} placeholder="Tìm theo tên hoặc số điện thoại..." className="relative flex-1 min-w-[220px]" />
-        <div className="flex flex-wrap items-center gap-2">
-          <select aria-label="Lọc theo nhóm" className={selectClassName} value={groupId} onChange={(e) => setGroupId(e.target.value)}>
+      <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: "Tìm theo tên hoặc số điện thoại..." }} onClear={resetFilters} actions={<><PermissionAction codes={["CUSTOMERS.CREATE"]}><button type="button" className="h-9 px-4 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 flex items-center gap-1.5" onClick={() => setForm({ customer: null })}>
+            <UserPlus size={16} /> Thêm khách hàng
+          </button></PermissionAction></>}>
+<select aria-label="Lọc theo nhóm" className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700" value={groupId} onChange={(e) => setGroupId(e.target.value)}>
             <option value="">Tất cả nhóm</option>
             {groups.map((g) => (
               <option key={g.id} value={g.id}>{g.name}</option>
             ))}
           </select>
-          <select aria-label="Lọc công nợ" className={selectClassName} value={debtFilter} onChange={(e) => setDebtFilter(e.target.value)}>
+<select aria-label="Lọc công nợ" className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700" value={debtFilter} onChange={(e) => setDebtFilter(e.target.value)}>
             <option value="">Mọi công nợ</option>
             <option value="yes">Đang có nợ</option>
             <option value="no">Không có nợ</option>
           </select>
-          <select aria-label="Lọc trạng thái" className={selectClassName} value={status} onChange={(e) => setStatus(e.target.value)}>
+<select aria-label="Lọc trạng thái" className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700" value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="">Mọi trạng thái</option>
             {Object.entries(CUSTOMER_STATUS_LABEL).map(([value, text]) => (
               <option key={value} value={value}>{text}</option>
             ))}
           </select>
-          <select aria-label="Sắp xếp" className={selectClassName} value={sort} onChange={(e) => setSort(e.target.value)}>
+<select aria-label="Sắp xếp" className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700" value={sort} onChange={(e) => setSort(e.target.value)}>
             {SORT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
-          <button type="button" className="h-9 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-1.5" onClick={resetFilters}>
-            <RefreshCw size={14} /> Xóa lọc
-          </button>
-          <PermissionAction codes={["CUSTOMERS.CREATE"]}><button type="button" className="h-9 px-4 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 flex items-center gap-1.5" onClick={() => setForm({ customer: null })}>
-            <UserPlus size={16} /> Thêm khách hàng
-          </button></PermissionAction>
-        </div>
-      </div>
+      </ListToolbar>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col">
         <div className="overflow-x-auto">

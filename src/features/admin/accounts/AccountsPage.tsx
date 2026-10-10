@@ -1,19 +1,21 @@
+import ListToolbar from '@/components/ui/ListToolbar'
+import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import ModalLayout from '@/components/ui/ModalLayout'
-import { useState } from 'react'
+import { useState } from 'react';
 
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
 import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import DetailModal from '@/components/ui/DetailModal'
 import FormModal from '@/components/ui/FormModal'
 import Pagination from '@/components/ui/Pagination'
-import { useSelectableList } from '@/hooks/useSelectableList'
-import { useFilteredList } from '@/hooks/useFilteredList'
-import { usePagination } from '@/hooks/usePagination'
-import { useFormValues } from '@/hooks/useFormValues'
+import { useSelectableList } from '@/hooks/useSelectableList';
+import { useFilteredList } from '@/hooks/useFilteredList';
+import { usePagination } from '@/hooks/usePagination';
+import { useFormValues } from '@/hooks/useFormValues';
 import * as accountsService from '@/features/admin/services/accountsService'
-import { downloadCsv } from '@/utils/csv'
-import type { Account, AccountActionId, AccountRole, AccountStatus } from '@/types'
+import { downloadCsv } from '@/utils/csv';
+import type { Account, AccountActionId, AccountRole, AccountStatus } from '@/types';
 
 export default function AccountsPage() {
   usePageHeader({ title: '', subtitle: '' })
@@ -60,7 +62,7 @@ export default function AccountsPage() {
     goPrev,
     goNext,
     setPage,
-  } = usePagination(filteredAccounts, 12)
+  } = usePagination(filteredAccounts, LIST_PAGE_SIZE, [search, statusFilter, roleFilter, regionFilter].join('|'))
 
   const { selectedId, setSelectedId, selected } = useSelectableList(accountList, (a) => a.id)
 
@@ -134,30 +136,8 @@ export default function AccountsPage() {
       <div className="flex items-start justify-between mt-2">
         <div className="flex flex-col gap-1.5">
           <h1 className="text-3xl font-semibold text-on-surface">Quản lý tài khoản</h1>
-          <p className="text-on-surface-variant text-sm">Quản lý quyền truy cập và tài khoản trên toàn bộ hệ thống Agrisage.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-outline-variant rounded bg-white hover:bg-surface-container-low text-on-surface font-medium text-sm shadow-sm"
-            onClick={() => downloadCsv('tai-khoan.csv', filteredAccounts.map(a => ({
-              ID: a.id,
-              'Họ và tên': a.fullName,
-              Email: a.email,
-              'SĐT': a.phone,
-              'Vai trò': a.role,
-              'Trạng thái': a.status,
-              'Ngày tạo': a.createdAt
-            })))}
-          >
-            <span className="material-symbols-outlined text-[16px]">download</span> Xuất danh sách
-          </button>
-          <button
-            className="flex items-center gap-1.5 px-4 py-1.5 bg-[#171833] hover:bg-black text-white rounded font-medium text-sm shadow-sm transition-colors"
-            onClick={() => setCreateOpen(true)}
-          >
-            Tạo tài khoản mới
-          </button>
-        </div>
+
       </div>
 
 
@@ -208,21 +188,26 @@ export default function AccountsPage() {
       )}
 
       {/* TOOLBAR */}
-      <div className="flex items-center justify-between mt-2">
-        <div className="relative w-[320px]">
-          <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[18px] text-outline">search</span>
-          <input
-            type="text"
-            placeholder="Tìm kiếm tài khoản..."
-            className="w-full h-9 pl-9 pr-3 text-sm bg-white border border-outline-variant rounded focus:border-primary focus:ring-1 focus:ring-primary text-on-surface shadow-sm"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-sm text-on-surface">
-            <span className="text-on-surface-variant font-medium">Vai trò:</span>
-            <select className="bg-transparent font-medium outline-none cursor-pointer border-b border-dashed border-outline-variant pb-0.5" value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
+      <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: "Tìm kiếm tài khoản..." }} onClear={() => { setSearch(''); setStatusFilter(''); setRoleFilter(''); setRegionFilter(''); setPage(1) }} actions={<><button
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-outline-variant rounded bg-white hover:bg-surface-container-low text-on-surface font-medium text-sm shadow-sm"
+            onClick={() => downloadCsv('tai-khoan.csv', filteredAccounts.map(a => ({
+              ID: a.id,
+              'Họ và tên': a.fullName,
+              Email: a.email,
+              'SĐT': a.phone,
+              'Vai trò': a.role,
+              'Trạng thái': a.status,
+              'Ngày tạo': a.createdAt
+            })))}
+          >
+            <span className="material-symbols-outlined text-[16px]">download</span> Xuất danh sách
+          </button><button
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-primary-dark hover:bg-green-900 text-white rounded-[10px] font-medium text-sm shadow-sm transition-colors"
+            onClick={() => setCreateOpen(true)}
+          >
+            Tạo tài khoản mới
+          </button></>}>
+<select aria-label="Lọc vai trò" className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700" value={roleFilter} onChange={e => { setRoleFilter(e.target.value); setPage(1) }}>
               <option value="">Tất cả</option>
               <option value="Admin">Quản trị viên</option>
               <option value="Store Owner">Chủ cửa hàng</option>
@@ -230,27 +215,19 @@ export default function AccountsPage() {
               <option value="Delivery Staff">NV Giao hàng</option>
               <option value="Farmer">Nông dân</option>
             </select>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-on-surface">
-            <span className="text-on-surface-variant font-medium">Khu vực:</span>
-            <select className="bg-transparent font-medium outline-none cursor-pointer border-b border-dashed border-outline-variant pb-0.5" value={regionFilter} onChange={e => setRegionFilter(e.target.value)}>
+<select aria-label="Lọc khu vực" className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700" value={regionFilter} onChange={e => { setRegionFilter(e.target.value); setPage(1) }}>
               <option value="">Tất cả</option>
               <option value="Cần Thơ">Cần Thơ</option>
               <option value="Đồng Tháp">Đồng Tháp</option>
               <option value="Hà Nội">Hà Nội</option>
             </select>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-on-surface">
-            <span className="text-on-surface-variant font-medium">Trạng thái:</span>
-            <select className="bg-transparent font-medium outline-none cursor-pointer border-b border-dashed border-outline-variant pb-0.5" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+<select aria-label="Lọc trạng thái" className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}>
               <option value="">Tất cả</option>
               <option value="Đang hoạt động">Đang hoạt động</option>
               <option value="Chờ duyệt">Chờ duyệt</option>
               <option value="Bị khóa">Bị khóa</option>
             </select>
-          </div>
-        </div>
-      </div>
+      </ListToolbar>
 
       {/* FLAT DATA TABLE */}
       <div className="border border-outline-variant/60 rounded-xl overflow-hidden bg-white shadow-sm mt-2 flex flex-col">

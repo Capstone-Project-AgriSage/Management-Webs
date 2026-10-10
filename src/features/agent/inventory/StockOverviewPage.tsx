@@ -1,32 +1,27 @@
+import ListToolbar from '@/components/ui/ListToolbar'
 import PermissionAction from '@/components/auth/PermissionAction'
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { AlertTriangle, CalendarClock, ChevronDown, ChevronRight, ChevronsRight, History, PackageX, Wallet } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { useDebouncedValue } from '@/hooks/useDebouncedValue'
-import { describeError } from '@/api/client'
-import {
-  stockApi,
-  type AdjustmentReason,
-  type AlertType,
-  type InventoryAlertItem,
-  type StockLot,
-  type StockSummaryItem,
-} from '@/api/stockApi'
-import { inventoryReportsApi } from '@/api/inventoryReportsApi'
-import type { Paged } from '@/api/types'
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { AlertTriangle, CalendarClock, ChevronDown, ChevronRight, ChevronsRight, History, PackageX, Wallet } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { describeError } from '@/api/client';
+import { stockApi, type AdjustmentReason, type AlertType, type InventoryAlertItem, type StockLot, type StockSummaryItem } from '@/api/stockApi';
+import { inventoryReportsApi } from '@/api/inventoryReportsApi';
+import type { Paged } from '@/api/types';
 import KpiCard from '@/components/ui/KpiCard'
-import SearchInput from '@/components/ui/SearchInput'
+
 import FilterSelect from '@/components/ui/FilterSelect'
 import Pagination from '@/components/ui/Pagination'
+import ServerPagination from '@/components/ui/ServerPagination'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import ConfirmModal from '@/components/ui/ConfirmModal'
-import { formatVnd } from '@/utils/money'
-import { formatDate, formatQty, formatQtyUnit, unitLabel } from '@/utils/units'
-import StockAdjustmentModal, { type AdjustmentTarget } from './StockAdjustmentModal'
-import { ALERT_BADGE_CLASS, ALERT_LABEL, LOT_STATUS_BADGE_CLASS, LOT_STATUS_LABEL, daysUntil, expiryLabel } from './stockLabels'
+import { formatVnd } from '@/utils/money';
+import { formatDate, formatQty, formatQtyUnit, unitLabel } from '@/utils/units';
+import StockAdjustmentModal, { type AdjustmentTarget } from './StockAdjustmentModal';
+import { ALERT_BADGE_CLASS, ALERT_LABEL, LOT_STATUS_BADGE_CLASS, LOT_STATUS_LABEL, daysUntil, expiryLabel } from './stockLabels';
 
 const PAGE_SIZE = 10
 const EXPIRING_DAYS_DEFAULT = 30
@@ -43,11 +38,15 @@ interface LotsState {
   loading: boolean
   items: StockLot[]
   error: string | null
+  page: number
+  totalCount: number
+  totalPages: number
 }
 
 type Tab = 'summary' | 'alerts'
 
 export default function StockOverviewPage() {
+  const lotsRequest = useRef<Record<string, number>>({})
   usePageHeader({ title: 'Tồn kho', subtitle: 'Tồn theo sản phẩm và lô, hạn dùng, cảnh báo và điều chỉnh kho' })
   const { showToast } = useToast()
 
@@ -136,15 +135,20 @@ export default function StockOverviewPage() {
   }, [alertType, withinDays, alertPage, showToast])
 
   const loadLots = useCallback(
-    async (storeProductId: string) => {
-      setLotsByProduct((prev) => ({ ...prev, [storeProductId]: { loading: true, items: prev[storeProductId]?.items ?? [], error: null } }))
+    async (storeProductId: string, page = 1) => {
+      const request = (lotsRequest.current[storeProductId] ?? 0) + 1
+      lotsRequest.current[storeProductId] = request
+      setLotsByProduct((prev) => ({ ...prev, [storeProductId]: { loading: true, items: prev[storeProductId]?.items ?? [], error: null, page, totalCount: prev[storeProductId]?.totalCount ?? 0, totalPages: prev[storeProductId]?.totalPages ?? 1 } }))
       try {
-        const res = await stockApi.getLots({ storeProductId, pageSize: 100 })
-        setLotsByProduct((prev) => ({ ...prev, [storeProductId]: { loading: false, items: res.items, error: null } }))
+        let res = await stockApi.getLots({ storeProductId, page, pageSize: PAGE_SIZE })
+        if (page > Math.max(1, res.totalPages)) res = await stockApi.getLots({ storeProductId, page: Math.max(1, res.totalPages), pageSize: PAGE_SIZE })
+        if (lotsRequest.current[storeProductId] !== request) return
+        setLotsByProduct((prev) => ({ ...prev, [storeProductId]: { loading: false, items: res.items, error: null, page: res.page, totalCount: res.totalCount, totalPages: Math.max(1, res.totalPages) } }))
       } catch (err) {
+        if (lotsRequest.current[storeProductId] !== request) return
         setLotsByProduct((prev) => ({
           ...prev,
-          [storeProductId]: { loading: false, items: [], error: describeError(err, 'Không tải được các lô') },
+          [storeProductId]: { loading: false, items: [], error: describeError(err, 'Không tải được các lô'), page, totalCount: 0, totalPages: 1 },
         }))
       }
     },
@@ -356,17 +360,11 @@ export default function StockOverviewPage() {
 
       {tab === 'summary' ? (
         <section aria-label="Tồn theo sản phẩm">
-          <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-center gap-3">
-            <SearchInput
-              value={search}
-              onChange={(v) => {
+          <ListToolbar search={{ value: search, onChange: (v) => {
                 setSearch(v)
                 setPage(1)
-              }}
-              placeholder="Tìm theo mã hoặc tên sản phẩm..."
-              className="relative flex-1 min-w-[240px]"
-            />
-            <FilterSelect
+              }, placeholder: "Tìm theo mã hoặc tên sản phẩm..." }} onClear={() => { setSearch(''); setStockFilter(''); setLowOnly(false); setPage(1) }}>
+<FilterSelect
               value={stockFilter}
               onChange={(v) => {
                 setStockFilter(v)
@@ -378,7 +376,7 @@ export default function StockOverviewPage() {
                 { value: 'false', label: 'Hết hàng' },
               ]}
             />
-            <label className="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer select-none">
+<label className="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer select-none">
               <input
                 type="checkbox"
                 className="w-4 h-4 accent-emerald-600"
@@ -390,7 +388,7 @@ export default function StockOverviewPage() {
               />
               Chỉ sắp hết hàng
             </label>
-          </div>
+      </ListToolbar>
 
           <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col mt-4">
             <div className="overflow-x-auto">
@@ -563,6 +561,7 @@ export default function StockOverviewPage() {
                                     </tbody>
                                   </table>
                                 </div>
+                                {lots && !lots.loading && !lots.error && <ServerPagination page={lots.page} pageSize={PAGE_SIZE} totalCount={lots.totalCount} totalPages={lots.totalPages} unitLabel="lô hàng" onPageChange={page => { void loadLots(item.storeProductId, page) }} />}
                               </td>
                             </tr>
                           ) : null}
@@ -585,14 +584,11 @@ export default function StockOverviewPage() {
               setPage={setPage}
             />
           </div>
-          <p className="text-xs text-slate-500 mt-2">
-            Số lượng tính theo đơn vị cơ sở của từng sản phẩm. "Bán được" chỉ gồm lô đang bán, chưa hết hạn và chưa bị giữ cho đơn hàng.
-          </p>
         </section>
       ) : (
         <section aria-label="Cảnh báo kho">
-          <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-center gap-3">
-            <FilterSelect
+          <ListToolbar  onClear={() => { setAlertType(''); setWithinDays(String(EXPIRING_DAYS_DEFAULT)); setAlertPage(1) }}>
+<FilterSelect
               value={alertType}
               onChange={(v) => {
                 setAlertType(v as '' | AlertType)
@@ -605,7 +601,7 @@ export default function StockOverviewPage() {
                 { value: 'LOW_STOCK', label: ALERT_LABEL.LOW_STOCK },
               ]}
             />
-            {alertType !== 'EXPIRED' && alertType !== 'LOW_STOCK' ? (
+{alertType !== 'EXPIRED' && alertType !== 'LOW_STOCK' ? (
               <FilterSelect
                 value={withinDays}
                 onChange={(v) => {
@@ -621,7 +617,7 @@ export default function StockOverviewPage() {
                 ]}
               />
             ) : null}
-          </div>
+      </ListToolbar>
 
           <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col mt-4">
             <div className="overflow-x-auto">
@@ -702,9 +698,6 @@ export default function StockOverviewPage() {
               setPage={setAlertPage}
             />
           </div>
-          <p className="text-xs text-slate-500 mt-2">
-            Hàng hết hạn vẫn còn trong kho cần được xuất hủy bằng phiếu điều chỉnh (lý do "Hết hạn dùng"). Lô quá hạn không bán được dù chưa đánh dấu.
-          </p>
         </section>
       )}
 

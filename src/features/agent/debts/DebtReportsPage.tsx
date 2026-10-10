@@ -1,11 +1,15 @@
-import { useState, useEffect } from 'react'
-import { RefreshCw } from 'lucide-react'
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { reportsApi, type DebtAgingReport, type DebtCollectionReport, type DebtByGroupReport } from '@/api/reportsApi'
-import { formatVnd, formatVndShort } from '@/utils/money'
-import { formatDay, todayVn } from '@/utils/creditLabels'
+import { usePagination } from '@/hooks/usePagination'
+import Pagination from '@/components/ui/Pagination'
+import ListToolbar from '@/components/ui/ListToolbar'
+import FilterSelect from '@/components/ui/FilterSelect'
+import { useState, useEffect } from 'react';
+import { RefreshCw } from 'lucide-react';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+import { reportsApi, type DebtAgingReport, type DebtCollectionReport, type DebtByGroupReport } from '@/api/reportsApi';
+import { formatVnd, formatVndShort } from '@/utils/money';
+import { formatDay, todayVn } from '@/utils/creditLabels';
 
 // Chart chrome per the data-viz spec: one series → one hue (validated), thin bars with a 4px data-end,
 // hairline solid grid, axis text in muted ink, hover tooltip; every chart has a table beside it.
@@ -123,6 +127,10 @@ export default function DebtReportsPage() {
   const inputClassName = 'h-9 px-2 rounded-lg border border-slate-200 bg-white text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500'
   const th = 'py-2.5 px-3 text-[12px] font-bold text-slate-900'
 
+  const collectionPages = usePagination(collectionChart, 10, [fromDate, toDate, groupBy].join('|'))
+  const agingPages = usePagination(aging?.rows ?? [], 10, [asOf].join('|'))
+  const groupPages = usePagination(byGroup?.rows ?? [])
+
   return (
     <div className="max-w-[1400px] mx-auto flex flex-col gap-space-lg p-space-md">
       {/* Aging */}
@@ -130,18 +138,18 @@ export default function DebtReportsPage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h3 className="text-base font-bold text-slate-900">Tuổi nợ</h3>
-            <p className="text-xs text-slate-500">Dư nợ chia theo số ngày quá hạn, tính tại một ngày (chọn ngày cũ để xem lại quá khứ).</p>
           </div>
-          <div className="flex items-center gap-2">
+        </div>
+        <ListToolbar onClear={() => setAsOf(todayVn())} actions={
+            <button type="button" className="h-10 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-1.5" onClick={fetchData} disabled={loading}>
+              <RefreshCw size={14} /> Làm mới
+            </button>
+        }>
             <label className="text-sm text-slate-600 flex items-center gap-2">
               Tại ngày
               <input type="date" className={inputClassName} value={asOf} max={todayVn()} onChange={(e) => setAsOf(e.target.value)} />
             </label>
-            <button type="button" className="h-9 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-1.5" onClick={fetchData} disabled={loading}>
-              <RefreshCw size={14} /> Làm mới
-            </button>
-          </div>
-        </div>
+        </ListToolbar>
         <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6">
           <div className="space-y-5">
             <Stat title="Tổng dư nợ" value={formatVnd(totals?.total ?? 0)} />
@@ -164,7 +172,7 @@ export default function DebtReportsPage() {
               {(aging?.rows ?? []).length === 0 ? (
                 <tr><td colSpan={7} className="py-6 text-center text-slate-500">{loading ? 'Đang tải...' : 'Không có dư nợ tại ngày này.'}</td></tr>
               ) : (
-                aging!.rows.map((r) => (
+                agingPages.paginated.map((r) => (
                   <tr key={r.farmerProfileId}>
                     <td className="py-2 px-3">
                       <div className="font-medium">{r.fullName ?? '--'}</div>
@@ -182,6 +190,7 @@ export default function DebtReportsPage() {
             </tbody>
           </table>
         </div>
+          <Pagination {...agingPages} unitLabel="khách hàng" />
       </section>
 
       {/* Collections */}
@@ -189,28 +198,14 @@ export default function DebtReportsPage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h3 className="text-base font-bold text-slate-900">Thu hồi nợ</h3>
-            <p className="text-xs text-slate-500">Tiền trả nợ đã ghi vào sổ trong khoảng thời gian (tối đa 366 ngày).</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+        </div>
+        <ListToolbar onClear={() => { setFromDate(firstOfMonth()); setToDate(todayVn()); setGroupBy('DAY') }}>
             <input type="date" aria-label="Từ ngày" className={inputClassName} value={fromDate} max={toDate} onChange={(e) => setFromDate(e.target.value)} />
             <span className="text-slate-400">→</span>
             <input type="date" aria-label="Đến ngày" className={inputClassName} value={toDate} min={fromDate} max={todayVn()} onChange={(e) => setToDate(e.target.value)} />
-            <div className="flex bg-slate-100 p-1 rounded-lg text-sm" role="tablist">
-              {GROUP_BY_OPTIONS.map((o) => (
-                <button
-                  key={o.value}
-                  type="button"
-                  role="tab"
-                  aria-selected={groupBy === o.value}
-                  className={`px-2.5 py-1 rounded-md font-medium ${groupBy === o.value ? 'bg-white shadow text-slate-900' : 'text-slate-600'}`}
-                  onClick={() => setGroupBy(o.value)}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+            <FilterSelect label="Gộp báo cáo thu nợ theo" value={groupBy} onChange={value => setGroupBy(value as 'DAY' | 'METHOD' | 'STAFF')} options={[...GROUP_BY_OPTIONS]} />
+        </ListToolbar>
         <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6">
           <div className="space-y-5">
             <Stat title="Đã thu" value={formatVnd(collections?.totals.collectedAmount ?? 0)} sub={`${collections?.totals.paymentCount ?? 0} lần thu`} />
@@ -226,7 +221,7 @@ export default function DebtReportsPage() {
             <summary className="cursor-pointer text-emerald-700 font-medium">Xem bảng số liệu</summary>
             <table className="w-full mt-2">
               <tbody className="divide-y divide-slate-50">
-                {collectionChart.map((r, i) => (
+                {collectionPages.paginated.map((r, i) => (
                   <tr key={i}>
                     <td className="py-1.5 px-3">{r.name}</td>
                     <td className="py-1.5 px-3 text-right text-slate-500">{r.count} lần</td>
@@ -235,6 +230,7 @@ export default function DebtReportsPage() {
                 ))}
               </tbody>
             </table>
+            <Pagination {...collectionPages} unitLabel="nhóm" />
           </details>
         )}
       </section>
@@ -243,7 +239,6 @@ export default function DebtReportsPage() {
       <section className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-3">
         <div>
           <h3 className="text-base font-bold text-slate-900">Nợ theo nhóm khách</h3>
-          <p className="text-xs text-slate-500">Mức sử dụng = dư nợ ÷ tổng hạn mức của nhóm.</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[720px]">
@@ -261,7 +256,7 @@ export default function DebtReportsPage() {
               {(byGroup?.rows ?? []).length === 0 ? (
                 <tr><td colSpan={6} className="py-6 text-center text-slate-500">{loading ? 'Đang tải...' : 'Chưa có dữ liệu.'}</td></tr>
               ) : (
-                byGroup!.rows.map((r, i) => {
+                groupPages.paginated.map((r, i) => {
                   const pct = r.utilization == null ? null : Math.round(r.utilization * 100)
                   return (
                     <tr key={r.customerGroup?.id ?? i}>
@@ -289,6 +284,7 @@ export default function DebtReportsPage() {
             </tbody>
           </table>
         </div>
+          <Pagination {...groupPages} unitLabel="nhóm khách" />
       </section>
     </div>
   )

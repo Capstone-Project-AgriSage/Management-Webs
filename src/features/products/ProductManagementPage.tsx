@@ -1,32 +1,25 @@
-import { usePermission } from '@/context/PermissionContext'
+import ListToolbar from '@/components/ui/ListToolbar'
+import { LIST_PAGE_SIZE } from '@/utils/pagination';
+import { usePermission } from '@/context/PermissionContext';
 import PermissionAction from '@/components/auth/PermissionAction'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { PackagePlus, RefreshCw } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { describeError } from '@/api/client'
-import {
-  productsApi,
-  type BrandOption,
-  type CategoryOption,
-  type ProductListItem,
-  type ProductResponse,
-  type ProductStatus,
-  type StoreProductRow,
-  type UnitOption,
-} from '@/api/productsApi'
-import type { Paged } from '@/api/types'
-import SearchInput from '@/components/ui/SearchInput'
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { PackagePlus } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+import { describeError } from '@/api/client';
+import { productsApi, type BrandOption, type CategoryOption, type ProductListItem, type ProductResponse, type ProductStatus, type StoreProductRow, type UnitOption } from '@/api/productsApi';
+import type { Paged } from '@/api/types';
+
 import FilterSelect from '@/components/ui/FilterSelect'
 import ServerPagination from '@/components/ui/ServerPagination'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
-import RowActionsMenu, { type RowAction } from '@/components/ui/RowActionsMenu'
+import RowActionsMenu, { type RowAction } from '@/components/ui/RowActionsMenu';
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import ProductThumb from '@/components/ui/ProductThumb'
 import ProductFormModal from './ProductFormModal'
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 
-const PAGE_SIZE = 15
+const PAGE_SIZE = LIST_PAGE_SIZE
 
 const STATUS_LABEL: Record<ProductStatus, string> = {
   ACTIVE: 'Đang kinh doanh',
@@ -221,19 +214,12 @@ export default function ProductManagementPage() {
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
       <BusinessReportCards kind="valuation" searchResult={{ count: data?.totalCount ?? 0, unit: 'sản phẩm' }} />
-      <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col xl:flex-row xl:items-center gap-3">
-        <SearchInput value={search} onChange={setSearch} placeholder="Tìm theo tên hoặc mã SKU..." className="relative flex-1 min-w-[220px]" />
-        <div className="flex flex-wrap items-center gap-2">
-          <FilterSelect value={categoryId} onChange={setCategoryId} options={categoryOptions} className="relative min-w-[170px]" />
-          <FilterSelect value={status} onChange={setStatus} options={selectedStatuses} className="relative min-w-[170px]" />
-          <button type="button" className="h-9 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-1.5" onClick={resetFilters}>
-            <RefreshCw size={14} /> Xóa lọc
-          </button>
-          <PermissionAction codes={["PRODUCTS.CREATE"]}><button type="button" className="h-9 px-4 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 flex items-center gap-1.5" onClick={() => setForm({ product: null })}>
+      <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: "Tìm theo tên hoặc mã SKU..." }} onClear={resetFilters} actions={<><PermissionAction codes={["PRODUCTS.CREATE"]}><button type="button" className="h-9 px-4 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 flex items-center gap-1.5" onClick={() => setForm({ product: null })}>
             <PackagePlus size={16} /> Thêm sản phẩm
-          </button></PermissionAction>
-        </div>
-      </div>
+          </button></PermissionAction></>}>
+<FilterSelect value={categoryId} onChange={setCategoryId} options={categoryOptions} className="relative min-w-[170px]" />
+<FilterSelect value={status} onChange={setStatus} options={selectedStatuses} className="relative min-w-[170px]" />
+      </ListToolbar>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col">
         <div className="overflow-x-auto">

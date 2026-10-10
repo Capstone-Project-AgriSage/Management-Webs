@@ -1,18 +1,18 @@
 import PermissionAction from '@/components/auth/PermissionAction'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Search } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { useDebouncedValue } from '@/hooks/useDebouncedValue'
-import { describeError } from '@/api/client'
-import { returnsApi, type CreateReturnItem, type OrderSearchItem, type Returnable, type ReturnReason, type ReturnableSource } from '@/api/returnsApi'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Search } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { describeError } from '@/api/client';
+import { returnsApi, type CreateReturnItem, type OrderSearchItem, type Returnable, type ReturnReason, type ReturnableSource } from '@/api/returnsApi';
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
-import { formatVnd } from '@/utils/money'
-import { formatDate, formatDateTime, formatQty, unitLabel } from '@/utils/units'
-import { RETURN_REASONS } from './returnLabels'
-import { loadOrderInfo, type OrderItemInfo } from './returnContext'
-import { useReturnsBase } from './returnPaths'
+import { formatVnd } from '@/utils/money';
+import { formatDate, formatDateTime, formatQty, unitLabel } from '@/utils/units';
+import { RETURN_REASONS } from './returnLabels';
+import { loadOrderInfo, type OrderItemInfo } from './returnContext';
+import { useReturnsBase } from './returnPaths';
 
 const cellInput =
   'h-9 px-2 rounded-md border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-slate-50'
@@ -189,7 +189,6 @@ export default function ReturnCreatePage() {
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-slate-500">Chỉ đơn đã giao hàng (hoàn tất hoặc giao một phần) mới có hàng để trả.</p>
         </div>
       ) : (
         <>
@@ -337,7 +336,6 @@ export default function ReturnCreatePage() {
                 {busy ? 'Đang tạo...' : 'Gửi yêu cầu trả hàng'}
               </button></PermissionAction>
             </div>
-            <p className="text-xs text-slate-500">Yêu cầu cần Chủ cửa hàng duyệt. Số tiền hoàn thực tế được tính khi kiểm tra hàng: trừ vào công nợ chưa trả của đơn trước, phần còn lại hoàn cho khách.</p>
           </div>
         </>
       )}

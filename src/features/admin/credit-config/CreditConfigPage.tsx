@@ -1,22 +1,27 @@
+import ListToolbar from '@/components/ui/ListToolbar'
+import FilterSelect from '@/components/ui/FilterSelect'
+import ServerPagination from '@/components/ui/ServerPagination'
+import { LIST_PAGE_SIZE } from '@/utils/pagination';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import PermissionAction from '@/components/auth/PermissionAction'
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 import ModalLayout from '@/components/ui/ModalLayout'
-import { useState, useEffect } from 'react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { creditTiersApi, type CreditTierResponse } from '@/api/creditTiersApi'
-import { customerGroupsApi, type CustomerGroupResponse, type GroupPriceListLink } from '@/api/customerGroupsApi'
-import { priceListsApi } from '@/api/priceListsApi'
-import { useToast } from '@/context/ToastContext'
-import { usePermission } from '@/context/PermissionContext'
+import { useState, useEffect, useRef } from 'react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { creditTiersApi, type CreditTierResponse } from '@/api/creditTiersApi';
+import { customerGroupsApi, type CustomerGroupResponse, type GroupPriceListLink } from '@/api/customerGroupsApi';
+import { priceListsApi } from '@/api/priceListsApi';
+import { useToast } from '@/context/ToastContext';
+import { usePermission } from '@/context/PermissionContext';
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import StatusBadge from '@/components/ui/StatusBadge'
 import DetailModal from '@/components/ui/DetailModal'
-import PromptModal, { type PromptField } from '@/components/ui/PromptModal'
-import RowActionsMenu, { type RowAction } from '@/components/ui/RowActionsMenu'
+import PromptModal, { type PromptField } from '@/components/ui/PromptModal';
+import RowActionsMenu, { type RowAction } from '@/components/ui/RowActionsMenu';
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
-import { formatVnd } from '@/utils/money'
-import { formatDay } from '@/utils/creditLabels'
+import { formatVnd } from '@/utils/money';
+import { formatDay } from '@/utils/creditLabels';
 
 type Tab = 'GROUPS' | 'TIERS'
 
@@ -58,6 +63,15 @@ export default function CreditConfigPage() {
   const canReadPrices = has('PRICING.READ')
 
   const [activeTab, setActiveTab] = useState<Tab>('GROUPS')
+  const [page, setPage] = useState(1)
+  const [search, setSearch] = useState('')
+  const [activeFilter, setActiveFilter] = useState('')
+  const [groupCount, setGroupCount] = useState(0)
+  const [nextGroupPriority, setNextGroupPriority] = useState(1)
+  const [tierCount, setTierCount] = useState(0)
+  const [tierOptions, setTierOptions] = useState<CreditTierResponse[]>([])
+  const debouncedSearch = useDebouncedValue(search.trim())
+  const requestVersion = useRef(0)
   const [tiers, setTiers] = useState<CreditTierResponse[]>([])
   const [groups, setGroups] = useState<CustomerGroupResponse[]>([])
   const [priceLists, setPriceLists] = useState<{ id: string; code: string; name: string; status: string }[]>([])
@@ -78,27 +92,44 @@ export default function CreditConfigPage() {
   }, [activeTab, canReadGroups, canReadTiers])
 
   const load = async () => {
+    const request = ++requestVersion.current
     setLoading(true)
     try {
       const [t, g, p] = await Promise.all([
-        canReadTiers ? creditTiersApi.getCreditTiers({ pageSize: 100 }) : Promise.resolve({ items: [] }),
-        canReadGroups ? customerGroupsApi.getCustomerGroups({ pageSize: 100 }) : Promise.resolve({ items: [] }),
-        canReadPrices ? priceListsApi.getPriceLists().catch(() => ({ items: [] })) : Promise.resolve({ items: [] }),
+        canReadTiers ? creditTiersApi.getCreditTiers({ page, pageSize: LIST_PAGE_SIZE, search: debouncedSearch || undefined, isActive: activeFilter ? activeFilter === 'true' : undefined }) : Promise.resolve({ items: [], totalCount: 0 }),
+        canReadGroups ? customerGroupsApi.getCustomerGroups({ page, pageSize: LIST_PAGE_SIZE, search: debouncedSearch || undefined, isActive: activeFilter ? activeFilter === 'true' : undefined }) : Promise.resolve({ items: [], totalCount: 0 }),
+        canReadPrices ? priceListsApi.getPriceLists({ pageSize: 100 }).catch(() => ({ items: [] })) : Promise.resolve({ items: [] }),
       ])
-      setTiers(t.items || [])
-      setGroups((g.items || []).sort((a, b) => a.priority - b.priority))
+      if (request !== requestVersion.current) return
+      const lastPage = Math.max(1, Math.ceil((activeTab === 'GROUPS' ? g.totalCount : t.totalCount) / LIST_PAGE_SIZE))
+      if (page > lastPage) { setPage(lastPage); return }
+      setTiers(t.items || []); setTierCount(t.totalCount)
+      setGroups((g.items || []).sort((a, b) => a.priority - b.priority)); setGroupCount(g.totalCount)
       setPriceLists(((p.items || []) as { id: string; code: string; name: string; status: string }[]).filter((x) => x.status !== 'INACTIVE'))
     } catch (err) {
-      showToast(errorText(err, 'Không tải được cấu hình'), 'error')
+      if (request === requestVersion.current) showToast(errorText(err, 'Không tải được cấu hình'), 'error')
     } finally {
-      setLoading(false)
+      if (request === requestVersion.current) setLoading(false)
     }
   }
 
   useEffect(() => {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canReadGroups, canReadTiers, canReadPrices])
+  }, [canReadGroups, canReadTiers, canReadPrices, page, debouncedSearch, activeFilter, activeTab])
+
+  useEffect(() => {
+    let active = true
+    if (canReadTiers) creditTiersApi.getCreditTiers({ pageSize: 100, isActive: true }).then(result => { if (active) setTierOptions(result.items) }).catch(() => {})
+    else setTierOptions([])
+    return () => { active = false }
+  }, [canReadTiers, tiers])
+
+  useEffect(() => {
+    let active = true
+    if (canReadGroups) customerGroupsApi.getCustomerGroups({ pageSize: 1 }).then(result => { if (active) setNextGroupPriority(result.totalCount + 1) }).catch(() => {})
+    return () => { active = false }
+  }, [canReadGroups, groupCount])
 
   const run = async (action: () => Promise<unknown>, success: string) => {
     setBusy(true)
@@ -170,7 +201,7 @@ export default function CreditConfigPage() {
         return {
           title: 'Thêm nhóm khách hàng',
           fields: groupFields(true),
-          initialValues: { priority: String(groups.length + 1) },
+          initialValues: { priority: String(nextGroupPriority) },
           submitLabel: 'Tạo nhóm',
           onSubmit: (v: Record<string, string>) =>
             run(() => customerGroupsApi.createCustomerGroup({ code: v.code.trim(), name: v.name.trim(), priority: Number(v.priority), description: v.description || null }), 'Đã tạo nhóm khách'),
@@ -206,7 +237,7 @@ export default function CreditConfigPage() {
               key: 'creditTierId',
               label: 'Hạng tín dụng (bỏ trống = gỡ liên kết)',
               type: 'select',
-              options: tiers.filter((t) => t.isActive).map((t) => ({ value: t.id, label: `${t.name} — ${formatVnd(t.defaultCreditLimit)}, ${t.defaultPaymentTermDays} ngày` })),
+              options: tierOptions.filter((t) => t.isActive).map((t) => ({ value: t.id, label: `${t.name} — ${formatVnd(t.defaultCreditLimit)}, ${t.defaultPaymentTermDays} ngày` })),
             },
           ] as PromptField[],
           initialValues: { creditTierId: prompt.group.defaultCreditTier?.id ?? '' },
@@ -261,6 +292,8 @@ export default function CreditConfigPage() {
   })()
 
   const th = 'p-3 text-sm font-semibold text-on-surface'
+  const activeCount = activeTab === 'GROUPS' ? groupCount : tierCount
+  const unitLabel = activeTab === 'GROUPS' ? 'nhóm khách' : 'hạng tín dụng'
 
   return (
     <div className="max-w-[1200px] mx-auto flex flex-col gap-space-lg pb-10">
@@ -273,21 +306,24 @@ export default function CreditConfigPage() {
             aria-selected={activeTab === tab}
             className={`px-6 py-2 rounded-md font-label-md text-label-md transition-colors ${activeTab === tab ? 'bg-white shadow text-primary font-bold' : 'text-on-surface-variant hover:text-on-surface'
               }`}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => { setActiveTab(tab); setPage(1) }}
           >
             {tab === 'GROUPS' ? 'Nhóm khách hàng' : 'Hạng tín dụng'}
           </button>
         ))}
       </div>
 
+      <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: activeTab === 'GROUPS' ? 'Tìm mã hoặc tên nhóm khách...' : 'Tìm mã hoặc tên hạng tín dụng...' }} onClear={() => { setSearch(''); setActiveFilter(''); setPage(1) }} actions={<>{activeTab === 'GROUPS' ? (<PermissionAction codes={['CUSTOMER_GROUPS.CREATE']}><Button icon="add" onClick={() => setPrompt({ kind: 'group-create' })}>Thêm nhóm</Button></PermissionAction>) : (<PermissionAction codes={['CREDIT_TIERS.CREATE']}><Button icon="add" onClick={() => setPrompt({ kind: 'tier-create' })}>Thêm hạng</Button></PermissionAction>)}</>}>
+        <FilterSelect label="Lọc trạng thái" value={activeFilter} onChange={value => { setActiveFilter(value); setPage(1) }} options={[{ value: '', label: 'Mọi trạng thái' }, { value: 'true', label: 'Đang hoạt động' }, { value: 'false', label: 'Ngừng hoạt động' }]} />
+      </ListToolbar>
+
       {activeTab === 'GROUPS' && canReadGroups && (
         <Card className="flex flex-col gap-space-md">
           <div className="flex justify-between items-center gap-3">
             <div>
               <h3 className="font-title-md text-title-md font-bold">Nhóm khách hàng</h3>
-              <p className="text-xs text-on-surface-variant mt-0.5">Khách chưa được xếp nhóm thuộc nhóm mặc định. Luôn có đúng một nhóm mặc định.</p>
             </div>
-            <PermissionAction codes={['CUSTOMER_GROUPS.CREATE']}><Button icon="add" onClick={() => setPrompt({ kind: 'group-create' })}>Thêm nhóm</Button></PermissionAction>
+
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[900px]">
@@ -333,6 +369,7 @@ export default function CreditConfigPage() {
               </tbody>
             </table>
           </div>
+        <ServerPagination page={page} pageSize={LIST_PAGE_SIZE} totalCount={activeCount} totalPages={Math.max(1, Math.ceil(activeCount / LIST_PAGE_SIZE))} unitLabel={unitLabel} onPageChange={setPage} />
         </Card>
       )}
 
@@ -341,9 +378,8 @@ export default function CreditConfigPage() {
           <div className="flex justify-between items-center gap-3">
             <div>
               <h3 className="font-title-md text-title-md font-bold">Hạng tín dụng</h3>
-              <p className="text-xs text-on-surface-variant mt-0.5">Thời hạn nợ của hạng là kỳ hạn trả của khoản nợ bán chịu.</p>
             </div>
-            <PermissionAction codes={['CREDIT_TIERS.CREATE']}><Button icon="add" onClick={() => setPrompt({ kind: 'tier-create' })}>Thêm hạng</Button></PermissionAction>
+
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[900px]">
@@ -386,6 +422,7 @@ export default function CreditConfigPage() {
               </tbody>
             </table>
           </div>
+        <ServerPagination page={page} pageSize={LIST_PAGE_SIZE} totalCount={activeCount} totalPages={Math.max(1, Math.ceil(activeCount / LIST_PAGE_SIZE))} unitLabel={unitLabel} onPageChange={setPage} />
         </Card>
       )}
 

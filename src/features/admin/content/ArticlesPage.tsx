@@ -1,15 +1,17 @@
-import { useState } from 'react'
+import ListToolbar from '@/components/ui/ListToolbar'
+import { LIST_PAGE_SIZE } from '@/utils/pagination';
+import { useState } from 'react';
 
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
 import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import Pagination from '@/components/ui/Pagination'
 import FormModal from '@/components/ui/FormModal'
-import { useFilteredList } from '@/hooks/useFilteredList'
-import { usePagination } from '@/hooks/usePagination'
-import { useFormValues } from '@/hooks/useFormValues'
+import { useFilteredList } from '@/hooks/useFilteredList';
+import { usePagination } from '@/hooks/usePagination';
+import { useFormValues } from '@/hooks/useFormValues';
 import * as contentService from '@/features/admin/services/contentService'
-import type { Article, ArticleStatus, ArticleActionId } from '@/types'
+import type { Article, ArticleStatus, ArticleActionId } from '@/types';
 
 export default function ArticlesPage() {
   usePageHeader({ title: 'Bài viết & Tin tức', subtitle: 'Quản lý nội dung truyền thông và kỹ thuật' })
@@ -50,7 +52,7 @@ export default function ArticlesPage() {
     goPrev,
     goNext,
     setPage,
-  } = usePagination(filteredArticles, 12)
+  } = usePagination(filteredArticles, LIST_PAGE_SIZE, [search, statusFilter].join('|'))
 
   const handleAction = (article: Article, actionId: ArticleActionId) => {
     switch (actionId) {
@@ -96,17 +98,8 @@ export default function ArticlesPage() {
       <div className="flex items-start justify-between mt-2">
         <div className="flex flex-col gap-1.5">
           <h1 className="text-3xl font-semibold text-on-surface">Quản lý Bài viết</h1>
-          <p className="text-on-surface-variant text-sm">Hệ thống CMS quản lý cẩm nang, tin tức và cảnh báo cho người dùng.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button 
-            className="flex items-center gap-1.5 px-4 py-1.5 bg-[#171833] hover:bg-black text-white rounded font-medium text-sm shadow-sm transition-colors"
-            onClick={() => setCreateOpen(true)}
-          >
-            <span className="material-symbols-outlined text-[18px]">edit_document</span>
-            Viết bài mới
-          </button>
-        </div>
+
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
@@ -128,29 +121,20 @@ export default function ArticlesPage() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between mt-2">
-        <div className="relative w-[320px]">
-          <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[18px] text-outline">search</span>
-          <input 
-            type="text" 
-            placeholder="Tìm kiếm tiêu đề hoặc tác giả..." 
-            className="w-full h-9 pl-9 pr-3 text-sm bg-white border border-outline-variant rounded focus:border-primary focus:ring-1 focus:ring-primary text-on-surface shadow-sm"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-sm text-on-surface">
-            <span className="text-on-surface-variant font-medium">Trạng thái:</span>
-            <select className="bg-transparent font-medium outline-none cursor-pointer border-b border-dashed border-outline-variant pb-0.5" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+      <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: "Tìm kiếm tiêu đề hoặc tác giả..." }} onClear={() => { setSearch(''); setStatusFilter(''); setPage(1) }} actions={<><button
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-primary-dark hover:bg-green-900 text-white rounded-[10px] font-medium text-sm shadow-sm transition-colors"
+            onClick={() => setCreateOpen(true)}
+          >
+            <span className="material-symbols-outlined text-[18px]">edit_document</span>
+            Viết bài mới
+          </button></>}>
+<select aria-label="Lọc trạng thái" className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}>
               <option value="">Tất cả</option>
               <option value="Đã xuất bản">Đã xuất bản</option>
               <option value="Chờ duyệt">Chờ duyệt</option>
               <option value="Bản nháp">Bản nháp</option>
             </select>
-          </div>
-        </div>
-      </div>
+      </ListToolbar>
 
       <div className="border border-outline-variant/60 rounded-xl overflow-hidden bg-white shadow-sm mt-2 flex flex-col">
         <div className="overflow-x-auto">
@@ -180,7 +164,7 @@ export default function ArticlesPage() {
                           <span className="material-symbols-outlined text-[24px]">image</span>
                         </div>
                         <div className="min-w-0">
-                          <div 
+                          <div
                             className="font-medium text-on-surface text-sm truncate hover:underline cursor-pointer"
                             onClick={() => handleAction(article, 'edit')}
                           >
@@ -206,8 +190,8 @@ export default function ArticlesPage() {
                     </td>
                     <td className="py-3 px-4 border-r border-outline-variant/40 text-center">
                       <span className={`px-2.5 py-1 rounded-md border text-[11px] tracking-wider font-semibold shadow-sm whitespace-nowrap uppercase
-                        ${article.status === 'Đã xuất bản' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' : 
-                          article.status === 'Chờ duyệt' ? 'border-amber-400 text-amber-700 bg-amber-50' : 
+                        ${article.status === 'Đã xuất bản' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' :
+                          article.status === 'Chờ duyệt' ? 'border-amber-400 text-amber-700 bg-amber-50' :
                           'border-outline-variant/60 text-on-surface-variant bg-surface-container-lowest'
                         }
                       `}>
@@ -228,7 +212,7 @@ export default function ArticlesPage() {
             </tbody>
           </table>
         </div>
-        
+
         <div className="px-4 py-3 bg-white flex items-center justify-between text-sm text-on-surface-variant border-t border-outline-variant/40">
           <div>Hiển thị {startIndex + 1} đến {endIndex} của {totalCount} bài viết</div>
           <Pagination page={page} totalPages={totalPages} startIndex={startIndex} endIndex={endIndex} totalCount={totalCount} unitLabel="" goPrev={goPrev} goNext={goNext} setPage={setPage} />

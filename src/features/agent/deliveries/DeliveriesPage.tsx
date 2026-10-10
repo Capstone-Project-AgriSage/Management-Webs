@@ -1,18 +1,21 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react';
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
-import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { ChevronRight, RefreshCw, MapPin, UserCircle } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { deliveriesApi, type DeliveryListItem, type DeliveryStatus } from '@/api/deliveriesApi'
-import { useToast } from '@/context/ToastContext'
-import SearchInput from '@/components/ui/SearchInput'
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { ChevronRight, MapPin, UserCircle } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { deliveriesApi, type DeliveryListItem, type DeliveryStatus } from '@/api/deliveriesApi';
+import { useToast } from '@/context/ToastContext';
+
 import FilterSelect from '@/components/ui/FilterSelect'
-import Pagination from '@/components/ui/Pagination'
+
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import StatusBadge from '@/components/ui/StatusBadge'
-import RowActionsMenu, { type RowAction } from '@/components/ui/RowActionsMenu'
-import { usePagination } from '@/hooks/usePagination'
-import { DELIVERY_STATUS_LABEL, formatDate, labelOf } from '@/utils/deliveryLabels'
+import RowActionsMenu, { type RowAction } from '@/components/ui/RowActionsMenu';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { LIST_PAGE_SIZE } from '@/utils/pagination';
+import ServerPagination from '@/components/ui/ServerPagination'
+import ListToolbar from '@/components/ui/ListToolbar'
+import { DELIVERY_STATUS_LABEL, formatDate, labelOf } from '@/utils/deliveryLabels';
 import DeliveryDetailModal from './DeliveryDetailModal'
 
 const ALL_STATUSES = 'Tất cả trạng thái'
@@ -32,6 +35,13 @@ export default function DeliveriesPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState(ALL_STATUSES)
+  const [page, setPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [statusCounts, setStatusCounts] = useState<Partial<Record<DeliveryStatus, number>>>({})
+  const [countRevision, setCountRevision] = useState(0)
+  const debouncedSearch = useDebouncedValue(search.trim())
+  const statusValue = STATUS_OPTIONS.find(opt => opt.label === statusFilter)?.value ?? 'ALL'
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   // "?open=<deliveryId>" (from the order's delivery list) opens that delivery's detail, where the driver is assigned.
@@ -44,43 +54,40 @@ export default function DeliveriesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openId])
 
-  const fetchDeliveries = async () => {
+  const fetchDeliveries = useCallback(async (signal?: AbortSignal) => {
+    setLoading(true)
     try {
-      setLoading(true)
-      const data = await deliveriesApi.getDeliveries({ pageSize: 100 })
-      setDeliveries(data.items || [])
+      const data = await deliveriesApi.getDeliveries({ page, pageSize: LIST_PAGE_SIZE, search: debouncedSearch || undefined, status: statusValue === 'ALL' ? undefined : statusValue }, signal)
+      if (signal?.aborted) return
+      const lastPage = Math.max(1, data.totalPages)
+      if (page > lastPage) { setPage(lastPage); return }
+      setDeliveries(data.items || []); setTotalCount(data.totalCount); setTotalPages(lastPage)
     } catch {
-      showToast('Lỗi tải danh sách giao hàng', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
+      if (!signal?.aborted) { setDeliveries([]); showToast('Lỗi tải danh sách giao hàng', 'error') }
+    } finally { if (!signal?.aborted) setLoading(false) }
+  }, [page, debouncedSearch, statusValue, showToast])
 
   useEffect(() => {
-    fetchDeliveries()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    const controller = new AbortController()
+    void fetchDeliveries(controller.signal)
+    return () => controller.abort()
+  }, [fetchDeliveries])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const statuses: DeliveryStatus[] = ['DRAFT', 'ASSIGNED', 'OUT_FOR_DELIVERY', 'RETRY_PENDING', 'PARTIALLY_DELIVERED', 'DELIVERED']
+    Promise.all(statuses.map(async status => {
+      const result = await deliveriesApi.getDeliveries({ status, page: 1, pageSize: 1 }, controller.signal)
+      return [status, result.totalCount] as const
+    })).then(entries => { if (!controller.signal.aborted) setStatusCounts(Object.fromEntries(entries)) }).catch(() => {})
+    return () => controller.abort()
+  }, [countRevision])
 
   const buildActions = (delivery: DeliveryListItem): RowAction[] => [
     { label: 'Xem chi tiết', icon: 'visibility', onClick: () => setSelectedId(delivery.id) },
   ]
 
-  const keyword = search.trim().toLowerCase()
-  const statusValue = STATUS_OPTIONS.find((opt) => opt.label === statusFilter)?.value ?? 'ALL'
-  const filtered = deliveries.filter((d) => {
-    const matchesSearch =
-      !keyword ||
-      d.deliveryNumber.toLowerCase().includes(keyword) ||
-      d.orderNumber.toLowerCase().includes(keyword) ||
-      (d.recipientName || '').toLowerCase().includes(keyword) ||
-      (d.province || '').toLowerCase().includes(keyword) ||
-      (d.assignedTo?.fullName || '').toLowerCase().includes(keyword)
-    return matchesSearch && (statusValue === 'ALL' || d.status === statusValue)
-  })
-
-  const { page, totalPages, paginated, startIndex, endIndex, totalCount, goPrev, goNext, setPage } = usePagination(filtered, 10)
-
-  const count = (...statuses: DeliveryStatus[]) => deliveries.filter((d) => statuses.includes(d.status)).length
+  const count = (...statuses: DeliveryStatus[]) => statuses.every(status => statusCounts[status] !== undefined) ? statuses.reduce((sum, status) => sum + statusCounts[status]!, 0) : '—'
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
@@ -105,24 +112,9 @@ export default function DeliveriesPage() {
       </div>
 
       <BusinessReportCards kind="deliveries" />
-      <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
-        <SearchInput value={search} onChange={setSearch} placeholder="Tìm mã phiếu, mã đơn, người nhận, tài xế..." className="relative flex-1" />
-        <div className="flex flex-wrap items-center gap-2.5">
-          <FilterSelect value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS.map((o) => o.label)} className="relative min-w-[200px]" />
-          <button
-            className="px-3 py-1.5 h-9 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors flex items-center gap-1.5"
-            type="button"
-            onClick={() => {
-              setSearch('')
-              setStatusFilter(ALL_STATUSES)
-              fetchDeliveries()
-            }}
-          >
-            <RefreshCw size={14} />
-            <span>Làm mới</span>
-          </button>
-        </div>
-      </div>
+      <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: 'Tìm mã phiếu, mã đơn, tên hoặc SĐT người nhận...' }} onClear={() => { setSearch(''); setStatusFilter(ALL_STATUSES); setPage(1) }}>
+        <FilterSelect label="Lọc trạng thái" value={statusFilter} onChange={value => { setStatusFilter(value); setPage(1) }} options={STATUS_OPTIONS.map(option => option.label)} />
+      </ListToolbar>
 
       <div className="bg-white rounded-xl flex flex-col pt-2 shadow-sm border border-slate-100">
         <div className="overflow-x-auto">
@@ -139,11 +131,11 @@ export default function DeliveriesPage() {
             <tbody className="divide-y divide-slate-50 text-sm text-slate-900">
               {loading ? (
                 <EmptyTableRow colSpan={5} message="Đang tải dữ liệu..." />
-              ) : paginated.length === 0 ? (
+              ) : deliveries.length === 0 ? (
                 <EmptyTableRow colSpan={5} message="Không tìm thấy phiếu giao hàng nào." />
               ) : null}
               {!loading &&
-                paginated.map((d) => (
+                deliveries.map((d) => (
                   <tr key={d.id} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => setSelectedId(d.id)}>
                     <td className="py-4 px-4">
                       <div className="font-semibold text-primary">{d.deliveryNumber}</div>
@@ -180,20 +172,10 @@ export default function DeliveriesPage() {
             </tbody>
           </table>
         </div>
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          startIndex={startIndex}
-          endIndex={endIndex}
-          totalCount={totalCount}
-          unitLabel="phiếu"
-          goPrev={goPrev}
-          goNext={goNext}
-          setPage={setPage}
-        />
+        <ServerPagination page={page} pageSize={LIST_PAGE_SIZE} totalPages={totalPages} totalCount={totalCount} unitLabel="phiếu" onPageChange={setPage} />
       </div>
 
-      <DeliveryDetailModal deliveryId={selectedId} onClose={() => setSelectedId(null)} onChanged={fetchDeliveries} />
+      <DeliveryDetailModal deliveryId={selectedId} onClose={() => setSelectedId(null)} onChanged={() => { void fetchDeliveries(); setCountRevision(value => value + 1) }} />
     </div>
   )
 }

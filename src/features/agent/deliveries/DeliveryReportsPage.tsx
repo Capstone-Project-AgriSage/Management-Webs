@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { reportsApi, type DeliveryReportResponse } from '@/api/reportsApi'
 import { useToast } from '@/context/ToastContext'
-import Card from '@/components/ui/Card'
+import ListToolbar from '@/components/ui/ListToolbar'
+import FilterSelect from '@/components/ui/FilterSelect'
 import Button from '@/components/ui/Button'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell, PieChart, Pie } from 'recharts'
 import { isoDateOffsetFromToday } from '@/utils/date'
@@ -29,10 +30,10 @@ export default function DeliveryReportsPage() {
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<DeliveryReportResponse | null>(null)
 
-  const fetchReport = async () => {
+  const fetchReport = async (params = { fromDate, toDate, groupBy }) => {
     try {
       setLoading(true)
-      const res = await reportsApi.getDeliveryReports({ fromDate, toDate, groupBy })
+      const res = await reportsApi.getDeliveryReports(params)
       setData(res)
     } catch (err: any) {
       showToast(err.message || 'Lỗi khi tải báo cáo', 'error')
@@ -64,7 +65,11 @@ export default function DeliveryReportsPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg pb-10">
-      <div className="flex flex-wrap items-end gap-space-md bg-surface-container-low border-none">
+      <ListToolbar onClear={() => {
+        const defaults = { fromDate: isoDateOffsetFromToday(-30), toDate: isoDateOffsetFromToday(0), groupBy: 'STAFF' as const }
+        setFromDate(defaults.fromDate); setToDate(defaults.toDate); setGroupBy(defaults.groupBy)
+        void fetchReport(defaults)
+      }} disabled={loading} actions={<Button icon="search" onClick={() => void fetchReport()} disabled={loading}>Xem báo cáo</Button>}>
         <label className="block flex-1 min-w-[200px]">
           <span className="font-label-md text-label-md text-on-surface-variant block mb-1">Từ ngày</span>
           <input
@@ -83,29 +88,8 @@ export default function DeliveryReportsPage() {
             onChange={(e) => setToDate(e.target.value)}
           />
         </label>
-        <div className="flex-1 min-w-[200px]">
-          <span className="font-label-md text-label-md text-on-surface-variant block mb-1">Gộp theo</span>
-          <div className="flex bg-white border border-outline-variant rounded h-10 overflow-hidden">
-            <button
-              type="button"
-              className={`flex-1 text-sm font-medium transition-colors ${groupBy === 'STAFF' ? 'bg-primary text-on-primary' : 'hover:bg-surface-container-low'}`}
-              onClick={() => setGroupBy('STAFF')}
-            >
-              Tài xế
-            </button>
-            <button
-              type="button"
-              className={`flex-1 text-sm font-medium transition-colors border-l border-outline-variant ${groupBy === 'DAY' ? 'bg-primary text-on-primary' : 'hover:bg-surface-container-low'}`}
-              onClick={() => setGroupBy('DAY')}
-            >
-              Theo Ngày
-            </button>
-          </div>
-        </div>
-        <Button icon="search" onClick={fetchReport} disabled={loading} className="h-10">
-          Xem báo cáo
-        </Button>
-      </div>
+        <FilterSelect label="Gộp báo cáo theo" value={groupBy} onChange={value => setGroupBy(value as 'STAFF' | 'DAY')} options={[{ value: 'STAFF', label: 'Theo tài xế' }, { value: 'DAY', label: 'Theo ngày' }]} />
+      </ListToolbar>
 
       {loading && !data && (
         <div className="py-20 text-center text-on-surface-variant">Đang phân tích dữ liệu...</div>

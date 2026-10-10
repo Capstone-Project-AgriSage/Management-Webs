@@ -1,22 +1,22 @@
 import PermissionAction from '@/components/auth/PermissionAction'
-import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Loader2, ShoppingCart, Trash2 } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { counterSalesApi } from '@/api/counterSalesApi'
-import { ordersApi } from '@/api/ordersApi'
-import type { CounterSalePreviewResponse } from '@/api/types'
-import { formatVnd } from '@/utils/money'
-import { describeApiError, rowErrors } from '@/utils/apiError'
-import { useRoleBase } from '@/utils/creditLabels'
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Loader2, ShoppingCart, Trash2 } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+import { counterSalesApi } from '@/api/counterSalesApi';
+import { ordersApi } from '@/api/ordersApi';
+import type { CounterSalePreviewResponse } from '@/api/types';
+import { formatVnd } from '@/utils/money';
+import { describeApiError, rowErrors } from '@/utils/apiError';
+import { useRoleBase } from '@/utils/creditLabels';
 import ProductSearchPanel from './ProductSearchPanel'
 import CustomerSection from './CustomerSection'
 import CartLines from './CartLines'
 import OrderOptions from './OrderOptions'
 import QuickSaleReview from './QuickSaleReview'
-import SaleResult, { type CounterResult } from './SaleResult'
-import { MAX_LINES, creditRefusal, customerFields, newDraft, toCreateRequest, toItemRequests, validateDraft, type CartItem, type OrderDraft } from './orderDraft'
+import SaleResult, { type CounterResult } from './SaleResult';
+import { MAX_LINES, creditRefusal, customerFields, newDraft, toCreateRequest, toItemRequests, validateDraft, type CartItem, type OrderDraft } from './orderDraft';
 
 /**
  * Counter screen (FE_GUIDE_FLOW_1 §M2/§M3/§M7): pick packagings, choose the customer, then either create an order
@@ -174,7 +174,7 @@ export default function CounterSalesPage() {
   ) : review ? (
     <QuickSaleReview preview={review} selling={busy === 'sell'} onBack={() => setReview(null)} onSell={sell} />
   ) : (
-    <div className="flex flex-col h-full bg-surface-container-lowest z-10">
+    <div className="flex flex-col min-h-0 xl:h-full bg-surface-container-lowest z-10">
       <div className="px-5 py-4 border-b border-outline-variant/40 flex items-center justify-between">
         <h2 className="font-bold text-lg flex items-center gap-2.5 text-on-surface">
           <ShoppingCart className="w-5 h-5 text-emerald-600" /> Đơn đang soạn
@@ -187,7 +187,7 @@ export default function CounterSalesPage() {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-5 space-y-5">
+      <div className="xl:flex-1 xl:min-h-0 xl:overflow-y-auto p-4 sm:p-5 space-y-5">
         <CustomerSection value={draft.customer} onChange={(customer) => setDraft((d) => ({ ...newDraft(), note: d.note, customer, settlementType: 'FULL_PAYMENT' }))} />
         {items.length === 0 ? (
           <div className="py-10 flex flex-col items-center text-center text-on-surface-variant">
@@ -208,7 +208,7 @@ export default function CounterSalesPage() {
         {items.length > 0 && <OrderOptions draft={draft} total={total} errors={fieldErrors} onChange={setDraft} />}
       </div>
 
-      <div className="p-5 border-t border-outline-variant/40 bg-surface-container-lowest space-y-3">
+      <div className="p-4 sm:p-5 shrink-0 border-t border-outline-variant/40 bg-surface-container-lowest space-y-3">
         {previewError && <p className="text-xs text-amber-700">{previewError}</p>}
         {submitError && (
           <p className="text-sm font-medium text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2" role="alert">
@@ -217,7 +217,7 @@ export default function CounterSalesPage() {
         )}
         <div className="flex justify-between items-end">
           <span className="font-bold text-on-surface-variant uppercase text-xs tracking-wider">Tổng cộng {previewing && <Loader2 className="inline w-3.5 h-3.5 animate-spin ml-1" />}</span>
-          <span className="font-bold text-3xl text-emerald-600 tracking-tight tabular-nums">{formatVnd(total)}</span>
+          <span className="font-bold text-2xl sm:text-3xl text-emerald-600 tracking-tight tabular-nums">{formatVnd(total)}</span>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <PermissionAction codes={["ORDERS.CREATE"]}><button
@@ -244,11 +244,11 @@ export default function CounterSalesPage() {
   )
 
   return (
-    <div className="h-[calc(100vh-64px)] flex flex-col md:flex-row bg-surface-container-lowest overflow-hidden -m-space-md">
-      <div className="flex-1 min-w-0 flex flex-col border-r border-outline-variant">
+    <div className="agrisage-counter-sales min-h-0 xl:h-[calc(100dvh-116px)] flex flex-col xl:flex-row bg-surface-container-lowest xl:overflow-hidden rounded-xl border border-outline-variant shadow-sm">
+      <div className="flex-1 min-w-0 min-h-0 flex flex-col border-b xl:border-b-0 xl:border-r border-outline-variant">
         <ProductSearchPanel onAddToCart={addItem} />
       </div>
-      <div className="w-full md:w-[460px] shrink-0 flex flex-col">{right}</div>
+      <div className="w-full xl:w-[420px] 2xl:w-[460px] min-w-0 min-h-0 shrink-0 flex flex-col">{right}</div>
     </div>
   )
 }

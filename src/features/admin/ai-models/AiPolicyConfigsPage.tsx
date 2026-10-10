@@ -1,313 +1,75 @@
-import { useState } from 'react'
-
+import { useEffect, useState } from 'react'
+import { aiModelsApi, listModelOptions, type AiModelRow, type AiPolicyRow } from '@/api/aiModelsApi'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { useToast } from '@/context/ToastContext'
-import RowActionsMenu from '@/components/ui/RowActionsMenu'
-import FormModal from '@/components/ui/FormModal'
-import Pagination from '@/components/ui/Pagination'
-import { useFilteredList } from '@/hooks/useFilteredList'
+import { usePermission } from '@/context/PermissionContext'
 import { usePagination } from '@/hooks/usePagination'
-import { useFormValues } from '@/hooks/useFormValues'
-import * as aiService from '@/features/admin/services/aiService'
-import type { AiPolicy, AiPolicyType, AiPolicyActionId } from '@/types'
+import { describeError } from '@/api/client'
+import ListToolbar from '@/components/ui/ListToolbar'
+import FilterSelect from '@/components/ui/FilterSelect'
+import Pagination from '@/components/ui/Pagination'
+import Modal from '@/components/ui/Modal'
+import EmptyTableRow from '@/components/ui/EmptyTableRow'
 
 export default function AiPolicyConfigsPage() {
-  usePageHeader({ title: 'AI Policy', subtitle: 'Quản lý chính sách và quy tắc ứng xử của AI' })
-
-  const [policyList, setPolicyList] = useState<AiPolicy[]>(() => aiService.listPolicies())
+  usePageHeader({ title: 'Chính sách AI' })
+  const { has } = usePermission()
   const { showToast } = useToast()
-  
-  const [createOpen, setCreateOpen] = useState(false)
-  const createForm = useFormValues({ name: '', type: 'System Prompt', priority: 'Trung bình', content: '', isActive: 'true' })
-
-  const [editTarget, setEditTarget] = useState<AiPolicy | null>(null)
-  const editForm = useFormValues({ name: '', type: 'System Prompt', priority: 'Trung bình', content: '', isActive: 'true' })
-
-  const {
-    search,
-    setSearch,
-    statusFilter,
-    setStatusFilter,
-    filtered: filteredPolicies,
-  } = useFilteredList(
-    policyList,
-    '',
-    (item, keyword, status) =>
-      (!keyword ||
-        item.name.toLowerCase().includes(keyword.toLowerCase()) ||
-        item.content.toLowerCase().includes(keyword.toLowerCase())) &&
-      (!status || item.type === (status as AiPolicyType)),
-    '',
-  )
-
-  const {
-    page,
-    totalPages,
-    paginated: paginatedPolicies,
-    startIndex,
-    endIndex,
-    totalCount,
-    goPrev,
-    goNext,
-    setPage,
-  } = usePagination(filteredPolicies, 12)
-
-  const activeCount = policyList.filter(p => p.isActive).length
-  const inactiveCount = policyList.filter(p => !p.isActive).length
-
-  const handleAction = (policy: AiPolicy, actionId: AiPolicyActionId) => {
-    switch (actionId) {
-      case 'edit':
-        editForm.reset({ name: policy.name, type: policy.type, priority: policy.priority, content: policy.content, isActive: String(policy.isActive) })
-        setEditTarget(policy)
-        break
-      case 'toggle-active':
-        aiService.togglePolicyActive(policy.id)
-        setPolicyList(aiService.listPolicies())
-        showToast(`Đã ${policy.isActive ? 'tắt' : 'bật'} quy tắc ${policy.name}`)
-        break
-      case 'delete':
-        aiService.deletePolicy(policy.id)
-        setPolicyList(aiService.listPolicies())
-        showToast(`Đã xóa quy tắc ${policy.name}`)
-        break
-    }
+  const [models, setModels] = useState<AiModelRow[]>([])
+  const [modelId, setModelId] = useState('')
+  const [search, setSearch] = useState('')
+  const [status, setStatus] = useState('')
+  const [policies, setPolicies] = useState<AiPolicyRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [revision, setRevision] = useState(0)
+  const [busy, setBusy] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [form, setForm] = useState({ version: '', minimumConfidence: '0.8', topK: '3', effectiveFrom: '' })
+  useEffect(() => {
+    const controller = new AbortController()
+    listModelOptions(controller.signal).then(rows => { if (!controller.signal.aborted) { setModels(rows); setModelId(rows[0]?.id ?? ''); setLoading(false) } }).catch(err => { if (!controller.signal.aborted) { setError(describeError(err)); setLoading(false) } })
+    return () => controller.abort()
+  }, [])
+  useEffect(() => {
+    const controller = new AbortController()
+    setPolicies([])
+    if (!modelId) return () => controller.abort()
+    setLoading(true); setError('')
+    aiModelsApi.policies(modelId, controller.signal).then(rows => { if (!controller.signal.aborted) setPolicies(rows) }).catch(err => { if (!controller.signal.aborted) setError(describeError(err)) }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
+    return () => controller.abort()
+  }, [modelId, revision])
+  const keyword = search.trim().toLowerCase()
+  const matches = policies.filter(row => (!keyword || `${row.id} ${row.version}`.toLowerCase().includes(keyword)) && (!status || row.status === status))
+  const pages = usePagination(matches, 10, [modelId, search, status].join('|'))
+  const run = async (operation: () => Promise<unknown>) => {
+    if (busy) return
+    setBusy(true)
+    try { await operation(); setCreating(false); setRevision(value => value + 1); showToast('Đã lưu chính sách AI', 'success') }
+    catch (err) { showToast(describeError(err), 'error') }
+    finally { setBusy(false) }
   }
-
-  const handleCreate = () => {
-    const { name, type, priority, content, isActive } = createForm.values
-    aiService.createPolicy({ 
-      name, 
-      type: type as AiPolicyType, 
-      priority: priority as any, 
-      content, 
-      isActive: isActive === 'true'
-    })
-    setPolicyList(aiService.listPolicies())
-    showToast(`Đã tạo quy tắc AI mới: ${name}`)
-    setCreateOpen(false)
-    createForm.reset({ name: '', type: 'System Prompt', priority: 'Trung bình', content: '', isActive: 'true' })
+  const create = () => {
+    const confidence = Number(form.minimumConfidence), topK = Number(form.topK), effectiveFrom = new Date(form.effectiveFrom)
+    if (!form.version.trim() || !Number.isFinite(confidence) || confidence < 0 || confidence > 1 || !Number.isInteger(topK) || topK < 1 || topK > 10 || !Number.isFinite(effectiveFrom.getTime())) { showToast('Kiểm tra phiên bản, ngưỡng 0–1, Top K từ 1–10 và ngày hiệu lực.', 'warning'); return }
+    if (modelId && has('AI_POLICIES.CREATE')) void run(() => aiModelsApi.createPolicy(modelId, { version: form.version.trim(), minimumConfidence: confidence, topK, effectiveFrom: effectiveFrom.toISOString(), requiresHumanReview: true }))
   }
-
-  const handleEdit = () => {
-    if (!editTarget) return
-    const { name, type, priority, content, isActive } = editForm.values
-    aiService.updatePolicy(editTarget.id, { 
-      name, 
-      type: type as AiPolicyType, 
-      priority: priority as any, 
-      content, 
-      isActive: isActive === 'true'
-    })
-    setPolicyList(aiService.listPolicies())
-    showToast(`Đã cập nhật quy tắc: ${name}`)
-    setEditTarget(null)
-  }
-
-  return (
-    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
-      {/* HEADER ROW */}
-      <div className="flex items-start justify-between mt-2">
-        <div className="flex flex-col gap-1.5">
-          <h1 className="text-3xl font-semibold text-on-surface">Chính sách & Quy tắc AI</h1>
-          <p className="text-on-surface-variant text-sm">Thiết lập giới hạn, danh sách đen và hướng dẫn hành vi (System Prompts) cho Chatbot.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button 
-            className="flex items-center gap-1.5 px-4 py-1.5 bg-[#171833] hover:bg-black text-white rounded font-medium text-sm shadow-sm transition-colors"
-            onClick={() => setCreateOpen(true)}
-          >
-            <span className="material-symbols-outlined text-[18px]">add</span>
-            Thêm quy tắc
-          </button>
-        </div>
-      </div>
-
-      {/* KPI CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
-        <div className="p-4 rounded-xl border border-outline-variant bg-white flex flex-col justify-between h-32 shadow-sm">
-          <span className="text-sm text-on-surface-variant font-medium">Tổng quy tắc</span>
-          <div>
-            <div className="text-3xl font-medium text-on-surface">{policyList.length}</div>
-            <div className="text-xs text-on-surface-variant mt-1">Được định nghĩa trong hệ thống</div>
-          </div>
-        </div>
-        <div className="p-4 rounded-xl border-l-4 border-l-emerald-500 border-y border-r border-outline-variant bg-white flex flex-col justify-between h-32 shadow-sm">
-          <span className="text-sm text-emerald-700 font-medium">Đang áp dụng</span>
-          <div>
-            <div className="text-3xl font-medium text-emerald-700">{activeCount}</div>
-            <div className="text-xs text-emerald-700/80 mt-1">Gửi kèm vào mỗi request của Chatbot</div>
-          </div>
-        </div>
-        <div className="p-4 rounded-xl border-l-4 border-l-outline border-y border-r border-outline-variant bg-white flex flex-col justify-between h-32 shadow-sm">
-          <span className="text-sm text-on-surface-variant font-medium">Đang tắt</span>
-          <div>
-            <div className="text-3xl font-medium text-on-surface-variant">{inactiveCount}</div>
-            <div className="text-xs text-on-surface-variant mt-1">Quy tắc tạm thời bị vô hiệu hóa</div>
-          </div>
-        </div>
-      </div>
-
-      {/* TOOLBAR */}
-      <div className="flex items-center justify-between mt-2">
-        <div className="relative w-[320px]">
-          <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[18px] text-outline">search</span>
-          <input 
-            type="text" 
-            placeholder="Tìm kiếm quy tắc hoặc nội dung..." 
-            className="w-full h-9 pl-9 pr-3 text-sm bg-white border border-outline-variant rounded focus:border-primary focus:ring-1 focus:ring-primary text-on-surface shadow-sm"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-sm text-on-surface">
-            <span className="text-on-surface-variant font-medium">Loại quy tắc:</span>
-            <select className="bg-transparent font-medium outline-none cursor-pointer border-b border-dashed border-outline-variant pb-0.5" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-              <option value="">Tất cả</option>
-              <option value="System Prompt">System Prompt</option>
-              <option value="Danh sách đen (Blocklist)">Danh sách đen (Blocklist)</option>
-              <option value="Luật Fallback">Luật Fallback</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* FLAT DATA TABLE */}
-      <div className="border border-outline-variant/60 rounded-xl overflow-hidden bg-white shadow-sm mt-2 flex flex-col">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[1000px]">
-            <thead>
-              <tr className="bg-surface-container-lowest border-b border-outline-variant/60">
-                <th className="py-3 px-4 font-semibold text-[13px] text-on-surface border-r border-outline-variant/40 w-[20%] uppercase tracking-wider">Tên quy tắc</th>
-                <th className="py-3 px-4 font-semibold text-[13px] text-on-surface border-r border-outline-variant/40 w-[15%] uppercase tracking-wider text-center">Phân loại</th>
-                <th className="py-3 px-4 font-semibold text-[13px] text-on-surface border-r border-outline-variant/40 w-[40%] uppercase tracking-wider">Nội dung cấu hình</th>
-                <th className="py-3 px-4 font-semibold text-[13px] text-on-surface border-r border-outline-variant/40 text-center w-[10%] uppercase tracking-wider">Ưu tiên</th>
-                <th className="py-3 px-4 font-semibold text-[13px] text-on-surface border-r border-outline-variant/40 text-center w-[10%] uppercase tracking-wider">Trạng thái</th>
-                <th className="py-3 px-2 w-[5%]"></th>
-              </tr>
-            </thead>
-            <tbody className="text-sm divide-y divide-outline-variant/60">
-              {filteredPolicies.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-on-surface-variant">Không tìm thấy quy tắc AI phù hợp.</td>
-                </tr>
-              )}
-              {paginatedPolicies.map((policy) => {
-                return (
-                  <tr key={policy.id} className={`transition-colors group hover:bg-surface-container-low`}>
-                    <td className="py-3 px-4 border-r border-outline-variant/40">
-                      <div className="flex items-center gap-2">
-                        <div className="min-w-0">
-                          <div className="font-medium text-on-surface text-sm truncate">
-                            {policy.name}
-                          </div>
-                          <div className="text-[11px] text-outline font-mono mt-0.5 truncate">{policy.id} - Cập nhật: {policy.lastUpdated}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 border-r border-outline-variant/40 text-center">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border 
-                        ${policy.type === 'Danh sách đen (Blocklist)' ? 'border-error/40 text-error bg-error/5' : 
-                          policy.type === 'System Prompt' ? 'border-blue-300 text-blue-700 bg-blue-50' : 
-                          'border-amber-300 text-amber-700 bg-amber-50'}
-                      `}>
-                        {policy.type}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 border-r border-outline-variant/40">
-                      <div className="text-sm text-on-surface-variant line-clamp-2 italic font-serif">
-                        "{policy.content}"
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 border-r border-outline-variant/40 text-center">
-                      <span className={`text-xs font-medium 
-                        ${policy.priority === 'Cao' ? 'text-error' : policy.priority === 'Trung bình' ? 'text-blue-600' : 'text-outline'}
-                      `}>
-                        {policy.priority}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 border-r border-outline-variant/40 text-center">
-                      <button 
-                        onClick={() => handleAction(policy, 'toggle-active')}
-                        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
-                          ${policy.isActive ? 'bg-primary' : 'bg-outline-variant'}
-                        `}
-                      >
-                        <span className="sr-only">Toggle</span>
-                        <span
-                          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out
-                            ${policy.isActive ? 'translate-x-2' : '-translate-x-2'}
-                          `}
-                        />
-                      </button>
-                    </td>
-                    <td className="py-3 px-2 text-center">
-                      <div className="flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <RowActionsMenu
-                          triggerLabel="Thao tác"
-                          actions={aiService.policyActionsFor(policy.isActive).map(a => ({ ...a, onClick: () => handleAction(policy, a.id) }))}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-        
-        <div className="px-4 py-3 bg-white flex items-center justify-between text-sm text-on-surface-variant border-t border-outline-variant/40">
-          <div>
-            Hiển thị {startIndex + 1} đến {endIndex} của {totalCount} quy tắc
-          </div>
-          <div className="flex items-center gap-6">
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              startIndex={startIndex}
-              endIndex={endIndex}
-              totalCount={totalCount}
-              unitLabel=""
-              goPrev={goPrev}
-              goNext={goNext}
-              setPage={setPage}
-            />
-          </div>
-        </div>
-      </div>
-
-      <FormModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        title="Thêm quy tắc AI mới"
-        values={createForm.values}
-        onChange={createForm.update}
-        onSubmit={handleCreate}
-        submitLabel="Tạo quy tắc"
-        fields={[
-          { key: 'name', label: 'Tên quy tắc', placeholder: 'Ví dụ: Tone of voice', required: true },
-          { key: 'type', label: 'Phân loại', type: 'select', options: ['System Prompt', 'Danh sách đen (Blocklist)', 'Luật Fallback'] },
-          { key: 'priority', label: 'Mức độ ưu tiên', type: 'select', options: ['Cao', 'Trung bình', 'Thấp'] },
-          { key: 'content', label: 'Nội dung chỉ thị (Prompt/Rule)', placeholder: 'Nhập nội dung hệ thống sẽ gửi cho LLM...', type: 'text', required: true },
-        ]}
-      />
-
-      <FormModal
-        open={editTarget !== null}
-        onClose={() => setEditTarget(null)}
-        title={editTarget ? `Sửa quy tắc: ${editTarget.name}` : 'Sửa quy tắc'}
-        values={editForm.values}
-        onChange={editForm.update}
-        onSubmit={handleEdit}
-        submitLabel="Lưu thay đổi"
-        fields={[
-          { key: 'name', label: 'Tên quy tắc', placeholder: 'Ví dụ: Tone of voice', required: true },
-          { key: 'type', label: 'Phân loại', type: 'select', options: ['System Prompt', 'Danh sách đen (Blocklist)', 'Luật Fallback'] },
-          { key: 'priority', label: 'Mức độ ưu tiên', type: 'select', options: ['Cao', 'Trung bình', 'Thấp'] },
-          { key: 'content', label: 'Nội dung chỉ thị (Prompt/Rule)', placeholder: 'Nhập nội dung hệ thống sẽ gửi cho LLM...', type: 'text', required: true },
-        ]}
-      />
+  return <div className="max-w-[1600px] mx-auto space-y-5">
+    <ListToolbar search={{ value: search, onChange: setSearch, placeholder: 'Tìm theo ID hoặc phiên bản chính sách...' }} onClear={() => { setSearch(''); setStatus(''); setModelId(models[0]?.id ?? ''); pages.setPage(1) }} actions={has('AI_POLICIES.CREATE') && <button disabled={!modelId || loading} onClick={() => { setForm({ version: '', minimumConfidence: '0.8', topK: '3', effectiveFrom: '' }); setCreating(true) }} className="bg-primary-dark text-white px-4 rounded-[10px] font-semibold">+ Tạo chính sách</button>}>
+      <FilterSelect label="Mô hình AI" value={modelId} onChange={setModelId} options={[{ value: '', label: 'Chọn mô hình AI' }, ...models.map(model => ({ value: model.id, label: `${model.name} · ${model.version}` }))]} />
+      <FilterSelect label="Lọc trạng thái" value={status} onChange={setStatus} options={[{ value: '', label: 'Mọi trạng thái' }, { value: 'DRAFT', label: 'Bản nháp' }, { value: 'ACTIVE', label: 'Đang hoạt động' }, { value: 'INACTIVE', label: 'Ngừng hoạt động' }]} />
+    </ListToolbar>
+    {error && <div role="alert" className="text-rose-700">{error}</div>}
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden" aria-busy={loading}>
+      <div className="overflow-x-auto"><table className="w-full min-w-[700px] text-sm text-left"><thead className="bg-slate-50"><tr><th className="p-4">Phiên bản</th><th className="p-4">Ngưỡng tin cậy</th><th className="p-4">Top K</th><th className="p-4">Ngày hiệu lực</th><th className="p-4">Trạng thái</th><th className="p-4">Thao tác</th></tr></thead><tbody className="divide-y divide-slate-100">
+        {pages.paginated.map(policy => <tr key={policy.id}><td className="p-4 font-semibold">{policy.version}</td><td className="p-4">{policy.minimumConfidence}</td><td className="p-4">{policy.topK}</td><td className="p-4">{new Date(policy.effectiveFrom).toLocaleDateString('vi-VN')}</td><td className="p-4">{policy.status}</td><td className="p-4">{has(`AI_POLICIES.${policy.status === 'ACTIVE' ? 'DEACTIVATE' : 'ACTIVATE'}`) && <button disabled={busy} className="text-primary font-semibold" onClick={() => void run(() => aiModelsApi.setPolicyActive(policy.id, policy.status !== 'ACTIVE'))}>{policy.status === 'ACTIVE' ? 'Ngừng hoạt động' : 'Kích hoạt'}</button>}</td></tr>)}
+        {!pages.paginated.length && <EmptyTableRow colSpan={6} message={loading ? 'Đang tải...' : 'Không có chính sách phù hợp.'} />}
+      </tbody></table></div><Pagination {...pages} unitLabel="chính sách" />
     </div>
-  )
+    <Modal open={creating} onClose={() => { if (!busy) setCreating(false) }} title="Tạo chính sách AI">
+      <div className="grid grid-cols-2 gap-4 text-sm">
+        {([{ key: 'version', label: 'Phiên bản', type: 'text' }, { key: 'minimumConfidence', label: 'Ngưỡng tin cậy (0–1)', type: 'number' }, { key: 'topK', label: 'Top K (1–10)', type: 'number' }, { key: 'effectiveFrom', label: 'Hiệu lực từ', type: 'datetime-local' }] as const).map(field => <label key={field.key}>{field.label}<input disabled={busy} className="w-full border rounded-lg p-2 mt-1" type={field.type} step={field.key === 'minimumConfidence' ? '0.01' : undefined} value={form[field.key]} onChange={event => setForm(previous => ({ ...previous, [field.key]: event.target.value }))} /></label>)}
+      </div><button disabled={busy} onClick={create} className="bg-primary-dark text-white px-4 py-2 rounded-lg mt-4">{busy ? 'Đang lưu...' : 'Tạo chính sách'}</button>
+    </Modal>
+  </div>
 }

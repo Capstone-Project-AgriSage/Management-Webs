@@ -1,4 +1,6 @@
 import { api } from './client'
+import { mergePagedLists } from '@/utils/mergePagedLists'
+import { LIST_PAGE_SIZE } from '@/utils/pagination'
 import { buildQuery } from './stockApi'
 import type { Paged, Uuid } from './types'
 
@@ -68,6 +70,13 @@ export const refundsApi = {
   },
 
   /** The newest cancelled and partly cancelled orders: the ones that can have refunds to pay back. */
+  getCancelledOrders: (page: number, search?: string, status?: 'CANCELLED' | 'PARTIALLY_CANCELLED') =>
+    mergePagedLists<CancelledOrderRow>(
+      (status ? [status] : ['CANCELLED', 'PARTIALLY_CANCELLED']).map(status => sourcePage =>
+        api<Paged<CancelledOrderRow>>(`/api/orders${buildQuery({ status, search, page: sourcePage, pageSize: LIST_PAGE_SIZE })}`)),
+      page,
+      (a, b) => b.createdAt.localeCompare(a.createdAt) || b.orderNumber.localeCompare(a.orderNumber),
+    ),
   listCancelledOrders: async (pageSize = 30): Promise<CancelledOrderRow[]> => {
     const [cancelled, partly] = await Promise.all(
       ['CANCELLED', 'PARTIALLY_CANCELLED'].map((status) => api<Paged<CancelledOrderRow>>(`/api/orders${buildQuery({ status, pageSize })}`)),

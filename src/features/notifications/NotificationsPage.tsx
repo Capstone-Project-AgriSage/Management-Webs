@@ -1,8 +1,13 @@
-import { Link } from 'react-router-dom'
-import { useNotificationInbox } from '../../hooks/useNotificationInbox'
-import { notificationFilters, notificationIcon, notificationTarget, notificationTime } from './notificationLabels'
-import { usePageHeader } from '../../context/PageHeaderContext'
-import { useAuth } from '../../context/AuthContext'
+import ListToolbar from '@/components/ui/ListToolbar'
+import FilterSelect from '@/components/ui/FilterSelect'
+import ServerPagination from '@/components/ui/ServerPagination'
+import { LIST_PAGE_SIZE } from '@/utils/pagination';
+import type { NotificationStatus } from '@/api/notificationsApi';
+import { Link } from 'react-router-dom';
+import { useNotificationInbox } from '../../hooks/useNotificationInbox';
+import { notificationFilters, notificationIcon, notificationTarget, notificationTime } from './notificationLabels';
+import { usePageHeader } from '../../context/PageHeaderContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function NotificationsPage() {
   usePageHeader({ title: 'Thông báo của tôi', subtitle: 'Cập nhật đơn hàng, giao hàng, tồn kho và công nợ' })
@@ -10,22 +15,17 @@ export default function NotificationsPage() {
   const inbox = useNotificationInbox()
   return (
     <div className=" text-on-surface">
-      
+
       <div className="max-w-5xl mx-auto space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold">Thông báo</h1>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className="rounded border border-outline-variant/60 px-3 py-2 text-xs hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed" onClick={inbox.reload} disabled={inbox.loading || Boolean(inbox.busy)}>Tải lại</button>
-            <button type="button" className="rounded border border-outline-variant/60 px-3 py-2 text-xs hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed" disabled={inbox.disabled || inbox.unreadCount === 0} onClick={() => void inbox.markAllRead()}>
+
+        </div>
+        <ListToolbar onClear={() => inbox.changeFilter('')} disabled={Boolean(inbox.busy)} actions={<><button type="button" className="rounded border border-outline-variant/60 px-3 py-2 text-xs hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed" onClick={inbox.reload} disabled={inbox.loading || Boolean(inbox.busy)}>Tải lại</button><button type="button" className="rounded border border-outline-variant/60 px-3 py-2 text-xs hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed" disabled={inbox.disabled || inbox.unreadCount === 0} onClick={() => void inbox.markAllRead()}>
               {inbox.busy === 'all' ? 'Đang cập nhật...' : 'Đánh dấu tất cả đã đọc'}
-            </button>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2" aria-label="Lọc thông báo">
-          {notificationFilters.map((filter) => <button key={filter.value} type="button" aria-pressed={inbox.filter === filter.value}
-            disabled={Boolean(inbox.busy)} className={'rounded border border-outline-variant/60 px-3 py-2 text-xs hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed ' + (inbox.filter === filter.value ? 'bg-primary-fixed/30 text-primary font-medium' : 'text-on-surface-variant')}
-            onClick={() => inbox.changeFilter(filter.value)}>{filter.label}</button>)}
-        </div>
+            </button></>}>
+          <FilterSelect label="Lọc thông báo" disabled={Boolean(inbox.busy)} value={inbox.filter} onChange={value => inbox.changeFilter(value as NotificationStatus | '')} options={notificationFilters.map(filter => ({ value: filter.value, label: filter.label }))} />
+        </ListToolbar>
         {inbox.actionError && <div role="alert" className="border border-red-200 bg-red-50 p-3 text-sm text-red-700">{inbox.actionError}</div>}
         <div className="bg-white border border-outline-variant/60 divide-y divide-outline-variant/60" aria-busy={inbox.loading}>
           {inbox.loading ? <p role="status" className="p-10 text-center text-on-surface-variant">Đang tải thông báo...</p>
@@ -54,13 +54,7 @@ export default function NotificationsPage() {
               </article>
             })}
         </div>
-        {!inbox.loading && !inbox.loadError && <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-on-surface-variant">
-          <p>{inbox.totalCount} thông báo · Trang {inbox.page}/{inbox.totalPages}</p>
-          <div className="flex gap-2">
-            <button type="button" className="rounded border border-outline-variant/60 px-3 py-2 text-xs hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed" disabled={inbox.disabled || inbox.page <= 1} onClick={() => inbox.setPage(inbox.page - 1)}>Trang trước</button>
-            <button type="button" className="rounded border border-outline-variant/60 px-3 py-2 text-xs hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed" disabled={inbox.disabled || inbox.page >= inbox.totalPages} onClick={() => inbox.setPage(inbox.page + 1)}>Trang sau</button>
-          </div>
-        </div>}
+        {!inbox.loading && !inbox.loadError && <fieldset disabled={inbox.disabled}><ServerPagination page={inbox.page} pageSize={LIST_PAGE_SIZE} totalCount={inbox.totalCount} totalPages={inbox.totalPages} unitLabel="thông báo" onPageChange={inbox.setPage} /></fieldset>}
       </div>
     </div>
   )

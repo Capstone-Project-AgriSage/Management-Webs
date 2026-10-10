@@ -1,29 +1,30 @@
+import ListToolbar from '@/components/ui/ListToolbar'
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useDebouncedValue } from '@/hooks/useDebouncedValue'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronRight, Download, Plus, Receipt, Clock, PackageCheck, CheckCircle, FilterX, Phone, StickyNote, Pencil, ArrowRight } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ChevronRight, Download, Plus, Receipt, Clock, PackageCheck, CheckCircle, Phone, StickyNote, Pencil, ArrowRight } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
 import RowActionsMenu from '@/components/ui/RowActionsMenu'
-import type { RowAction } from '@/components/ui/RowActionsMenu'
+import type { RowAction } from '@/components/ui/RowActionsMenu';
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import DetailModal from '@/components/ui/DetailModal'
 import Pagination from '@/components/ui/Pagination'
-import SearchInput from '@/components/ui/SearchInput'
+
 import StatusBadge from '@/components/ui/StatusBadge'
-import { formatVnd } from '@/utils/money'
-import { downloadCsv } from '@/utils/csv'
+import { formatVnd } from '@/utils/money';
+import { downloadCsv } from '@/utils/csv';
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
-import { ordersApi } from '@/api/ordersApi'
-import { paymentsApi } from '@/api/paymentsApi'
-import type { OrderResponse, OrderStatus } from '@/api/types'
-import type { OrderPaymentsSummary } from '@/api/paymentsApi'
-import { deliveriesApi, type DeliveryListItem, type DeliveryResponse } from '@/api/deliveriesApi'
-import { ApiError } from '@/api/client'
-import { DELIVERY_STATUS_LABEL, formatDate, labelOf } from '@/utils/deliveryLabels'
-import { useRoleBase } from '@/utils/creditLabels'
+import { ordersApi } from '@/api/ordersApi';
+import { paymentsApi } from '@/api/paymentsApi';
+import type { OrderResponse, OrderStatus } from '@/api/types';
+import type { OrderPaymentsSummary } from '@/api/paymentsApi';
+import { deliveriesApi, type DeliveryListItem, type DeliveryResponse } from '@/api/deliveriesApi';
+import { ApiError } from '@/api/client';
+import { DELIVERY_STATUS_LABEL, formatDate, labelOf } from '@/utils/deliveryLabels';
+import { useRoleBase } from '@/utils/creditLabels';
 import OrderEditModal from './OrderEditModal'
 import ConfirmOrderModal from './ConfirmOrderModal'
 import PickupModal from './PickupModal'
@@ -424,87 +425,58 @@ export default function OrdersPage() {
             <Download size={16} className="text-on-surface-variant" />
             <span>Xuất Excel trang này</span>
           </button>
-          <button
+
+        </div>
+      </div>
+
+      <BusinessReportCards kind="orders" fromDate={fromDate} toDate={toDate} onFromDateChange={value => { setFromDate(value); setPage(1) }} onToDateChange={value => { setToDate(value); setPage(1) }} searchResult={{ count: totalCount, unit: 'đơn hàng' }} />
+
+      <ListToolbar search={{ value: search, onChange: (val) => { setSearch(val); setPage(1) }, placeholder: "Tìm theo mã đơn, SĐT..." }} onClear={handleClearFilters} actions={<><button
             className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary text-on-primary text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors shadow-sm"
             type="button"
             onClick={() => navigate(`${base}/counter-sales`)}
           >
             <Plus size={16} />
             <span>Soạn đơn tại quầy</span>
-          </button>
-        </div>
-      </div>
-
-      <BusinessReportCards kind="orders" fromDate={fromDate} toDate={toDate} onFromDateChange={value => { setFromDate(value); setPage(1) }} onToDateChange={value => { setToDate(value); setPage(1) }} searchResult={{ count: totalCount, unit: 'đơn hàng' }} />
-
-      <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-center justify-between gap-4 mt-4">
-        <div className="flex flex-wrap items-center gap-3 flex-1">
-          <SearchInput
-            value={search}
-            onChange={(val) => { setSearch(val); setPage(1) }}
-            placeholder="Tìm theo mã đơn, SĐT..."
-            className="relative flex-1 min-w-[240px]"
-          />
-          <div className="relative min-w-[180px]">
-            <select
+          </button></>}>
+<select aria-label="Lọc danh sách"
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value as OrderStatus | ''); setPage(1) }}
-              className="w-full h-10 px-3 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none cursor-pointer"
+              className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700"
             >
               {STATUS_OPTIONS.map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
-            <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-              <ChevronRight size={16} className="text-on-surface-variant rotate-90" />
-            </div>
-          </div>
-
-          <div className="relative min-w-[160px]">
-            <select
+<ChevronRight size={16} className="text-on-surface-variant rotate-90" />
+<select aria-label="Lọc danh sách"
               value={sourceFilter}
               onChange={(e) => { setSourceFilter(e.target.value); setPage(1) }}
-              className="w-full h-10 px-3 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none cursor-pointer"
+              className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700"
             >
               {SOURCE_OPTIONS.map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
-            <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-              <ChevronRight size={16} className="text-on-surface-variant rotate-90" />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
-            <input
+<ChevronRight size={16} className="text-on-surface-variant rotate-90" />
+<input
               type="date"
               aria-label="Từ ngày"
               value={fromDate}
               max={toDate || undefined}
               onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
-              className="h-10 px-2 bg-surface-container-lowest border border-outline-variant rounded-lg text-sm"
+              className="h-10 min-w-0 w-36 flex-1 px-2 bg-surface-container-lowest border border-outline-variant rounded-lg text-sm"
             />
-            <span>→</span>
-            <input
+<span>→</span>
+<input
               type="date"
               aria-label="Đến ngày"
               value={toDate}
               min={fromDate || undefined}
               onChange={(e) => { setToDate(e.target.value); setPage(1) }}
-              className="h-10 px-2 bg-surface-container-lowest border border-outline-variant rounded-lg text-sm"
+              className="h-10 min-w-0 w-36 flex-1 px-2 bg-surface-container-lowest border border-outline-variant rounded-lg text-sm"
             />
-          </div>
-
-          <button
-            className="h-9 px-3 text-on-surface-variant hover:text-on-surface text-xs font-medium flex items-center gap-1 transition-colors"
-            onClick={handleClearFilters}
-            type="button"
-          >
-            <FilterX size={14} />
-            <span>Xóa bộ lọc</span>
-          </button>
-        </div>
-      </div>
+      </ListToolbar>
 
       <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col mt-4">
         <div className="overflow-x-auto">

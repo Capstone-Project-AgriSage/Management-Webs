@@ -1,3 +1,4 @@
+import { LIST_PAGE_SIZE } from '@/utils/pagination'
 import { useEffect, useState } from 'react'
 import { notificationsApi, type NotificationItem, type NotificationStatus } from '../api/notificationsApi'
 import { useNotifications } from './useNotifications'
@@ -25,7 +26,7 @@ export function useNotificationInbox() {
 
   useEffect(() => {
     const controller = new AbortController()
-    notificationsApi.list({ page, pageSize: 20, status: filter || undefined }, controller.signal)
+    notificationsApi.list({ page, pageSize: LIST_PAGE_SIZE, status: filter || undefined }, controller.signal)
       .then((response) => {
         if (controller.signal.aborted) return
         const lastPage = Math.max(1, response.totalPages)

@@ -1,13 +1,13 @@
 import ModalLayout from '@/components/ui/ModalLayout'
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
 import FormModal from '@/components/ui/FormModal'
 import DetailModal from '@/components/ui/DetailModal'
-import { downloadCsv } from '@/utils/csv'
+import { downloadCsv } from '@/utils/csv';
 import * as accountsService from '@/features/admin/services/accountsService'
-import { useFormValues } from '@/hooks/useFormValues'
+import { useFormValues } from '@/hooks/useFormValues';
 
 export default function DashboardPage() {
   usePageHeader({ title: '', subtitle: '' })
@@ -68,16 +68,16 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
+    <div className="agrisage-dashboard max-w-[1440px] min-w-0 mx-auto flex flex-col gap-5">
       {/* HEADER ROW */}
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-normal text-on-surface">Tổng quan hệ thống</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-on-surface">Tổng quan hệ thống</h1>
         <p className="text-on-surface-variant text-sm">Chủ nhật, 20 Tháng 9 2026</p>
       </div>
 
       {/* TOOLBAR */}
-      <div className="flex items-center justify-end border-b border-outline-variant/60 pb-2">
-        <div className="flex items-center gap-4 text-xs font-medium text-on-surface-variant">
+      <div className="agrisage-dashboard-toolbar flex flex-wrap items-center justify-end gap-3 border-b border-outline-variant/60 pb-4">
+        <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-on-surface-variant">
           <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">refresh</span> Cập nhật 5 phút trước</span>
           <button
             className="flex items-center gap-1 px-3 py-1.5 border border-outline-variant rounded-md hover:bg-surface-container-lowest bg-white text-on-surface transition-colors"
@@ -94,34 +94,34 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-5">
         {/* TOP CARDS 2x2 */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="p-4 rounded-xl border border-outline-variant bg-white flex flex-col justify-between h-32 shadow-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          <div className="agrisage-dashboard-kpi min-w-0 p-5 rounded-xl border border-outline-variant bg-white flex flex-col justify-between gap-4 min-h-36 shadow-sm">
             <span className="text-sm text-on-surface-variant font-medium">Tổng tài khoản</span>
             <div>
-              <div className="text-3xl font-medium text-on-surface">{totalAccounts}</div>
-              <div className="flex items-center justify-between mt-1">
+              <div className="text-3xl font-bold text-on-surface tabular-nums">{totalAccounts}</div>
+              <div className="flex flex-wrap items-center justify-between gap-2 mt-2">
                 <span className="text-xs text-on-surface-variant">{pendingAccounts > 0 ? `+${pendingAccounts} chờ duyệt tuần này` : 'Không có chờ duyệt'}</span>
                 <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">+8.4%</span>
               </div>
             </div>
           </div>
-          <div className="p-4 rounded-xl border border-outline-variant bg-white flex flex-col justify-between h-32 shadow-sm">
+          <div className="agrisage-dashboard-kpi min-w-0 p-5 rounded-xl border border-outline-variant bg-white flex flex-col justify-between gap-4 min-h-36 shadow-sm">
             <span className="text-sm text-on-surface-variant font-medium">Đại lý hoạt động</span>
             <div>
-              <div className="text-3xl font-medium text-on-surface">{activeAgents}</div>
-              <div className="flex items-center justify-between mt-1">
+              <div className="text-3xl font-bold text-on-surface tabular-nums">{activeAgents}</div>
+              <div className="flex flex-wrap items-center justify-between gap-2 mt-2">
                 <span className="text-xs text-on-surface-variant">Trên toàn hệ thống</span>
                 <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">+3.2%</span>
               </div>
             </div>
           </div>
-          <div className="p-4 rounded-xl border border-outline-variant bg-white flex flex-col justify-between h-32 shadow-sm">
+          <div className="agrisage-dashboard-kpi min-w-0 p-5 rounded-xl border border-outline-variant bg-white flex flex-col justify-between gap-4 min-h-36 shadow-sm">
             <span className="text-sm text-on-surface-variant font-medium">Nông dân</span>
             <div>
-              <div className="text-3xl font-medium text-on-surface">{totalFarmers}</div>
-              <div className="flex items-center justify-between mt-1">
+              <div className="text-3xl font-bold text-on-surface tabular-nums">{totalFarmers}</div>
+              <div className="flex flex-wrap items-center justify-between gap-2 mt-2">
                 <span className="text-xs text-on-surface-variant">Sử dụng ứng dụng</span>
                 <span className="text-xs font-semibold text-error bg-error-container/50 px-1.5 py-0.5 rounded">-1.2%</span>
               </div>
@@ -130,12 +130,12 @@ export default function DashboardPage() {
         </div>
 
         {/* WIDE CARD: ROLE BREAKDOWN & ALERT */}
-        <div className="flex flex-col gap-4">
-          <div className="p-5 rounded-xl border border-outline-variant bg-white shadow-sm flex flex-col h-32">
-            <span className="text-sm text-on-surface-variant font-medium mb-4">Phân bổ tài khoản</span>
-            <div className="flex gap-4 h-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="min-w-0 p-5 rounded-xl border border-outline-variant bg-white shadow-sm flex flex-col">
+            <span className="text-base text-on-surface font-semibold mb-4">Phân bổ tài khoản</span>
+            <div className="flex gap-3 h-full">
               {roleBreakdownDefault.map((r, i) => (
-                <div key={r.label} className={`flex-1 border-r border-dashed border-outline-variant last:border-r-0 ${i > 0 ? 'pl-4' : ''}`}>
+                <div key={r.label} className={`flex-1 min-w-0 border-r border-dashed border-outline-variant last:border-r-0 ${i > 0 ? 'pl-3' : ''}`}>
                   <div className="text-xs text-on-surface-variant mb-1">{r.label} - {r.percent}%</div>
                   <div className="text-lg font-medium text-on-surface mb-2">{r.count}</div>
                   <div className={`h-2.5 rounded-full w-full ${r.color}`}></div>
@@ -143,11 +143,11 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
-          <div className="p-4 rounded-xl border border-outline-variant bg-white shadow-sm flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="min-w-0 p-5 rounded-xl border border-outline-variant bg-white shadow-sm flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-start gap-3 min-w-0">
               <span className="material-symbols-outlined text-primary text-[20px]">trending_up</span>
               <div>
-                <div className="text-sm font-medium text-on-surface">Cập nhật hệ thống</div>
+                <div className="text-base font-semibold text-on-surface">Cập nhật hệ thống</div>
                 <div className="text-xs text-on-surface-variant">Hệ thống AI vừa được huấn luyện thêm 14 tập dữ liệu mới.</div>
               </div>
             </div>
@@ -161,11 +161,11 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
         {/* LINE CHART CARD */}
-        <div className="lg:col-span-3 p-5 rounded-xl border border-outline-variant bg-white shadow-sm flex flex-col h-[280px]">
-          <div className="flex justify-between items-center mb-6">
-            <span className="text-sm font-medium text-on-surface">Tổng quan hoạt động AI</span>
+        <div className="agrisage-chart-card lg:col-span-3 min-w-0 p-5 rounded-xl border border-outline-variant bg-white shadow-sm flex flex-col min-h-[320px]">
+          <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
+            <span className="text-base font-semibold text-on-surface">Tổng quan hoạt động AI</span>
             <select
               className="text-xs border border-outline-variant rounded px-2 py-1 hover:bg-surface-container-low text-on-surface outline-none cursor-pointer bg-white"
               value={chartFilter}
@@ -176,11 +176,11 @@ export default function DashboardPage() {
               <option value="Hàng tháng">Hàng tháng</option>
             </select>
           </div>
-          <div className="flex-1 relative w-full h-full flex items-end">
+          <div className="flex-1 relative w-full min-h-48 mb-5 flex items-end">
             {/* Mock Line Chart */}
             <svg viewBox="0 0 500 100" className="w-full h-full overflow-visible" preserveAspectRatio="none">
               <path d="M0 80 L30 60 L60 70 L90 40 L120 70 L150 60 L180 40 L210 60 L240 40 L270 30 L300 50 L330 20 L360 40 L390 40 L420 60 L450 30 L480 60 L500 40" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              <line x1="0" y1="50" x2="500" y2="40" stroke="#c3dac3" strokeWidth="1" strokeDasharray="4 4" />
+              <line x1="0" y1="50" x2="500" y2="40" stroke="#e2e8f0" strokeWidth="1" strokeDasharray="4 4" />
             </svg>
             <div className="absolute bottom-[-20px] w-full flex justify-between text-[10px] text-outline font-medium">
               <span>Thứ 2</span><span>Thứ 3</span><span>Thứ 4</span><span>Thứ 5</span><span>Thứ 6</span><span>Thứ 7</span><span>CN</span>
@@ -189,9 +189,9 @@ export default function DashboardPage() {
         </div>
 
         {/* DONUT CHART CARD */}
-        <div className="lg:col-span-2 p-5 rounded-xl border border-outline-variant bg-white shadow-sm flex flex-col h-[280px]">
-          <div className="flex justify-between items-center mb-6">
-            <span className="text-sm font-medium text-on-surface">Tỉ lệ tài khoản</span>
+        <div className="agrisage-chart-card lg:col-span-2 min-w-0 p-5 rounded-xl border border-outline-variant bg-white shadow-sm flex flex-col min-h-[320px]">
+          <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
+            <span className="text-base font-semibold text-on-surface">Tỉ lệ tài khoản</span>
             <select
               className="text-xs border border-outline-variant rounded px-2 py-1 hover:bg-surface-container-low text-on-surface outline-none cursor-pointer bg-white max-w-[140px] truncate"
               value={allocationFilter}
@@ -202,11 +202,11 @@ export default function DashboardPage() {
               <option value="Theo trạng thái">Theo trạng thái</option>
             </select>
           </div>
-          <div className="flex-1 flex items-center justify-between">
+          <div className="flex-1 flex flex-col xl:flex-row items-center justify-between gap-5">
             <div className="relative w-36 h-36 shrink-0">
               <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
                 {/* Background circle */}
-                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#daf0da" strokeWidth="4" />
+                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f1f5f9" strokeWidth="4" />
                 {/* Segments */}
                 {activeBreakdown.map((r, i) => {
                   const offset = -currentOffset;
@@ -229,7 +229,7 @@ export default function DashboardPage() {
                 <span className="text-sm font-semibold text-on-surface">{totalAccounts}</span>
               </div>
             </div>
-            <div className="flex flex-col gap-3 min-w-[120px]">
+            <div className="flex flex-col gap-3 w-full xl:w-auto xl:min-w-[120px]">
               {activeBreakdown.map(r => (
                 <div key={r.label}>
                   <div className="flex items-center gap-1.5 text-xs text-on-surface-variant mb-0.5">
@@ -247,26 +247,26 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-5">
 
         {/* RECENT ACCOUNTS (Wallet) */}
-        <div className="p-5 rounded-xl border border-outline-variant bg-white shadow-sm flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-on-surface">Tài khoản mới nhất</h3>
+        <div className="min-w-0 p-5 rounded-xl border border-outline-variant bg-white shadow-sm flex flex-col">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <h3 className="text-base font-semibold text-on-surface">Tài khoản mới nhất</h3>
             <Link to="/accounts" className="text-[11px] text-primary hover:underline font-medium">Xem tất cả</Link>
           </div>
           <div className="flex flex-col gap-4 flex-1">
             {recentAccounts.map(a => (
               <div
                 key={a.id}
-                className="flex items-center justify-between group cursor-pointer"
+                className="flex items-center justify-between gap-4 group cursor-pointer"
                 onClick={() => navigate('/accounts')}
               >
-                <div>
-                  <div className="text-sm font-medium text-on-surface group-hover:text-primary transition-colors">{a.fullName} • {a.phone}</div>
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-on-surface group-hover:text-primary transition-colors break-words">{a.fullName} • {a.phone}</div>
                   <div className="inline-block text-[11px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded mt-0.5">{a.role}</div>
                 </div>
-                <div className="w-8 h-8 rounded border border-outline-variant flex items-center justify-center font-bold text-on-surface-variant group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                <div className="w-10 h-10 shrink-0 rounded-full border border-outline-variant bg-surface-container-low flex items-center justify-center font-bold text-on-surface-variant group-hover:bg-primary/10 group-hover:text-primary transition-colors">
                   {a.fullName.charAt(0)}
                 </div>
               </div>

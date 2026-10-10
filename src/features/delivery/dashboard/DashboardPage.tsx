@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { deliveriesApi, type DeliveryListItem } from '@/api/deliveriesApi'
-import { isToday } from '@/utils/date'
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { deliveriesApi, type DeliveryListItem } from '@/api/deliveriesApi';
+import { isToday } from '@/utils/date';
 
 export default function DashboardPage() {
   usePageHeader({ title: 'Tổng quan', subtitle: 'Trang chủ Nhân viên giao hàng' })
@@ -53,22 +53,22 @@ export default function DashboardPage() {
   }
 
   if (loading) {
-    return <div className="p-4 text-center">Đang tải dữ liệu...</div>
+    return <div className="p-8 rounded-xl border border-outline-variant bg-white text-center text-on-surface-variant">Đang tải dữ liệu...</div>
   }
 
   return (
-    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
+    <div className="agrisage-dashboard max-w-[1440px] min-w-0 mx-auto grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
       {cards.map((card) => (
         <Link
           key={card.label}
           to={card.to}
-          className="bg-white rounded-lg border border-outline-variant/60 shadow-2xs p-space-lg hover:border-primary/60 transition-colors"
+          className="agrisage-dashboard-kpi min-w-0 bg-white rounded-xl border border-outline-variant shadow-sm p-5 hover:border-primary/60 hover:shadow-md transition-all"
         >
           <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${toneClassName[card.tone]}`}>
             <span className="material-symbols-outlined text-[22px]">{card.icon}</span>
           </div>
           <div className="mt-space-md">
-            <span className="font-headline-sm text-headline-sm text-on-surface font-bold tabular-nums">{card.value}</span>
+            <span className="text-3xl text-on-surface font-bold tabular-nums">{card.value}</span>
             <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">{card.label}</p>
           </div>
         </Link>

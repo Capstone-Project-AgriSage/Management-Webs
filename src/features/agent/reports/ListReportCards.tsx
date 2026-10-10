@@ -1,6 +1,6 @@
-import { BarChart3, Receipt } from 'lucide-react'
+import { BarChart3, Receipt } from 'lucide-react';
 import KpiCard from '@/components/ui/KpiCard'
-import { formatVnd } from '@/utils/money'
+import { formatVnd } from '@/utils/money';
 
 interface ListMetric {
   label: string
@@ -30,6 +30,5 @@ export default function ListReportCards({ title, totalCount, unit, loading, erro
       <KpiCard className="border-slate-200 min-h-40" icon={Receipt} iconClassName="bg-primary/10 text-primary" title="Kết quả tìm kiếm" value={display(totalCount ?? 0)} valueSuffix={!loading && !unavailable ? <span className="ml-1 text-xs text-slate-500">{unit}</span> : undefined} subtitle="Tất cả kết quả theo bộ lọc" />
       {metrics.map(metric => <KpiCard key={metric.label} className="border-slate-200 min-h-40" icon={BarChart3} iconClassName="bg-emerald-50 text-emerald-600" title={metric.label} value={display(metric.value, metric.kind === 'money')} subtitle="Trên trang đang hiển thị" />)}
     </div>
-    <p className="text-xs text-slate-500">Kết quả tìm kiếm lấy từ tổng số bản ghi API trả về. Các chỉ số còn lại tính trên trang đang hiển thị.</p>
   </section>
 }

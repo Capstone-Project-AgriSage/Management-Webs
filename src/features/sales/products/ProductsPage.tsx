@@ -1,20 +1,21 @@
+import ListToolbar from '@/components/ui/ListToolbar'
 import ModalLayout from '@/components/ui/ModalLayout'
-import { useState, useEffect } from 'react'
-import { Package, FilterX } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
+import { useState, useEffect } from 'react';
+import { Package, FilterX } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
 import KpiCard from '@/components/ui/KpiCard'
 import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import DetailModal from '@/components/ui/DetailModal'
 import Pagination from '@/components/ui/Pagination'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
-import { packagingLabel } from '@/utils/packaging'
-import SearchInput from '@/components/ui/SearchInput'
+import { packagingLabel } from '@/utils/packaging';
+
 import ProductThumb from '@/components/ui/ProductThumb'
-import { catalogApi } from '@/api/catalogApi'
-import type { CatalogProduct, CatalogProductDetail } from '@/api/types'
-import { formatVnd } from '@/utils/money'
+import { catalogApi } from '@/api/catalogApi';
+import type { CatalogProduct, CatalogProductDetail } from '@/api/types';
+import { formatVnd } from '@/utils/money';
 
 export default function ProductsPage() {
   usePageHeader({
@@ -89,17 +90,16 @@ export default function ProductsPage() {
 
       {/* FILTER TOOLBAR */}
       <section className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3 flex-1">
-          <SearchInput value={search} onChange={setSearch} placeholder="Tìm kiếm theo mã SKU, tên sản phẩm..." className="relative flex-1 min-w-[240px]" />
-          <button
+        <ListToolbar search={{ value: search, onChange: setSearch, placeholder: "Tìm kiếm theo mã SKU, tên sản phẩm..." }} onClear={() => { setSearch(''); setPage(1) }} actions={<><button
             className="h-9 px-3 text-on-surface-variant hover:text-on-surface text-xs font-medium flex items-center gap-1 transition-colors"
             onClick={handleClearFilters}
             type="button"
           >
             <FilterX size={14} />
             <span>Đặt lại tìm kiếm</span>
-          </button>
-        </div>
+          </button></>}>
+
+      </ListToolbar>
       </section>
 
       {/* DATA TABLE */}

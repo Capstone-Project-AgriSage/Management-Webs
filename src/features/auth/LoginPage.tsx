@@ -1,13 +1,13 @@
-import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '@/context/AuthContext'
-import { ROLE_OPTIONS } from '@/config/roles'
-import type { AppRole } from '@/types'
+import { useState, type FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import { ROLE_OPTIONS } from '@/config/roles';
+import type { AppRole } from '@/types';
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
-  
+
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -25,7 +25,7 @@ export default function LoginPage() {
     try {
       await login(identifier, password)
       // Navigation is handled implicitly or you can redirect here:
-      // Note: the login function updates context, but we need to wait for re-render 
+      // Note: the login function updates context, but we need to wait for re-render
       // or rely on a generic redirect. Actually, the RootRedirect in router will handle the slash route.
       navigate('/')
     } catch (err: any) {
@@ -51,7 +51,7 @@ export default function LoginPage() {
               AgriSage
             </span>
             <span className="bg-surface-container text-primary font-label-sm text-label-sm px-1.5 py-0.5 rounded border border-outline-variant">
-              System
+              Quản lý
             </span>
           </div>
         </div>

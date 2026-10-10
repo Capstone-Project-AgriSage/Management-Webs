@@ -1,20 +1,18 @@
-import { useEffect, useRef, useState } from 'react'
-import { Download } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { describeError } from '@/api/client'
-import { catalogApi } from '@/api/catalogApi'
-import {
-  inventoryReportsApi,
-  type InventoryMovementAmount,
-  type InventoryMovementReport,
-  type InventoryValuationReport,
-} from '@/api/inventoryReportsApi'
+import { usePagination } from '@/hooks/usePagination'
+import Pagination from '@/components/ui/Pagination'
+import ListToolbar from '@/components/ui/ListToolbar'
+import { useEffect, useRef, useState } from 'react';
+import { Download } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+import { describeError } from '@/api/client';
+import { catalogApi } from '@/api/catalogApi';
+import { inventoryReportsApi, type InventoryMovementAmount, type InventoryMovementReport, type InventoryValuationReport } from '@/api/inventoryReportsApi';
 import FilterSelect from '@/components/ui/FilterSelect'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
-import { downloadCsv } from '@/utils/csv'
-import { formatVnd } from '@/utils/money'
-import { formatDate, formatQty, monthStartInput, rangeDays, todayInput, unitLabel } from '@/utils/units'
+import { downloadCsv } from '@/utils/csv';
+import { formatVnd } from '@/utils/money';
+import { formatQty, monthStartInput, rangeDays, todayInput, unitLabel } from '@/utils/units';
 
 type Tab = 'movement' | 'valuation'
 
@@ -126,6 +124,9 @@ export default function InventoryReportsPage() {
     )
   }
 
+  const movementPages = usePagination(movement?.rows ?? [], 10, [from, to, categoryId].join('|'))
+  const valuationPages = usePagination(valuation?.rows ?? [], 10, [categoryId].join('|'))
+
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -157,8 +158,8 @@ export default function InventoryReportsPage() {
         </button>
       </div>
 
-      <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-end gap-3">
-        {tab === 'movement' ? (
+      <ListToolbar  onClear={() => { setCategoryId(''); setFrom(monthStartInput()); setTo(todayInput()) }}>
+{tab === 'movement' ? (
           <>
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1" htmlFor="rp-from">
@@ -174,7 +175,7 @@ export default function InventoryReportsPage() {
             </div>
           </>
         ) : null}
-        <div>
+<div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Danh mục</label>
           <FilterSelect
             value={categoryId}
@@ -183,7 +184,7 @@ export default function InventoryReportsPage() {
             options={[{ value: '', label: 'Tất cả danh mục' }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
           />
         </div>
-      </div>
+      </ListToolbar>
 
       {rangeProblem ? (
         <p className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2" role="alert">
@@ -215,7 +216,7 @@ export default function InventoryReportsPage() {
                   <EmptyTableRow colSpan={9} message="Không có dữ liệu trong kỳ này." />
                 ) : (
                   <>
-                    {movement.rows.map((r) => (
+                    {movementPages.paginated.map((r) => (
                       <tr key={r.storeProductId} className="hover:bg-surface-container-low transition-colors">
                         <td className="py-2.5 px-4">
                           <div className="font-medium">{r.productName}</div>
@@ -255,11 +256,7 @@ export default function InventoryReportsPage() {
               </tbody>
             </table>
           </div>
-          {movement ? (
-            <p className="text-xs text-slate-500 px-4 py-2 border-t border-outline-variant">
-              Kỳ {formatDate(movement.fromDate)} - {formatDate(movement.toDate)}. Mỗi ô: số lượng (đơn vị cơ sở) ở trên, giá trị theo giá vốn ở dưới. Bán và điều chỉnh giảm là số âm.
-            </p>
-          ) : null}
+          <Pagination {...movementPages} unitLabel="sản phẩm" />
         </section>
       ) : (
         <section aria-label="Định giá kho" className="flex flex-col gap-4">
@@ -300,7 +297,7 @@ export default function InventoryReportsPage() {
                     <EmptyTableRow colSpan={6} message="Không có sản phẩm nào." />
                   ) : (
                     <>
-                      {valuation.rows.map((r) => (
+                      {valuationPages.paginated.map((r) => (
                         <tr key={r.storeProductId} className="hover:bg-surface-container-low transition-colors">
                           <td className="py-2.5 px-4">
                             <div className="font-medium">{r.productName}</div>
@@ -325,8 +322,8 @@ export default function InventoryReportsPage() {
                 </tbody>
               </table>
             </div>
+          <Pagination {...valuationPages} unitLabel="lô hàng" />
           </div>
-          <p className="text-xs text-slate-500">Tình trạng hiện tại: giá trị = tồn của từng lô nhân giá vốn bình quân của lô. Số tồn tính theo đơn vị cơ sở của sản phẩm.</p>
         </section>
       )}
     </div>

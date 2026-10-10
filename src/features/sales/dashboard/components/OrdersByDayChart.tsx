@@ -1,5 +1,5 @@
-import { BarChart, Bar, ResponsiveContainer, Tooltip } from 'recharts'
-import { ordersByDayData } from '@/features/sales/dashboard/dashboardData'
+import { BarChart, Bar, ResponsiveContainer, Tooltip } from 'recharts';
+import { ordersByDayData } from '@/features/sales/dashboard/dashboardData';
 
 export default function OrdersByDayChart() {
   return (
@@ -7,7 +7,7 @@ export default function OrdersByDayChart() {
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={ordersByDayData}>
           <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-          <Bar dataKey="value" fill="#4caf50" radius={[4, 4, 4, 4]} barSize={8} />
+          <Bar dataKey="value" name="Đơn hàng" fill="#16a34a" radius={[4, 4, 4, 4]} barSize={8} />
         </BarChart>
       </ResponsiveContainer>
     </div>

@@ -1,5 +1,5 @@
-import type { LucideIcon } from 'lucide-react'
-import type { ReactNode } from 'react'
+import type { LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 interface KpiCardProps {
   icon: LucideIcon
@@ -34,23 +34,23 @@ export default function KpiCard({
   children,
 }: KpiCardProps) {
   const iconBox = (
-    <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${iconClassName}`}>
-      <Icon size={18} />
+    <div className={`agrisage-kpi-icon w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconClassName}`}>
+      <Icon size={20} strokeWidth={1.8} aria-hidden="true" />
     </div>
   )
-  const titleEl = <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">{title}</h3>
+  const titleEl = <h3 className="text-sm font-medium leading-5 text-slate-500">{title}</h3>
   const valueEl = (
-    <div className="flex items-baseline gap-2">
-      <span className={`text-2xl font-bold tabular-nums ${valueClassName}`}>{value}</span>
+    <div className="flex min-h-8 min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+      <span className={`text-2xl font-bold tracking-tight tabular-nums [overflow-wrap:anywhere] ${valueClassName}`}>{value}</span>
       {valueSuffix}
     </div>
   )
-  const subtitleEl = subtitle ? <p className={`text-xs mt-1 ${subtitleClassName}`}>{subtitle}</p> : null
+  const subtitleEl = subtitle ? <p className={`text-xs leading-5 mt-2 ${subtitleClassName}`}>{subtitle}</p> : null
 
   if (layout === 'header') {
     return (
-      <div className={`bg-white rounded-xl p-4 shadow-sm border ${className}`}>
-        <div className="flex items-center justify-between mb-1.5">
+      <div className={`agrisage-kpi-card min-w-0 bg-white rounded-xl p-5 shadow-[0_2px_8px_rgba(15,23,42,0.03)] border ${className}`}>
+        <div className="flex items-center justify-between gap-3 mb-3">
           {titleEl}
           {iconBox}
         </div>
@@ -63,8 +63,8 @@ export default function KpiCard({
 
   if (layout === 'side') {
     return (
-      <div className={`bg-white rounded-xl p-4 shadow-sm border flex items-start justify-between ${className}`}>
-        <div className="space-y-1">
+      <div className={`agrisage-kpi-card min-w-0 bg-white rounded-xl p-5 shadow-[0_2px_8px_rgba(15,23,42,0.03)] border flex items-start justify-between gap-3 ${className}`}>
+        <div className="min-w-0 space-y-2">
           {titleEl}
           {valueEl}
           {subtitleEl}
@@ -75,13 +75,13 @@ export default function KpiCard({
   }
 
   return (
-    <div className={`bg-white rounded-xl p-4 shadow-sm border ${className}`}>
+    <div className={`agrisage-kpi-card min-w-0 bg-white rounded-xl p-5 shadow-[0_2px_8px_rgba(15,23,42,0.03)] border ${className}`}>
       {iconBox}
-      <h3 className="text-sm font-semibold text-slate-900 mt-3">{title}</h3>
-      <p className={`text-xl font-bold mt-1 ${valueClassName}`}>
+      <h3 className="text-sm font-medium leading-5 text-slate-500 mt-4">{title}</h3>
+      <div className={`flex min-h-8 min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 text-2xl font-bold tracking-tight tabular-nums mt-2 [overflow-wrap:anywhere] ${valueClassName}`}>
         {value}
         {valueSuffix}
-      </p>
+      </div>
       {subtitleEl}
       {children}
     </div>

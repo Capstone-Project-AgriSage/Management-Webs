@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react'
-import { Outlet } from 'react-router-dom'
-import { PermissionRoute } from '@/components/auth/PermissionRoute'
+import { useEffect, useState } from 'react';
+import { Outlet } from 'react-router-dom';
+import { PermissionRoute } from '@/components/auth/PermissionRoute';
 import Sidebar from '@/components/layout/Sidebar'
 import Topbar from '@/components/layout/Topbar'
-import { PageHeaderProvider } from '@/context/PageHeaderContext'
+import { PageHeaderProvider } from '@/context/PageHeaderContext';
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   useEffect(() => {
     const desktopQuery = window.matchMedia('(min-width: 1024px)')
@@ -20,11 +21,11 @@ export default function DashboardLayout() {
 
   return (
     <PageHeaderProvider>
-      <div className="bg-background text-on-surface antialiased text-body-md min-h-screen flex selection:bg-primary-fixed selection:text-on-primary-fixed">
-        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <div className="lg:pl-nav-sidebar-width flex-1 flex flex-col min-w-0">
-          <Topbar onMenuClick={() => setSidebarOpen(true)} />
-          <main className="flex-1 px-layout-margin-desktop py-3 space-y-3 overflow-x-hidden">
+      <div className={`management-shell bg-background text-on-surface antialiased text-body-md min-h-screen flex selection:bg-primary-fixed selection:text-on-primary-fixed ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(value => !value)} />
+        <div className="management-workspace flex-1 flex flex-col min-w-0">
+          <Topbar onMenuClick={() => setSidebarOpen(true)} menuOpen={sidebarOpen} />
+          <main id="main-content" className="management-content flex-1 space-y-5" tabIndex={-1}>
             <PermissionRoute><Outlet /></PermissionRoute>
           </main>
         </div>

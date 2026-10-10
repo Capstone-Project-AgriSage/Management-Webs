@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 interface DashboardListCardProps<T> {
   title: string
@@ -17,10 +17,10 @@ export default function DashboardListCard<T>({ title, linkTo, items, getKey, ren
   const visibleItems = items.slice(0, maxItems)
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-        <h2 className="text-sm font-bold text-slate-900">{title}</h2>
-        <Link to={linkTo} className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+    <div className="agrisage-dashboard-list min-w-0 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+        <Link to={linkTo} className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 shrink-0">
           Xem tất cả <ArrowRight size={12} />
         </Link>
       </div>

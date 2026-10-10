@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface PaginationProps {
   page: number
@@ -29,23 +29,23 @@ function getPageItems(page: number, totalPages: number): (number | 'start-ellips
 
 export default function Pagination({ page, totalPages, startIndex, endIndex, totalCount, unitLabel, goPrev, goNext, setPage }: PaginationProps) {
   return (
-    <div className="min-w-0 p-3 border-t border-slate-100 flex flex-col sm:flex-row flex-wrap items-center justify-between gap-3 text-[11px] text-slate-500 font-medium select-none bg-white">
+    <div className="agrisage-pagination min-w-0 px-5 py-4 border-t border-slate-200 flex flex-col sm:flex-row flex-wrap items-center justify-between gap-3 text-xs text-slate-500 font-medium select-none bg-white">
       <div className="shrink-0 max-w-full text-center sm:text-left leading-5">
         Hiển thị <span className="font-semibold text-slate-900">{totalCount === 0 ? 0 : startIndex + 1} - {endIndex}</span> trong số{' '}
         <span className="font-semibold text-slate-900">{totalCount}</span> {unitLabel}
       </div>
       <nav aria-label="Phân trang" className="flex max-w-full flex-wrap items-center justify-center gap-1">
         <button
-          className="h-7 shrink-0 px-2 rounded border border-slate-200 bg-white text-slate-500 hover:text-slate-900 hover:bg-slate-50 flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="h-8 shrink-0 px-2.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-green-800 hover:border-green-300 hover:bg-green-50 flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           onClick={goPrev}
           disabled={page <= 1}
           type="button"
         >
           <ChevronLeft size={14} aria-hidden="true" />
-          <span className="sr-only sm:not-sr-only text-[11px] font-semibold">Trước</span>
+          <span className="sr-only sm:not-sr-only text-xs font-semibold">Trước</span>
         </button>
         {getPageItems(page, totalPages).map((pageNumber) => typeof pageNumber === 'string' ? (
-          <span key={pageNumber} aria-hidden="true" className="h-7 w-7 shrink-0 flex items-center justify-center">…</span>
+          <span key={pageNumber} aria-hidden="true" className="h-8 w-8 shrink-0 flex items-center justify-center">…</span>
         ) : (
           <button
             key={pageNumber}
@@ -55,20 +55,20 @@ export default function Pagination({ page, totalPages, startIndex, endIndex, tot
             aria-current={pageNumber === page ? 'page' : undefined}
             className={
               pageNumber === page
-                ? 'h-7 min-w-7 shrink-0 px-1 rounded bg-emerald-600 text-white font-semibold text-[11px] flex items-center justify-center transition-colors'
-                : 'h-7 min-w-7 shrink-0 px-1 rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 text-[11px] flex items-center justify-center transition-colors'
+                ? 'h-8 min-w-8 shrink-0 px-1 rounded-lg border border-primary bg-primary text-white font-semibold text-xs tabular-nums flex items-center justify-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
+                : 'h-8 min-w-8 shrink-0 px-1 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-green-800 hover:border-green-300 hover:bg-green-50 text-xs tabular-nums flex items-center justify-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
             }
           >
             {pageNumber}
           </button>
         ))}
         <button
-          className="h-7 shrink-0 px-2 rounded border border-slate-200 bg-white text-slate-500 hover:text-slate-900 hover:bg-slate-50 flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="h-8 shrink-0 px-2.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-green-800 hover:border-green-300 hover:bg-green-50 flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           onClick={goNext}
           disabled={page >= totalPages}
           type="button"
         >
-          <span className="sr-only sm:not-sr-only text-[11px] font-semibold">Sau</span>
+          <span className="sr-only sm:not-sr-only text-xs font-semibold">Sau</span>
           <ChevronRight size={14} aria-hidden="true" />
         </button>
       </nav>

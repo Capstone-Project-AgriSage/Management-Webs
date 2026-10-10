@@ -1,8 +1,9 @@
-import { canAccessRoute } from '@/components/auth/PermissionRoute'
-import { usePermission } from '@/context/PermissionContext'
-import { NavLink } from 'react-router-dom'
-import { useAuth } from '@/context/AuthContext'
-import type { NavItem } from '@/types'
+import { canAccessRoute } from '@/components/auth/PermissionRoute';
+import { usePermission } from '@/context/PermissionContext';
+import { NavLink } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import type { NavItem } from '@/types';
+import { useEffect, useRef } from 'react';
 
 /* ── Admin-only imports (used for dynamic badges) ── */
 import * as accountsService from '@/features/admin/services/accountsService'
@@ -24,6 +25,8 @@ function badgeClasses(tone: NavItem['badgeTone']) {
 interface SidebarProps {
   open: boolean
   onClose: () => void
+  collapsed: boolean
+  onToggle: () => void
 }
 
 function useNavConfig() {
@@ -133,39 +136,67 @@ function useNavConfig() {
   return { groups: [{ title: '', items }], brandIcon: 'eco', brandLabel: 'Delivery', hubLabel: user.hubName }
 }
 
-export default function Sidebar({ open, onClose }: SidebarProps) {
-  const { user } = useAuth()
+export default function Sidebar({ open, onClose, collapsed, onToggle }: SidebarProps) {
   const { groups: allGroups, brandIcon, brandLabel, hubLabel } = useNavConfig()
   const { has } = usePermission()
   const groups = allGroups.map(group => ({ ...group, items: group.items.filter(item => canAccessRoute(item.to, has)) })).filter(group => group.items.length > 0)
+  const sidebarRef = useRef<HTMLElement>(null)
+  const brandCaption = ({ ADMIN: 'Quản trị', OS: 'Quản lý', Sales: 'Bán hàng', Delivery: 'Giao hàng' } as Record<string, string>)[brandLabel] || brandLabel
+
+  useEffect(() => {
+    if (!open) return
+    const opener = document.activeElement as HTMLElement | null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const controls = () => Array.from(sidebarRef.current?.querySelectorAll<HTMLElement>('a[href], button') || []).filter(element => element.getClientRects().length > 0)
+    controls()[0]?.focus()
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); onClose() }
+      if (event.key !== 'Tab') return
+      const items = controls()
+      const first = items[0]
+      const last = items.at(-1)
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', onKeyDown)
+      opener?.focus()
+    }
+  }, [open, onClose])
 
   return (
     <>
       {open ? (
         <div
-          className="fixed inset-0 bg-inverse-surface/40 z-40 lg:hidden"
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 lg:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
       ) : null}
       <aside
-        className={`sidebar-drawer fixed left-0 top-0 h-screen w-nav-sidebar-width flex flex-col py-space-md px-space-xs z-50 bg-surface-container-lowest border-r border-outline-variant select-none ${
+        ref={sidebarRef}
+        id="management-sidebar"
+        aria-label="Điều hướng quản lý"
+        role={open ? 'dialog' : undefined}
+        aria-modal={open ? true : undefined}
+        className={`management-sidebar sidebar-drawer fixed left-0 top-0 h-dvh flex flex-col z-50 bg-white border-r border-outline-variant select-none ${
           open ? 'is-open' : ''
         }`}
       >
-      <div className="shrink-0">
-        <div className="px-space-md mb-space-md">
+      <div className="sidebar-brand shrink-0">
+        <div>
           <div className="flex items-center gap-space-sm">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-on-primary shadow-sm flex-shrink-0">
+            <div className="sidebar-brand-icon w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-on-primary shadow-sm flex-shrink-0">
               <span className="material-symbols-outlined text-[20px]">{brandIcon}</span>
             </div>
-            <div className="flex-1 min-w-0 flex items-center gap-1.5">
+            <div className="sidebar-expanded flex-1 min-w-0">
               <span className="font-headline-sm text-headline-sm text-primary font-bold tracking-tight">
                 AgriSage
               </span>
-              <span className="bg-surface-container text-primary font-label-sm text-label-sm px-1.5 py-0.5 rounded border border-outline-variant">
-                {brandLabel}
-              </span>
+              <p className="text-xs text-on-surface-variant mt-0.5">{brandCaption}</p>
             </div>
             <button
               type="button"
@@ -177,7 +208,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             </button>
           </div>
           {hubLabel ? (
-            <div className="mt-space-sm p-space-xs bg-surface-container-low rounded border border-outline-variant flex items-center gap-1.5 overflow-hidden">
+            <div className="sidebar-expanded mt-4 p-2.5 bg-surface-container-low rounded-lg border border-outline-variant flex items-center gap-2 overflow-hidden">
               <span className="material-symbols-outlined text-primary text-[16px] flex-shrink-0">warehouse</span>
               <span className="font-label-md text-label-md text-on-surface truncate font-semibold">
                 {hubLabel}
@@ -187,11 +218,11 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         </div>
       </div>
 
-      <nav aria-label="Main Navigation" className="flex-1 min-h-0 overflow-y-auto px-space-xs pb-4">
+      <nav aria-label="Menu chính" className="sidebar-nav flex-1 min-h-0 overflow-y-auto pb-4">
         {groups.map((group, groupIdx) => (
           <div key={groupIdx} className={groupIdx > 0 ? 'mt-4' : ''}>
             {group.title && (
-              <div className="px-space-md py-2 text-[10px] font-bold uppercase tracking-wider text-outline">
+              <div className="sidebar-group-title px-3 pt-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-outline">
                 {group.title}
               </div>
             )}
@@ -202,10 +233,12 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                   to={item.to}
                   end={item.to === '/' || item.to === '/agent/inventory' || item.to === '/agent/debts' || item.to === '/agent/products'}
                   onClick={onClose}
+                  title={collapsed ? item.label : undefined}
+                  aria-label={item.label}
                   className={({ isActive }) =>
-                    `flex items-center justify-between px-space-md py-space-sm font-label-md text-label-md rounded transition-all overflow-hidden ${
+                    `sidebar-link flex items-center justify-between px-3 py-2.5 font-label-md text-label-md rounded-lg transition-colors ${
                       isActive
-                        ? 'bg-surface-container text-primary font-bold border-r-2 border-primary rounded-l'
+                        ? 'is-active bg-primary-container/60 text-on-primary-fixed-variant font-semibold'
                         : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface font-medium'
                     }`
                   }
@@ -221,16 +254,16 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                         >
                           {item.icon}
                         </span>
-                        <span className="truncate">{item.label}</span>
+                        <span className="sidebar-expanded truncate">{item.label}</span>
                       </div>
                       {item.badge ? (
                         <span
-                          className={`ml-2 px-1.5 py-0.5 rounded text-[11px] tabular-nums flex-shrink-0 ${badgeClasses(item.badgeTone)}`}
+                          className={`sidebar-menu-badge ml-2 px-1.5 py-0.5 rounded-md text-[11px] tabular-nums flex-shrink-0 ${badgeClasses(item.badgeTone)}`}
                         >
                           {item.badge}
                         </span>
                       ) : isActive ? (
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                        <span className="sidebar-expanded w-1.5 h-1.5 rounded-full bg-primary"></span>
                       ) : null}
                     </>
                   )}
@@ -241,28 +274,11 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         ))}
       </nav>
 
-      <div className="shrink-0 px-space-xs pt-space-sm border-t border-outline-variant">
-        <div className="p-space-sm bg-surface-container-low rounded border border-outline-variant">
-          <div className="flex items-center gap-2.5">
-            <div className="relative flex-shrink-0">
-              <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-bold text-xs">
-                {user.initials}
-              </div>
-              <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-primary ring-1 ring-white"></span>
-            </div>
-            <div className="overflow-hidden">
-              <h4 className="font-title-md text-title-md text-on-surface truncate">{user.name}</h4>
-              <p className="font-body-sm text-body-sm text-on-surface-variant truncate">{user.roleLabel}</p>
-            </div>
-          </div>
-          <div className="mt-2 pt-2 border-t border-outline-variant/60 flex items-center justify-between text-[11px] text-on-surface-variant font-medium">
-            <span className="flex items-center gap-1 text-primary">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-              Syncing Can Tho Node
-            </span>
-            <span className="tabular-nums text-outline">v2.4.1</span>
-          </div>
-        </div>
+      <div className="sidebar-footer hidden lg:block shrink-0 border-t border-outline-variant">
+        <button type="button" onClick={onToggle} className="sidebar-collapse hidden lg:flex w-full items-center gap-2 rounded-lg px-3 py-2 text-on-surface-variant hover:bg-surface-container-low transition-colors" aria-label={collapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'} aria-expanded={!collapsed} aria-controls="management-sidebar" title={collapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'}>
+          <span className="material-symbols-outlined text-[20px]" aria-hidden="true">{collapsed ? 'keyboard_double_arrow_right' : 'keyboard_double_arrow_left'}</span>
+          <span className="sidebar-expanded text-xs font-medium">Thu gọn thanh điều hướng</span>
+        </button>
       </div>
       </aside>
     </>

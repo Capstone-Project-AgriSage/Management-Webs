@@ -1,20 +1,20 @@
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
-import { useCallback, useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, CheckCircle2, Pencil, Plus, Trash2 } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { describeError } from '@/api/client'
-import { goodsReceiptsApi, type GoodsReceipt, type GoodsReceiptItem } from '@/api/goodsReceiptsApi'
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, CheckCircle2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+import { describeError } from '@/api/client';
+import { goodsReceiptsApi, type GoodsReceipt, type GoodsReceiptItem } from '@/api/goodsReceiptsApi';
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import DetailModal from '@/components/ui/DetailModal'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
-import { formatVnd } from '@/utils/money'
-import { formatDate, formatDateTime, formatQty } from '@/utils/units'
+import { formatVnd } from '@/utils/money';
+import { formatDate, formatDateTime, formatQty } from '@/utils/units';
 import ReceiptLineModal from './ReceiptLineModal'
 import SupplierSelect from './SupplierSelect'
-import { RECEIPTS_BASE, RECEIPT_SOURCE_LABEL, RECEIPT_STATUS_BADGE_CLASS, RECEIPT_STATUS_LABEL, isoToLocalInput, localInputToIso, nowLocalInput } from './receiptLabels'
+import { RECEIPTS_BASE, RECEIPT_SOURCE_LABEL, RECEIPT_STATUS_BADGE_CLASS, RECEIPT_STATUS_LABEL, isoToLocalInput, localInputToIso, nowLocalInput } from './receiptLabels';
 
 type Dialog = null | 'confirm' | 'cancel' | 'delete'
 
@@ -255,7 +255,6 @@ export default function GoodsReceiptDetailPage() {
           </table>
         </div>
       </div>
-      <p className="text-xs text-slate-500">Đơn giá nhập tính theo quy cách đã chọn (bao, thùng...). Giá vốn trong kho là giá vốn bình quân theo từng lô, tính theo đơn vị cơ sở.</p>
 
       {lineEditor !== null ? (
         <ReceiptLineModal

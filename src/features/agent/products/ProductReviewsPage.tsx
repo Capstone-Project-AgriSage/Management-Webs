@@ -1,15 +1,16 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ChevronRight, Star, RefreshCw } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import SearchInput from '@/components/ui/SearchInput'
+import ListToolbar from '@/components/ui/ListToolbar'
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ChevronRight, Star } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+
 import FilterSelect from '@/components/ui/FilterSelect'
 import Pagination from '@/components/ui/Pagination'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import RowActionsMenu from '@/components/ui/RowActionsMenu'
-import { usePagination } from '@/hooks/usePagination'
-import { productReviews as INITIAL_REVIEWS } from '@/features/agent/data/mockReviews'
+import { usePagination } from '@/hooks/usePagination';
+import { productReviews as INITIAL_REVIEWS } from '@/features/agent/data/mockReviews';
 
 const STATUS_OPTIONS = ['Tất cả trạng thái', 'VISIBLE', 'HIDDEN']
 
@@ -27,7 +28,7 @@ export default function ProductReviewsPage() {
     return matchesSearch && matchesStatus
   })
 
-  const { page, totalPages, paginated, startIndex, endIndex, totalCount, goPrev, goNext, setPage } = usePagination(filtered, 10)
+  const { page, totalPages, paginated, startIndex, endIndex, totalCount, goPrev, goNext, setPage } = usePagination(filtered, 10, [search, statusFilter].join('|'))
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
@@ -47,10 +48,9 @@ export default function ProductReviewsPage() {
         </div>
       </div>
 
-      <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
-        <SearchInput value={search} onChange={setSearch} placeholder="Tìm sản phẩm, nông dân..." className="relative flex-1 max-w-md" />
-        <FilterSelect value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} className="relative min-w-[200px]" />
-      </div>
+      <ListToolbar search={{ value: search, onChange: setSearch, placeholder: "Tìm sản phẩm, nông dân..." }} onClear={() => { setSearch(''); setStatusFilter('Tất cả trạng thái'); setPage(1) }}>
+<FilterSelect value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} className="relative min-w-[200px]" />
+      </ListToolbar>
 
       <div className="bg-white rounded-xl flex flex-col pt-2 shadow-sm border border-slate-100">
         <div className="overflow-x-auto">

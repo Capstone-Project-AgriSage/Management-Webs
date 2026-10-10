@@ -1,5 +1,5 @@
 import ModalLayout from '@/components/ui/ModalLayout'
-import type { ReactNode } from 'react'
+import { useId, type ReactNode } from 'react'
 import DetailModal from '@/components/ui/DetailModal'
 
 type SelectOption = string | { value: string; label: string }
@@ -69,6 +69,7 @@ export default function FormModal({
   children,
   widthClassName = 'max-w-2xl',
 }: FormModalProps) {
+  const formId = useId()
   return (
     <DetailModal open={open} onClose={onClose} widthClassName={widthClassName}>
       <ModalLayout footer={!children ? (<div className="flex flex-wrap items-center justify-end gap-3">
@@ -100,13 +101,13 @@ export default function FormModal({
                 ) : (
                   <div key={field.key} className="space-y-1">
                     {field.label ? (
-                      <label className="text-sm font-medium text-slate-700">
+                      <label htmlFor={`${formId}-${field.key}`} className="text-sm font-medium text-slate-700">
                         {field.label}
                         {field.required ? <span className="text-rose-600 ml-0.5">*</span> : null}
                       </label>
                     ) : null}
                     {field.type === 'select' ? (
-                      <select className={inputClassName} value={values[field.key] ?? ''} onChange={(e) => onChange(field.key, e.target.value)}>
+                      <select id={`${formId}-${field.key}`} className={inputClassName} value={values[field.key] ?? ''} onChange={(e) => onChange(field.key, e.target.value)}>
                         {(field.options ?? []).map((option) => {
                           const optValue = typeof option === 'string' ? option : option.value
                           const optLabel = typeof option === 'string' ? (field.renderOption?.(option) ?? option) : option.label
@@ -119,6 +120,7 @@ export default function FormModal({
                       </select>
                     ) : (
                       <input
+                        id={`${formId}-${field.key}`}
                         className={inputClassName}
                         type={field.type === 'number' ? 'number' : 'text'}
                         min={field.min}

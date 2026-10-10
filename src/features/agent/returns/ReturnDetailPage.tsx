@@ -1,27 +1,20 @@
-import { usePermission } from '@/context/PermissionContext'
+import { usePermission } from '@/context/PermissionContext';
 import PermissionAction from '@/components/auth/PermissionAction'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Check, Trash2 } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { describeError } from '@/api/client'
-import { returnsApi, type ReturnCondition, type ReturnItem, type SalesReturn } from '@/api/returnsApi'
-import { stockApi } from '@/api/stockApi'
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft, Check, Trash2 } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+import { describeError } from '@/api/client';
+import { returnsApi, type ReturnCondition, type ReturnItem, type SalesReturn } from '@/api/returnsApi';
+import { stockApi } from '@/api/stockApi';
 import ConfirmModal from '@/components/ui/ConfirmModal'
-import { formatVnd } from '@/utils/money'
-import { formatDate, formatDateTime, formatQty, unitLabel } from '@/utils/units'
-import {
-  CONDITION_LABEL,
-  DISPOSITION_LABEL,
-  RETURN_CONDITIONS,
-  RETURN_REASONS,
-  RETURN_STATUS_BADGE_CLASS,
-  returnStatusText,
-} from './returnLabels'
+import { formatVnd } from '@/utils/money';
+import { formatDate, formatDateTime, formatQty, unitLabel } from '@/utils/units';
+import { CONDITION_LABEL, DISPOSITION_LABEL, RETURN_CONDITIONS, RETURN_REASONS, RETURN_STATUS_BADGE_CLASS, returnStatusText } from './returnLabels';
 import RefundsPanel from '../refunds/RefundsPanel'
-import { loadOrderInfo, type OrderItemInfo } from './returnContext'
-import { useReturnsBase } from './returnPaths'
+import { loadOrderInfo, type OrderItemInfo } from './returnContext';
+import { useReturnsBase } from './returnPaths';
 
 type Dialog = null | 'approve' | 'reject' | 'cancel' | 'receive' | 'complete'
 type Inspectable = Exclude<ReturnCondition, 'PENDING_INSPECTION'>
@@ -284,9 +277,7 @@ export default function ReturnDetailPage() {
                 <strong className="tabular-nums text-emerald-700">{formatVnd(ret.totalRefundAmount)}</strong>
               </div>
             </>
-          ) : (
-            <p className="text-xs text-slate-500">Số trừ công nợ và số cần hoàn tiền được tính khi Chủ cửa hàng chốt kết quả kiểm tra: công nợ chưa trả của đơn được trừ trước, phần còn lại hoàn cho khách.</p>
-          )}
+          ) : null}
         </div>
       </div>
 

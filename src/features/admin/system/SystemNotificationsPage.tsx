@@ -1,15 +1,17 @@
-import { useState } from 'react'
+import ListToolbar from '@/components/ui/ListToolbar'
+import { LIST_PAGE_SIZE } from '@/utils/pagination';
+import { useState } from 'react';
 
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
 import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import Pagination from '@/components/ui/Pagination'
 import FormModal from '@/components/ui/FormModal'
-import { useFilteredList } from '@/hooks/useFilteredList'
-import { usePagination } from '@/hooks/usePagination'
-import { useFormValues } from '@/hooks/useFormValues'
+import { useFilteredList } from '@/hooks/useFilteredList';
+import { usePagination } from '@/hooks/usePagination';
+import { useFormValues } from '@/hooks/useFormValues';
 import * as systemService from '@/features/admin/services/systemService'
-import type { SystemNotification, NotificationStatus, NotificationActionId, NotificationTarget } from '@/types'
+import type { SystemNotification, NotificationStatus, NotificationActionId, NotificationTarget } from '@/types';
 
 export default function SystemNotificationsPage() {
   usePageHeader({ title: 'Thông báo', subtitle: 'Quản lý thông báo đẩy (Push Notifications)' })
@@ -50,7 +52,7 @@ export default function SystemNotificationsPage() {
     goPrev,
     goNext,
     setPage,
-  } = usePagination(filteredNotifs, 12)
+  } = usePagination(filteredNotifs, LIST_PAGE_SIZE, [search, statusFilter].join('|'))
 
   const handleAction = (notif: SystemNotification, actionId: NotificationActionId) => {
     switch (actionId) {
@@ -95,42 +97,24 @@ export default function SystemNotificationsPage() {
       <div className="flex items-start justify-between mt-2">
         <div className="flex flex-col gap-1.5">
           <h1 className="text-3xl font-semibold text-on-surface">Thông báo Hệ thống</h1>
-          <p className="text-on-surface-variant text-sm">Gửi thông báo đẩy (Push Notifications) tới các thiết bị của người dùng.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button 
-            className="flex items-center gap-1.5 px-4 py-1.5 bg-[#171833] hover:bg-black text-white rounded font-medium text-sm shadow-sm transition-colors"
+
+      </div>
+
+      <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: "Tìm kiếm nội dung thông báo..." }} onClear={() => { setSearch(''); setStatusFilter(''); setPage(1) }} actions={<><button
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-primary-dark hover:bg-green-900 text-white rounded-[10px] font-medium text-sm shadow-sm transition-colors"
             onClick={() => setCreateOpen(true)}
           >
             <span className="material-symbols-outlined text-[18px]">campaign</span>
             Tạo thông báo mới
-          </button>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between mt-2">
-        <div className="relative w-[320px]">
-          <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[18px] text-outline">search</span>
-          <input 
-            type="text" 
-            placeholder="Tìm kiếm nội dung thông báo..." 
-            className="w-full h-9 pl-9 pr-3 text-sm bg-white border border-outline-variant rounded focus:border-primary focus:ring-1 focus:ring-primary text-on-surface shadow-sm"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-sm text-on-surface">
-            <span className="text-on-surface-variant font-medium">Trạng thái:</span>
-            <select className="bg-transparent font-medium outline-none cursor-pointer border-b border-dashed border-outline-variant pb-0.5" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+          </button></>}>
+<select aria-label="Lọc trạng thái" className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}>
               <option value="">Tất cả</option>
               <option value="Đã gửi">Đã gửi</option>
               <option value="Lên lịch">Lên lịch</option>
               <option value="Bản nháp">Bản nháp</option>
             </select>
-          </div>
-        </div>
-      </div>
+      </ListToolbar>
 
       <div className="border border-outline-variant/60 rounded-xl overflow-hidden bg-white shadow-sm mt-2 flex flex-col">
         <div className="overflow-x-auto">
@@ -156,7 +140,7 @@ export default function SystemNotificationsPage() {
                   <tr key={notif.id} className="transition-colors group hover:bg-surface-container-low">
                     <td className="py-3 px-4 border-r border-outline-variant/40">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0
                           ${notif.type === 'Hệ thống' ? 'bg-blue-100 text-blue-700' : notif.type === 'Cảnh báo' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}
                         `}>
                           <span className="material-symbols-outlined text-[20px]">
@@ -184,8 +168,8 @@ export default function SystemNotificationsPage() {
                     </td>
                     <td className="py-3 px-4 border-r border-outline-variant/40 text-center">
                       <span className={`px-2.5 py-1 rounded-md border text-[11px] tracking-wider font-semibold shadow-sm whitespace-nowrap uppercase
-                        ${notif.status === 'Đã gửi' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' : 
-                          notif.status === 'Lên lịch' ? 'border-primary/30 text-primary bg-primary/5' : 
+                        ${notif.status === 'Đã gửi' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' :
+                          notif.status === 'Lên lịch' ? 'border-primary/30 text-primary bg-primary/5' :
                           'border-outline-variant/60 text-on-surface-variant bg-surface-container-lowest'
                         }
                       `}>

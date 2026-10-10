@@ -17,24 +17,32 @@
   --font-body-lg: 'Inter', sans-serif;
   --font-body-sm: 'Inter', sans-serif;
 
-  /* Admin Console color tokens — updated to AgriSage's green tone */
-  --color-surface: #f8fcf8;
-  --color-surface-dim: #d7ecd7;
-  --color-surface-bright: #f8fcf8;
+  /* Kisan Setu inspired surfaces, with AgriSage's existing semantic tokens. */
+  --color-surface: #f8fafc;
+  --color-surface-dim: #e2e8f0;
+  --color-surface-bright: #ffffff;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f2fbf2;
-  --color-surface-container: #ebf9eb;
-  --color-surface-container-high: #e2f6e2;
-  --color-surface-container-highest: #daf0da;
-  --color-surface-variant: #daf0da;
-  --color-on-surface: #173318;
-  --color-on-surface-variant: #465a46;
-  --color-inverse-surface: #2c472d;
-  --color-inverse-on-surface: #eeffee;
-  --color-outline: #758a75;
-  --color-outline-variant: #c3dac3;
+  --color-surface-container-low: #f8fafc;
+  --color-surface-container: #f1f5f9;
+  --color-surface-container-high: #e2e8f0;
+  --color-surface-container-highest: #cbd5e1;
+  --color-surface-variant: #e2e8f0;
+  --color-on-surface: #0f172a;
+  --color-on-surface-variant: #64748b;
+  --color-inverse-surface: #0f172a;
+  --color-inverse-on-surface: #f8fafc;
+  --color-outline: #64748b;
+  --color-outline-variant: #e2e8f0;
   --color-surface-tint: #16a34a;
   --color-primary: #16a34a;
+  --color-primary-dark: #166534;
+  --color-emerald-50: #f0fdf4;
+  --color-emerald-100: #dcfce7;
+  --color-emerald-200: #bbf7d0;
+  --color-emerald-500: #22c55e;
+  --color-emerald-600: #16a34a;
+  --color-emerald-700: #166534;
+  --color-emerald-800: #14532d;
   --color-on-primary: #ffffff;
   --color-primary-container: #dcfce7;
   --color-on-primary-container: #14532d;
@@ -63,8 +71,8 @@
   --color-tertiary-fixed-dim: #d9f99d;
   --color-on-tertiary-fixed: #1a2e05;
   --color-on-tertiary-fixed-variant: #3f6212;
-  --color-background: #f8fcf8;
-  --color-on-background: #173318;
+  --color-background: #f8fafc;
+  --color-on-background: #0f172a;
 
   /* Font sizes with matching line-height / letter-spacing / weight */
   --text-display: 36px;
@@ -152,21 +160,31 @@
   --spacing-layout-margin-tablet: 1.5rem;
   --spacing-layout-margin-desktop: 2rem;
   --spacing-layout-gutter: 1rem;
-  --spacing-nav-sidebar-width: 16rem;
-  --spacing-nav-sidebar-collapsed: 4.25rem;
-  --spacing-header-height: 3.75rem;
+  --spacing-nav-sidebar-width: 16.5rem;
+  --spacing-nav-sidebar-collapsed: 5rem;
+  --spacing-header-height: 4.75rem;
 
   /* Border radius scale */
   --radius-sm: 0.125rem;
-  --radius: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
+  --radius: 0.5rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.75rem;
   --radius-xl: 0.75rem;
   --radius-full: 9999px;
 }
 
 body {
   @apply bg-background text-on-surface font-sans antialiased;
+  margin: 0;
+  min-width: 320px;
+}
+
+@layer base {
+  button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+  button:not(:disabled), select:not(:disabled) { cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
+  :focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+  input, select, textarea { accent-color: var(--color-primary); }
 }
 
 .material-symbols-outlined {
@@ -178,14 +196,17 @@ body {
 
 .sidebar-drawer {
   transform: translateX(-100%);
+  visibility: hidden;
   transition: transform 200ms ease-out;
 }
 .sidebar-drawer.is-open {
   transform: translateX(0);
+  visibility: visible;
 }
 @media (min-width: 1024px) {
   .sidebar-drawer {
     transform: translateX(0) !important;
+    visibility: visible;
   }
 }
 
@@ -195,5 +216,99 @@ body {
 
 input:-webkit-autofill {
   -webkit-box-shadow: 0 0 0 30px white inset !important;
-  -webkit-text-fill-color: #171833 !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+/* The shell stays mounted while route content changes. */
+.management-sidebar { width: var(--spacing-nav-sidebar-width); }
+.sidebar-brand { padding: 24px 20px 18px; }
+.sidebar-nav { padding-inline: 12px; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+.sidebar-link { position: relative; min-height: 42px; }
+.sidebar-link.is-active::before { content: ''; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 4px; background: var(--color-primary); }
+.sidebar-footer { padding: 12px; }
+.agrisage-list-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-width: 0; padding: 12px; background: #fff; border: 1px solid var(--color-outline-variant); border-radius: 12px; box-shadow: 0 1px 2px rgb(15 23 42 / .04); }
+.agrisage-list-toolbar > .agrisage-search { flex: 1 1 280px; }
+.agrisage-list-filters, .agrisage-list-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; max-width: 100%; }
+.agrisage-list-filters:empty { display: none; }
+.agrisage-list-toolbar input:not([type=checkbox]), .agrisage-list-toolbar select { min-height: 40px; border-radius: 10px; }
+.agrisage-list-toolbar select { min-width: 148px; }
+.agrisage-list-toolbar .agrisage-list-actions button, .agrisage-list-toolbar .agrisage-list-actions a { min-height: 40px; border-radius: 10px; white-space: nowrap; }
+.agrisage-clear-filters { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 10px; color: #64748b; font-size: 14px; font-weight: 500; transition: background-color .15s, color .15s; }
+.agrisage-clear-filters:hover { color: #0f172a; background: #f1f5f9; }
+.agrisage-clear-filters:disabled { opacity: .4; cursor: not-allowed; }
+@media (max-width: 639px) {
+  .agrisage-list-toolbar > .agrisage-search { flex-basis: 100%; }
+  .agrisage-list-filters { flex: 1 1 100%; }
+  .agrisage-list-filters > * { min-width: 0; max-width: 100%; }
+  .agrisage-list-actions { width: 100%; justify-content: flex-end; }
+}
+.management-topbar { min-height: var(--spacing-header-height); padding: 12px 24px; }
+.topbar-search { width: clamp(180px, 22vw, 320px); }
+.topbar-icon { width: 40px; height: 40px; flex-shrink: 0; }
+.management-content { width: 100%; min-width: 0; padding: 24px; }
+.management-content > div { min-width: 0; max-width: 1440px; margin-inline: auto; }
+.management-content > div[class*='p-space-'] { padding: 0; }
+.management-content :where(.bg-white.border) { border-radius: 12px; }
+.management-content :where(.bg-white.border-slate-100, .bg-white.border-gray-200) { border-color: var(--color-outline-variant); }
+.management-content :where(.overflow-x-auto) { max-width: 100%; min-width: 0; overscroll-behavior-x: contain; scrollbar-width: thin; }
+
+/* Shared table treatment keeps existing rows, columns and actions intact. */
+.management-content :where(table), .modal-body :where(table) { font-variant-numeric: tabular-nums; }
+.management-content :where(thead), .modal-body :where(thead) { background: var(--color-surface-container-low); }
+.management-content :where(th), .modal-body :where(th) { padding-block: 14px; color: #475569; font-size: 12px; font-weight: 600; letter-spacing: .025em; white-space: nowrap; }
+.management-content :where(tbody > tr) { border-color: #edf2f7; }
+.management-content :where(tbody > tr:hover) { background-color: #f8fafc; }
+.management-content :where(td) { padding-block: 14px; line-height: 1.5; }
+.management-content td.agrisage-empty-row { padding-block: 48px; }
+
+/* Dark green keeps white action labels readable; primary green remains the brand accent. */
+:where(button.bg-primary, button.bg-emerald-600, button.bg-green-600) { background-color: var(--color-primary-dark); }
+:where(button.bg-primary, button.bg-emerald-600, button.bg-green-600):hover:not(:disabled) { background-color: #14532d; }
+:where(button.text-primary, a.text-primary) { color: var(--color-primary-dark); }
+
+/* All existing form fields retain their values, validation and handlers. */
+:where(.management-content, .modal-body) :where(input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']), select, textarea) {
+  border-radius: 8px;
+  border-color: var(--color-outline-variant);
+  transition: border-color 150ms, box-shadow 150ms;
+  max-width: 100%;
+}
+:where(.management-content, .modal-body) :where(input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']), select) { min-height: 40px; }
+:where(.management-content, .modal-body) :where(input, select, textarea):focus-visible { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgb(22 163 74 / .12); }
+:where(.management-content, .modal-body) :where(input, select, textarea)[aria-invalid='true'] { border-color: var(--color-error); }
+.management-content .recharts-cartesian-axis-tick-value { fill: #64748b; font-size: 11px; }
+.management-content .recharts-cartesian-grid line { stroke: #e2e8f0; }
+.management-content .recharts-default-tooltip { border-radius: 10px; border-color: #e2e8f0; box-shadow: 0 4px 16px rgb(15 23 42 / .06); }
+.agrisage-dashboard-kpi { min-width: 0; }
+.agrisage-dashboard-kpi .tabular-nums { overflow-wrap: anywhere; }
+
+@media (min-width: 1024px) {
+  .management-workspace { padding-left: var(--spacing-nav-sidebar-width); }
+  .sidebar-collapsed .management-sidebar { width: var(--spacing-nav-sidebar-collapsed); }
+  .sidebar-collapsed .management-workspace { padding-left: var(--spacing-nav-sidebar-collapsed); }
+  .sidebar-collapsed .sidebar-expanded { display: none; }
+  .sidebar-collapsed .sidebar-brand { padding-inline: 20px; }
+  .sidebar-collapsed .sidebar-group-title { height: 16px; overflow: hidden; padding: 0; font-size: 0; }
+  .sidebar-collapsed .sidebar-link { justify-content: center; padding-inline: 16px; }
+  .sidebar-collapsed .sidebar-link > div { flex: none; }
+  .sidebar-collapsed .sidebar-menu-badge { position: absolute; right: 0; top: 0; font-size: 9px; padding: 0 3px; }
+  .sidebar-collapsed .sidebar-collapse { justify-content: center; padding-inline: 0; }
+}
+@media (max-width: 1023px) {
+  .management-topbar { padding-inline: 20px; }
+  .management-content { padding: 20px; }
+}
+@media (max-width: 639px) {
+  .management-topbar { min-height: 64px; padding: 10px 12px; gap: 8px; }
+  .management-topbar > div { gap: 8px; }
+  .management-topbar h1 { max-width: 140px; font-size: 14px; }
+  .management-topbar .topbar-icon { width: 36px; height: 40px; }
+  .management-content { padding: 16px 12px 24px; }
+  .management-content > div { gap: 16px; }
+  .management-content :where(th, td) { padding-block: 12px; }
+  .management-content :where(h1.text-3xl, h1.text-2xl) { font-size: 22px; line-height: 1.35; }
+  .management-content :where(.flex-wrap) { row-gap: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0ms !important; animation-duration: 0ms !important; }
 }

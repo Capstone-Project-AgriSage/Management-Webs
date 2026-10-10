@@ -3,12 +3,15 @@ name: AgriSage Management
 description: Tối giản, thực dụng và đáng tin cậy, tối ưu cho tốc độ xử lý dữ liệu.
 colors:
   primary: "#16a34a"
+  primary-dark: "#166534"
   secondary: "#0f766e"
   tertiary: "#4d7c0f"
-  surface: "#f8fcf8"
-  surface-dim: "#d7ecd7"
-  on-surface: "#173318"
-  outline: "#758a75"
+  surface: "#ffffff"
+  background: "#f8fafc"
+  surface-dim: "#e2e8f0"
+  on-surface: "#0f172a"
+  on-surface-variant: "#64748b"
+  outline: "#e2e8f0"
 typography:
   display:
     fontFamily: "'Inter', sans-serif"
@@ -35,9 +38,9 @@ typography:
     letterSpacing: "0.01em"
 rounded:
   sm: "0.125rem"
-  base: "0.25rem"
-  md: "0.375rem"
-  lg: "0.5rem"
+  base: "0.5rem"
+  md: "0.625rem"
+  lg: "0.75rem"
   full: "9999px"
 spacing:
   sm: "0.5rem"
@@ -50,7 +53,7 @@ components:
     textColor: "{colors.on-surface}"
     typography: "{typography.label}"
   button-primary:
-    backgroundColor: "{colors.primary}"
+    backgroundColor: "{colors.primary-dark}"
     textColor: "#ffffff"
     rounded: "{rounded.base}"
     padding: "0.5rem 1rem"
@@ -60,9 +63,9 @@ components:
 
 ## Overview
 
-**Creative North Star: "The Organic Command Center"**
+**Định hướng: Bảng điều hành nông nghiệp rõ ràng, hiện đại**
 
-Thiết kế mang lại cảm giác tự nhiên, dễ chịu nhưng vẫn cực kỳ chuyên nghiệp (Tự nhiên nhờ tone màu xanh nông nghiệp, chuyên nghiệp qua bố cục chặt chẽ). Hệ thống được tối ưu hóa sự thực dụng và đáng tin cậy. Mọi chi tiết thừa đều bị loại bỏ để đảm bảo luồng công việc của Quản trị viên không bị phân tâm, giúp tốc độ xử lý dữ liệu đạt mức tối đa. Không có các khối bóng đổ lớn hay gradient màu mè, thiết kế dựa trên sự chính xác của không gian và đường nét.
+Thiết kế tham khảo [Kisan Setu](https://github.com/Dragonarya/Kisan-Setu), dùng nền xám nhạt, thẻ trắng, viền mảnh và điểm nhấn xanh của AgriSage. Khoảng cách thoáng, chữ rõ và bóng nhẹ giúp phân cấp dữ liệu. Chỉ thay đổi lớp trình bày; hợp đồng API, menu, routes, phân quyền và nghiệp vụ được giữ nguyên.
 
 **Key Characteristics:**
 - **Thực dụng (Pragmatic):** Thiết kế phục vụ chức năng; không có trang trí dư thừa.
@@ -83,11 +86,14 @@ Bảng màu mang hơi hướng thiên nhiên, tĩnh lặng, sử dụng nhiều 
 - **Olive Accent** (#4d7c0f): Sử dụng làm điểm nhấn đa dạng hoặc các trạng thái thứ cấp.
 
 ### Neutral
-- **Mint Paper** (#f8fcf8): Màu nền chủ đạo (background/surface), cực nhẹ, tạo cảm giác thư giãn nhưng đủ độ tương phản với chữ.
-- **Pine Dark** (#173318): Màu chữ chính (on-surface), xanh rêu cực đậm, mềm mại hơn màu đen tuyền (#000) nhưng vẫn đảm bảo độ đọc (readability).
+- **Nền** (#f8fafc): Khung nội dung và hàng tiêu đề bảng.
+- **Bề mặt** (#ffffff): Thẻ, sidebar và biểu mẫu.
+- **Chữ chính** (#0f172a), **chữ phụ** (#64748b): Phân cấp nội dung.
+- **Viền** (#e2e8f0): Phân tách nhẹ giữa các vùng dữ liệu.
+- **Xanh đậm** (#166534), **xanh nhạt** (#dcfce7): Menu đang chọn và trạng thái tích cực.
 
 ### Named Rules
-**The Green Ink Rule.** Không sử dụng màu đen thuần (#000000) hoặc xám lạnh (cool gray) cho văn bản. Mọi màu trung tính đều phải được pha một chút sắc xanh lá (tinted green) để giữ nguyên DNA "Organic".
+**Quy tắc màu.** Màu xanh dành cho thương hiệu, hành động chính và trạng thái tích cực. Dùng màu slate cho chữ và nền để dữ liệu dễ đọc. Màu cảnh báo/lỗi giữ nguyên ý nghĩa trạng thái hiện có.
 
 ## Typography
 
@@ -109,31 +115,31 @@ Bảng màu mang hơi hướng thiên nhiên, tĩnh lặng, sử dụng nhiều 
 
 ## Layout
 
-Hệ thống sử dụng lưới 100% chiều rộng với Sidebar cố định (256px / 16rem). Các phần viền margin ở mobile là 1rem, tablet là 1.5rem và desktop là 2rem. Khoảng cách (spacing) sử dụng các bội số của 0.25rem (4px) tạo nên nhịp điệu đều đặn.
+Sidebar cố định 264px, thu gọn còn 80px từ 1024px. Dưới 1024px dùng drawer có khóa cuộn, hỗ trợ Tab/Escape và trả focus về nút mở. Header sticky cao tối thiểu 76px (64px trên mobile). Nội dung tối đa 1440px, padding desktop 24px, tablet 20px, mobile 12px ngang/16px dọc. Bảng cuộn ngang trong vùng riêng. Không thay đổi cấu hình menu theo vai trò.
 
 ## Elevation & Depth
 
-Hệ thống theo đuổi triết lý "Phẳng và Rõ ràng" (Flat & Crisp). Rất hạn chế sử dụng bóng đổ. 
+Ưu tiên bề mặt trắng, viền rõ và bóng nhẹ. Dropdown/modal dùng bóng nổi hơn để dễ nhận biết.
 
 ### Named Rules
-**The Flat-By-Default Rule.** Các bề mặt (Surfaces) luôn phẳng ở trạng thái nghỉ. Việc phân lớp được thực hiện bằng cách thay đổi màu nền (tonal layering) hoặc sử dụng đường viền mỏng (1px border), thay vì bóng đổ (shadows).
+**Quy tắc độ nổi.** Thẻ dùng viền 1px và bóng nhẹ; không dùng chuyển động nặng. Tôn trọng `prefers-reduced-motion`.
 
 ## Shapes
 
-Ngôn ngữ hình khối gọn gàng, các góc được bo nhẹ (0.25rem - 0.5rem) đủ để tạo cảm giác thân thiện nhưng vẫn giữ được sự nghiêm túc của một phần mềm quản trị (không bo tròn quá lố).
+Trường nhập và nút bo góc 8–10px, thẻ 12px, modal 12–16px. Badge trạng thái bo tròn. Các giá trị bo góc đặc thù của thành phần được khai báo tại thành phần.
 
 ## Components
 
 ### Buttons
-- **Shape:** Bo góc nhẹ (0.25rem).
-- **Primary:** Màu nền Agri-Green (#16a34a), chữ trắng.
+- **Shape:** Bo góc 8–10px, kích thước thao tác rõ ràng.
+- **Primary:** Nền xanh đậm (#166534), chữ trắng để đạt độ tương phản cho nhãn nhỏ. #16a34a dùng cho điểm nhấn thương hiệu và icon.
 - **Hover / Focus:** Không sử dụng bóng đổ lớn, chỉ thay đổi sắc độ nền tối đi hoặc sáng lên.
 
 ### Cards / Containers
-- **Corner Style:** Bo góc vừa (0.375rem / 6px hoặc 0.5rem / 8px).
-- **Background:** Nền Mint Paper (#f8fcf8) hoặc trắng (#ffffff).
-- **Shadow Strategy:** Không sử dụng bóng đổ, dùng đường viền (border) màu `#758a75` với độ mờ (opacity) thấp.
-- **Internal Padding:** 1rem (16px) hoặc 1.25rem (20px).
+- **Corner Style:** Bo góc 12px.
+- **Background:** Trắng (#ffffff) trên nền #f8fafc.
+- **Shadow Strategy:** Viền #e2e8f0, bóng nhẹ.
+- **Internal Padding:** 20px, linh hoạt trên mobile.
 
 ### Navigation (Sidebar)
 - Sử dụng màu nền cực sáng (surface-container-lowest), điểm nhấn là các dải viền (border-left) hoặc icon đổi màu (màu Primary) khi được chọn (Active).
@@ -145,5 +151,5 @@ Ngôn ngữ hình khối gọn gàng, các góc được bo nhẹ (0.25rem - 0.5
 - **Do** sử dụng các biến CSS đã định nghĩa (`var(--color-...)`, `var(--spacing-...)`) thay vì hardcode giá trị hex.
 
 ### Don't:
-- **Don't** sử dụng màu thuần xám (pure gray) hoặc đen (pure black). Mọi màu trung tính đều phải thuộc dải xanh (green-tinted).
+- **Don't** dùng màu xanh cho toàn bộ chữ và bề mặt; giữ độ tương phản rõ giữa nội dung và điểm nhấn.
 - **Don't** tạo ra các thẻ (cards) nổi quá cao so với nền (không dùng drop-shadow lớn), trừ khi đó là các thành phần nổi (Dropdown, Modal).

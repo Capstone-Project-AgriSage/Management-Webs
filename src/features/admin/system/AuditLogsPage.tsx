@@ -1,17 +1,18 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { auditLogsApi, type AuditLogListParams, type AuditLogResponse } from '@/api/auditLogsApi'
-import { ApiError, describeError } from '@/api/client'
-import type { PagedResult } from '@/api/types'
+import ListToolbar from '@/components/ui/ListToolbar'
+import { LIST_PAGE_SIZE } from '@/utils/pagination';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { auditLogsApi, type AuditLogListParams, type AuditLogResponse } from '@/api/auditLogsApi';
+import { ApiError, describeError } from '@/api/client';
+import type { PagedResult } from '@/api/types';
 import ModalLayout from '@/components/ui/ModalLayout'
 import DetailModal from '@/components/ui/DetailModal'
 import ServerPagination from '@/components/ui/ServerPagination'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { useAuth } from '@/context/AuthContext'
-import { downloadCsv } from '@/utils/csv'
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+import { useAuth } from '@/context/AuthContext';
+import { downloadCsv } from '@/utils/csv';
 import ListReportCards from '@/features/agent/reports/ListReportCards'
-import { actionLabel, actionLabels, actorLabel, browserLabel, changeRows, entityLabels, eventStatus,
-  resourceLabel, roleLabels, valueLabel } from './auditLogPresentation'
+import { actionLabel, actionLabels, actorLabel, browserLabel, changeRows, entityLabels, eventStatus, resourceLabel, roleLabels, valueLabel } from './auditLogPresentation';
 
 interface Filters {
   action: string
@@ -28,7 +29,7 @@ interface Filters {
 
 const defaults: Filters = { action: '', entityType: '', actorUserId: '', entityId: '', search: '', actorRole: '',
   status: '', timeRange: '7days', fromDate: '', toDate: '' }
-const pageSize = 15
+const pageSize = LIST_PAGE_SIZE
 const uuidPattern = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
 const inputClass = 'w-full h-9 px-3 text-sm bg-white border border-outline-variant rounded focus:border-primary focus:ring-1 focus:ring-primary text-on-surface shadow-sm'
 const buttonClass = 'flex items-center justify-center gap-1.5 px-3 py-2 border border-outline-variant rounded bg-white hover:bg-surface-container-low text-on-surface font-medium text-sm shadow-sm disabled:opacity-40 disabled:cursor-not-allowed'
@@ -218,8 +219,6 @@ export default function AuditLogsPage() {
       <div className="flex flex-wrap items-start justify-between gap-3 mt-2">
         <div className="flex flex-col gap-1.5">
           <h1 className="text-3xl font-semibold text-on-surface">{ownerView ? 'Nhật ký đại lý' : 'Nhật ký Hệ thống'}</h1>
-          <p className="text-on-surface-variant text-sm">Lưu vết thao tác, người thực hiện và thay đổi dữ liệu trong hệ thống.</p>
-          <p className="text-xs text-on-surface-variant">{ownerView ? 'Chỉ hiển thị hoạt động của đại lý bạn quản lý.' : 'Hiển thị hoạt động trên toàn hệ thống.'} Nhật ký chỉ được đọc.</p>
         </div>
         <div className="flex items-center gap-3">
           <button type="button" onClick={reload} disabled={loading || exporting} className={buttonClass}>Tải lại</button>
@@ -230,62 +229,49 @@ export default function AuditLogsPage() {
         </div>
       </div>
 
-      <form onSubmit={applyFilters} className="mt-2 space-y-3">
-        <fieldset disabled={exporting} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 disabled:opacity-60">
-          <label className="text-sm text-on-surface space-y-1 block sm:col-span-2">
-            <span className="font-medium">Tìm kiếm</span>
-            <input type="search" className={inputClass} value={draft.search} maxLength={200} placeholder="Tên, email người thực hiện, mã hành động hoặc đối tượng" onChange={e => setDraft({ ...draft, search: e.target.value })} />
-          </label>
-          <label className="text-sm text-on-surface space-y-1 block">
-            <span className="font-medium">Vai trò người thực hiện</span>
+      <form onSubmit={applyFilters}>
+        <fieldset disabled={exporting} className="min-w-0 space-y-3 disabled:opacity-60">
+          <ListToolbar search={{ value: draft.search, onChange: value => setDraft({ ...draft, search: value.slice(0, 200) }), placeholder: 'Tìm tên, email người thực hiện, mã hành động hoặc đối tượng...' }} onClear={resetFilters} disabled={exporting} actions={<button type="submit" className={buttonClass + ' !bg-primary-dark !text-white'}>Lọc</button>}>
             <select aria-label="Vai trò người thực hiện" className={inputClass} value={draft.actorRole} onChange={e => setDraft({ ...draft, actorRole: e.target.value })}>
               <option value="">Tất cả vai trò</option>
               {Object.entries(roleLabels).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
             </select>
-          </label>
-          <label className="text-sm text-on-surface space-y-1 block">
-            <span className="font-medium">Trạng thái hành động</span>
             <select aria-label="Trạng thái hành động" className={inputClass} value={draft.status} onChange={e => setDraft({ ...draft, status: e.target.value })}>
               <option value="">Tất cả trạng thái</option><option value="SUCCESS">Thành công</option><option value="FAILURE">Thất bại</option>
             </select>
-          </label>
-          <label className="text-sm text-on-surface space-y-1 block">
-            <span className="font-medium">Hành động</span>
-            <input list="audit-actions" className={inputClass} value={draft.action} maxLength={100} placeholder="Ví dụ: STAFF_LOCKED" onChange={e => setDraft({ ...draft, action: e.target.value })} />
-          </label>
-          <datalist id="audit-actions">{Object.entries(actionLabels).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</datalist>
-          <label className="text-sm text-on-surface space-y-1 block">
-            <span className="font-medium">Loại tài nguyên</span>
-            <input className={inputClass} value={draft.entityType} maxLength={100} placeholder="Ví dụ: USER, ORDER" onChange={e => setDraft({ ...draft, entityType: e.target.value })} />
-          </label>
-          <label className="text-sm text-on-surface space-y-1 block">
-            <span className="font-medium">ID người thực hiện</span>
-            <input className={inputClass} value={draft.actorUserId} pattern={uuidPattern} title="Nhập ID người thực hiện theo định dạng UUID" placeholder="UUID người thực hiện" onChange={e => setDraft({ ...draft, actorUserId: e.target.value })} />
-          </label>
-          <label className="text-sm text-on-surface space-y-1 block">
-            <span className="font-medium">ID tài nguyên</span>
-            <input className={inputClass} value={draft.entityId} pattern={uuidPattern} title="Nhập ID tài nguyên theo định dạng UUID" placeholder="UUID tài nguyên" onChange={e => setDraft({ ...draft, entityId: e.target.value })} />
-          </label>
-          <div className="sm:col-span-2 xl:col-span-4 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-on-surface-variant">Tìm tên/email; bộ lọc hành động, loại tài nguyên và ID khớp chính xác.</p>
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="flex items-center gap-2 text-sm text-on-surface">
-                <span className="font-medium">Thời gian</span>
-                <select aria-label="Thời gian" className="h-9 rounded border border-outline-variant bg-white px-2" value={draft.timeRange} onChange={e => setDraft({ ...draft, timeRange: e.target.value as Filters['timeRange'] })}>
+            <select aria-label="Thời gian" className="h-9 rounded border border-outline-variant bg-white px-2" value={draft.timeRange} onChange={e => setDraft({ ...draft, timeRange: e.target.value as Filters['timeRange'] })}>
                   <option value="7days">7 ngày qua</option>
                   <option value="30days">30 ngày qua</option>
                   <option value="all">Tất cả</option>
                   <option value="custom">Khoảng ngày</option>
                 </select>
-              </label>
-              {draft.timeRange === 'custom' && <>
+            {draft.timeRange === 'custom' && <>
                 <label className="text-sm text-on-surface">Từ ngày (UTC+7)<input type="date" className={inputClass} value={draft.fromDate} max={draft.toDate || undefined} onChange={e => setDraft({ ...draft, fromDate: e.target.value })} /></label>
                 <label className="text-sm text-on-surface">Đến ngày (UTC+7)<input type="date" className={inputClass} value={draft.toDate} min={draft.fromDate || undefined} onChange={e => setDraft({ ...draft, toDate: e.target.value })} /></label>
               </>}
-              <button type="button" onClick={resetFilters} className={buttonClass}>Xóa bộ lọc</button>
-              <button type="submit" className={buttonClass + ' !bg-primary !text-white'}>Lọc</button>
+          </ListToolbar>
+          <details className="rounded-xl border border-slate-200 bg-white p-3">
+            <summary className="cursor-pointer text-sm font-medium text-slate-600">Bộ lọc nâng cao</summary>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mt-3">
+              <label className="text-sm text-on-surface space-y-1 block">
+            <span className="font-medium">Hành động</span>
+            <input list="audit-actions" className={inputClass} value={draft.action} maxLength={100} placeholder="Ví dụ: STAFF_LOCKED" onChange={e => setDraft({ ...draft, action: e.target.value })} />
+          </label>
+<label className="text-sm text-on-surface space-y-1 block">
+            <span className="font-medium">Loại tài nguyên</span>
+            <input className={inputClass} value={draft.entityType} maxLength={100} placeholder="Ví dụ: USER, ORDER" onChange={e => setDraft({ ...draft, entityType: e.target.value })} />
+          </label>
+<label className="text-sm text-on-surface space-y-1 block">
+            <span className="font-medium">ID người thực hiện</span>
+            <input className={inputClass} value={draft.actorUserId} pattern={uuidPattern} title="Nhập ID người thực hiện theo định dạng UUID" placeholder="UUID người thực hiện" onChange={e => setDraft({ ...draft, actorUserId: e.target.value })} />
+          </label>
+<label className="text-sm text-on-surface space-y-1 block">
+            <span className="font-medium">ID tài nguyên</span>
+            <input className={inputClass} value={draft.entityId} pattern={uuidPattern} title="Nhập ID tài nguyên theo định dạng UUID" placeholder="UUID tài nguyên" onChange={e => setDraft({ ...draft, entityId: e.target.value })} />
+          </label>
+              <datalist id="audit-actions">{Object.entries(actionLabels).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</datalist>
             </div>
-          </div>
+          </details>
         </fieldset>
       </form>
 
@@ -326,7 +312,6 @@ export default function AuditLogsPage() {
         {!loading && !loadError && result && <fieldset disabled={exporting} className="min-w-0 font-sans"><ServerPagination page={result.page} pageSize={result.pageSize} totalCount={result.totalCount} totalPages={result.totalPages} unitLabel="nhật ký" onPageChange={changePage} /></fieldset>}
       </div>
 
-      <p className="text-xs text-on-surface-variant">Trạng thái phản ánh sự kiện đã ghi nhận; nhật ký không bao gồm mọi yêu cầu thất bại. Tên/email/vai trò lấy từ hồ sơ hiện tại.</p>
 
       <DetailModal open={detailId !== null} onClose={() => setDetailId(null)} widthClassName="max-w-5xl">
         <ModalLayout header={<h2 className="text-xl font-semibold text-on-surface">Chi tiết Audit Log</h2>} footer={<div className="flex justify-end"><button type="button" className={buttonClass} onClick={() => setDetailId(null)}>Đóng</button></div>}>

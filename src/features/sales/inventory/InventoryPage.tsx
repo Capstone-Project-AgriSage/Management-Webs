@@ -1,16 +1,18 @@
-import { useState, useEffect, useMemo } from 'react'
+import ListToolbar from '@/components/ui/ListToolbar'
+import { useState, useEffect, useMemo } from 'react';
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
-import { Link } from 'react-router-dom'
-import { ChevronRight, PackageSearch, PackageOpen, AlertTriangle } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
+import { Link } from 'react-router-dom';
+import { ChevronRight, PackageSearch, PackageOpen, AlertTriangle } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
 import Pagination from '@/components/ui/Pagination'
-import SearchInput from '@/components/ui/SearchInput'
+
 import StatusBadge from '@/components/ui/StatusBadge'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
-import { inventoryApi } from '@/api/inventoryApi'
-import { catalogApi } from '@/api/catalogApi'
-import type { InventoryLot, CatalogProduct } from '@/api/types'
+import { inventoryApi } from '@/api/inventoryApi';
+import { catalogApi } from '@/api/catalogApi';
+import type { InventoryLot, CatalogProduct } from '@/api/types';
+import { LIST_PAGE_SIZE } from '@/utils/pagination';
 
 interface GroupedInventory {
   storeProductId: string
@@ -27,7 +29,7 @@ export default function InventoryPage() {
 
   const [lots, setLots] = useState<InventoryLot[]>([])
   const [productsMap, setProductsMap] = useState<Record<string, CatalogProduct>>({})
-  
+
   const [totalCount, setTotalCount] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
   const [page, setPage] = useState(1)
@@ -37,18 +39,17 @@ export default function InventoryPage() {
   const fetchData = async () => {
     setIsLoading(true)
     try {
-      // Giảm pageSize để không bị 400 Bad Request
-      const lotsRes = await inventoryApi.getLots({ page, pageSize: 100, search })
-      
+      const lotsRes = await inventoryApi.getLots({ page, pageSize: LIST_PAGE_SIZE, search })
+
       let pMap: Record<string, CatalogProduct> = {}
       try {
-        const productsRes = await catalogApi.getProducts({ page: 1, pageSize: 100 }) 
+        const productsRes = await catalogApi.getProducts({ page: 1, pageSize: 100 })
         productsRes.items.forEach(p => { pMap[p.id] = p })
       } catch (err) {
         // Lỗi gọi Catalog không làm chết màn hình kho
         console.warn("Lỗi lấy danh sách sản phẩm:", err)
       }
-      
+
       setProductsMap(pMap)
       setLots(lotsRes.items)
       setTotalCount(lotsRes.totalCount)
@@ -72,7 +73,7 @@ export default function InventoryPage() {
   // Group lots by storeProductId
   const groupedInventory = useMemo(() => {
     const map = new Map<string, GroupedInventory>()
-    
+
     lots.forEach(lot => {
       if (!map.has(lot.storeProductId)) {
         map.set(lot.storeProductId, {
@@ -84,14 +85,14 @@ export default function InventoryPage() {
           lots: []
         })
       }
-      
+
       const group = map.get(lot.storeProductId)!
       group.lots.push(lot)
       group.totalOnHand += lot.quantityOnHand
       group.totalReserved += lot.quantityReserved
       group.totalAvailable += lot.quantityAvailable
     })
-    
+
     return Array.from(map.values())
   }, [lots, productsMap])
 
@@ -107,16 +108,9 @@ export default function InventoryPage() {
         </nav>
       </div>
 
-      <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-center justify-between gap-4 mt-2">
-        <div className="flex flex-wrap items-center gap-3 flex-1">
-          <SearchInput 
-            value={search} 
-            onChange={(val) => { setSearch(val); setPage(1) }} 
-            placeholder="Tìm theo mã lô..." 
-            className="relative flex-1 min-w-[240px]" 
-          />
-        </div>
-      </div>
+      <ListToolbar search={{ value: search, onChange: (val) => { setSearch(val); setPage(1) }, placeholder: "Tìm theo mã lô..." }} onClear={() => { setSearch(''); setPage(1) }}>
+
+      </ListToolbar>
 
       <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col mt-4">
         <div className="overflow-x-auto p-4 space-y-6">
@@ -147,7 +141,7 @@ export default function InventoryPage() {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
                     <thead className="bg-surface-container-lowest text-xs text-on-surface-variant uppercase tracking-wider border-b border-outline-variant">
@@ -186,13 +180,13 @@ export default function InventoryPage() {
             ))
           )}
         </div>
-        
+
         {/* We use the paginated count of lots, not grouped products, because the API paginates lots */}
         <Pagination
           page={page}
           totalPages={totalPages}
-          startIndex={(page - 1) * 100}
-          endIndex={Math.min(page * 100, totalCount)}
+          startIndex={(page - 1) * LIST_PAGE_SIZE}
+          endIndex={Math.min(page * LIST_PAGE_SIZE, totalCount)}
           totalCount={totalCount}
           unitLabel="lô hàng"
           goPrev={() => setPage(p => Math.max(1, p - 1))}

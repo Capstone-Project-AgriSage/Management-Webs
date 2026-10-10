@@ -1,21 +1,23 @@
+import ListToolbar from '@/components/ui/ListToolbar'
+import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import PermissionAction from '@/components/auth/PermissionAction'
-import { useEffect, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Pencil, Plus, Power, PowerOff, RefreshCw, Trash2 } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { priceListsApi, type PriceList, type PriceListStatus } from '@/api/priceListsApi'
-import type { Paged } from '@/api/types'
-import SearchInput from '@/components/ui/SearchInput'
+import { useEffect, useState } from 'react';
+import { AlertTriangle, CheckCircle2, Pencil, Plus, Power, PowerOff, Trash2 } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+import { priceListsApi, type PriceList, type PriceListStatus } from '@/api/priceListsApi';
+import type { Paged } from '@/api/types';
+
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import StatusBadge from '@/components/ui/StatusBadge'
 import ServerPagination from '@/components/ui/ServerPagination'
-import PromptModal, { type PromptField } from '@/components/ui/PromptModal'
-import { describeApiError } from '@/utils/apiError'
-import { formatDay, todayVn, useCanManage } from '@/utils/creditLabels'
+import PromptModal, { type PromptField } from '@/components/ui/PromptModal';
+import { describeApiError } from '@/utils/apiError';
+import { formatDay, todayVn, useCanManage } from '@/utils/creditLabels';
 import PriceListItemsModal from './PriceListItemsModal'
 import ListReportCards from '@/features/agent/reports/ListReportCards'
 
-const PAGE_SIZE = 15
+const PAGE_SIZE = LIST_PAGE_SIZE
 
 const STATUS: Record<PriceListStatus, { label: string; className: string }> = {
   DRAFT: { label: 'Nháp', className: 'bg-amber-50 text-amber-800 border border-amber-200' },
@@ -23,7 +25,7 @@ const STATUS: Record<PriceListStatus, { label: string; className: string }> = {
   INACTIVE: { label: 'Ngưng áp dụng', className: 'bg-slate-100 text-slate-600 border border-slate-200' },
 }
 
-const selectClassName = 'h-9 px-3 rounded-lg border border-slate-200 bg-white text-sm text-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500'
+
 const iconButton = 'w-8 h-8 inline-flex items-center justify-center rounded-lg transition-colors'
 
 type FormState = { list: PriceList | null } | null
@@ -166,29 +168,18 @@ export default function PriceListsPage() {
         </div>
       )}
 
-      <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col xl:flex-row xl:items-center gap-3">
-        <SearchInput value={search} onChange={(v) => changeFilter(() => setSearch(v))} placeholder="Tìm theo mã hoặc tên bảng giá..." className="relative flex-1 min-w-[220px]" />
-        <div className="flex flex-wrap items-center gap-2">
-          <select aria-label="Lọc trạng thái" className={selectClassName} value={status} onChange={(e) => changeFilter(() => setStatus(e.target.value))}>
+      <ListToolbar search={{ value: search, onChange: (v) => changeFilter(() => setSearch(v)), placeholder: "Tìm theo mã hoặc tên bảng giá..." }} onClear={() => { setSearch(''); setStatus(''); setPage(1) }} actions={<>{canManage && (
+            <PermissionAction codes={["PRICING.CREATE"]}><button type="button" className="h-9 px-4 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 flex items-center gap-1.5" onClick={() => setForm({ list: null })}>
+              <Plus size={16} /> Tạo bảng giá
+            </button></PermissionAction>
+          )}</>}>
+<select aria-label="Lọc trạng thái" className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700" value={status} onChange={(e) => changeFilter(() => setStatus(e.target.value))}>
             <option value="">Mọi trạng thái</option>
             {Object.entries(STATUS).map(([value, s]) => (
               <option key={value} value={value}>{s.label}</option>
             ))}
           </select>
-          <button
-            type="button"
-            className="h-9 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-1.5"
-            onClick={() => changeFilter(() => { setSearch(''); setStatus('') })}
-          >
-            <RefreshCw size={14} /> Xóa lọc
-          </button>
-          {canManage && (
-            <PermissionAction codes={["PRICING.CREATE"]}><button type="button" className="h-9 px-4 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 flex items-center gap-1.5" onClick={() => setForm({ list: null })}>
-              <Plus size={16} /> Tạo bảng giá
-            </button></PermissionAction>
-          )}
-        </div>
-      </div>
+      </ListToolbar>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col">
         <div className="overflow-x-auto">

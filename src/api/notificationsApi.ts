@@ -1,3 +1,4 @@
+import { LIST_PAGE_SIZE } from '@/utils/pagination'
 import { api } from './client'
 import type { PagedResult } from './types'
 
@@ -22,7 +23,7 @@ export const notificationsApi = {
   list: (params: NotificationListParams = {}, signal?: AbortSignal) => {
     const query = new URLSearchParams()
     query.set('page', String(params.page ?? 1))
-    query.set('pageSize', String(params.pageSize ?? 20))
+    query.set('pageSize', String(params.pageSize ?? LIST_PAGE_SIZE))
     if (params.status) query.set('status', params.status)
     return api<PagedResult<NotificationItem>>(base + '?' + query, { signal })
   },

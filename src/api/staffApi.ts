@@ -19,13 +19,14 @@ export interface StaffResponse {
 }
 
 export const staffApi = {
-  getStaff: (params?: { role?: string; status?: 'ACTIVE' | 'INACTIVE'; page?: number; pageSize?: number }) => {
+  getStaff: (params?: { search?: string; role?: string; status?: 'ACTIVE' | 'INACTIVE'; page?: number; pageSize?: number }) => {
     const searchParams = new URLSearchParams()
+    if (params?.search) searchParams.append('Search', params.search)
     if (params?.role) searchParams.append('Role', params.role)
     if (params?.status) searchParams.append('Status', params.status)
     if (params?.page) searchParams.append('Page', params.page.toString())
     if (params?.pageSize) searchParams.append('PageSize', params.pageSize.toString())
-    
+
     return api<PagedResult<StaffResponse>>(`/api/staff?${searchParams.toString()}`)
   },
 

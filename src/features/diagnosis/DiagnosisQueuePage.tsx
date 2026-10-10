@@ -1,19 +1,20 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ShieldCheck } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { useAuth } from '@/context/AuthContext'
-import { useDebouncedValue } from '@/hooks/useDebouncedValue'
-import { describeError } from '@/api/client'
-import { diagnosisApi, type DiagnosisListItem, type DiagnosisStatus } from '@/api/diagnosisApi'
-import type { Paged } from '@/api/types'
-import SearchInput from '@/components/ui/SearchInput'
+import ListToolbar from '@/components/ui/ListToolbar'
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ShieldCheck } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+import { useAuth } from '@/context/AuthContext';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { describeError } from '@/api/client';
+import { diagnosisApi, type DiagnosisListItem, type DiagnosisStatus } from '@/api/diagnosisApi';
+import type { Paged } from '@/api/types';
+
 import FilterSelect from '@/components/ui/FilterSelect'
 import Pagination from '@/components/ui/Pagination'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
-import { formatDateTime } from '@/utils/units'
-import { DIAGNOSIS_STATUS_BADGE_CLASS, DIAGNOSIS_STATUS_LABEL, diseaseLabel, useDiagnosisBase } from './diagnosisLabels'
+import { formatDateTime } from '@/utils/units';
+import { DIAGNOSIS_STATUS_BADGE_CLASS, DIAGNOSIS_STATUS_LABEL, diseaseLabel, useDiagnosisBase } from './diagnosisLabels';
 
 const PAGE_SIZE = 10
 
@@ -88,17 +89,11 @@ export default function DiagnosisQueuePage() {
         </div>
       )}
 
-      <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-center gap-3">
-        <SearchInput
-          value={search}
-          onChange={(v) => {
+      <ListToolbar search={{ value: search, onChange: (v) => {
             setSearch(v)
             setPage(1)
-          }}
-          placeholder="Tìm theo mã ca, tên hoặc số điện thoại nông dân..."
-          className="relative flex-1 min-w-[240px]"
-        />
-        <FilterSelect
+          }, placeholder: "Tìm theo mã ca, tên hoặc số điện thoại nông dân..." }} onClear={() => { setSearch(''); setStatus(''); setPolicy(''); setPage(1) }}>
+<FilterSelect
           value={status}
           onChange={(v) => {
             setStatus(v)
@@ -106,7 +101,7 @@ export default function DiagnosisQueuePage() {
           }}
           options={STATUS_OPTIONS}
         />
-        <FilterSelect
+<FilterSelect
           value={policy}
           onChange={(v) => {
             setPolicy(v)
@@ -114,7 +109,7 @@ export default function DiagnosisQueuePage() {
           }}
           options={POLICY_OPTIONS}
         />
-      </div>
+      </ListToolbar>
 
       <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">
         <div className="overflow-x-auto">
@@ -191,9 +186,6 @@ export default function DiagnosisQueuePage() {
         />
       </div>
 
-      <p className="text-xs text-slate-500">
-        AI chỉ là bằng chứng. Mọi ca, kể cả ca đạt ngưỡng, đều cần người có quyền duyệt xác minh trước khi nông dân thấy kết quả và gợi ý thuốc.
-      </p>
     </div>
   )
 }

@@ -1,26 +1,28 @@
+import ListToolbar from '@/components/ui/ListToolbar'
+import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import PermissionAction from '@/components/auth/PermissionAction'
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
-import { usePermission } from '@/context/PermissionContext'
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { RefreshCw } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { debtApi, type DebtAccountListItem, type DebtDashboard, type DebtEntryListItem, type DebtEntrySortBy } from '@/api/debtApi'
-import { paymentsApi } from '@/api/paymentsApi'
-import type { PaymentListItem } from '@/api/customersApi'
-import type { PagedResult } from '@/api/types'
-import SearchInput from '@/components/ui/SearchInput'
+import { usePermission } from '@/context/PermissionContext';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { RefreshCw } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+import { debtApi, type DebtAccountListItem, type DebtDashboard, type DebtEntryListItem, type DebtEntrySortBy } from '@/api/debtApi';
+import { paymentsApi } from '@/api/paymentsApi';
+import type { PaymentListItem } from '@/api/customersApi';
+import type { PagedResult } from '@/api/types';
+
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import ServerPagination from '@/components/ui/ServerPagination'
 import PromptModal from '@/components/ui/PromptModal'
-import { formatVnd } from '@/utils/money'
-import { DEBT_ENTRY_STATUS_LABEL, PAYMENT_METHOD_LABEL, formatDay, formatDayTime, label, useCanManage, useRoleBase } from '@/utils/creditLabels'
+import { formatVnd } from '@/utils/money';
+import { DEBT_ENTRY_STATUS_LABEL, PAYMENT_METHOD_LABEL, formatDay, formatDayTime, label, useCanManage, useRoleBase } from '@/utils/creditLabels';
 import DebtEntriesTable from './DebtEntriesTable'
 import DebtEntryModal from './DebtEntryModal'
 
 type Tab = 'accounts' | 'entries' | 'transfers'
-const PAGE_SIZE = 15
+const PAGE_SIZE = LIST_PAGE_SIZE
 
 const ENTRY_SORTS: { value: string; label: string; sortBy: DebtEntrySortBy; descending: boolean }[] = [
   { value: 'due', label: 'Hạn trả gần nhất', sortBy: 'DueDate', descending: false },
@@ -185,21 +187,16 @@ export default function DebtsPage() {
           </div>
         </div>
 
-        <div className="p-3 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center gap-3">
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder={tab === 'entries' ? 'Tìm tên, SĐT, mã khoản nợ, mã đơn...' : 'Tìm tên hoặc số điện thoại...'}
-            className="relative flex-1 min-w-[220px]"
-          />
-          <div className="flex flex-wrap items-center gap-2">
-            {tab !== 'transfers' && (
+        <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: tab === 'entries' ? 'Tìm tên, SĐT, mã khoản nợ, mã đơn...' : 'Tìm tên hoặc số điện thoại...' }} onClear={() => { setSearch(''); setOverdueOnly(false); setEntryStatus(''); setEntrySort('due'); setPage(1) }} actions={<><button type="button" className="h-9 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-1.5" onClick={refresh}>
+              <RefreshCw size={14} /> Làm mới
+            </button></>}>
+{tab !== 'transfers' && (
               <label className="flex items-center gap-2 text-sm text-slate-700 h-9 px-3 rounded-lg border border-slate-200 bg-white">
                 <input type="checkbox" className="accent-rose-600" checked={overdueOnly} onChange={(e) => setOverdueOnly(e.target.checked)} />
                 Chỉ quá hạn
               </label>
             )}
-            {tab === 'entries' && (
+{tab === 'entries' && (
               <>
                 <select aria-label="Trạng thái khoản nợ" className={selectClassName} value={entryStatus} onChange={(e) => setEntryStatus(e.target.value)}>
                   <option value="">Mọi trạng thái</option>
@@ -214,11 +211,7 @@ export default function DebtsPage() {
                 </select>
               </>
             )}
-            <button type="button" className="h-9 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-1.5" onClick={refresh}>
-              <RefreshCw size={14} /> Làm mới
-            </button>
-          </div>
-        </div>
+      </ListToolbar>
 
         {tab === 'accounts' && (
           <div className="overflow-x-auto">
@@ -260,9 +253,6 @@ export default function DebtsPage() {
 
         {tab === 'transfers' && (
           <div className="overflow-x-auto">
-            {!canManage && (
-              <p className="px-4 pt-3 text-xs text-slate-500">Chỉ chủ cửa hàng được xác nhận hoặc từ chối chuyển khoản sau khi đối soát sao kê.</p>
-            )}
             <table className="w-full text-left border-collapse min-w-[760px]">
               <thead>
                 <tr className="border-b border-slate-100 text-slate-900 text-[13px] font-bold">

@@ -1,14 +1,15 @@
+import ListToolbar from '@/components/ui/ListToolbar'
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Plus } from 'lucide-react'
-import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { useDebouncedValue } from '@/hooks/useDebouncedValue'
-import { ApiError, describeError } from '@/api/client'
-import { suppliersApi, type Supplier, type SupplierInput } from '@/api/suppliersApi'
-import type { Paged } from '@/api/types'
-import SearchInput from '@/components/ui/SearchInput'
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Plus } from 'lucide-react';
+import { usePageHeader } from '@/context/PageHeaderContext';
+import { useToast } from '@/context/ToastContext';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { ApiError, describeError } from '@/api/client';
+import { suppliersApi, type Supplier, type SupplierInput } from '@/api/suppliersApi';
+import type { Paged } from '@/api/types';
+
 import FilterSelect from '@/components/ui/FilterSelect'
 import Pagination from '@/components/ui/Pagination'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
@@ -117,18 +118,17 @@ export default function SuppliersPage() {
         { label: 'Ngừng hợp tác', value: items.filter(item => !item.isActive).length },
         { label: 'Có thông tin liên hệ', value: items.filter(item => item.phoneNumber || item.email).length },
       ]} />
-      <div className="flex flex-wrap items-center gap-3 justify-between">
-        <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-center gap-3 flex-1">
-          <SearchInput
-            value={search}
-            onChange={(v) => {
+      <ListToolbar search={{ value: search, onChange: (v) => {
               setSearch(v)
               setPage(1)
-            }}
-            placeholder="Tìm theo mã hoặc tên nhà cung cấp..."
-            className="relative flex-1 min-w-[220px]"
-          />
-          <FilterSelect
+            }, placeholder: "Tìm theo mã hoặc tên nhà cung cấp..." }} onClear={() => { setSearch(''); setActiveFilter(''); setPage(1) }} actions={<><button
+          type="button"
+          onClick={() => setEditing('new')}
+          className="inline-flex items-center gap-2 h-11 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm"
+        >
+          <Plus size={16} /> Thêm nhà cung cấp
+        </button></>}>
+<FilterSelect
             value={activeFilter}
             onChange={(v) => {
               setActiveFilter(v)
@@ -140,15 +140,7 @@ export default function SuppliersPage() {
               { value: 'false', label: 'Ngừng hợp tác' },
             ]}
           />
-        </div>
-        <button
-          type="button"
-          onClick={() => setEditing('new')}
-          className="inline-flex items-center gap-2 h-11 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm"
-        >
-          <Plus size={16} /> Thêm nhà cung cấp
-        </button>
-      </div>
+      </ListToolbar>
 
       <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">
         <div className="overflow-x-auto">
