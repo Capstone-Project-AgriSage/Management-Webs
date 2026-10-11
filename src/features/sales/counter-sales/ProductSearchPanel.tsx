@@ -6,7 +6,7 @@ import ListToolbar from '@/components/ui/ListToolbar'
 import FilterSelect from '@/components/ui/FilterSelect'
 import ServerPagination from '@/components/ui/ServerPagination'
 import { LIST_PAGE_SIZE } from '@/utils/pagination'
-import { catalogApi } from '@/api/catalogApi'
+import { catalogApi, flattenCatalogCategories } from '@/api/catalogApi'
 import type { CatalogProduct, CatalogCategory, CatalogProductDetail, CatalogPackaging } from '@/api/types'
 import { formatVnd } from '@/utils/money'
 import { useToast } from '@/context/ToastContext'
@@ -36,8 +36,7 @@ export default function ProductSearchPanel({ onAddToCart }: ProductSearchPanelPr
       setCatsLoading(true)
       try {
         const res = await catalogApi.getCategories()
-        // Giả sử API trả về mảng trực tiếp hoặc { items: ... }
-        setCategories((res as any).items || res || [])
+        setCategories(flattenCatalogCategories(res))
       } catch (err) {
         console.warn("Lỗi tải danh mục:", err)
       } finally {

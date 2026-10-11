@@ -1,3 +1,4 @@
+import { useDetailBusy } from '@/hooks/useDetailBusy'
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useCallback, useEffect, useState } from 'react';
@@ -32,6 +33,7 @@ export default function GoodsReceiptDetailPage() {
   const [dialog, setDialog] = useState<Dialog>(null)
   const [cancelReason, setCancelReason] = useState('')
   const [busy, setBusy] = useState(false)
+  useDetailBusy(busy)
   const [lineEditor, setLineEditor] = useState<GoodsReceiptItem | 'new' | null>(null)
   const [itemToRemove, setItemToRemove] = useState<GoodsReceiptItem | null>(null)
   const [headerOpen, setHeaderOpen] = useState(false)

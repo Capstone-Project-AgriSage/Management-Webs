@@ -12,6 +12,7 @@ interface AuthContextValue {
   currentRole: AppRole | null
   login: (identifier: string, password: string) => Promise<void>
   logout: () => void
+  clearSession: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -74,15 +75,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(true)
   }
 
-  const logout = () => {
+  const clearSession = () => {
     localStorage.removeItem(TOKEN_KEY)
     setIsAuthenticated(false)
     setCurrentRole(null)
     setUser(null)
   }
 
+  const logout = () => {
+    // Start the authenticated revocation before removing the local bearer token.
+    void authApi.logout().catch(() => {})
+    clearSession()
+  }
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, user, currentRole, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, user, currentRole, login, logout, clearSession }}>
       {!isLoading && children}
     </AuthContext.Provider>
   )

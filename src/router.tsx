@@ -1,4 +1,6 @@
+import { DetailListLayout, DetailRoute } from '@/components/ui/DetailRoute'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import DashboardLayout from '@/layouts/DashboardLayout'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
@@ -7,6 +9,7 @@ import RequireRole from '@/components/auth/RequireRole'
 import LoginPage from '@/features/auth/LoginPage'
 import NotificationsPage from '@/features/notifications/NotificationsPage'
 import ForgotPasswordPage from '@/features/auth/ForgotPasswordPage'
+import ResetPasswordPage from '@/features/auth/ResetPasswordPage'
 
 // =======================
 // ADMIN FEATURES
@@ -38,7 +41,6 @@ import AgentInventoryReportsPage from '@/features/agent/inventory/InventoryRepor
 import AgentStocktakePage from '@/features/agent/inventory/StocktakeListPage'
 import StocktakeDetailPage from '@/features/agent/inventory/StocktakeDetailPage'
 import AgentDeliveriesPage from '@/features/agent/deliveries/DeliveriesPage'
-import AgentDeliveryReportsPage from '@/features/agent/deliveries/DeliveryReportsPage'
 import AgentSuppliersPage from '@/features/agent/purchases/SuppliersPage'
 import RefundsPage from '@/features/agent/refunds/RefundsPage'
 import ReturnsListPage from '@/features/agent/returns/ReturnsListPage'
@@ -47,7 +49,6 @@ import ReturnDetailPage from '@/features/agent/returns/ReturnDetailPage'
 import AgentGoodsReceiptsPage from '@/features/agent/purchases/GoodsReceiptsPage'
 import GoodsReceiptDetailPage from '@/features/agent/purchases/GoodsReceiptDetailPage'
 import ReceiptImportPage from '@/features/agent/purchases/ReceiptImportPage'
-import DebtReportsPage from '@/features/agent/debts/DebtReportsPage'
 import AgentProductReviewsPage from '@/features/agent/products/ProductReviewsPage'
 import AgentStaffPage from '@/features/agent/staff/StaffPage'
 import AgentActivityLogPage from '@/features/agent/system/ActivityLogPage'
@@ -73,6 +74,11 @@ import DeliveryDashboardPage from '@/features/delivery/dashboard/DashboardPage'
 import DeliveriesPage from '@/features/delivery/deliveries/DeliveriesPage'
 import DeliveryDetailPage from '@/features/delivery/deliveries/DeliveryDetailPage'
 
+// Load chart libraries only when a detailed report is opened.
+const AgentDeliveryReportsPage = lazy(() => import('@/features/agent/deliveries/DeliveryReportsPage'))
+const DebtReportsPage = lazy(() => import('@/features/agent/debts/DebtReportsPage'))
+const reportFallback = <p role="status" className="p-5 text-sm text-slate-500">Đang tải báo cáo...</p>
+
 function RootRedirect() {
   const { currentRole } = useAuth()
   if (currentRole === 'agent') return <Navigate to="/agent" replace />
@@ -84,6 +90,7 @@ function RootRedirect() {
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
+  { path: '/reset-password', element: <ResetPasswordPage /> },
   {
     element: <ProtectedRoute />,
     children: [
@@ -160,11 +167,8 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/ai-recommendations',
-            element: <RequireRole role={["agent", "sales_staff"]}><DiagnosisQueuePage /></RequireRole>,
-          },
-          {
-            path: 'agent/ai-recommendations/:id',
-            element: <RequireRole role={["agent", "sales_staff"]}><DiagnosisCasePage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><DetailListLayout><DiagnosisQueuePage /></DetailListLayout></RequireRole>,
+            children: [{ path: ':id', element: <DetailRoute><DiagnosisCasePage /></DetailRoute> }],
           },
           {
             path: 'agent/products',
@@ -172,7 +176,8 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/inventory',
-            element: <RequireRole role={["agent", "sales_staff"]}><AgentInventoryPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><DetailListLayout><AgentInventoryPage /></DetailListLayout></RequireRole>,
+            children: [{ path: 'stock-card', element: <DetailRoute><AgentStockCardPage /></DetailRoute> }],
           },
           {
             path: 'agent/farmers',
@@ -180,15 +185,12 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/debts',
-            element: <RequireRole role={["agent", "sales_staff"]}><DebtsPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><DetailListLayout><DebtsPage /></DetailListLayout></RequireRole>,
+            children: [{ path: ':id', element: <DetailRoute><CustomerDebtPage /></DetailRoute> }],
           },
           {
             path: 'agent/debts/reports',
-            element: <RequireRole role={["admin", "agent", "sales_staff"]}><DebtReportsPage /></RequireRole>,
-          },
-          {
-            path: 'agent/debts/:id',
-            element: <RequireRole role={["agent", "sales_staff"]}><CustomerDebtPage /></RequireRole>,
+            element: <RequireRole role={["admin", "agent", "sales_staff"]}><Suspense fallback={reportFallback}><DebtReportsPage /></Suspense></RequireRole>,
           },
           {
             path: 'agent/inventory/movements',
@@ -200,19 +202,12 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/returns',
-            element: <RequireRole role={["agent", "sales_staff"]}><ReturnsListPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><DetailListLayout><ReturnsListPage /></DetailListLayout></RequireRole>,
+            children: [{ path: ':id', element: <DetailRoute><ReturnDetailPage /></DetailRoute> }],
           },
           {
             path: 'agent/returns/new',
             element: <RequireRole role={["agent", "sales_staff"]}><ReturnCreatePage /></RequireRole>,
-          },
-          {
-            path: 'agent/returns/:id',
-            element: <RequireRole role={["agent", "sales_staff"]}><ReturnDetailPage /></RequireRole>,
-          },
-          {
-            path: 'agent/inventory/stock-card',
-            element: <RequireRole role={["agent", "sales_staff"]}><AgentStockCardPage /></RequireRole>,
           },
           {
             path: 'agent/inventory/reports',
@@ -220,11 +215,8 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/inventory/stocktake',
-            element: <RequireRole role={["agent", "sales_staff"]}><AgentStocktakePage /></RequireRole>,
-          },
-          {
-            path: 'agent/inventory/stocktake/:id',
-            element: <RequireRole role={["agent", "sales_staff"]}><StocktakeDetailPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><DetailListLayout><AgentStocktakePage /></DetailListLayout></RequireRole>,
+            children: [{ path: ':id', element: <DetailRoute><StocktakeDetailPage /></DetailRoute> }],
           },
           {
             path: 'agent/deliveries',
@@ -232,7 +224,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/deliveries/reports',
-            element: <RequireRole role={["admin", "agent", "sales_staff"]}><AgentDeliveryReportsPage /></RequireRole>,
+            element: <RequireRole role={["admin", "agent", "sales_staff"]}><Suspense fallback={reportFallback}><AgentDeliveryReportsPage /></Suspense></RequireRole>,
           },
           {
             path: 'agent/purchases/suppliers',
@@ -244,15 +236,12 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/purchases/receipts',
-            element: <RequireRole role={["agent", "sales_staff"]}><AgentGoodsReceiptsPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><DetailListLayout><AgentGoodsReceiptsPage /></DetailListLayout></RequireRole>,
+            children: [{ path: ':id', element: <DetailRoute><GoodsReceiptDetailPage /></DetailRoute> }],
           },
           {
             path: 'agent/purchases/receipts/import',
             element: <RequireRole role={["agent", "sales_staff"]}><ReceiptImportPage /></RequireRole>,
-          },
-          {
-            path: 'agent/purchases/receipts/:id',
-            element: <RequireRole role={["agent", "sales_staff"]}><GoodsReceiptDetailPage /></RequireRole>,
           },
           {
             path: 'agent/price-lists',
@@ -310,11 +299,8 @@ export const router = createBrowserRouter([
           },
           {
             path: 'sales/debts',
-            element: <RequireRole role="sales_staff"><DebtsPage /></RequireRole>,
-          },
-          {
-            path: 'sales/debts/:id',
-            element: <RequireRole role="sales_staff"><CustomerDebtPage /></RequireRole>,
+            element: <RequireRole role="sales_staff"><DetailListLayout><DebtsPage /></DetailListLayout></RequireRole>,
+            children: [{ path: ':id', element: <DetailRoute><CustomerDebtPage /></DetailRoute> }],
           },
           {
             path: 'sales/inventory',
@@ -322,23 +308,17 @@ export const router = createBrowserRouter([
           },
           {
             path: 'sales/returns',
-            element: <RequireRole role="sales_staff"><ReturnsListPage /></RequireRole>,
+            element: <RequireRole role="sales_staff"><DetailListLayout><ReturnsListPage /></DetailListLayout></RequireRole>,
+            children: [{ path: ':id', element: <DetailRoute><ReturnDetailPage /></DetailRoute> }],
           },
           {
             path: 'sales/returns/new',
             element: <RequireRole role="sales_staff"><ReturnCreatePage /></RequireRole>,
           },
           {
-            path: 'sales/returns/:id',
-            element: <RequireRole role="sales_staff"><ReturnDetailPage /></RequireRole>,
-          },
-          {
             path: 'sales/inventory/stocktake',
-            element: <RequireRole role="sales_staff"><AgentStocktakePage /></RequireRole>,
-          },
-          {
-            path: 'sales/inventory/stocktake/:id',
-            element: <RequireRole role="sales_staff"><StocktakeDetailPage /></RequireRole>,
+            element: <RequireRole role="sales_staff"><DetailListLayout><AgentStocktakePage /></DetailListLayout></RequireRole>,
+            children: [{ path: ':id', element: <DetailRoute><StocktakeDetailPage /></DetailRoute> }],
           },
           {
             path: 'sales/price-lists',
@@ -346,11 +326,8 @@ export const router = createBrowserRouter([
           },
           {
             path: 'sales/ai-review',
-            element: <RequireRole role="sales_staff"><DiagnosisQueuePage /></RequireRole>,
-          },
-          {
-            path: 'sales/ai-review/:id',
-            element: <RequireRole role="sales_staff"><DiagnosisCasePage /></RequireRole>,
+            element: <RequireRole role="sales_staff"><DetailListLayout><DiagnosisQueuePage /></DetailListLayout></RequireRole>,
+            children: [{ path: ':id', element: <DetailRoute><DiagnosisCasePage /></DetailRoute> }],
           },
           {
             path: 'sales/settings',
@@ -364,11 +341,8 @@ export const router = createBrowserRouter([
           },
           {
             path: 'delivery/deliveries',
-            element: <RequireRole role="delivery_staff"><DeliveriesPage /></RequireRole>,
-          },
-          {
-            path: 'delivery/deliveries/:id',
-            element: <RequireRole role="delivery_staff"><DeliveryDetailPage /></RequireRole>,
+            element: <RequireRole role="delivery_staff"><DetailListLayout><DeliveriesPage /></DetailListLayout></RequireRole>,
+            children: [{ path: ':id', element: <DetailRoute><DeliveryDetailPage /></DetailRoute> }],
           },
         ],
       },

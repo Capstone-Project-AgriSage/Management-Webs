@@ -1,4 +1,7 @@
 import ListToolbar from '@/components/ui/ListToolbar'
+import FilterSelect from '@/components/ui/FilterSelect'
+import KpiCard from '@/components/ui/KpiCard'
+import { BookOpen, CheckCircle2, Clock, Eye } from 'lucide-react'
 import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import { useState } from 'react';
 
@@ -102,23 +105,12 @@ export default function ArticlesPage() {
 
       </div>
 
+      <p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Dữ liệu mẫu — chưa có API backend quản lý bài viết.</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
-        <div className="p-4 rounded-xl border border-outline-variant bg-white flex flex-col justify-between h-32 shadow-sm">
-          <span className="text-sm text-on-surface-variant font-medium">Tổng bài viết</span>
-          <div className="text-3xl font-medium text-on-surface">{articleList.length}</div>
-        </div>
-        <div className="p-4 rounded-xl border border-outline-variant bg-white flex flex-col justify-between h-32 shadow-sm">
-          <span className="text-sm text-emerald-700 font-medium">Đã xuất bản</span>
-          <div className="text-3xl font-medium text-emerald-700">{articleList.filter(a => a.status === 'Đã xuất bản').length}</div>
-        </div>
-        <div className="p-4 rounded-xl border-2 border-amber-400/80 bg-white flex flex-col justify-between h-32 shadow-sm">
-          <span className="text-sm text-amber-700 font-medium">Chờ duyệt</span>
-          <div className="text-3xl font-medium text-amber-700">{articleList.filter(a => a.status === 'Chờ duyệt').length}</div>
-        </div>
-        <div className="p-4 rounded-xl border border-outline-variant bg-white flex flex-col justify-between h-32 shadow-sm">
-          <span className="text-sm text-on-surface-variant font-medium">Tổng lượt xem</span>
-          <div className="text-3xl font-medium text-on-surface">{articleList.reduce((acc, curr) => acc + curr.views, 0)}</div>
-        </div>
+        <KpiCard icon={BookOpen} iconClassName="bg-blue-50 text-blue-600" title="Tổng bài viết" value={articleList.length} layout="header" />
+        <KpiCard icon={CheckCircle2} iconClassName="bg-emerald-50 text-emerald-600" title="Đã xuất bản" value={articleList.filter(a => a.status === 'Đã xuất bản').length} layout="header" />
+        <KpiCard icon={Clock} iconClassName="bg-amber-50 text-amber-600" title="Chờ duyệt" value={articleList.filter(a => a.status === 'Chờ duyệt').length} layout="header" />
+        <KpiCard icon={Eye} iconClassName="bg-purple-50 text-purple-600" title="Tổng lượt xem" value={articleList.reduce((acc, curr) => acc + curr.views, 0)} layout="header" />
       </div>
 
       <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: "Tìm kiếm tiêu đề hoặc tác giả..." }} onClear={() => { setSearch(''); setStatusFilter(''); setPage(1) }} actions={<><button
@@ -128,12 +120,7 @@ export default function ArticlesPage() {
             <span className="material-symbols-outlined text-[18px]">edit_document</span>
             Viết bài mới
           </button></>}>
-<select aria-label="Lọc trạng thái" className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}>
-              <option value="">Tất cả</option>
-              <option value="Đã xuất bản">Đã xuất bản</option>
-              <option value="Chờ duyệt">Chờ duyệt</option>
-              <option value="Bản nháp">Bản nháp</option>
-            </select>
+        <FilterSelect label="Trạng thái" value={statusFilter} onChange={value => { setStatusFilter(value); setPage(1) }} options={[{ value: '', label: 'Mọi trạng thái' }, 'Đã xuất bản', 'Chờ duyệt', 'Bản nháp']} />
       </ListToolbar>
 
       <div className="border border-outline-variant/60 rounded-xl overflow-hidden bg-white shadow-sm mt-2 flex flex-col">
@@ -213,10 +200,7 @@ export default function ArticlesPage() {
           </table>
         </div>
 
-        <div className="px-4 py-3 bg-white flex items-center justify-between text-sm text-on-surface-variant border-t border-outline-variant/40">
-          <div>Hiển thị {startIndex + 1} đến {endIndex} của {totalCount} bài viết</div>
-          <Pagination page={page} totalPages={totalPages} startIndex={startIndex} endIndex={endIndex} totalCount={totalCount} unitLabel="" goPrev={goPrev} goNext={goNext} setPage={setPage} />
-        </div>
+        <Pagination page={page} totalPages={totalPages} startIndex={startIndex} endIndex={endIndex} totalCount={totalCount} unitLabel="" goPrev={goPrev} goNext={goNext} setPage={setPage} />
       </div>
 
       <FormModal

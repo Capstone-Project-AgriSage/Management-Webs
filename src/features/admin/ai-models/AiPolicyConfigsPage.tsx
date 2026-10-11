@@ -6,6 +6,7 @@ import { usePermission } from '@/context/PermissionContext'
 import { usePagination } from '@/hooks/usePagination'
 import { describeError } from '@/api/client'
 import ListToolbar from '@/components/ui/ListToolbar'
+import ListReportCards from '@/features/agent/reports/ListReportCards'
 import FilterSelect from '@/components/ui/FilterSelect'
 import Pagination from '@/components/ui/Pagination'
 import Modal from '@/components/ui/Modal'
@@ -55,6 +56,11 @@ export default function AiPolicyConfigsPage() {
     if (modelId && has('AI_POLICIES.CREATE')) void run(() => aiModelsApi.createPolicy(modelId, { version: form.version.trim(), minimumConfidence: confidence, topK, effectiveFrom: effectiveFrom.toISOString(), requiresHumanReview: true }))
   }
   return <div className="max-w-[1600px] mx-auto space-y-5">
+    <ListReportCards title="Tổng hợp chính sách AI" totalCount={pages.totalCount} unit="chính sách" loading={loading} error={!!error} metrics={[
+      { label: 'Đang hoạt động', value: pages.paginated.filter(policy => policy.status === 'ACTIVE').length },
+      { label: 'Bản nháp', value: pages.paginated.filter(policy => policy.status === 'DRAFT').length },
+      { label: 'Ngừng hoạt động', value: pages.paginated.filter(policy => policy.status === 'INACTIVE').length },
+    ]} />
     <ListToolbar search={{ value: search, onChange: setSearch, placeholder: 'Tìm theo ID hoặc phiên bản chính sách...' }} onClear={() => { setSearch(''); setStatus(''); setModelId(models[0]?.id ?? ''); pages.setPage(1) }} actions={has('AI_POLICIES.CREATE') && <button disabled={!modelId || loading} onClick={() => { setForm({ version: '', minimumConfidence: '0.8', topK: '3', effectiveFrom: '' }); setCreating(true) }} className="bg-primary-dark text-white px-4 rounded-[10px] font-semibold">+ Tạo chính sách</button>}>
       <FilterSelect label="Mô hình AI" value={modelId} onChange={setModelId} options={[{ value: '', label: 'Chọn mô hình AI' }, ...models.map(model => ({ value: model.id, label: `${model.name} · ${model.version}` }))]} />
       <FilterSelect label="Lọc trạng thái" value={status} onChange={setStatus} options={[{ value: '', label: 'Mọi trạng thái' }, { value: 'DRAFT', label: 'Bản nháp' }, { value: 'ACTIVE', label: 'Đang hoạt động' }, { value: 'INACTIVE', label: 'Ngừng hoạt động' }]} />

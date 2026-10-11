@@ -1,3 +1,4 @@
+import { useDetailBusy } from '@/hooks/useDetailBusy'
 import PermissionAction from '@/components/auth/PermissionAction'
 import { useState, useEffect, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
@@ -50,6 +51,7 @@ export default function DeliveryDetailPage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
+  useDetailBusy(actionLoading)
   const [outcome, setOutcome] = useState<AttemptOutcome | null>(null)
   const [incidentOpen, setIncidentOpen] = useState(false)
 

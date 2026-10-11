@@ -1,11 +1,13 @@
+import DetailModal from '@/components/ui/DetailModal'
+import ModalLayout from '@/components/ui/ModalLayout'
 import ListToolbar from '@/components/ui/ListToolbar'
 import PermissionAction from '@/components/auth/PermissionAction'
-import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, CalendarClock, ChevronDown, ChevronRight, ChevronsRight, History, PackageX, Wallet } from 'lucide-react';
+import { AlertTriangle, CalendarClock, Eye, ChevronsRight, History, PackageX, Wallet } from 'lucide-react';
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
+import { usePermission } from '@/context/PermissionContext';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { describeError } from '@/api/client';
 import { stockApi, type AdjustmentReason, type AlertType, type InventoryAlertItem, type StockLot, type StockSummaryItem } from '@/api/stockApi';
@@ -49,6 +51,8 @@ export default function StockOverviewPage() {
   const lotsRequest = useRef<Record<string, number>>({})
   usePageHeader({ title: 'Tồn kho', subtitle: 'Tồn theo sản phẩm và lô, hạn dùng, cảnh báo và điều chỉnh kho' })
   const { showToast } = useToast()
+  const { has } = usePermission()
+  const canReadReports = has('REPORTS.READ')
 
   const [tab, setTab] = useState<Tab>('summary')
   const [kpis, setKpis] = useState<Kpis>({ stockValue: null, expiredValue: null, expiring: null, expired: null, lowStock: null })
@@ -61,7 +65,7 @@ export default function StockOverviewPage() {
   const [page, setPage] = useState(1)
   const [summary, setSummary] = useState<Paged<StockSummaryItem> | null>(null)
   const [summaryLoading, setSummaryLoading] = useState(false)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [selectedProduct, setSelectedProduct] = useState<StockSummaryItem | null>(null)
   const [lotsByProduct, setLotsByProduct] = useState<Record<string, LotsState>>({})
 
   // ---- alerts ----
@@ -83,7 +87,7 @@ export default function StockOverviewPage() {
 
   const loadKpis = useCallback(async () => {
     const [valuation, expiring, expired, low] = await Promise.allSettled([
-      inventoryReportsApi.getValuation(),
+      canReadReports ? inventoryReportsApi.getValuation() : Promise.reject(new Error('Report permission required')),
       stockApi.getAlerts({ type: 'EXPIRING', withinDays: EXPIRING_DAYS_DEFAULT, pageSize: 1 }),
       stockApi.getAlerts({ type: 'EXPIRED', pageSize: 1 }),
       stockApi.getAlerts({ type: 'LOW_STOCK', pageSize: 1 }),
@@ -95,7 +99,7 @@ export default function StockOverviewPage() {
       expired: expired.status === 'fulfilled' ? expired.value.totalCount : null,
       lowStock: low.status === 'fulfilled' ? low.value.totalCount : null,
     })
-  }, [])
+  }, [canReadReports])
 
   const loadSummary = useCallback(async () => {
     const id = ++summaryRequest.current
@@ -171,16 +175,12 @@ export default function StockOverviewPage() {
     loadKpis()
     loadSummary()
     if (tab === 'alerts') loadAlerts()
-    if (expandedId) loadLots(expandedId)
-  }, [loadKpis, loadSummary, loadAlerts, loadLots, tab, expandedId])
+    if (selectedProduct) loadLots(selectedProduct.storeProductId, lotsByProduct[selectedProduct.storeProductId]?.page ?? 1)
+  }, [loadKpis, loadSummary, loadAlerts, loadLots, tab, selectedProduct, lotsByProduct])
 
-  const toggleExpand = (item: StockSummaryItem) => {
-    if (expandedId === item.storeProductId) {
-      setExpandedId(null)
-      return
-    }
-    setExpandedId(item.storeProductId)
-    loadLots(item.storeProductId)
+  const openProduct = (item: StockSummaryItem) => {
+    setSelectedProduct(item)
+    void loadLots(item.storeProductId)
   }
 
   const openAdjustmentForLot = (item: StockSummaryItem, lot: StockLot) => {
@@ -263,14 +263,14 @@ export default function StockOverviewPage() {
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
       {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <section aria-label="Tổng hợp tồn kho" className="agrisage-summary-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <KpiCard
           icon={Wallet}
           iconClassName="bg-emerald-50 text-emerald-600"
           title="Giá trị tồn kho"
           layout="side"
-          value={kpis.stockValue === null ? '...' : formatVnd(kpis.stockValue)}
-          subtitle="Theo giá vốn bình quân"
+          value={kpis.stockValue === null ? '—' : formatVnd(kpis.stockValue)}
+          subtitle={canReadReports ? 'Theo giá vốn bình quân' : 'Cần quyền xem báo cáo'}
         />
         <button type="button" className="text-left" onClick={() => goToAlerts('EXPIRING')}>
           <KpiCard
@@ -278,7 +278,7 @@ export default function StockOverviewPage() {
             iconClassName="bg-amber-50 text-amber-600"
             title={`Sắp hết hạn (${EXPIRING_DAYS_DEFAULT} ngày)`}
             layout="side"
-            value={kpis.expiring ?? '...'}
+            value={kpis.expiring ?? '—'}
             valueSuffix={<span className="text-sm text-slate-500">lô</span>}
             subtitle="Bấm để xem danh sách"
             className="border-slate-200 hover:border-amber-300 transition-colors"
@@ -290,10 +290,10 @@ export default function StockOverviewPage() {
             iconClassName="bg-rose-50 text-rose-600"
             title="Hết hạn còn tồn"
             layout="side"
-            value={kpis.expired ?? '...'}
+            value={kpis.expired ?? '—'}
             valueClassName={kpis.expired ? 'text-rose-600' : 'text-slate-900'}
             valueSuffix={<span className="text-sm text-slate-500">lô</span>}
-            subtitle={kpis.expiredValue ? `Giá trị ${formatVnd(kpis.expiredValue)}, cần xuất hủy` : 'Không có hàng hết hạn'}
+            subtitle={kpis.expired === null ? 'Chưa có số liệu cảnh báo' : kpis.expired === 0 ? 'Không có hàng hết hạn' : kpis.expiredValue !== null ? `Giá trị ${formatVnd(kpis.expiredValue)}, cần xuất hủy` : 'Cần kiểm tra lô và xuất hủy'}
             className="border-slate-200 hover:border-rose-300 transition-colors"
           />
         </button>
@@ -303,16 +303,15 @@ export default function StockOverviewPage() {
             iconClassName="bg-orange-50 text-orange-600"
             title="Sắp hết hàng"
             layout="side"
-            value={kpis.lowStock ?? '...'}
+            value={kpis.lowStock ?? '—'}
             valueSuffix={<span className="text-sm text-slate-500">sản phẩm</span>}
             subtitle="Dưới mức tồn tối thiểu"
             className="border-slate-200 hover:border-orange-300 transition-colors"
           />
         </button>
-      </div>
+      </section>
 
       {/* Tabs + actions */}
-      <BusinessReportCards kind="inventory" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1 shadow-sm" role="tablist">
           {(
@@ -413,16 +412,15 @@ export default function StockOverviewPage() {
                     <EmptyTableRow colSpan={9} message="Không có sản phẩm nào phù hợp." />
                   ) : (
                     summaryItems.map((item) => {
-                      const open = expandedId === item.storeProductId
-                      const lots = lotsByProduct[item.storeProductId]
                       const nearest = daysUntil(item.nearestExpiryDate)
                       return (
-                        <Fragment key={item.storeProductId}>
+
                           <tr
-                            className={`hover:bg-surface-container-low transition-colors cursor-pointer ${open ? 'bg-surface-container-low' : ''}`}
-                            onClick={() => toggleExpand(item)}
+                            key={item.storeProductId}
+                            className="hover:bg-surface-container-low transition-colors cursor-pointer"
+                            onClick={() => openProduct(item)}
                           >
-                            <td className="py-3 pl-4 pr-2 text-slate-400">{open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</td>
+                            <td className="py-3 pl-4 pr-2 text-slate-400"><button type="button" aria-label={`Xem chi tiết tồn kho ${item.productName}`} className="p-1 rounded hover:bg-emerald-50 hover:text-emerald-700" onClick={event => { event.stopPropagation(); openProduct(item) }}><Eye size={16} aria-hidden="true" /></button></td>
                             <td className="py-3 px-3">
                               <div className="font-medium text-on-surface">{item.productName}</div>
                               <div className="font-mono text-xs text-on-surface-variant">{item.sku}</div>
@@ -458,114 +456,7 @@ export default function StockOverviewPage() {
                               )}
                             </td>
                           </tr>
-                          {open ? (
-                            <tr className="bg-surface-container-lowest">
-                              <td />
-                              <td colSpan={8} className="px-3 pb-4 pt-1">
-                                <div className="rounded-lg border border-outline-variant overflow-hidden">
-                                  <div className="flex items-center justify-between bg-surface-container-low px-4 py-2 border-b border-outline-variant">
-                                    <span className="text-sm font-semibold text-on-surface">
-                                      Các lô của {item.productName} (đơn vị: {unitLabel(item.baseUnit)})
-                                    </span>
-                                    <Link
-                                      to={`/agent/inventory/stock-card?storeProductId=${item.storeProductId}`}
-                                      className="inline-flex items-center gap-1 text-sm font-medium text-emerald-700 hover:text-emerald-800"
-                                    >
-                                      Xem thẻ kho <ChevronsRight size={16} />
-                                    </Link>
-                                  </div>
-                                  <table className="w-full text-left">
-                                    <thead className="text-[11px] text-on-surface-variant uppercase tracking-wider border-b border-outline-variant">
-                                      <tr>
-                                        <th className="py-2 px-4 font-medium">Số lô</th>
-                                        <th className="py-2 px-3 font-medium text-center">Trạng thái</th>
-                                        <th className="py-2 px-3 font-medium text-center">Hạn dùng</th>
-                                        <th className="py-2 px-3 font-medium text-right">Tồn</th>
-                                        <th className="py-2 px-3 font-medium text-right">Đã giữ</th>
-                                        <th className="py-2 px-3 font-medium text-right">Khả dụng</th>
-                                        <th className="py-2 px-3 font-medium text-right">Giá vốn BQ</th>
-                                        <th className="py-2 px-3 font-medium text-right">Giá trị</th>
-                                        <th className="py-2 px-4 font-medium text-right">Thao tác</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-outline-variant/50 text-sm">
-                                      {lots?.loading && lots.items.length === 0 ? (
-                                        <EmptyTableRow colSpan={9} message="Đang tải các lô..." className="text-slate-500 animate-pulse" />
-                                      ) : lots?.error ? (
-                                        <EmptyTableRow colSpan={9} message={lots.error} className="text-rose-600" />
-                                      ) : !lots || lots.items.length === 0 ? (
-                                        <EmptyTableRow colSpan={9} message="Sản phẩm này chưa có lô nào." />
-                                      ) : (
-                                        lots.items.map((lot) => {
-                                          const days = daysUntil(lot.expiryDate)
-                                          const canBlock = lot.status === 'ACTIVE'
-                                          const canUnblock = lot.status === 'BLOCKED' || lot.status === 'QUARANTINED'
-                                          return (
-                                            <tr key={lot.id}>
-                                              <td className="py-2.5 px-4 font-mono">{lot.lotNumber ?? 'Không có'}</td>
-                                              <td className="py-2.5 px-3 text-center">
-                                                <span className={`text-[11px] font-bold px-2 py-0.5 rounded uppercase tracking-wide ${LOT_STATUS_BADGE_CLASS[lot.status]}`}>
-                                                  {LOT_STATUS_LABEL[lot.status]}
-                                                </span>
-                                              </td>
-                                              <td className="py-2.5 px-3 text-center">
-                                                {lot.expiryDate ? (
-                                                  <div>
-                                                    <div>{formatDate(lot.expiryDate)}</div>
-                                                    {days !== null && days <= EXPIRING_DAYS_DEFAULT ? (
-                                                      <div className={`text-[11px] font-medium ${days < 0 ? 'text-rose-600' : 'text-amber-700'}`}>{expiryLabel(days)}</div>
-                                                    ) : null}
-                                                  </div>
-                                                ) : (
-                                                  <span className="text-slate-400">Không có hạn</span>
-                                                )}
-                                              </td>
-                                              <td className="py-2.5 px-3 text-right tabular-nums">{formatQty(lot.quantityOnHand)}</td>
-                                              <td className="py-2.5 px-3 text-right tabular-nums text-amber-700">{formatQty(lot.quantityReserved)}</td>
-                                              <td className="py-2.5 px-3 text-right tabular-nums font-semibold">{formatQty(lot.quantityAvailable)}</td>
-                                              <td className="py-2.5 px-3 text-right tabular-nums">
-                                                {lot.averageUnitCost === null ? '-' : formatVnd(lot.averageUnitCost)}
-                                              </td>
-                                              <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">{formatVnd(lot.totalCostValue)}</td>
-                                              <td className="py-2.5 px-4 text-right whitespace-nowrap">
-                                                <button
-                                                  type="button"
-                                                  className="text-sm font-medium text-emerald-700 hover:text-emerald-800 mr-3"
-                                                  onClick={() => openAdjustmentForLot(item, lot)}
-                                                >
-                                                  Điều chỉnh
-                                                </button>
-                                                {canBlock ? (
-                                                  <button
-                                                    type="button"
-                                                    className="text-sm font-medium text-rose-700 hover:text-rose-800"
-                                                    onClick={() => setLotToToggle({ lot, next: 'BLOCKED' })}
-                                                  >
-                                                    Khóa lô
-                                                  </button>
-                                                ) : null}
-                                                {canUnblock ? (
-                                                  <button
-                                                    type="button"
-                                                    className="text-sm font-medium text-slate-700 hover:text-slate-900"
-                                                    onClick={() => setLotToToggle({ lot, next: 'ACTIVE' })}
-                                                  >
-                                                    Mở khóa
-                                                  </button>
-                                                ) : null}
-                                              </td>
-                                            </tr>
-                                          )
-                                        })
-                                      )}
-                                    </tbody>
-                                  </table>
-                                </div>
-                                {lots && !lots.loading && !lots.error && <ServerPagination page={lots.page} pageSize={PAGE_SIZE} totalCount={lots.totalCount} totalPages={lots.totalPages} unitLabel="lô hàng" onPageChange={page => { void loadLots(item.storeProductId, page) }} />}
-                              </td>
-                            </tr>
-                          ) : null}
-                        </Fragment>
+
                       )
                     })
                   )}
@@ -700,6 +591,116 @@ export default function StockOverviewPage() {
           </div>
         </section>
       )}
+
+      {selectedProduct && (() => {
+        const item = summaryItems.find(row => row.storeProductId === selectedProduct.storeProductId) ?? selectedProduct
+        const lots = lotsByProduct[item.storeProductId]
+        return <DetailModal open title={`Tồn kho — ${item.productName}`} onClose={() => setSelectedProduct(null)} widthClassName="max-w-4xl">
+          <ModalLayout header={<div><h2>{item.productName}</h2><p className="mt-1 text-sm text-slate-500">{item.sku} · Tồn thực tế {formatQtyUnit(item.onHandBaseQuantity, item.baseUnit)}</p></div>}>
+            <div className="rounded-lg border border-outline-variant overflow-hidden">
+              <div className="flex flex-wrap items-center justify-between gap-2 bg-surface-container-low px-4 py-2 border-b border-outline-variant">
+                <span className="text-sm font-semibold text-on-surface">
+                  Các lô của {item.productName} (đơn vị: {unitLabel(item.baseUnit)})
+                </span>
+                <Link
+                  to={`/agent/inventory/stock-card?storeProductId=${item.storeProductId}`}
+                  onClick={() => setSelectedProduct(null)}
+                  className="inline-flex items-center gap-1 text-sm font-medium text-emerald-700 hover:text-emerald-800"
+                >
+                  Xem thẻ kho <ChevronsRight size={16} />
+                </Link>
+              </div>
+              <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left">
+                <thead className="text-[11px] text-on-surface-variant uppercase tracking-wider border-b border-outline-variant">
+                  <tr>
+                    <th className="py-2 px-4 font-medium">Số lô</th>
+                    <th className="py-2 px-3 font-medium text-center">Trạng thái</th>
+                    <th className="py-2 px-3 font-medium text-center">Hạn dùng</th>
+                    <th className="py-2 px-3 font-medium text-right">Tồn</th>
+                    <th className="py-2 px-3 font-medium text-right">Đã giữ</th>
+                    <th className="py-2 px-3 font-medium text-right">Khả dụng</th>
+                    <th className="py-2 px-3 font-medium text-right">Giá vốn BQ</th>
+                    <th className="py-2 px-3 font-medium text-right">Giá trị</th>
+                    <th className="py-2 px-4 font-medium text-right">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/50 text-sm">
+                  {lots?.loading && lots.items.length === 0 ? (
+                    <EmptyTableRow colSpan={9} message="Đang tải các lô..." className="text-slate-500 animate-pulse" />
+                  ) : lots?.error ? (
+                    <EmptyTableRow colSpan={9} message={lots.error} className="text-rose-600" />
+                  ) : !lots || lots.items.length === 0 ? (
+                    <EmptyTableRow colSpan={9} message="Sản phẩm này chưa có lô nào." />
+                  ) : (
+                    lots.items.map((lot) => {
+                      const days = daysUntil(lot.expiryDate)
+                      const canBlock = lot.status === 'ACTIVE'
+                      const canUnblock = lot.status === 'BLOCKED' || lot.status === 'QUARANTINED'
+                      return (
+                        <tr key={lot.id}>
+                          <td className="py-2.5 px-4 font-mono">{lot.lotNumber ?? 'Không có'}</td>
+                          <td className="py-2.5 px-3 text-center">
+                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded uppercase tracking-wide ${LOT_STATUS_BADGE_CLASS[lot.status]}`}>
+                              {LOT_STATUS_LABEL[lot.status]}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            {lot.expiryDate ? (
+                              <div>
+                                <div>{formatDate(lot.expiryDate)}</div>
+                                {days !== null && days <= EXPIRING_DAYS_DEFAULT ? (
+                                  <div className={`text-[11px] font-medium ${days < 0 ? 'text-rose-600' : 'text-amber-700'}`}>{expiryLabel(days)}</div>
+                                ) : null}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400">Không có hạn</span>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 text-right tabular-nums">{formatQty(lot.quantityOnHand)}</td>
+                          <td className="py-2.5 px-3 text-right tabular-nums text-amber-700">{formatQty(lot.quantityReserved)}</td>
+                          <td className="py-2.5 px-3 text-right tabular-nums font-semibold">{formatQty(lot.quantityAvailable)}</td>
+                          <td className="py-2.5 px-3 text-right tabular-nums">
+                            {lot.averageUnitCost === null ? '-' : formatVnd(lot.averageUnitCost)}
+                          </td>
+                          <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">{formatVnd(lot.totalCostValue)}</td>
+                          <td className="py-2.5 px-4 text-right whitespace-nowrap">
+                            <button
+                              type="button"
+                              className="text-sm font-medium text-emerald-700 hover:text-emerald-800 mr-3"
+                              onClick={() => openAdjustmentForLot(item, lot)}
+                            >
+                              Điều chỉnh
+                            </button>
+                            {canBlock ? (
+                              <button
+                                type="button"
+                                className="text-sm font-medium text-rose-700 hover:text-rose-800"
+                                onClick={() => setLotToToggle({ lot, next: 'BLOCKED' })}
+                              >
+                                Khóa lô
+                              </button>
+                            ) : null}
+                            {canUnblock ? (
+                              <button
+                                type="button"
+                                className="text-sm font-medium text-slate-700 hover:text-slate-900"
+                                onClick={() => setLotToToggle({ lot, next: 'ACTIVE' })}
+                              >
+                                Mở khóa
+                              </button>
+                            ) : null}
+                          </td>
+                        </tr>
+                      )
+                    })
+                  )}
+                </tbody>
+              </table></div>
+            </div>
+            {lots && !lots.loading && !lots.error && <ServerPagination page={lots.page} pageSize={PAGE_SIZE} totalCount={lots.totalCount} totalPages={lots.totalPages} unitLabel="lô hàng" onPageChange={page => { void loadLots(item.storeProductId, page) }} />}
+          </ModalLayout>
+        </DetailModal>
+      })()}
 
       <StockAdjustmentModal
         target={adjustment?.target ?? null}

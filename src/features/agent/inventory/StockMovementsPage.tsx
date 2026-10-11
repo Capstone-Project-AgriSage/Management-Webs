@@ -33,6 +33,7 @@ export default function StockMovementsPage() {
   const { showToast } = useToast()
 
   const [type, setType] = useState('')
+  const [search, setSearch] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [page, setPage] = useState(1)
@@ -79,16 +80,23 @@ export default function StockMovementsPage() {
     }
   }
 
-  const items = data?.items ?? []
+  const keyword = search.trim().toLocaleLowerCase('vi-VN')
+  const items = (data?.items ?? []).filter(item => !keyword || [item.movementNumber, MOVEMENT_TYPE_LABEL[item.movementType] ?? item.movementType, STATUS_LABEL[item.status] ?? item.status].some(value => value.toLocaleLowerCase('vi-VN').includes(keyword)))
+  const changePage = (next: number) => { setSearch(''); setPage(next) }
   const reasonLabel = (code: string | null) => ADJUSTMENT_REASONS.find((r) => r.value === code)?.label ?? code
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
       <BusinessReportCards kind="inventory" fromDate={from} toDate={to} onFromDateChange={value => { setFrom(value); setPage(1) }} onToDateChange={value => { setTo(value); setPage(1) }} searchResult={{ count: data?.totalCount ?? 0, unit: 'phiếu kho' }} />
-      <ListToolbar  onClear={() => { setType(''); setFrom(''); setTo(''); setPage(1) }}>
+      <ListToolbar search={{ value: search, onChange: setSearch, placeholder: 'Tìm mã, loại phiếu trong trang hiện tại...' }} onClear={() => { setSearch(''); setType(''); setFrom(''); setTo(''); setPage(1) }} actions={
+        <Link to="/agent/inventory/stock-card" className="inline-flex items-center h-10 px-3 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-medium shadow-sm">
+          Xem thẻ kho theo sản phẩm
+        </Link>
+      }>
 <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Loại phiếu</label>
           <FilterSelect
+            label="Loại phiếu kho"
             value={type}
             onChange={(v) => {
               setType(v)
@@ -130,29 +138,8 @@ export default function StockMovementsPage() {
             }}
           />
         </div>
-{type || from || to ? (
-          <button
-            type="button"
-            className="h-10 px-3 text-sm font-medium text-slate-600 hover:text-slate-900"
-            onClick={() => {
-              setType('')
-              setFrom('')
-              setTo('')
-              setPage(1)
-            }}
-          >
-            Xóa bộ lọc
-          </button>
-        ) : null}
-<div className="ml-auto">
-          <Link
-            to="/agent/inventory/stock-card"
-            className="inline-flex items-center h-10 px-3 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-medium shadow-sm"
-          >
-            Xem thẻ kho theo sản phẩm
-          </Link>
-        </div>
       </ListToolbar>
+      {keyword && <p role="status" className="text-xs text-slate-500">Tìm trong trang hiện tại: {items.length} / {data?.items.length ?? 0} phiếu. Chọn loại phiếu và thời gian để lọc toàn bộ danh sách.</p>}
 
       {rangeInvalid ? (
         <p className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2" role="alert">
@@ -176,7 +163,7 @@ export default function StockMovementsPage() {
               {loading && items.length === 0 ? (
                 <EmptyTableRow colSpan={5} message="Đang tải phiếu kho..." className="text-slate-500 animate-pulse" />
               ) : items.length === 0 ? (
-                <EmptyTableRow colSpan={5} message="Không có phiếu kho nào." />
+                <EmptyTableRow colSpan={5} message={keyword ? 'Không có phiếu phù hợp trong trang hiện tại.' : 'Không có phiếu kho nào.'} />
               ) : (
                 items.map((m) => (
                   <tr
@@ -208,9 +195,9 @@ export default function StockMovementsPage() {
           endIndex={Math.min(page * PAGE_SIZE, data?.totalCount ?? 0)}
           totalCount={data?.totalCount ?? 0}
           unitLabel="phiếu kho"
-          goPrev={() => setPage((p) => Math.max(1, p - 1))}
-          goNext={() => setPage((p) => Math.min(data?.totalPages ?? 1, p + 1))}
-          setPage={setPage}
+          goPrev={() => changePage(Math.max(1, page - 1))}
+          goNext={() => changePage(Math.min(data?.totalPages ?? 1, page + 1))}
+          setPage={changePage}
         />
       </div>
 

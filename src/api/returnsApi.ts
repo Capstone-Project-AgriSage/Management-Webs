@@ -133,8 +133,8 @@ export interface CreateReturnItem {
 }
 
 export const returnsApi = {
-  list: (params: { status?: ReturnStatus; orderId?: Uuid; fromDate?: string; toDate?: string; search?: string; page?: number; pageSize?: number }) =>
-    api<Paged<ReturnListItem>>(`/api/returns${buildQuery(params)}`),
+  list: (params: { status?: ReturnStatus; orderId?: Uuid; fromDate?: string; toDate?: string; search?: string; page?: number; pageSize?: number }, signal?: AbortSignal) =>
+    api<Paged<ReturnListItem>>(`/api/returns${buildQuery(params)}`, { signal }),
 
   get: (id: Uuid) => api<SalesReturn>(`/api/returns/${id}`),
 

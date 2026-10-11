@@ -8,6 +8,7 @@ import { useServerList } from '@/hooks/useServerList'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useFormValues } from '@/hooks/useFormValues'
 import ListToolbar from '@/components/ui/ListToolbar'
+import ListReportCards from '@/features/agent/reports/ListReportCards'
 import FilterSelect from '@/components/ui/FilterSelect'
 import ServerPagination from '@/components/ui/ServerPagination'
 import FormModal from '@/components/ui/FormModal'
@@ -58,6 +59,11 @@ export default function AdminCatalogList({ kind }: { kind: CatalogKind }) {
     void run(() => editing === 'new' ? adminCatalogApi.create(kind, data) : adminCatalogApi.update(kind, editing.id, data), 'Đã lưu thay đổi')
   }
   return <div className="max-w-[1600px] mx-auto space-y-5">
+    <ListReportCards title={`Tổng hợp ${unit}`} totalCount={list.totalCount} unit={unit} loading={list.loading} error={!!list.error} metrics={[
+      { label: 'Đang hoạt động', value: list.items.filter(row => row.isActive).length },
+      { label: 'Ngừng hoạt động', value: list.items.filter(row => !row.isActive).length },
+      { label: 'Có mô tả', value: list.items.filter(row => row.description?.trim()).length },
+    ]} />
     <ListToolbar search={{ value: search, onChange: value => { setSearch(value.slice(0, 100)); list.setPage(1) }, placeholder: `Tìm theo mã hoặc tên ${unit}...` }} onClear={() => { setSearch(''); setStatus(''); list.setPage(1) }} actions={has(`${permission}.CREATE`) && <button className="bg-primary-dark text-white rounded-[10px] px-4 font-semibold" onClick={() => open()}>+ Thêm {unit}</button>}>
       <FilterSelect label="Lọc trạng thái" value={status} onChange={value => { setStatus(value); list.setPage(1) }} options={[{ value: '', label: 'Mọi trạng thái' }, { value: 'true', label: 'Hoạt động' }, { value: 'false', label: 'Ngừng hoạt động' }]} />
     </ListToolbar>

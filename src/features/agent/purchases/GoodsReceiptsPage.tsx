@@ -1,3 +1,4 @@
+import { useBusinessDataRefresh } from '@/hooks/useBusinessDataRefresh'
 import ListToolbar from '@/components/ui/ListToolbar'
 import PermissionAction from '@/components/auth/PermissionAction'
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
@@ -64,6 +65,8 @@ export default function GoodsReceiptsPage() {
     load()
   }, [load])
 
+  useBusinessDataRefresh(load)
+
   const items = data?.items ?? []
 
   return (
@@ -86,6 +89,7 @@ export default function GoodsReceiptsPage() {
             <Plus size={16} /> Tạo phiếu nhập
           </button></PermissionAction></>}>
 <FilterSelect
+            label="Trạng thái"
             value={status}
             onChange={(v) => {
               setStatus(v)
@@ -93,7 +97,10 @@ export default function GoodsReceiptsPage() {
             }}
             options={[{ value: '', label: 'Tất cả trạng thái' }, ...(Object.keys(RECEIPT_STATUS_LABEL) as ReceiptStatus[]).map((s) => ({ value: s, label: RECEIPT_STATUS_LABEL[s] }))]}
           />
-<SupplierSelect
+<div className="relative">
+  <label className="agrisage-filter-caption" htmlFor="receipt-supplier-filter">Nhà cung cấp</label>
+  <SupplierSelect
+              id="receipt-supplier-filter"
               value={supplierId}
               onChange={(v) => {
                 setSupplierId(v)
@@ -102,6 +109,7 @@ export default function GoodsReceiptsPage() {
               activeOnly={false}
               emptyLabel="Tất cả nhà cung cấp"
             />
+  </div>
       </ListToolbar>
 
       <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">

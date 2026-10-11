@@ -1,3 +1,4 @@
+import { useDetailBusy } from '@/hooks/useDetailBusy'
 import PermissionAction from '@/components/auth/PermissionAction'
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -57,6 +58,7 @@ export default function StocktakeDetailPage() {
   const [dialog, setDialog] = useState<Dialog>(null)
   const [cancelReason, setCancelReason] = useState('')
   const [busy, setBusy] = useState(false)
+  useDetailBusy(busy || saving)
 
   usePageHeader({ title: st ? `Kiểm kê ${st.stocktakeNumber}` : 'Kiểm kê kho', subtitle: 'Đếm từng lô, đối chiếu sổ sách rồi hoàn thành để ghi nhận chênh lệch' })
 

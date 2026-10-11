@@ -1,78 +1,37 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { usePageHeader } from '@/context/PageHeaderContext';
-import { deliveriesApi, type DeliveryListItem } from '@/api/deliveriesApi';
-import { isToday } from '@/utils/date';
+import { useCallback } from 'react'
+import { Link } from 'react-router-dom'
+import { CheckCircle, Clock, RotateCcw, Truck } from 'lucide-react'
+import { usePageHeader } from '@/context/PageHeaderContext'
+import { usePermission } from '@/context/PermissionContext'
+import { deliveriesApi, type DeliveryStatus } from '@/api/deliveriesApi'
+import KpiCard from '@/components/ui/KpiCard'
+import { useReportData } from '@/features/agent/reports/useReportData'
+
+const STATUS_GROUPS: DeliveryStatus[][] = [
+  ['OUT_FOR_DELIVERY'], ['ASSIGNED'], ['RETRY_PENDING', 'PARTIALLY_DELIVERED'], ['DELIVERED'],
+]
+const CARDS = [
+  { label: 'Cần giao', icon: Truck, tone: 'bg-primary/10 text-primary' },
+  { label: 'Chờ xuất phát', icon: Clock, tone: 'bg-slate-100 text-slate-600' },
+  { label: 'Chờ giao lại', icon: RotateCcw, tone: 'bg-amber-50 text-amber-600' },
+  { label: 'Đã giao', icon: CheckCircle, tone: 'bg-emerald-50 text-emerald-600' },
+]
 
 export default function DashboardPage() {
-  usePageHeader({ title: 'Tổng quan', subtitle: 'Trang chủ Nhân viên giao hàng' })
-
-  const [orders, setOrders] = useState<DeliveryListItem[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    let mounted = true
-    const fetchOrders = async () => {
-      try {
-        setLoading(true)
-        const data = await deliveriesApi.getDeliveries()
-        if (mounted) {
-          setOrders(data.items || [])
-        }
-      } catch (err) {
-        // error handling
-      } finally {
-        if (mounted) {
-          setLoading(false)
-        }
-      }
-    }
-    fetchOrders()
-    return () => {
-      mounted = false
-    }
-  }, [])
-
-  // Only OUT_FOR_DELIVERY can be started by the driver; the rest wait for the store to dispatch (§D1).
-  const assignedCount = orders.filter((o) => o.status === 'OUT_FOR_DELIVERY').length
-  const todayCount = orders.filter((o) => isToday(o.scheduledAt || '') && o.status !== 'CANCELLED').length
-  const redeliverCount = orders.filter((o) => o.status === 'RETRY_PENDING' || o.status === 'PARTIALLY_DELIVERED').length
-  const deliveredTodayCount = orders.filter((o) => o.status === 'DELIVERED' && isToday(o.completedAt || '')).length
-
-  const cards = [
-    { label: 'Chuyến cần giao', value: assignedCount, icon: 'assignment', to: '/delivery/deliveries', tone: 'primary' as const },
-    { label: 'Lịch giao hôm nay', value: todayCount, icon: 'today', to: '/delivery/deliveries', tone: 'default' as const },
-    { label: 'Chờ giao lại', value: redeliverCount, icon: 'replay', to: '/delivery/deliveries', tone: 'error' as const },
-    { label: 'Đã giao hôm nay', value: deliveredTodayCount, icon: 'check_circle', to: '/delivery/deliveries', tone: 'primary' as const },
-  ]
-
-  const toneClassName: Record<(typeof cards)[number]['tone'], string> = {
-    primary: 'bg-primary-fixed/50 text-primary',
-    default: 'bg-surface-container text-on-surface-variant',
-    error: 'bg-error-container text-error',
-  }
-
-  if (loading) {
-    return <div className="p-8 rounded-xl border border-outline-variant bg-white text-center text-on-surface-variant">Đang tải dữ liệu...</div>
-  }
-
-  return (
-    <div className="agrisage-dashboard max-w-[1440px] min-w-0 mx-auto grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-      {cards.map((card) => (
-        <Link
-          key={card.label}
-          to={card.to}
-          className="agrisage-dashboard-kpi min-w-0 bg-white rounded-xl border border-outline-variant shadow-sm p-5 hover:border-primary/60 hover:shadow-md transition-all"
-        >
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${toneClassName[card.tone]}`}>
-            <span className="material-symbols-outlined text-[22px]">{card.icon}</span>
-          </div>
-          <div className="mt-space-md">
-            <span className="text-3xl text-on-surface font-bold tabular-nums">{card.value}</span>
-            <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">{card.label}</p>
-          </div>
-        </Link>
-      ))}
+  usePageHeader({ title: 'Tổng quan giao hàng', subtitle: 'Tất cả chuyến giao được phân công cho bạn' })
+  const { has } = usePermission()
+  const canRead = has('DELIVERIES.READ')
+  const load = useCallback((signal: AbortSignal) => Promise.all(STATUS_GROUPS.map(async statuses => {
+    const pages = await Promise.all(statuses.map(status => deliveriesApi.getDeliveries({ status, page: 1, pageSize: 1 }, signal)))
+    return pages.reduce((sum, page) => sum + page.totalCount, 0)
+  })), [])
+  const { data, loading, error, refresh } = useReportData(load, canRead ? null : 'Chưa được cấp quyền xem giao hàng.')
+  return <div className="agrisage-dashboard max-w-[1440px] mx-auto flex flex-col gap-5">
+    <div className="agrisage-summary-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4" aria-busy={loading}>
+      {CARDS.map((card, index) => <KpiCard key={card.label} icon={card.icon} iconClassName={card.tone} title={card.label} value={loading ? '…' : data?.[index] ?? '—'} subtitle="Tất cả chuyến được phân công" />)}
     </div>
-  )
+    {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
+    {!canRead && <p role="status" className="text-sm text-slate-600">Chưa được cấp quyền xem giao hàng.</p>}
+    {canRead && <div className="flex gap-3"><Link className="rounded-lg bg-primary-dark px-4 py-2 text-sm font-semibold text-white" to="/delivery/deliveries">Xem danh sách giao hàng</Link><button type="button" onClick={refresh} disabled={loading} className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 disabled:opacity-50">Làm mới</button></div>}
+  </div>
 }

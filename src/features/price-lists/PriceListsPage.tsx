@@ -1,4 +1,5 @@
 import ListToolbar from '@/components/ui/ListToolbar'
+import FilterSelect from '@/components/ui/FilterSelect'
 import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import PermissionAction from '@/components/auth/PermissionAction'
 import { useEffect, useState } from 'react';
@@ -173,12 +174,7 @@ export default function PriceListsPage() {
               <Plus size={16} /> Tạo bảng giá
             </button></PermissionAction>
           )}</>}>
-<select aria-label="Lọc trạng thái" className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700" value={status} onChange={(e) => changeFilter(() => setStatus(e.target.value))}>
-            <option value="">Mọi trạng thái</option>
-            {Object.entries(STATUS).map(([value, s]) => (
-              <option key={value} value={value}>{s.label}</option>
-            ))}
-          </select>
+        <FilterSelect label="Trạng thái" value={status} onChange={value => changeFilter(() => setStatus(value))} options={[{ value: '', label: 'Mọi trạng thái' }, ...Object.entries(STATUS).map(([value, item]) => ({ value, label: item.label }))]} />
       </ListToolbar>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col">

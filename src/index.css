@@ -226,21 +226,29 @@ input:-webkit-autofill {
 .sidebar-link { position: relative; min-height: 42px; }
 .sidebar-link.is-active::before { content: ''; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 4px; background: var(--color-primary); }
 .sidebar-footer { padding: 12px; }
-.agrisage-list-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-width: 0; padding: 12px; background: #fff; border: 1px solid var(--color-outline-variant); border-radius: 12px; box-shadow: 0 1px 2px rgb(15 23 42 / .04); }
-.agrisage-list-toolbar > .agrisage-search { flex: 1 1 280px; }
-.agrisage-list-filters, .agrisage-list-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; max-width: 100%; }
+.agrisage-list-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); grid-template-areas: 'search filters' 'actions filters'; align-items: start; column-gap: 16px; row-gap: 16px; min-width: 0; padding: 16px; background: #fff; border: 1px solid var(--color-outline-variant); border-radius: 12px; box-shadow: 0 1px 2px rgb(15 23 42 / .04); }
+.agrisage-list-toolbar > .agrisage-search { grid-area: search; }
+.agrisage-list-filters { grid-area: filters; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 16px; min-width: 0; }
+.agrisage-list-filters > * { width: 100%; min-width: 0; max-width: 100%; }
+.agrisage-list-filters > :only-child { grid-column: 1 / -1; }
+.agrisage-list-filters > label:has(input[type=checkbox]) { min-height: 44px; align-items: center; }
+.agrisage-list-filters > div > .agrisage-filter { min-width: 0; }
+.agrisage-filter-caption { position: absolute; top: -8px; left: 12px; z-index: 1; padding: 0 6px; background: #fff; color: #64748b; font-size: 12px; line-height: 16px; pointer-events: none; }
+.agrisage-list-actions { grid-area: actions; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 8px; min-width: 0; max-width: 100%; }
 .agrisage-list-filters:empty { display: none; }
-.agrisage-list-toolbar input:not([type=checkbox]), .agrisage-list-toolbar select { min-height: 40px; border-radius: 10px; }
-.agrisage-list-toolbar select { min-width: 148px; }
-.agrisage-list-toolbar .agrisage-list-actions button, .agrisage-list-toolbar .agrisage-list-actions a { min-height: 40px; border-radius: 10px; white-space: nowrap; }
-.agrisage-clear-filters { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 10px; color: #64748b; font-size: 14px; font-weight: 500; transition: background-color .15s, color .15s; }
+.agrisage-list-toolbar:has(> .agrisage-list-filters:empty) { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'search' 'actions'; }
+.agrisage-list-toolbar-filters-only { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'filters' 'actions'; }
+.agrisage-list-toolbar input:not([type=checkbox]), .agrisage-list-toolbar select { width: 100%; min-width: 0; min-height: 44px; border-radius: 10px; }
+.agrisage-list-toolbar .agrisage-list-actions button, .agrisage-list-toolbar .agrisage-list-actions a { min-height: 44px; border-radius: 10px; white-space: normal; }
+.agrisage-clear-filters { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; border: 1px solid #e2e8f0; background: #fff; box-shadow: 0 1px 2px rgb(15 23 42 / .04); color: #64748b; font-size: 14px; font-weight: 500; transition: background-color .15s, color .15s; }
 .agrisage-clear-filters:hover { color: #0f172a; background: #f1f5f9; }
 .agrisage-clear-filters:disabled { opacity: .4; cursor: not-allowed; }
-@media (max-width: 639px) {
-  .agrisage-list-toolbar > .agrisage-search { flex-basis: 100%; }
-  .agrisage-list-filters { flex: 1 1 100%; }
-  .agrisage-list-filters > * { min-width: 0; max-width: 100%; }
-  .agrisage-list-actions { width: 100%; justify-content: flex-end; }
+@media (max-width: 767px) {
+  .agrisage-list-toolbar { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'search' 'actions' 'filters'; }
+  .agrisage-list-toolbar-filters-only { grid-template-areas: 'filters' 'actions'; }
+}
+@media (max-width: 479px) {
+  .agrisage-list-filters { grid-template-columns: minmax(0, 1fr); }
 }
 .management-topbar { min-height: var(--spacing-header-height); padding: 12px 24px; }
 .topbar-search { width: clamp(180px, 22vw, 320px); }
@@ -281,6 +289,8 @@ input:-webkit-autofill {
 .management-content .recharts-default-tooltip { border-radius: 10px; border-color: #e2e8f0; box-shadow: 0 4px 16px rgb(15 23 42 / .06); }
 .agrisage-dashboard-kpi { min-width: 0; }
 .agrisage-dashboard-kpi .tabular-nums { overflow-wrap: anywhere; }
+.agrisage-summary-grid > * { min-width: 0; height: 100%; }
+.agrisage-summary-grid .agrisage-kpi-card { height: 100%; min-height: 144px; }
 
 @media (min-width: 1024px) {
   .management-workspace { padding-left: var(--spacing-nav-sidebar-width); }

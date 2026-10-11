@@ -5,6 +5,8 @@ import { useToast } from '@/context/ToastContext'
 import ListToolbar from '@/components/ui/ListToolbar'
 import FilterSelect from '@/components/ui/FilterSelect'
 import Button from '@/components/ui/Button'
+import KpiCard from '@/components/ui/KpiCard'
+import { CheckCircle, RotateCcw, Truck, XCircle } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell, PieChart, Pie } from 'recharts'
 import { isoDateOffsetFromToday } from '@/utils/date'
 import { FAILURE_REASON_LABEL, labelOf } from '@/utils/deliveryLabels'
@@ -98,29 +100,11 @@ export default function DeliveryReportsPage() {
       {data && (
         <>
           {/* Tổng quan */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-space-md">
-            <div className="text-center bg-primary-fixed/30 border-primary-fixed-dim">
-              <span className="material-symbols-outlined text-[32px] text-primary mb-2">local_shipping</span>
-              <p className="font-label-md text-label-md text-on-surface-variant">Tổng số chuyến</p>
-              <p className="font-headline-lg text-headline-lg font-bold text-on-surface mt-1">{data.totals.deliveries}</p>
-            </div>
-            <div className="text-center bg-secondary-fixed/30 border-secondary-fixed-dim">
-              <span className="material-symbols-outlined text-[32px] text-secondary mb-2">replay</span>
-              <p className="font-label-md text-label-md text-on-surface-variant">Tổng lần chạy (Attempts)</p>
-              <p className="font-headline-lg text-headline-lg font-bold text-on-surface mt-1">{data.totals.attempts}</p>
-            </div>
-            <div className="text-center bg-green-50 border-green-200">
-              <span className="material-symbols-outlined text-[32px] text-green-600 mb-2">check_circle</span>
-              <p className="font-label-md text-label-md text-green-800">Giao thành công</p>
-              <p className="font-headline-lg text-headline-lg font-bold text-green-700 mt-1">
-                {data.totals.successful} <span className="text-sm font-normal">({(data.totals.successRate * 100).toFixed(0)}%)</span>
-              </p>
-            </div>
-            <div className="text-center bg-error-container/40 border-error/20">
-              <span className="material-symbols-outlined text-[32px] text-error mb-2">cancel</span>
-              <p className="font-label-md text-label-md text-on-error-container">Giao thất bại</p>
-              <p className="font-headline-lg text-headline-lg font-bold text-error mt-1">{data.totals.failed}</p>
-            </div>
+          <div className="agrisage-summary-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4" aria-busy={loading}>
+            <KpiCard title="Tổng số chuyến" icon={Truck} iconClassName="bg-primary/10 text-primary" value={loading ? '…' : data.totals.deliveries} subtitle="Trong kỳ báo cáo đã tải" />
+            <KpiCard title="Lượt giao hàng" icon={RotateCcw} iconClassName="bg-slate-100 text-slate-600" value={loading ? '…' : data.totals.attempts} subtitle="Trong kỳ báo cáo đã tải" />
+            <KpiCard title="Giao thành công" icon={CheckCircle} iconClassName="bg-emerald-50 text-emerald-600" value={loading ? '…' : data.totals.successful} subtitle={`Tỷ lệ ${(data.totals.successRate * 100).toFixed(0)}% trong kỳ báo cáo`} />
+            <KpiCard title="Giao thất bại" icon={XCircle} iconClassName="bg-rose-50 text-rose-600" value={loading ? '…' : data.totals.failed} subtitle="Trong kỳ báo cáo đã tải" />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-space-md">

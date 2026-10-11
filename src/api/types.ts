@@ -52,7 +52,7 @@ export interface FefoLotSuggestion {
 }
 
 export interface PaymentResponse {
-  id: Uuid; paymentNumber: string; paymentContext: 'ORDER_PAYMENT' | 'DEBT_REPAYMENT'; paymentMethod: 'CASH' | 'PAYOS'
+  id: Uuid; paymentNumber: string; paymentContext: 'ORDER_PAYMENT' | 'DEBT_REPAYMENT'; paymentMethod: 'CASH' | 'PAYOS' | 'BANK_TRANSFER'
   amount: Money; status: 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED' | 'PARTIALLY_REFUNDED' | 'REFUNDED'
   payerName: string | null; confirmedAt: string | null; initiatedAt: string
   currency: string; payerFarmerProfileId: Uuid | null; confirmationSource: 'STAFF' | 'PAYOS_WEBHOOK' | null
@@ -107,6 +107,10 @@ export interface CounterSaleResponse {
 export interface CatalogCategory {
   id: Uuid
   name: string
+  code: string
+  displayOrder: number
+  isActive: boolean
+  children: CatalogCategory[]
 }
 
 export interface CatalogProduct {
@@ -115,15 +119,17 @@ export interface CatalogProduct {
   name: string
   imageUrl: string | null
   categoryId: string
-  brandId: string | null
-  activeIngredientId: string | null
+  categoryName: string
+  brandName: string | null
   fromPrice: number | null
 }
 
-export interface CatalogProductDetail extends CatalogProduct {
+export interface CatalogProductDetail extends Omit<CatalogProduct, 'fromPrice'> {
   description: string | null
-  manufacturer: string | null
+  usageInstructions: string | null
+  brandId: string | null
   packagings: CatalogPackaging[]
+  ingredients: { name: string; concentration: string | null }[]
 }
 
 export interface CatalogPackaging {
@@ -140,7 +146,8 @@ export interface CatalogPackaging {
 export interface InventoryLot {
   id: Uuid
   storeProductId: Uuid
-  productName?: string
+  sku: string
+  productName: string
   lotNumber: string | null
   expiryDate: string | null
   isExpired: boolean

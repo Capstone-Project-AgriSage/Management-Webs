@@ -1,3 +1,4 @@
+import { useDetailBusy } from '@/hooks/useDetailBusy'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { AlertTriangle, ArrowLeft, Check, Image as ImageIcon, Plus, RotateCw, Trash2 } from 'lucide-react'
@@ -68,6 +69,7 @@ export default function DiagnosisCasePage() {
   const [productId, setProductId] = useState('')
   const [reason, setReason] = useState('')
   const [removing, setRemoving] = useState<string | null>(null)
+  useDetailBusy(busy || removing !== null)
 
   usePageHeader({
     title: item ? `Ca chẩn đoán ${item.caseNumber}` : 'Ca chẩn đoán',

@@ -7,6 +7,12 @@ export async function mergePagedLists<T>(
   requestedPage: number,
   compare: (a: T, b: T) => number,
 ): Promise<Paged<T>> {
+  // A single status is already globally ordered/paged by the API; no merge or earlier-page reads are needed.
+  if (sources.length === 1) {
+    const result = await sources[0](Math.max(1, requestedPage))
+    const page = Math.min(Math.max(1, requestedPage), Math.max(1, result.totalPages))
+    return page === result.page ? result : sources[0](page)
+  }
   const first = await Promise.all(sources.map(load => load(1)))
   const totalCount = first.reduce((sum, result) => sum + result.totalCount, 0)
   const totalPages = Math.ceil(totalCount / LIST_PAGE_SIZE)

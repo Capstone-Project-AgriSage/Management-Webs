@@ -1,11 +1,14 @@
+import { useBusinessDataRefresh } from '@/hooks/useBusinessDataRefresh'
 import ListToolbar from '@/components/ui/ListToolbar'
+import FilterSelect from '@/components/ui/FilterSelect'
 import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import PermissionAction from '@/components/auth/PermissionAction'
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 import { usePermission } from '@/context/PermissionContext';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw } from 'lucide-react';
+import { Banknote, CircleDollarSign, Clock, RefreshCw } from 'lucide-react';
+import KpiCard from '@/components/ui/KpiCard'
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
 import { debtApi, type DebtAccountListItem, type DebtDashboard, type DebtEntryListItem, type DebtEntrySortBy } from '@/api/debtApi';
@@ -31,18 +34,7 @@ const ENTRY_SORTS: { value: string; label: string; sortBy: DebtEntrySortBy; desc
   { value: 'newest', label: 'Mới phát sinh', sortBy: 'CreatedAt', descending: true },
 ]
 
-const selectClassName = 'h-9 px-3 rounded-lg border border-slate-200 bg-white text-sm text-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500'
 const errorText = (err: unknown, fallback: string) => (err instanceof Error && err.message ? err.message : fallback)
-
-function Kpi({ title, value, sub, tone }: { title: string; value: string; sub?: string; tone?: 'danger' | 'success' }) {
-  return (
-    <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
-      <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">{title}</div>
-      <div className={`mt-2 text-xl font-bold tabular-nums ${tone === 'danger' ? 'text-rose-600' : tone === 'success' ? 'text-emerald-700' : 'text-slate-900'}`}>{value}</div>
-      {sub && <div className="text-xs text-slate-500 mt-0.5">{sub}</div>}
-    </div>
-  )
-}
 
 // FLOW_3 §6–§7: debt accounts, debt entries and pending bank-transfer repayments.
 export default function DebtsPage() {
@@ -100,7 +92,7 @@ export default function DebtsPage() {
           }),
         )
       } else {
-        setTransfers(await paymentsApi.getPayments({ paymentContext: 'DEBT_REPAYMENT', status: 'PENDING', search: debounced || undefined, page, pageSize: PAGE_SIZE }))
+        setTransfers(await paymentsApi.getPayments({ paymentContext: 'DEBT_REPAYMENT', paymentMethod: 'BANK_TRANSFER', status: 'PENDING', search: debounced || undefined, page, pageSize: PAGE_SIZE }))
       }
     } catch (err) {
       showToast(errorText(err, 'Không tải được dữ liệu công nợ'), 'error')
@@ -122,6 +114,8 @@ export default function DebtsPage() {
     loadDashboard()
     load()
   }
+
+  useBusinessDataRefresh(refresh)
 
   const confirmTransfer = async (p: PaymentListItem) => {
     if (!window.confirm(`Xác nhận đã nhận ${formatVnd(p.amount)} từ ${p.payerName ?? 'khách'}? Khoản đến hạn trước sẽ được trừ trước.`)) return
@@ -156,16 +150,14 @@ export default function DebtsPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
-      {canReadDashboard && dashboard && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Kpi title="Tổng dư nợ" value={formatVnd(dashboard.totalOutstandingDebt)} sub={`${dashboard.customersWithDebt} khách đang nợ`} />
-          <Kpi title="Quá hạn" value={formatVnd(dashboard.totalOverdueDebt)} sub={`${dashboard.customersWithOverdueDebt} khách quá hạn`} tone={dashboard.totalOverdueDebt > 0 ? 'danger' : undefined} />
-          <Kpi title="Thu hôm nay" value={formatVnd(dashboard.collectedToday)} tone="success" />
-          <Kpi title="Thu tháng này" value={formatVnd(dashboard.collectedThisMonth)} tone="success" />
+      {canReadDashboard ? (
+        <div className="agrisage-summary-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <KpiCard icon={CircleDollarSign} iconClassName="bg-slate-100 text-slate-600" title="Tổng dư nợ" value={dashboard ? formatVnd(dashboard.totalOutstandingDebt) : '—'} subtitle={dashboard ? `${dashboard.customersWithDebt} khách đang nợ` : 'Chưa có số liệu tổng hợp'} />
+          <KpiCard icon={Clock} iconClassName="bg-rose-50 text-rose-600" title="Nợ quá hạn" value={dashboard ? formatVnd(dashboard.totalOverdueDebt) : '—'} subtitle={dashboard ? `${dashboard.customersWithOverdueDebt} khách quá hạn` : 'Chưa có số liệu tổng hợp'} valueClassName={dashboard && dashboard.totalOverdueDebt > 0 ? 'text-rose-600' : undefined} />
+          <KpiCard icon={Banknote} iconClassName="bg-emerald-50 text-emerald-600" title="Thu nợ hôm nay" value={dashboard ? formatVnd(dashboard.collectedToday) : '—'} subtitle="Khoản thu đã xác nhận hôm nay" />
+          <KpiCard icon={Banknote} iconClassName="bg-emerald-50 text-emerald-600" title="Thu nợ tháng này" value={dashboard ? formatVnd(dashboard.collectedThisMonth) : '—'} subtitle="Khoản thu đã xác nhận trong tháng" />
         </div>
-      )}
-
-      <BusinessReportCards kind="debt" />
+      ) : <BusinessReportCards kind="debt" />}
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col">
         <div className="px-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
           <div className="flex gap-1" role="tablist">
@@ -198,17 +190,8 @@ export default function DebtsPage() {
             )}
 {tab === 'entries' && (
               <>
-                <select aria-label="Trạng thái khoản nợ" className={selectClassName} value={entryStatus} onChange={(e) => setEntryStatus(e.target.value)}>
-                  <option value="">Mọi trạng thái</option>
-                  {Object.entries(DEBT_ENTRY_STATUS_LABEL).map(([value, text]) => (
-                    <option key={value} value={value}>{text}</option>
-                  ))}
-                </select>
-                <select aria-label="Sắp xếp" className={selectClassName} value={entrySort} onChange={(e) => setEntrySort(e.target.value)}>
-                  {ENTRY_SORTS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
+                <FilterSelect label="Trạng thái khoản nợ" value={entryStatus} onChange={value => { setEntryStatus(value); setPage(1) }} options={[{ value: '', label: 'Mọi trạng thái' }, ...Object.entries(DEBT_ENTRY_STATUS_LABEL).map(([value, text]) => ({ value, label: text }))]} />
+                <FilterSelect label="Sắp xếp" value={entrySort} onChange={value => { setEntrySort(value); setPage(1) }} options={ENTRY_SORTS} />
               </>
             )}
       </ListToolbar>
@@ -279,16 +262,16 @@ export default function DebtsPage() {
                       <td className="py-3 px-3 text-right tabular-nums font-semibold">{formatVnd(p.amount)}</td>
                       <td className="py-3 px-3">{formatDayTime(p.initiatedAt)}</td>
                       <td className="py-3 px-4 text-right">
-                        {canManage && p.paymentMethod !== 'PAYOS' && (
+                        {canManage && p.paymentMethod === 'BANK_TRANSFER' && (
                           <div className="flex justify-end gap-2">
-                            <button
+                            <PermissionAction codes={["BANK_PAYMENTS.REJECT"]}><button
                               type="button"
                               disabled={busyId === p.id}
                               className="px-3 py-1.5 rounded-lg border border-rose-300 text-rose-700 text-xs font-medium hover:bg-rose-50 disabled:opacity-50"
                               onClick={() => setRejecting(p)}
                             >
                               Từ chối
-                            </button>
+                            </button></PermissionAction>
                             <PermissionAction codes={["BANK_PAYMENTS.CONFIRM"]}><button
                               type="button"
                               disabled={busyId === p.id}

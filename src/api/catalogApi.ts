@@ -22,6 +22,11 @@ export interface ProductPackagingRef {
   status: string
 }
 
+/** Flatten the public tree for selectors while preserving all child categories. */
+export function flattenCatalogCategories(categories: CatalogCategory[]): CatalogCategory[] {
+  return categories.flatMap(category => [category, ...flattenCatalogCategories(category.children)])
+}
+
 export const catalogApi = {
   getStoreProducts: (params: { search?: string; page?: number; pageSize?: number } = {}) =>
     api<Paged<StoreProductRef>>(`/api/store-products${toQuery({ isActive: true, ...params })}`),
@@ -30,7 +35,7 @@ export const catalogApi = {
     api<{ id: string; packagings: ProductPackagingRef[] }>(`/api/products/${productId}`).then((p) => p.packagings ?? []),
 
   getCategories: () => {
-    return api<Paged<CatalogCategory>>(`/api/catalog/categories`)
+    return api<CatalogCategory[]>('/api/catalog/categories')
   },
   getProducts: (params?: { search?: string; categoryId?: string; page?: number; pageSize?: number }) => {
     const searchParams = new URLSearchParams()

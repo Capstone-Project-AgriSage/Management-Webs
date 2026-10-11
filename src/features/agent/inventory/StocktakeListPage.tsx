@@ -1,3 +1,4 @@
+import { useBusinessDataRefresh } from '@/hooks/useBusinessDataRefresh'
 import ListToolbar from '@/components/ui/ListToolbar'
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
@@ -63,6 +64,8 @@ export default function StocktakeListPage() {
     load()
   }, [load])
 
+  useBusinessDataRefresh(load)
+
   const items = data?.items ?? []
 
   return (
@@ -83,6 +86,7 @@ export default function StocktakeListPage() {
           <Plus size={16} /> Tạo phiếu kiểm kê
         </button></PermissionAction></>}>
 <FilterSelect
+            label="Trạng thái phiếu kiểm kê"
             value={status}
             onChange={(v) => {
               setStatus(v)

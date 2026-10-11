@@ -3,6 +3,7 @@ import { mergePagedLists } from '@/utils/mergePagedLists'
 import { LIST_PAGE_SIZE } from '@/utils/pagination'
 import { buildQuery } from './stockApi'
 import type { Paged, Uuid } from './types'
+import type { RequestCache } from '@/utils/requestCache'
 
 /** Refunds of a sales return and of a cancelled order (flow L4, F4.5). Every refund route needs Manage; there is no automatic payOS refund. */
 
@@ -70,10 +71,13 @@ export const refundsApi = {
   },
 
   /** The newest cancelled and partly cancelled orders: the ones that can have refunds to pay back. */
-  getCancelledOrders: (page: number, search?: string, status?: 'CANCELLED' | 'PARTIALLY_CANCELLED') =>
+  getCancelledOrders: (page: number, search?: string, status?: 'CANCELLED' | 'PARTIALLY_CANCELLED', options: { signal?: AbortSignal; cache?: RequestCache } = {}) =>
     mergePagedLists<CancelledOrderRow>(
-      (status ? [status] : ['CANCELLED', 'PARTIALLY_CANCELLED']).map(status => sourcePage =>
-        api<Paged<CancelledOrderRow>>(`/api/orders${buildQuery({ status, search, page: sourcePage, pageSize: LIST_PAGE_SIZE })}`)),
+      (status ? [status] : ['CANCELLED', 'PARTIALLY_CANCELLED']).map(status => sourcePage => {
+        const path = `/api/orders${buildQuery({ status, search, page: sourcePage, pageSize: LIST_PAGE_SIZE })}`
+        const load = () => api<Paged<CancelledOrderRow>>(path, { signal: options.signal })
+        return options.cache ? options.cache.get(path, load, options.signal) : load()
+      }),
       page,
       (a, b) => b.createdAt.localeCompare(a.createdAt) || b.orderNumber.localeCompare(a.orderNumber),
     ),
@@ -98,7 +102,7 @@ export const refundsApi = {
     api<Refund>(`/api/returns/${returnId}/refunds/${refundId}/cancel`, { method: 'POST', body: JSON.stringify({ reason }) }),
 
   // ---- refunds of a cancelled order ----
-  listForOrder: (orderId: Uuid) => api<Refund[]>(`/api/orders/${orderId}/refunds`),
+  listForOrder: (orderId: Uuid, signal?: AbortSignal) => api<Refund[]>(`/api/orders/${orderId}/refunds`, { signal }),
 
   requestForOrder: (orderId: Uuid, data: RefundRequestInput & { originalPaymentId: Uuid }) =>
     api<Refund>(`/api/orders/${orderId}/refunds`, { method: 'POST', body: JSON.stringify(data) }),

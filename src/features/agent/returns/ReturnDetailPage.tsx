@@ -1,3 +1,4 @@
+import { useDetailBusy } from '@/hooks/useDetailBusy'
 import { usePermission } from '@/context/PermissionContext';
 import PermissionAction from '@/components/auth/PermissionAction'
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -42,6 +43,7 @@ export default function ReturnDetailPage() {
   const [busy, setBusy] = useState(false)
   const [inspection, setInspection] = useState<Record<string, { condition: Inspectable | ''; note: string }>>({})
   const [savingItem, setSavingItem] = useState<string | null>(null)
+  useDetailBusy(busy || savingItem !== null)
   const [toRemove, setToRemove] = useState<ReturnItem | null>(null)
 
   usePageHeader({ title: ret ? `Trả hàng ${ret.returnNumber}` : 'Trả hàng', subtitle: 'Duyệt, nhận hàng, kiểm tra tình trạng, nhập lại kho và hoàn tiền' })

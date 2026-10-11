@@ -2,11 +2,13 @@ import { usePagination } from '@/hooks/usePagination'
 import Pagination from '@/components/ui/Pagination'
 import ListToolbar from '@/components/ui/ListToolbar'
 import { useEffect, useRef, useState } from 'react';
-import { Download } from 'lucide-react';
+import { BarChart3, Download } from 'lucide-react';
+import KpiCard from '@/components/ui/KpiCard'
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
 import { describeError } from '@/api/client';
 import { catalogApi } from '@/api/catalogApi';
+import type { CatalogCategory } from '@/api/types'
 import { inventoryReportsApi, type InventoryMovementAmount, type InventoryMovementReport, type InventoryValuationReport } from '@/api/inventoryReportsApi';
 import FilterSelect from '@/components/ui/FilterSelect'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
@@ -17,6 +19,7 @@ import { formatQty, monthStartInput, rangeDays, todayInput, unitLabel } from '@/
 type Tab = 'movement' | 'valuation'
 
 const MAX_DAYS = 366
+const flattenCategories = (rows: CatalogCategory[]): CatalogCategory[] => rows.flatMap(row => [row, ...flattenCategories(row.children ?? [])])
 
 const dateInputClassName =
   'h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 shadow-sm'
@@ -48,6 +51,7 @@ export default function InventoryReportsPage() {
   const [movement, setMovement] = useState<InventoryMovementReport | null>(null)
   const [valuation, setValuation] = useState<InventoryValuationReport | null>(null)
   const [loading, setLoading] = useState(false)
+  const [loadError, setLoadError] = useState(false)
   const request = useRef(0)
 
   const days = rangeDays(from, to)
@@ -57,17 +61,15 @@ export default function InventoryReportsPage() {
   useEffect(() => {
     catalogApi
       .getCategories()
-      .then((res) => {
-        const list = Array.isArray(res) ? res : ((res as { items?: { id: string; name: string }[] }).items ?? [])
-        setCategories(list)
-      })
+      .then(rows => setCategories(flattenCategories(rows)))
       .catch(() => undefined)
   }, [])
 
   useEffect(() => {
-    if (rangeProblem) return
     const id = ++request.current
+    if (rangeProblem) { setLoading(false); return }
     setLoading(true)
+    setLoadError(false)
     const run =
       tab === 'movement'
         ? inventoryReportsApi.getMovement({ fromDate: from, toDate: to, categoryId: categoryId || undefined }).then((r) => {
@@ -78,7 +80,7 @@ export default function InventoryReportsPage() {
           })
     run
       .catch((err) => {
-        if (id === request.current) showToast(describeError(err, 'Không tải được báo cáo'), 'error')
+        if (id === request.current) { setLoadError(true); showToast(describeError(err, 'Không tải được báo cáo'), 'error') }
       })
       .finally(() => {
         if (id === request.current) setLoading(false)
@@ -126,6 +128,17 @@ export default function InventoryReportsPage() {
 
   const movementPages = usePagination(movement?.rows ?? [], 10, [from, to, categoryId].join('|'))
   const valuationPages = usePagination(valuation?.rows ?? [], 10, [categoryId].join('|'))
+  const summaryMetrics = tab === 'movement' ? [
+    { title: 'Tồn đầu kỳ', value: movement?.totals.openingValue, money: true },
+    { title: 'Nhập kho trong kỳ', value: movement?.totals.stockIn, money: true },
+    { title: 'Xuất bán trong kỳ', value: movement?.totals.sale, money: true },
+    { title: 'Tồn cuối kỳ', value: movement?.totals.closingValue, money: true },
+  ] : [
+    { title: 'Giá trị tồn hiện tại', value: valuation?.totals.stockValue, money: true },
+    { title: 'Giá trị hàng hết hạn', value: valuation?.totals.expiredValue, money: true },
+    { title: 'Sản phẩm trong báo cáo', value: valuation?.rows.length, money: false },
+    { title: 'Nhóm danh mục', value: valuation?.byCategory.length, money: false },
+  ]
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
@@ -185,6 +198,10 @@ export default function InventoryReportsPage() {
           />
         </div>
       </ListToolbar>
+
+      <div className="agrisage-summary-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4" aria-busy={loading}>
+        {summaryMetrics.map(metric => <KpiCard key={metric.title} title={metric.title} icon={BarChart3} iconClassName="bg-emerald-50 text-emerald-600" value={loading ? '…' : loadError || rangeProblem || metric.value == null ? '—' : metric.money ? formatVnd(metric.value) : metric.value.toLocaleString('vi-VN')} subtitle={tab === 'movement' ? 'Theo kỳ và danh mục đã chọn' : 'Toàn bộ kết quả theo danh mục đã chọn'} />)}
+      </div>
 
       {rangeProblem ? (
         <p className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2" role="alert">
@@ -260,23 +277,6 @@ export default function InventoryReportsPage() {
         </section>
       ) : (
         <section aria-label="Định giá kho" className="flex flex-col gap-4">
-          {valuation && valuation.byCategory.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-emerald-200">
-                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Tổng giá trị tồn</div>
-                <div className="text-2xl font-bold tabular-nums text-emerald-700 mt-1">{formatVnd(valuation.totals.stockValue)}</div>
-                <div className="text-xs text-slate-500 mt-1">
-                  Trong đó hết hạn: <span className={valuation.totals.expiredValue > 0 ? 'text-rose-600 font-medium' : ''}>{formatVnd(valuation.totals.expiredValue)}</span>
-                </div>
-              </div>
-              {valuation.byCategory.map((c) => (
-                <div key={c.categoryId} className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">{c.name}</div>
-                  <div className="text-xl font-bold tabular-nums text-slate-900 mt-1">{formatVnd(c.stockValue)}</div>
-                </div>
-              ))}
-            </div>
-          ) : null}
           <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left">

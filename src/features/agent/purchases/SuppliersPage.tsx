@@ -129,6 +129,7 @@ export default function SuppliersPage() {
           <Plus size={16} /> Thêm nhà cung cấp
         </button></>}>
 <FilterSelect
+            label="Trạng thái hợp tác"
             value={activeFilter}
             onChange={(v) => {
               setActiveFilter(v)

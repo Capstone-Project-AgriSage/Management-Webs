@@ -4,7 +4,7 @@ import ModalLayout from '@/components/ui/ModalLayout'
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Download, Banknote } from 'lucide-react';
+import { ChevronRight, Download, Banknote, Link2 } from 'lucide-react';
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
 import RowActionsMenu from '@/components/ui/RowActionsMenu'
@@ -20,6 +20,12 @@ import { ordersApi } from '@/api/ordersApi';
 import { paymentsApi } from '@/api/paymentsApi';
 import type { OrderResponse } from '@/api/types';
 import type { OrderPaymentsSummary } from '@/api/paymentsApi';
+import type { PayOsPaymentResponse } from '@/api/paymentsApi'
+import { usePermission } from '@/context/PermissionContext'
+import { describeApiError } from '@/utils/apiError'
+import PaymentDetailModal from './PaymentDetailModal'
+import { paymentLink } from './paymentLink'
+import PaymentsLedger from './PaymentsLedger'
 
 type PaymentStatusLabel = 'Chưa thanh toán' | 'Thanh toán 1 phần' | 'Đã thanh toán đủ' | 'Đang tải...'
 
@@ -33,6 +39,14 @@ const STATUS_VISUALS: Record<PaymentStatusLabel, { className: string; color: str
 export default function PaymentsPage() {
   usePageHeader({ title: 'Thanh toán', subtitle: 'Theo dõi dòng tiền theo đơn hàng' })
   const { showToast } = useToast()
+  const { has } = usePermission()
+  const [preferredView, setView] = useState<'orders' | 'payments'>('orders')
+  const view = preferredView === 'orders' && has('ORDERS.READ') ? 'orders' : 'payments'
+  const [paymentId, setPaymentId] = useState<string | null>(null)
+  const [ledgerRevision, setLedgerRevision] = useState(0)
+  const [ledgerCount, setLedgerCount] = useState(0)
+  const [paymentMode, setPaymentMode] = useState<'cash' | 'payos'>('cash')
+  const [createdLinks, setCreatedLinks] = useState<Record<string, PayOsPaymentResponse>>({})
 
   const [orders, setOrders] = useState<OrderResponse[]>([])
   const [paymentSummaries, setPaymentSummaries] = useState<Record<string, OrderPaymentsSummary>>({})
@@ -90,11 +104,12 @@ export default function PaymentsPage() {
   }, [page, debouncedSearch, showToast])
 
   useEffect(() => {
+    if (view !== 'orders' || !has('ORDERS.READ') || !has('PAYMENTS.READ')) { listRequest.current?.abort(); return }
     if (search !== debouncedSearch) { listRequest.current?.abort(); return }
     let active = true
     void Promise.resolve().then(() => { if (active) void fetchOrdersAndPayments() })
     return () => { active = false; listRequest.current?.abort() }
-  }, [fetchOrdersAndPayments, search, debouncedSearch])
+  }, [fetchOrdersAndPayments, search, debouncedSearch, view, has])
 
   const getPaymentStatus = (summary?: OrderPaymentsSummary): PaymentStatusLabel => {
     if (!summary) return 'Đang tải...'
@@ -109,7 +124,7 @@ export default function PaymentsPage() {
     if (!summary) return
 
     const amount = Number(paymentAmount)
-    if (isNaN(amount) || amount <= 0) {
+    if (!Number.isFinite(amount) || amount <= 0) {
       showToast('Vui lòng nhập số tiền hợp lệ', 'error')
       return
     }
@@ -117,23 +132,44 @@ export default function PaymentsPage() {
       showToast('Số tiền thu không được vượt quá số còn lại', 'error')
       return
     }
+    if (paymentMode === 'payos' && !Number.isInteger(amount)) {
+      showToast('payOS chỉ nhận số tiền nguyên đồng. Phần lẻ cần thu bằng tiền mặt.', 'error')
+      return
+    }
 
     setIsPaying(true)
     try {
-      await paymentsApi.createCashPayment({
-        paymentContext: 'ORDER_PAYMENT',
-        orderId: selectedOrder.id,
-        amount
-      })
-      showToast('Thu tiền thành công!', 'success')
+      if (paymentMode === 'payos') {
+        const link = await paymentsApi.createPayOsPayment({ paymentContext: 'ORDER_PAYMENT', orderId: selectedOrder.id, amount })
+        setCreatedLinks(previous => ({ ...previous, [selectedOrder.id]: link }))
+        showToast('Đã tạo liên kết payOS. Chờ khách thanh toán.', 'success')
+      } else {
+        await paymentsApi.createCashPayment({ paymentContext: 'ORDER_PAYMENT', orderId: selectedOrder.id, amount })
+        showToast('Thu tiền thành công!', 'success')
+      }
       setIsPaymentModalOpen(false)
       setPaymentAmount('')
-      fetchOrdersAndPayments()
-    } catch (err: any) {
-      showToast(err.detail || 'Lỗi thu tiền', 'error')
+      await paymentsApi.getOrderPayments(selectedOrder.id)
+        .then(updated => setPaymentSummaries(previous => ({ ...previous, [selectedOrder.id]: updated })))
+        .catch(err => showToast(describeApiError(err, 'Thao tác đã thành công nhưng chưa tải lại được tổng hợp thanh toán. Vui lòng tải lại dữ liệu.'), 'error'))
+      setLedgerRevision(previous => previous + 1)
+    } catch (err) {
+      showToast(describeApiError(err, paymentMode === 'payos' ? 'Không tạo được liên kết payOS' : 'Lỗi thu tiền'), 'error')
     } finally {
       setIsPaying(false)
     }
+  }
+
+  const paymentChanged = () => {
+    setLedgerRevision(previous => previous + 1)
+    if (selectedOrder) setCreatedLinks(previous => { const next = { ...previous }; delete next[selectedOrder.id]; return next })
+    if (selectedOrder) void paymentsApi.getOrderPayments(selectedOrder.id).then(updated => setPaymentSummaries(previous => ({ ...previous, [selectedOrder.id]: updated }))).catch(err => showToast(describeApiError(err, 'Không tải lại được tổng hợp thanh toán'), 'error'))
+  }
+
+  const startPayment = (mode: 'cash' | 'payos') => {
+    setPaymentMode(mode)
+    setPaymentAmount(selectedOrder ? String(paymentSummaries[selectedOrder.id]?.remainingToPay ?? '') : '')
+    setIsPaymentModalOpen(true)
   }
 
   const handleExport = () => {
@@ -162,17 +198,22 @@ export default function PaymentsPage() {
           <ChevronRight size={14} />
           <span className="text-on-surface font-medium">Thanh toán</span>
         </nav>
-        <button
+        {view === 'orders' && <button
           className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface-container-lowest border border-outline-variant text-on-surface text-sm font-medium rounded-lg hover:bg-surface-container-low transition-colors shadow-sm"
           type="button"
           onClick={handleExport}
         >
           <Download size={16} className="text-on-surface-variant" />
           <span>Xuất Excel trang này</span>
-        </button>
+        </button>}
       </div>
 
-      <BusinessReportCards kind="payments" searchResult={{ count: totalCount, unit: 'đơn hàng' }} />
+      <BusinessReportCards kind="payments" searchResult={{ count: view === 'orders' ? totalCount : ledgerCount, unit: view === 'orders' ? 'đơn hàng' : 'phiếu thanh toán' }} />
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Xem thanh toán">
+        {has('ORDERS.READ') && has('PAYMENTS.READ') && <button type="button" role="tab" aria-selected={view === 'orders'} onClick={() => setView('orders')} className={`min-h-[42px] rounded-[10px] px-4 text-sm font-semibold ${view === 'orders' ? 'bg-primary-dark text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>Theo đơn hàng</button>}
+        {has('PAYMENTS.READ') && <button type="button" role="tab" aria-selected={view === 'payments'} onClick={() => setView('payments')} className={`min-h-[42px] rounded-[10px] px-4 text-sm font-semibold ${view === 'payments' ? 'bg-primary-dark text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>Phiếu thanh toán</button>}
+      </div>
+      {view === 'payments' ? has('PAYMENTS.READ') ? <PaymentsLedger revision={ledgerRevision} onSelect={setPaymentId} onCountChange={setLedgerCount} /> : <p className="text-sm text-slate-500">Bạn chưa được cấp quyền xem thanh toán.</p> : <>
 
       <ListToolbar search={{ value: search, onChange: (val) => { setSearch(val); setPage(1) }, placeholder: "Tìm theo mã đơn, SĐT..." }} onClear={() => { setSearch(''); setPage(1) }}>
 
@@ -251,8 +292,9 @@ export default function PaymentsPage() {
           setPage={setPage}
         />
       </div>
+      </>}
 
-      <DetailModal open={selectedOrder !== null} onClose={() => setSelectedOrder(null)}>
+      <DetailModal open={selectedOrder !== null} onClose={() => setSelectedOrder(null)} busy={isPaying}>
         {selectedOrder ? (
           <ModalLayout header={<div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -262,12 +304,15 @@ export default function PaymentsPage() {
             <PermissionAction codes={['PAYMENTS.RECEIVE_CASH']}><button
               className="flex-1 h-11 bg-primary text-on-primary hover:bg-primary/90 rounded-lg font-bold flex items-center justify-center transition-colors disabled:opacity-50"
               disabled={!paymentSummaries[selectedOrder.id] || paymentSummaries[selectedOrder.id].remainingToPay <= 0 || ['COMPLETED', 'CANCELLED', 'PARTIALLY_CANCELLED'].includes(selectedOrder.status)}
-              onClick={() => setIsPaymentModalOpen(true)}
+              onClick={() => startPayment('cash')}
             >
               <Banknote size={18} className="mr-2" />
-              THU TIỀN ĐƠN NÀY (M4)
+              Thu tiền mặt
             </button></PermissionAction>
-          </div>} bodyClassName="space-y-4"><div className="p-4 bg-surface-container-lowest">
+            <PermissionAction codes={['PAYMENTS.CREATE']}><button type="button" disabled={!paymentSummaries[selectedOrder.id] || paymentSummaries[selectedOrder.id].remainingToPay <= 0 || ['COMPLETED', 'CANCELLED', 'PARTIALLY_CANCELLED'].includes(selectedOrder.status)} onClick={() => startPayment('payos')} className="flex-1 min-h-[42px] rounded-[10px] border border-primary bg-white px-4 text-primary font-semibold flex items-center justify-center disabled:opacity-50"><Link2 size={18} className="mr-2" /> Tạo liên kết payOS</button></PermissionAction>
+          </div>} bodyClassName="space-y-4">
+            {createdLinks[selectedOrder.id] && <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 space-y-2 text-sm text-emerald-900"><p>Đã tạo phiếu {createdLinks[selectedOrder.id].paymentNumber} · {formatVnd(createdLinks[selectedOrder.id].amount)}. Chờ payOS xác nhận thanh toán.</p>{paymentLink(createdLinks[selectedOrder.id].checkoutUrl) && <a href={paymentLink(createdLinks[selectedOrder.id].checkoutUrl)!} target="_blank" rel="noopener noreferrer" className="font-semibold underline">Mở liên kết thanh toán payOS</a>}<button type="button" onClick={() => setPaymentId(createdLinks[selectedOrder.id].paymentId)} className="block text-primary font-semibold">Xem trạng thái phiếu payOS</button></div>}
+            <div className="p-4 bg-surface-container-lowest">
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="p-3 border border-outline-variant rounded-xl bg-surface">
                   <div className="text-xs font-bold text-on-surface-variant uppercase mb-1">Tổng đơn</div>
@@ -299,6 +344,7 @@ export default function PaymentsPage() {
                         </div>
                         <div className="text-right">
                           <div className="text-xs font-mono text-on-surface-variant">{p.paymentNumber}</div>
+                          <button type="button" onClick={() => setPaymentId(p.id)} className="mt-2 rounded-lg px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/5">Chi tiết phiếu</button>
                         </div>
                       </div>
                     ))
@@ -331,20 +377,21 @@ export default function PaymentsPage() {
 
       {/* Payment Form Modal */}
       {isPaymentModalOpen && selectedOrder && paymentSummaries[selectedOrder.id] && (
-        <DetailModal open onClose={() => setIsPaymentModalOpen(false)}>
-          <ModalLayout header={<div className="space-y-1"><h3 className="font-bold text-lg text-on-surface">Thu tiền đơn #{selectedOrder.orderNumber}</h3></div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
+        <DetailModal open onClose={() => setIsPaymentModalOpen(false)} busy={isPaying}>
+          <ModalLayout header={<div className="space-y-1"><h3 className="font-bold text-lg text-on-surface">{paymentMode === 'payos' ? 'Tạo liên kết payOS' : 'Thu tiền mặt'} · #{selectedOrder.orderNumber}</h3></div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
             <button
               className="px-6 py-2 bg-surface-container-high hover:bg-surface-container-highest font-bold rounded-xl transition-colors text-on-surface"
               onClick={() => setIsPaymentModalOpen(false)}
+              disabled={isPaying}
             >
               HỦY
             </button>
-            <PermissionAction codes={["PAYMENTS.RECEIVE_CASH"]}><button
+            <PermissionAction codes={[paymentMode === 'payos' ? 'PAYMENTS.CREATE' : 'PAYMENTS.RECEIVE_CASH']}><button
               className="px-6 py-2 bg-primary text-on-primary hover:bg-primary/90 font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
               onClick={handleProcessPayment}
               disabled={isPaying || !paymentAmount}
             >
-              {isPaying ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN THU TIỀN'}
+              {isPaying ? 'ĐANG XỬ LÝ...' : paymentMode === 'payos' ? 'TẠO LIÊN KẾT' : 'XÁC NHẬN THU TIỀN'}
             </button></PermissionAction>
           </div>}>
             <div className="flex justify-between items-center bg-surface-container-lowest p-3 rounded-lg border border-outline-variant">
@@ -354,6 +401,10 @@ export default function PaymentsPage() {
               <label className="block text-sm font-bold text-on-surface mb-2">Số tiền thu (VNĐ)</label>
               <input
                 type="number"
+                min="0.01"
+                step={paymentMode === 'payos' ? '1' : '0.01'}
+                max={paymentSummaries[selectedOrder.id].remainingToPay}
+                disabled={isPaying}
                 className="w-full h-12 px-4 rounded-xl border border-outline-variant bg-surface focus:outline-none focus:ring-2 focus:ring-primary/50 text-lg font-mono font-bold"
                 placeholder="Nhập số tiền..."
                 value={paymentAmount}
@@ -367,9 +418,11 @@ export default function PaymentsPage() {
                 Thu hết số còn lại
               </button>
             </div>
+            {paymentMode === 'payos' && <p className="mt-3 text-xs text-slate-500">Liên kết mới sẽ thay thế liên kết payOS đang chờ của đơn này. Số tiền phải là số nguyên đồng; trạng thái thu tiền chờ xác nhận từ payOS.</p>}
           </ModalLayout>
         </DetailModal>
       )}
+      {paymentId && <PaymentDetailModal key={paymentId} paymentId={paymentId} onClose={() => setPaymentId(null)} onChanged={paymentChanged} />}
     </div>
   )
 }

@@ -1,11 +1,10 @@
 import ListToolbar from '@/components/ui/ListToolbar'
 import ModalLayout from '@/components/ui/ModalLayout'
-import { useState, useEffect } from 'react';
-import { Package, FilterX } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
-import KpiCard from '@/components/ui/KpiCard'
+import ListReportCards from '@/features/agent/reports/ListReportCards'
 import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import DetailModal from '@/components/ui/DetailModal'
 import Pagination from '@/components/ui/Pagination'
@@ -31,34 +30,35 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<CatalogProduct[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const request = useRef(0)
 
   const [selectedProduct, setSelectedProduct] = useState<CatalogProductDetail | null>(null)
 
   useEffect(() => {
+    const requestId = ++request.current
     const fetchProducts = async () => {
       setIsLoading(true)
+      setLoadError(false)
       try {
         const res = await catalogApi.getProducts({ search, page, pageSize: 10 })
+        if (requestId !== request.current) return
         setProducts(res.items)
         setTotalCount(res.totalCount)
         setTotalPages(res.totalPages)
       } catch (err: any) {
-        // Fallback on error if BE is down
+        if (requestId !== request.current) return
+        setLoadError(true)
         showToast('Lỗi tải danh mục sản phẩm', 'error')
       } finally {
-        setIsLoading(false)
+        if (requestId === request.current) setIsLoading(false)
       }
     }
 
     const timer = setTimeout(fetchProducts, 300)
-    return () => clearTimeout(timer)
+    return () => { clearTimeout(timer); ++request.current }
   }, [search, page, showToast])
-
-  const handleClearFilters = () => {
-    setSearch('')
-    setPage(1)
-  }
 
   const handleViewProductDetail = async (id: string) => {
     try {
@@ -75,32 +75,13 @@ export default function ProductsPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
-      {/* SUMMARY METRIC CARDS */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard
-          layout="side"
-          icon={Package}
-          iconClassName="bg-surface-container-high text-on-surface"
-          title="Tổng sản phẩm"
-          value={totalCount}
-          valueSuffix={<span className="text-xs text-on-surface-variant font-medium">mặt hàng</span>}
-          subtitle={`Trong danh mục đang bán`}
-        />
-      </section>
+      <ListReportCards title="Tổng hợp danh mục sản phẩm" totalCount={totalCount} unit="sản phẩm" loading={isLoading} error={loadError} metrics={[
+        { label: 'Có giá bán', value: products.filter(product => product.fromPrice !== null).length },
+        { label: 'Chưa có giá bán', value: products.filter(product => product.fromPrice === null).length },
+        { label: 'Có ảnh sản phẩm', value: products.filter(product => product.imageUrl).length },
+      ]} />
 
-      {/* FILTER TOOLBAR */}
-      <section className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex flex-wrap items-center justify-between gap-4">
-        <ListToolbar search={{ value: search, onChange: setSearch, placeholder: "Tìm kiếm theo mã SKU, tên sản phẩm..." }} onClear={() => { setSearch(''); setPage(1) }} actions={<><button
-            className="h-9 px-3 text-on-surface-variant hover:text-on-surface text-xs font-medium flex items-center gap-1 transition-colors"
-            onClick={handleClearFilters}
-            type="button"
-          >
-            <FilterX size={14} />
-            <span>Đặt lại tìm kiếm</span>
-          </button></>}>
-
-      </ListToolbar>
-      </section>
+      <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: 'Tìm kiếm theo mã SKU, tên sản phẩm...' }} onClear={() => { setSearch(''); setPage(1) }} />
 
       {/* DATA TABLE */}
       <section className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">

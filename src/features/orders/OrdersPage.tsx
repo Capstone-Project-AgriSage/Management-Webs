@@ -1,4 +1,5 @@
 import ListToolbar from '@/components/ui/ListToolbar'
+import FilterSelect from '@/components/ui/FilterSelect'
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -439,26 +440,8 @@ export default function OrdersPage() {
             <Plus size={16} />
             <span>Soạn đơn tại quầy</span>
           </button></>}>
-<select aria-label="Lọc danh sách"
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value as OrderStatus | ''); setPage(1) }}
-              className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700"
-            >
-              {STATUS_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-<ChevronRight size={16} className="text-on-surface-variant rotate-90" />
-<select aria-label="Lọc danh sách"
-              value={sourceFilter}
-              onChange={(e) => { setSourceFilter(e.target.value); setPage(1) }}
-              className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700"
-            >
-              {SOURCE_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-<ChevronRight size={16} className="text-on-surface-variant rotate-90" />
+        <FilterSelect label="Trạng thái đơn hàng" value={statusFilter} onChange={value => { setStatusFilter(value as OrderStatus | ''); setPage(1) }} options={STATUS_OPTIONS} />
+        <FilterSelect label="Nguồn đơn hàng" value={sourceFilter} onChange={value => { setSourceFilter(value); setPage(1) }} options={SOURCE_OPTIONS} />
 <input
               type="date"
               aria-label="Từ ngày"
@@ -467,7 +450,6 @@ export default function OrdersPage() {
               onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
               className="h-10 min-w-0 w-36 flex-1 px-2 bg-surface-container-lowest border border-outline-variant rounded-lg text-sm"
             />
-<span>→</span>
 <input
               type="date"
               aria-label="Đến ngày"

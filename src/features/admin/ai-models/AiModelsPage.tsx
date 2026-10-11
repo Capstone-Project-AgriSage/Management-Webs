@@ -8,6 +8,7 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { describeError } from '@/api/client'
 import { LIST_PAGE_SIZE } from '@/utils/pagination'
 import ListToolbar from '@/components/ui/ListToolbar'
+import ListReportCards from '@/features/agent/reports/ListReportCards'
 import FilterSelect from '@/components/ui/FilterSelect'
 import ServerPagination from '@/components/ui/ServerPagination'
 import Modal from '@/components/ui/Modal'
@@ -50,6 +51,11 @@ export default function AiModelsPage() {
     } catch { setFormError('Manifest phải là JSON hợp lệ.') }
   }
   return <div className="max-w-[1600px] mx-auto space-y-5">
+    <ListReportCards title="Tổng hợp mô hình AI" totalCount={list.totalCount} unit="mô hình" loading={list.loading} error={!!list.error} metrics={[
+      { label: 'Đang hoạt động', value: list.items.filter(model => model.status === 'ACTIVE').length },
+      { label: 'Bản nháp', value: list.items.filter(model => model.status === 'DRAFT').length },
+      { label: 'Đã ngừng', value: list.items.filter(model => model.status === 'RETIRED').length },
+    ]} />
     <ListToolbar search={{ value: search, onChange: value => { setSearch(value); list.setPage(1) }, placeholder: 'Tìm theo tên, ID hoặc phiên bản mô hình...' }} onClear={() => { setSearch(''); setStatus(''); list.setPage(1) }} actions={has('AI_MODELS.CREATE') && <button className="bg-primary-dark text-white px-4 rounded-[10px] font-semibold" onClick={() => { setManifest(initialManifest); setFormError(''); setCreating(true) }}>+ Đăng ký mô hình</button>}>
       <FilterSelect label="Lọc trạng thái" value={status} onChange={value => { setStatus(value); list.setPage(1) }} options={[{ value: '', label: 'Mọi trạng thái' }, ...Object.entries(labels).map(([value, label]) => ({ value, label }))]} />
     </ListToolbar>

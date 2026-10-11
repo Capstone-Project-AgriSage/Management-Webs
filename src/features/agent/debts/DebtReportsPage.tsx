@@ -3,7 +3,8 @@ import Pagination from '@/components/ui/Pagination'
 import ListToolbar from '@/components/ui/ListToolbar'
 import FilterSelect from '@/components/ui/FilterSelect'
 import { useState, useEffect } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { Banknote, CircleDollarSign, Clock, Receipt, RefreshCw } from 'lucide-react';
+import KpiCard from '@/components/ui/KpiCard'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
@@ -64,16 +65,6 @@ function ColumnChart({ data, ariaLabel }: { data: { name: string; value: number;
   )
 }
 
-function Stat({ title, value, sub }: { title: string; value: string; sub?: string }) {
-  return (
-    <div>
-      <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">{title}</div>
-      <div className="text-2xl font-bold text-slate-900 tabular-nums mt-1">{value}</div>
-      {sub && <div className="text-xs text-slate-500 mt-0.5">{sub}</div>}
-    </div>
-  )
-}
-
 // FLOW_3 §8 (Manage): debt aging, collections and debt by customer group.
 export default function DebtReportsPage() {
   usePageHeader({ title: 'Báo cáo công nợ', subtitle: 'Tuổi nợ, thu hồi nợ và nợ theo nhóm khách' })
@@ -84,6 +75,7 @@ export default function DebtReportsPage() {
   const [toDate, setToDate] = useState(todayVn())
   const [groupBy, setGroupBy] = useState<'DAY' | 'METHOD' | 'STAFF'>('DAY')
   const [loading, setLoading] = useState(false)
+  const [loadError, setLoadError] = useState(false)
   const [aging, setAging] = useState<DebtAgingReport | null>(null)
   const [collections, setCollections] = useState<DebtCollectionReport | null>(null)
   const [byGroup, setByGroup] = useState<DebtByGroupReport | null>(null)
@@ -94,6 +86,7 @@ export default function DebtReportsPage() {
       return
     }
     setLoading(true)
+    setLoadError(false)
     try {
       const [a, c, g] = await Promise.all([
         reportsApi.getDebtAging({ asOf }),
@@ -104,6 +97,7 @@ export default function DebtReportsPage() {
       setCollections(c)
       setByGroup(g)
     } catch (err) {
+      setLoadError(true)
       showToast(err instanceof Error ? err.message : 'Lỗi tải báo cáo công nợ', 'error')
     } finally {
       setLoading(false)
@@ -130,9 +124,16 @@ export default function DebtReportsPage() {
   const collectionPages = usePagination(collectionChart, 10, [fromDate, toDate, groupBy].join('|'))
   const agingPages = usePagination(aging?.rows ?? [], 10, [asOf].join('|'))
   const groupPages = usePagination(byGroup?.rows ?? [])
+  const moneySummary = (value: number | undefined) => loading ? '…' : loadError || fromDate > toDate || value == null ? '—' : formatVnd(value)
 
   return (
     <div className="max-w-[1400px] mx-auto flex flex-col gap-space-lg p-space-md">
+      <div className="agrisage-summary-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4" aria-busy={loading}>
+        <KpiCard title="Tổng dư nợ" icon={CircleDollarSign} iconClassName="bg-slate-100 text-slate-600" value={moneySummary(totals?.total)} subtitle={`Tại ngày ${formatDay(asOf)}`} />
+        <KpiCard title="Nợ quá hạn" icon={Clock} iconClassName="bg-rose-50 text-rose-600" value={moneySummary(totals ? overdue : undefined)} subtitle={`Tại ngày ${formatDay(asOf)}`} />
+        <KpiCard title="Tiền thu nợ trong kỳ" icon={Banknote} iconClassName="bg-emerald-50 text-emerald-600" value={moneySummary(collections?.totals.collectedAmount)} subtitle={`${formatDay(fromDate)} – ${formatDay(toDate)}`} />
+        <KpiCard title="Lần thu nợ trong kỳ" icon={Receipt} iconClassName="bg-primary/10 text-primary" value={loading ? '…' : loadError || fromDate > toDate || !collections ? '—' : collections.totals.paymentCount.toLocaleString('vi-VN')} subtitle={`${formatDay(fromDate)} – ${formatDay(toDate)}`} />
+      </div>
       {/* Aging */}
       <section className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -150,11 +151,7 @@ export default function DebtReportsPage() {
               <input type="date" className={inputClassName} value={asOf} max={todayVn()} onChange={(e) => setAsOf(e.target.value)} />
             </label>
         </ListToolbar>
-        <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6">
-          <div className="space-y-5">
-            <Stat title="Tổng dư nợ" value={formatVnd(totals?.total ?? 0)} />
-            <Stat title="Đã quá hạn" value={formatVnd(overdue)} sub={totals?.total ? `${Math.round((overdue / totals.total) * 100)}% dư nợ` : undefined} />
-          </div>
+        <div>
           <ColumnChart data={agingChart} ariaLabel="Biểu đồ dư nợ theo số ngày quá hạn" />
         </div>
         <div className="overflow-x-auto border-t border-slate-100 pt-3">
@@ -202,14 +199,10 @@ export default function DebtReportsPage() {
         </div>
         <ListToolbar onClear={() => { setFromDate(firstOfMonth()); setToDate(todayVn()); setGroupBy('DAY') }}>
             <input type="date" aria-label="Từ ngày" className={inputClassName} value={fromDate} max={toDate} onChange={(e) => setFromDate(e.target.value)} />
-            <span className="text-slate-400">→</span>
             <input type="date" aria-label="Đến ngày" className={inputClassName} value={toDate} min={fromDate} max={todayVn()} onChange={(e) => setToDate(e.target.value)} />
             <FilterSelect label="Gộp báo cáo thu nợ theo" value={groupBy} onChange={value => setGroupBy(value as 'DAY' | 'METHOD' | 'STAFF')} options={[...GROUP_BY_OPTIONS]} />
         </ListToolbar>
-        <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6">
-          <div className="space-y-5">
-            <Stat title="Đã thu" value={formatVnd(collections?.totals.collectedAmount ?? 0)} sub={`${collections?.totals.paymentCount ?? 0} lần thu`} />
-          </div>
+        <div>
           {collectionChart.length === 0 ? (
             <div className="h-64 flex items-center justify-center text-sm text-slate-500">{loading ? 'Đang tải...' : 'Chưa thu được khoản nợ nào trong kỳ.'}</div>
           ) : (

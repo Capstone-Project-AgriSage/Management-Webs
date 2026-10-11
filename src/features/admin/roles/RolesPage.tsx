@@ -3,6 +3,7 @@ import { usePageHeader } from '@/context/PageHeaderContext';
 import { permissionsApi, type Permission, type RolePermissions } from '@/api/permissionsApi';
 import { ApiError, describeError } from '@/api/client';
 import PermissionChecklist from '@/components/auth/PermissionChecklist'
+import FilterSelect from '@/components/ui/FilterSelect'
 import { usePermission } from '@/context/PermissionContext';
 export default function RolesPage() {
   usePageHeader({ title: 'Phân quyền', subtitle: 'Cấu hình quyền mặc định theo vai trò' })
@@ -21,7 +22,7 @@ export default function RolesPage() {
     try { const [rs, cs] = await Promise.all([permissionsApi.roles(), permissionsApi.catalog()]); setRoles(rs); setCatalog(cs); const current = rs.find(r => r.id === selectedRoleId) ?? rs[0]; setRoleId(current?.id ?? ''); setSelected(current?.permissionCodes ?? []); setStale(false); setReason('') }
     catch (err) { setError(describeError(err)) } finally { setBusy(false) }
   }, [])
-  useEffect(() => { void load() }, [load])
+  useEffect(() => { let active = true; void Promise.resolve().then(() => { if (active) void load() }); return () => { active = false } }, [load])
   const dirty = role && (selected.length !== role.permissionCodes.length || selected.some(c => !role.permissionCodes.includes(c)))
   async function save() {
     if (!role || !role.editable || !reason.trim() || !dirty || stale) return
@@ -30,7 +31,10 @@ export default function RolesPage() {
     catch (err) { setError(describeError(err)); if (err instanceof ApiError && err.status === 409) setStale(true) } finally { setBusy(false) }
   }
   return <div className="bg-white border rounded-xl p-5 space-y-4">
-    <div className="flex flex-wrap gap-3"><label>Vai trò <select aria-label="Vai trò" value={roleId} disabled={busy} onChange={e => { const next = roles.find(r => r.id === e.target.value); setRoleId(e.target.value); setSelected(next?.permissionCodes ?? []); setReason(''); setStale(false); setError('') }} className="border rounded-lg p-2 ml-2">{roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></label><button disabled={busy} onClick={() => void load(roleId)}>Tải lại cấu hình</button></div>
+    <div className="flex flex-wrap items-end gap-3">
+      <FilterSelect label="Vai trò" value={roleId} disabled={busy || roles.length === 0} className="relative min-w-[220px]" options={roles.map(current => ({ value: current.id, label: current.name }))} onChange={value => { const next = roles.find(current => current.id === value); setRoleId(value); setSelected(next?.permissionCodes ?? []); setReason(''); setStale(false); setError('') }} />
+      <button type="button" disabled={busy} onClick={() => void load(roleId)} className="min-h-[42px] rounded-[10px] border border-slate-200 px-4 text-sm text-slate-700 disabled:opacity-50">Tải lại cấu hình</button>
+    </div>
     {error && <p role="alert" className="text-red-700">{error}</p>}
     {role && <>
       <PermissionChecklist catalog={catalog.filter(p => p.allowedRoles.includes(role.code))} selected={selected} editable={p => role.editable && !busy && !stale && p.allowedRoles.includes(role.code)} onToggle={(code, checked) => setSelected(prev => checked ? [...prev, code] : prev.filter(c => c !== code))} />

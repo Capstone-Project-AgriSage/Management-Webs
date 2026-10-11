@@ -24,11 +24,31 @@ export interface BankDebtPaymentRequest {
 }
 
 export interface OrderPaymentsSummary {
+  orderId: Uuid
   orderTotal: Money
   paidAmount: Money
+  availablePrepayment: Money
+  consumedPrepayment: Money
   remainingToPay: Money
-  payments: PaymentResponse[]
+  payments: PaymentListItem[]
   refunds: RefundResponse[]
+}
+
+export interface PayOsPaymentRequest {
+  paymentContext: 'ORDER_PAYMENT' | 'DEBT_REPAYMENT'
+  orderId?: Uuid | null
+  amount?: Money | null
+  farmerProfileId?: Uuid | null
+}
+export interface PayOsPaymentResponse {
+  paymentId: Uuid
+  paymentNumber: string
+  amount: Money
+  checkoutUrl: string
+  qrCode: string | null
+  providerOrderCode: number
+  expiresAt: string | null
+  status: string
 }
 
 export interface PaymentListQuery {
@@ -45,6 +65,9 @@ export interface PaymentListQuery {
 }
 
 export const paymentsApi = {
+  createPayOsPayment: (body: PayOsPaymentRequest) => api<PayOsPaymentResponse>('/api/payments/payos', { method: 'POST', body: JSON.stringify(body) }),
+  syncPayment: (id: Uuid) => api<PaymentResponse>(`/api/payments/${encodeURIComponent(id)}/sync`, { method: 'POST' }),
+  cancelPayment: (id: Uuid, reason?: string) => api<PaymentResponse>(`/api/payments/${encodeURIComponent(id)}/cancel`, { method: 'POST', body: JSON.stringify({ reason: reason?.trim() || null }) }),
   /** Staff-recorded cash (FLOW_1); also debt repayments at the counter (FLOW_3 §7). */
   createCashPayment: (data: CashPaymentRequest) => {
     return api<PaymentResponse>('/api/payments/cash', {
@@ -57,7 +80,7 @@ export const paymentsApi = {
     return api<OrderPaymentsSummary>(`/api/orders/${orderId}/payments`, { signal })
   },
 
-  getPayments: (q: PaymentListQuery = {}) =>
+  getPayments: (q: PaymentListQuery = {}, signal?: AbortSignal) =>
     api<PagedResult<PaymentListItem>>(
       `/api/payments${toQuery({
         PaymentContext: q.paymentContext,
@@ -70,10 +93,10 @@ export const paymentsApi = {
         Search: q.search,
         Page: q.page,
         PageSize: q.pageSize,
-      })}`,
+      })}`, { signal },
     ),
 
-  getPayment: (id: Uuid) => api<PaymentResponse>(`/api/payments/${id}`),
+  getPayment: (id: Uuid, signal?: AbortSignal) => api<PaymentResponse>(`/api/payments/${encodeURIComponent(id)}`, { signal }),
 
   /** Operate: records a bank transfer as a PENDING debt repayment; nothing is allocated until confirmed. */
   createBankDebtPayment: (data: BankDebtPaymentRequest) =>

@@ -14,6 +14,7 @@ interface FilterSelectProps {
 export default function FilterSelect({ value, onChange, options, className = 'relative', label = 'Lọc danh sách', disabled = false }: FilterSelectProps) {
   return (
     <div className={`agrisage-filter ${className}`}>
+      {label !== 'Lọc danh sách' && <span aria-hidden="true" className="agrisage-filter-caption">{label}</span>}
       <select
         className="w-full min-h-[42px] appearance-none bg-white border border-slate-200 hover:border-slate-300 text-slate-700 text-sm py-2 pl-3 pr-9 rounded-[10px] focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-primary transition-colors cursor-pointer"
         aria-label={label}

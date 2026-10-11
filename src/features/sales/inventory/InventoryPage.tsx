@@ -10,8 +10,7 @@ import Pagination from '@/components/ui/Pagination'
 import StatusBadge from '@/components/ui/StatusBadge'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import { inventoryApi } from '@/api/inventoryApi';
-import { catalogApi } from '@/api/catalogApi';
-import type { InventoryLot, CatalogProduct } from '@/api/types';
+import type { InventoryLot } from '@/api/types';
 import { LIST_PAGE_SIZE } from '@/utils/pagination';
 
 interface GroupedInventory {
@@ -28,7 +27,6 @@ export default function InventoryPage() {
   const { showToast } = useToast()
 
   const [lots, setLots] = useState<InventoryLot[]>([])
-  const [productsMap, setProductsMap] = useState<Record<string, CatalogProduct>>({})
 
   const [totalCount, setTotalCount] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
@@ -41,16 +39,6 @@ export default function InventoryPage() {
     try {
       const lotsRes = await inventoryApi.getLots({ page, pageSize: LIST_PAGE_SIZE, search })
 
-      let pMap: Record<string, CatalogProduct> = {}
-      try {
-        const productsRes = await catalogApi.getProducts({ page: 1, pageSize: 100 })
-        productsRes.items.forEach(p => { pMap[p.id] = p })
-      } catch (err) {
-        // Lỗi gọi Catalog không làm chết màn hình kho
-        console.warn("Lỗi lấy danh sách sản phẩm:", err)
-      }
-
-      setProductsMap(pMap)
       setLots(lotsRes.items)
       setTotalCount(lotsRes.totalCount)
       setTotalPages(lotsRes.totalPages)
@@ -78,7 +66,7 @@ export default function InventoryPage() {
       if (!map.has(lot.storeProductId)) {
         map.set(lot.storeProductId, {
           storeProductId: lot.storeProductId,
-          productName: lot.productName || productsMap[lot.storeProductId]?.name || 'Sản phẩm không rõ',
+          productName: lot.productName,
           totalOnHand: 0,
           totalReserved: 0,
           totalAvailable: 0,
@@ -94,11 +82,10 @@ export default function InventoryPage() {
     })
 
     return Array.from(map.values())
-  }, [lots, productsMap])
+  }, [lots])
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
-      <BusinessReportCards kind="valuation" />
       <BusinessReportCards kind="inventory" />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <nav className="flex items-center gap-1 text-body-sm text-on-surface-variant" aria-label="Breadcrumb">

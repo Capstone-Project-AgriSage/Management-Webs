@@ -38,8 +38,6 @@ export default function DeliveriesPage() {
   const [page, setPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
-  const [statusCounts, setStatusCounts] = useState<Partial<Record<DeliveryStatus, number>>>({})
-  const [countRevision, setCountRevision] = useState(0)
   const debouncedSearch = useDebouncedValue(search.trim())
   const statusValue = STATUS_OPTIONS.find(opt => opt.label === statusFilter)?.value ?? 'ALL'
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -73,21 +71,9 @@ export default function DeliveriesPage() {
     return () => controller.abort()
   }, [fetchDeliveries])
 
-  useEffect(() => {
-    const controller = new AbortController()
-    const statuses: DeliveryStatus[] = ['DRAFT', 'ASSIGNED', 'OUT_FOR_DELIVERY', 'RETRY_PENDING', 'PARTIALLY_DELIVERED', 'DELIVERED']
-    Promise.all(statuses.map(async status => {
-      const result = await deliveriesApi.getDeliveries({ status, page: 1, pageSize: 1 }, controller.signal)
-      return [status, result.totalCount] as const
-    })).then(entries => { if (!controller.signal.aborted) setStatusCounts(Object.fromEntries(entries)) }).catch(() => {})
-    return () => controller.abort()
-  }, [countRevision])
-
   const buildActions = (delivery: DeliveryListItem): RowAction[] => [
     { label: 'Xem chi tiết', icon: 'visibility', onClick: () => setSelectedId(delivery.id) },
   ]
-
-  const count = (...statuses: DeliveryStatus[]) => statuses.every(status => statusCounts[status] !== undefined) ? statuses.reduce((sum, status) => sum + statusCounts[status]!, 0) : '—'
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
@@ -96,20 +82,6 @@ export default function DeliveriesPage() {
         <ChevronRight size={14} />
         <span className="text-slate-900 font-medium">Quản lý giao hàng</span>
       </nav>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {[
-          { label: 'Chờ điều phối', value: count('DRAFT', 'ASSIGNED'), className: 'text-slate-700' },
-          { label: 'Đang giao', value: count('OUT_FOR_DELIVERY'), className: 'text-amber-600' },
-          { label: 'Chờ giao lại', value: count('RETRY_PENDING', 'PARTIALLY_DELIVERED'), className: 'text-rose-600' },
-          { label: 'Đã giao', value: count('DELIVERED'), className: 'text-emerald-600' },
-        ].map((kpi) => (
-          <div key={kpi.label} className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
-            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">{kpi.label}</div>
-            <div className={`mt-2 text-2xl font-bold tabular-nums ${kpi.className}`}>{kpi.value}</div>
-          </div>
-        ))}
-      </div>
 
       <BusinessReportCards kind="deliveries" />
       <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: 'Tìm mã phiếu, mã đơn, tên hoặc SĐT người nhận...' }} onClear={() => { setSearch(''); setStatusFilter(ALL_STATUSES); setPage(1) }}>
@@ -175,7 +147,7 @@ export default function DeliveriesPage() {
         <ServerPagination page={page} pageSize={LIST_PAGE_SIZE} totalPages={totalPages} totalCount={totalCount} unitLabel="phiếu" onPageChange={setPage} />
       </div>
 
-      <DeliveryDetailModal deliveryId={selectedId} onClose={() => setSelectedId(null)} onChanged={() => { void fetchDeliveries(); setCountRevision(value => value + 1) }} />
+      <DeliveryDetailModal deliveryId={selectedId} onClose={() => setSelectedId(null)} onChanged={() => { void fetchDeliveries() }} />
     </div>
   )
 }

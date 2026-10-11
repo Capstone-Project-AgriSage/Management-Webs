@@ -1,4 +1,6 @@
+import { useBusinessDataRefresh } from '@/hooks/useBusinessDataRefresh'
 import ListToolbar from '@/components/ui/ListToolbar'
+import ListReportCards from '@/features/agent/reports/ListReportCards'
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
@@ -51,11 +53,13 @@ export default function DiagnosisQueuePage() {
   const [page, setPage] = useState(1)
   const [data, setData] = useState<Paged<DiagnosisListItem> | null>(null)
   const [loading, setLoading] = useState(false)
+  const [loadError, setLoadError] = useState(false)
   const request = useRef(0)
 
   const load = useCallback(async () => {
     const id = ++request.current
     setLoading(true)
+    setLoadError(false)
     try {
       const res = await diagnosisApi.list({
         status: (status || undefined) as DiagnosisStatus | undefined,
@@ -66,7 +70,7 @@ export default function DiagnosisQueuePage() {
       })
       if (id === request.current) setData(res)
     } catch (err) {
-      if (id === request.current) showToast(describeError(err, 'Không tải được hàng đợi chẩn đoán'), 'error')
+      if (id === request.current) { setLoadError(true); showToast(describeError(err, 'Không tải được hàng đợi chẩn đoán'), 'error') }
     } finally {
       if (id === request.current) setLoading(false)
     }
@@ -76,10 +80,17 @@ export default function DiagnosisQueuePage() {
     load()
   }, [load])
 
+  useBusinessDataRefresh(load)
+
   const items = data?.items ?? []
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
+      <ListReportCards title="Tổng hợp chẩn đoán AI" totalCount={data?.totalCount ?? null} unit="ca chẩn đoán" loading={loading} error={loadError} metrics={[
+        { label: 'Cần duyệt', value: items.filter(item => item.status === 'AI_COMPLETED' || item.status === 'UNDER_REVIEW').length },
+        { label: 'Không đạt ngưỡng AI', value: items.filter(item => item.passedPolicy === false).length },
+        { label: 'Đã xác minh', value: items.filter(item => item.status === 'VERIFIED').length },
+      ]} />
       {!canReview && (
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
           <ShieldCheck size={18} className="mt-0.5 shrink-0" />
@@ -94,6 +105,7 @@ export default function DiagnosisQueuePage() {
             setPage(1)
           }, placeholder: "Tìm theo mã ca, tên hoặc số điện thoại nông dân..." }} onClear={() => { setSearch(''); setStatus(''); setPolicy(''); setPage(1) }}>
 <FilterSelect
+          label="Trạng thái chẩn đoán"
           value={status}
           onChange={(v) => {
             setStatus(v)
@@ -102,6 +114,7 @@ export default function DiagnosisQueuePage() {
           options={STATUS_OPTIONS}
         />
 <FilterSelect
+          label="Chính sách AI"
           value={policy}
           onChange={(v) => {
             setPolicy(v)

@@ -1,3 +1,4 @@
+import { useDetailBusy } from '@/hooks/useDetailBusy'
 import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import PermissionAction from '@/components/auth/PermissionAction'
 import { useEffect, useState } from 'react';
@@ -53,6 +54,7 @@ export default function CustomerDebtPage() {
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null)
   const [modal, setModal] = useState<'cash' | 'bank' | 'manual' | null>(null)
   const [busy, setBusy] = useState(false)
+  useDetailBusy(busy)
 
   useEffect(() => {
     const permission = modal === 'cash' ? 'PAYMENTS.RECEIVE_CASH' : modal === 'bank' ? 'BANK_PAYMENTS.RECORD' : 'DEBT.MANUAL'

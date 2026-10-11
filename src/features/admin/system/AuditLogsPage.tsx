@@ -1,4 +1,5 @@
 import ListToolbar from '@/components/ui/ListToolbar'
+import FilterSelect from '@/components/ui/FilterSelect'
 import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { auditLogsApi, type AuditLogListParams, type AuditLogResponse } from '@/api/auditLogsApi';
@@ -232,19 +233,9 @@ export default function AuditLogsPage() {
       <form onSubmit={applyFilters}>
         <fieldset disabled={exporting} className="min-w-0 space-y-3 disabled:opacity-60">
           <ListToolbar search={{ value: draft.search, onChange: value => setDraft({ ...draft, search: value.slice(0, 200) }), placeholder: 'Tìm tên, email người thực hiện, mã hành động hoặc đối tượng...' }} onClear={resetFilters} disabled={exporting} actions={<button type="submit" className={buttonClass + ' !bg-primary-dark !text-white'}>Lọc</button>}>
-            <select aria-label="Vai trò người thực hiện" className={inputClass} value={draft.actorRole} onChange={e => setDraft({ ...draft, actorRole: e.target.value })}>
-              <option value="">Tất cả vai trò</option>
-              {Object.entries(roleLabels).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
-            </select>
-            <select aria-label="Trạng thái hành động" className={inputClass} value={draft.status} onChange={e => setDraft({ ...draft, status: e.target.value })}>
-              <option value="">Tất cả trạng thái</option><option value="SUCCESS">Thành công</option><option value="FAILURE">Thất bại</option>
-            </select>
-            <select aria-label="Thời gian" className="h-9 rounded border border-outline-variant bg-white px-2" value={draft.timeRange} onChange={e => setDraft({ ...draft, timeRange: e.target.value as Filters['timeRange'] })}>
-                  <option value="7days">7 ngày qua</option>
-                  <option value="30days">30 ngày qua</option>
-                  <option value="all">Tất cả</option>
-                  <option value="custom">Khoảng ngày</option>
-                </select>
+            <FilterSelect label="Vai trò người thực hiện" value={draft.actorRole} onChange={value => setDraft({ ...draft, actorRole: value })} options={[{ value: '', label: 'Tất cả vai trò' }, ...Object.entries(roleLabels).map(([value, label]) => ({ value, label }))]} />
+            <FilterSelect label="Trạng thái hành động" value={draft.status} onChange={value => setDraft({ ...draft, status: value })} options={[{ value: '', label: 'Mọi trạng thái' }, { value: 'SUCCESS', label: 'Thành công' }, { value: 'FAILURE', label: 'Thất bại' }]} />
+            <FilterSelect label="Thời gian" value={draft.timeRange} onChange={value => setDraft({ ...draft, timeRange: value as Filters['timeRange'] })} options={[{ value: '7days', label: '7 ngày qua' }, { value: '30days', label: '30 ngày qua' }, { value: 'all', label: 'Tất cả' }, { value: 'custom', label: 'Khoảng ngày' }]} />
             {draft.timeRange === 'custom' && <>
                 <label className="text-sm text-on-surface">Từ ngày (UTC+7)<input type="date" className={inputClass} value={draft.fromDate} max={draft.toDate || undefined} onChange={e => setDraft({ ...draft, fromDate: e.target.value })} /></label>
                 <label className="text-sm text-on-surface">Đến ngày (UTC+7)<input type="date" className={inputClass} value={draft.toDate} min={draft.fromDate || undefined} onChange={e => setDraft({ ...draft, toDate: e.target.value })} /></label>

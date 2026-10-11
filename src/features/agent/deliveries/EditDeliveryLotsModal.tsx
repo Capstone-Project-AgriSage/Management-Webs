@@ -57,6 +57,8 @@ export default function EditDeliveryLotsModal({ open, onClose, deliveryId, item,
         .map<InventoryLot>((a) => ({
           id: a.inventoryLotId,
           storeProductId: productId,
+          sku: item.sku,
+          productName: item.productName,
           lotNumber: a.lotNumber,
           expiryDate: a.expiryDate,
           isExpired: false,

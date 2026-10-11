@@ -29,7 +29,7 @@ export default function KpiCard({
   valueSuffix,
   subtitle,
   subtitleClassName = 'text-slate-500',
-  layout = 'stacked',
+  layout = 'side',
   className = 'border-slate-200',
   children,
 }: KpiCardProps) {

@@ -6,7 +6,7 @@ import { useToast } from '@/context/ToastContext'
 import { describeError } from '@/api/client'
 import { paymentsApi } from '@/api/paymentsApi'
 import { refundsApi, type Refund, type RefundMethod } from '@/api/refundsApi'
-import type { PaymentResponse } from '@/api/types'
+import type { PaymentListItem } from '@/api/customersApi'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import DetailModal from '@/components/ui/DetailModal'
 import { formatVnd } from '@/utils/money'
@@ -292,7 +292,7 @@ function CompleteRefundModal({ scope, refund, onClose, onDone }: { scope: Refund
 
 function RequestRefundModal({ scope, remaining, onClose, onDone }: { scope: RefundScope; remaining: number | null; onClose: () => void; onDone: () => void }) {
   const { showToast } = useToast()
-  const [payments, setPayments] = useState<PaymentResponse[]>([])
+  const [payments, setPayments] = useState<PaymentListItem[]>([])
   const [paymentId, setPaymentId] = useState('')
   const [method, setMethod] = useState<RefundMethod>('CASH')
   const [amount, setAmount] = useState(remaining !== null ? String(remaining) : '')

@@ -11,12 +11,12 @@ const percent = (label: string, value: number | null, note?: string): ReportMetr
 
 export const inlineReports = {
   orders: {
-    labels: ['Đơn trong kỳ', 'Giá trị đơn trong kỳ'],
+    labels: ['Đơn trong kỳ', 'Giá trị đơn trong kỳ', 'Giá trị đơn trung bình'],
     title: 'Tổng hợp đơn hàng', period: true,
     note: 'Đơn được tạo trong kỳ; giá trị đơn hàng chưa phải doanh thu đã ghi nhận.',
     async load(period: Period, signal: AbortSignal): Promise<InlineReportResult> {
       const { totals } = await businessReportsApi.orders(period, signal)
-      return { metrics: [count('Đơn trong kỳ', totals.orderCount), money('Giá trị đơn trong kỳ', totals.orderValue)] }
+      return { metrics: [count('Đơn trong kỳ', totals.orderCount), money('Giá trị đơn trong kỳ', totals.orderValue), money('Giá trị đơn trung bình', totals.orderCount ? totals.orderValue / totals.orderCount : 0)] }
     },
   },
   payments: {
@@ -28,11 +28,11 @@ export const inlineReports = {
     },
   },
   purchases: {
-    labels: ['Phiếu nhập đã xác nhận', 'Giá trị nhập trong kỳ'],
+    labels: ['Phiếu nhập đã xác nhận', 'Giá trị nhập trong kỳ', 'Giá trị nhập trung bình'],
     title: 'Tổng hợp nhập hàng', period: true, note: 'Phiếu nhập đã xác nhận trong kỳ, tính theo ngày xác nhận.',
     async load(period: Period, signal: AbortSignal): Promise<InlineReportResult> {
       const { totals } = await businessReportsApi.purchases(period, signal)
-      return { metrics: [count('Phiếu nhập đã xác nhận', totals.receiptCount), money('Giá trị nhập trong kỳ', totals.purchaseAmount)] }
+      return { metrics: [count('Phiếu nhập đã xác nhận', totals.receiptCount), money('Giá trị nhập trong kỳ', totals.purchaseAmount), money('Giá trị nhập trung bình', totals.receiptCount ? totals.purchaseAmount / totals.receiptCount : 0)] }
     },
   },
   returns: {

@@ -1,4 +1,5 @@
 import ListToolbar from '@/components/ui/ListToolbar'
+import FilterSelect from '@/components/ui/FilterSelect'
 import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import PermissionAction from '@/components/auth/PermissionAction'
 import { useEffect, useState } from 'react';
@@ -100,6 +101,7 @@ export default function CustomersPage() {
     setDebtFilter('')
     setStatus('')
     setSort('name')
+    setPage(1)
   }
 
   const items = data?.items ?? []
@@ -114,28 +116,10 @@ export default function CustomersPage() {
       <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: "Tìm theo tên hoặc số điện thoại..." }} onClear={resetFilters} actions={<><PermissionAction codes={["CUSTOMERS.CREATE"]}><button type="button" className="h-9 px-4 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 flex items-center gap-1.5" onClick={() => setForm({ customer: null })}>
             <UserPlus size={16} /> Thêm khách hàng
           </button></PermissionAction></>}>
-<select aria-label="Lọc theo nhóm" className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700" value={groupId} onChange={(e) => setGroupId(e.target.value)}>
-            <option value="">Tất cả nhóm</option>
-            {groups.map((g) => (
-              <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </select>
-<select aria-label="Lọc công nợ" className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700" value={debtFilter} onChange={(e) => setDebtFilter(e.target.value)}>
-            <option value="">Mọi công nợ</option>
-            <option value="yes">Đang có nợ</option>
-            <option value="no">Không có nợ</option>
-          </select>
-<select aria-label="Lọc trạng thái" className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">Mọi trạng thái</option>
-            {Object.entries(CUSTOMER_STATUS_LABEL).map(([value, text]) => (
-              <option key={value} value={value}>{text}</option>
-            ))}
-          </select>
-<select aria-label="Sắp xếp" className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700" value={sort} onChange={(e) => setSort(e.target.value)}>
-            {SORT_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
+        <FilterSelect label="Nhóm khách hàng" value={groupId} onChange={value => { setGroupId(value); setPage(1) }} options={[{ value: '', label: 'Tất cả nhóm' }, ...groups.map(group => ({ value: group.id, label: group.name }))]} />
+        <FilterSelect label="Công nợ" value={debtFilter} onChange={value => { setDebtFilter(value); setPage(1) }} options={[{ value: '', label: 'Mọi công nợ' }, { value: 'yes', label: 'Đang có nợ' }, { value: 'no', label: 'Không có nợ' }]} />
+        <FilterSelect label="Trạng thái" value={status} onChange={value => { setStatus(value); setPage(1) }} options={[{ value: '', label: 'Mọi trạng thái' }, ...Object.entries(CUSTOMER_STATUS_LABEL).map(([value, text]) => ({ value, label: text }))]} />
+        <FilterSelect label="Sắp xếp" value={sort} onChange={value => { setSort(value); setPage(1) }} options={SORT_OPTIONS} />
       </ListToolbar>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col">

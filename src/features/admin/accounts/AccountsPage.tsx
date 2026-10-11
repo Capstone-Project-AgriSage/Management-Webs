@@ -1,4 +1,7 @@
 import ListToolbar from '@/components/ui/ListToolbar'
+import FilterSelect from '@/components/ui/FilterSelect'
+import KpiCard from '@/components/ui/KpiCard'
+import { Users, UserCheck, Clock, UserLock } from 'lucide-react'
 import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useState } from 'react';
@@ -143,35 +146,12 @@ export default function AccountsPage() {
 
 
       {/* KPI CARDS */}
+      <p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Dữ liệu mẫu — chưa có API backend quản lý toàn bộ tài khoản.</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
-        <div className="p-4 rounded-xl border border-outline-variant bg-white flex flex-col justify-between h-32 shadow-sm">
-          <span className="text-sm text-on-surface-variant font-medium">Tổng số tài khoản</span>
-          <div>
-            <div className="text-3xl font-medium text-on-surface">{totalAccounts}</div>
-            <div className="text-xs text-on-surface-variant mt-1">Đại lý, nông dân, quản trị viên</div>
-          </div>
-        </div>
-        <div className="p-4 rounded-xl border border-outline-variant bg-white flex flex-col justify-between h-32 shadow-sm">
-          <span className="text-sm text-on-surface-variant font-medium">Đang hoạt động</span>
-          <div>
-            <div className="text-3xl font-medium text-emerald-700">{activeCount}</div>
-            <div className="text-xs text-emerald-700/80 mt-1">Hệ thống ghi nhận bình thường</div>
-          </div>
-        </div>
-        <div className="p-4 rounded-xl border-2 border-amber-400/80 bg-white flex flex-col justify-between h-32 shadow-sm">
-          <span className="text-sm text-amber-700 font-medium">Chờ duyệt</span>
-          <div>
-            <div className="text-3xl font-medium text-on-surface">{pendingCount}</div>
-            <div className="text-xs text-amber-700 mt-1">Cần xem xét ngay</div>
-          </div>
-        </div>
-        <div className="p-4 rounded-xl border border-outline-variant bg-white flex flex-col justify-between h-32 shadow-sm">
-          <span className="text-sm text-on-surface-variant font-medium">Bị khóa</span>
-          <div>
-            <div className="text-3xl font-medium text-on-surface">{lockedCount}</div>
-            <div className="text-xs text-on-surface-variant mt-1">Vi phạm hoặc tạm khóa</div>
-          </div>
-        </div>
+        <KpiCard icon={Users} iconClassName="bg-blue-50 text-blue-600" title="Tổng số tài khoản" value={totalAccounts} subtitle="Đại lý, nông dân, quản trị viên" layout="header" />
+        <KpiCard icon={UserCheck} iconClassName="bg-emerald-50 text-emerald-600" title="Đang hoạt động" value={activeCount} subtitle="Hệ thống ghi nhận bình thường" layout="header" />
+        <KpiCard icon={Clock} iconClassName="bg-amber-50 text-amber-600" title="Chờ duyệt" value={pendingCount} subtitle="Cần xem xét phê duyệt" layout="header" />
+        <KpiCard icon={UserLock} iconClassName="bg-red-50 text-red-600" title="Bị khóa" value={lockedCount} subtitle="Vi phạm hoặc tạm khóa" layout="header" />
       </div>
 
       {/* ALERT BANNER */}
@@ -207,26 +187,9 @@ export default function AccountsPage() {
           >
             Tạo tài khoản mới
           </button></>}>
-<select aria-label="Lọc vai trò" className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700" value={roleFilter} onChange={e => { setRoleFilter(e.target.value); setPage(1) }}>
-              <option value="">Tất cả</option>
-              <option value="Admin">Quản trị viên</option>
-              <option value="Store Owner">Chủ cửa hàng</option>
-              <option value="Sales Staff">NV Bán hàng</option>
-              <option value="Delivery Staff">NV Giao hàng</option>
-              <option value="Farmer">Nông dân</option>
-            </select>
-<select aria-label="Lọc khu vực" className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700" value={regionFilter} onChange={e => { setRegionFilter(e.target.value); setPage(1) }}>
-              <option value="">Tất cả</option>
-              <option value="Cần Thơ">Cần Thơ</option>
-              <option value="Đồng Tháp">Đồng Tháp</option>
-              <option value="Hà Nội">Hà Nội</option>
-            </select>
-<select aria-label="Lọc trạng thái" className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}>
-              <option value="">Tất cả</option>
-              <option value="Đang hoạt động">Đang hoạt động</option>
-              <option value="Chờ duyệt">Chờ duyệt</option>
-              <option value="Bị khóa">Bị khóa</option>
-            </select>
+        <FilterSelect label="Vai trò" value={roleFilter} onChange={value => { setRoleFilter(value); setPage(1) }} options={[{ value: '', label: 'Tất cả vai trò' }, { value: 'Admin', label: 'Quản trị viên' }, { value: 'Store Owner', label: 'Chủ cửa hàng' }, { value: 'Sales Staff', label: 'NV Bán hàng' }, { value: 'Delivery Staff', label: 'NV Giao hàng' }, { value: 'Farmer', label: 'Nông dân' }]} />
+        <FilterSelect label="Khu vực" value={regionFilter} onChange={value => { setRegionFilter(value); setPage(1) }} options={[{ value: '', label: 'Tất cả khu vực' }, 'Cần Thơ', 'Đồng Tháp', 'Hà Nội']} />
+        <FilterSelect label="Trạng thái" value={statusFilter} onChange={value => { setStatusFilter(value); setPage(1) }} options={[{ value: '', label: 'Mọi trạng thái' }, 'Đang hoạt động', 'Chờ duyệt', 'Bị khóa']} />
       </ListToolbar>
 
       {/* FLAT DATA TABLE */}
@@ -322,24 +285,17 @@ export default function AccountsPage() {
         </div>
 
         {/* FOOTER PAGINATION */}
-        <div className="px-4 py-3 bg-white flex items-center justify-between text-sm text-on-surface-variant">
-          <div>
-            Hiển thị {startIndex + 1} đến {endIndex} của {totalCount} tài khoản
-          </div>
-          <div className="flex items-center gap-6">
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              startIndex={startIndex}
-              endIndex={endIndex}
-              totalCount={totalCount}
-              unitLabel=""
-              goPrev={goPrev}
-              goNext={goNext}
-              setPage={setPage}
-            />
-          </div>
-        </div>
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          startIndex={startIndex}
+          endIndex={endIndex}
+          totalCount={totalCount}
+          unitLabel=""
+          goPrev={goPrev}
+          goNext={goNext}
+          setPage={setPage}
+        />
       </div>
 
       {/* CREATE ACCOUNT MODAL */}

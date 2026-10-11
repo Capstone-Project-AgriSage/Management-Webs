@@ -7,6 +7,7 @@ interface DetailModalProps {
   children: ReactNode
   widthClassName?: string
   busy?: boolean
+  title?: string
 }
 
 export default function DetailModal(props: DetailModalProps) {

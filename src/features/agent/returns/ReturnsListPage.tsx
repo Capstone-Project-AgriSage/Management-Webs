@@ -1,3 +1,4 @@
+import { useBusinessDataRefresh } from '@/hooks/useBusinessDataRefresh'
 import ListToolbar from '@/components/ui/ListToolbar'
 import PermissionAction from '@/components/auth/PermissionAction'
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
@@ -57,6 +58,8 @@ export default function ReturnsListPage() {
     load()
   }, [load])
 
+  useBusinessDataRefresh(load)
+
   const items = data?.items ?? []
 
   return (
@@ -73,6 +76,7 @@ export default function ReturnsListPage() {
           <Plus size={16} /> Tạo yêu cầu trả hàng
         </button></PermissionAction></>}>
 <FilterSelect
+            label="Trạng thái trả hàng"
             value={status}
             onChange={(v) => {
               setStatus(v)

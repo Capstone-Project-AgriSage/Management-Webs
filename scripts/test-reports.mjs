@@ -17,7 +17,6 @@ const pages = [
   ['/agent/deliveries', 'Tổng hợp giao hàng', ['deliveries']],
   ['/agent/debts', 'Tổng hợp công nợ', ['debt-aging', 'debt-collections', 'debt-by-customer-group']],
   ['/agent/credit-config', 'Mức sử dụng tín dụng', ['credit-exposure']],
-  ['/agent/inventory', 'Tổng hợp xuất nhập tồn', ['inventory-movement', 'inventory-valuation']],
   ['/agent/products', 'Giá trị tồn kho', ['inventory-valuation']],
   ['/agent/inventory/movements', 'Tổng hợp xuất nhập tồn', ['inventory-movement']],
   ['/agent', 'Doanh thu và bán hàng', ['sales', 'revenue', 'revenue-summary']],
@@ -111,6 +110,7 @@ try {
   for (const [path, title, endpoints] of pages) {
     await owner.page.goto(base + path)
     await ready(owner.page, title)
+    assert.equal(await owner.page.locator('main .agrisage-kpi-card').count(), 4, path + ': one row of four cards')
     for (const endpoint of endpoints) assert(owner.state.requests.some(request => request.path === '/api/reports/' + endpoint), endpoint)
     await noReportMenu(owner.page)
   }

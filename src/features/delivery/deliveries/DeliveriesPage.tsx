@@ -1,9 +1,11 @@
+import { useBusinessDataRefresh } from '@/hooks/useBusinessDataRefresh'
 import ListToolbar from '@/components/ui/ListToolbar'
+import ListReportCards from '@/features/agent/reports/ListReportCards'
 import FilterSelect from '@/components/ui/FilterSelect'
 import ServerPagination from '@/components/ui/ServerPagination'
 import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { deliveriesApi } from '@/api/deliveriesApi';
@@ -39,6 +41,8 @@ const TABS: { key: TabKey; label: string; icon: string; statuses: DeliveryStatus
 export default function DeliveriesPage() {
   usePageHeader({ title: 'Danh sách giao hàng', subtitle: 'Các đơn được phân công cho bạn' })
 
+  const [revision, setRevision] = useState(0)
+  useBusinessDataRefresh(useCallback(() => setRevision(value => value + 1), []))
   const [orders, setOrders] = useState<DeliveryListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -48,7 +52,7 @@ export default function DeliveriesPage() {
   const [page, setPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
-  const [counts, setCounts] = useState<Record<TabKey, number>>({ pending: 0, retry: 0, done: 0 })
+  const [counts, setCounts] = useState<Record<TabKey, number | null>>({ pending: null, retry: null, done: null })
   const debouncedSearch = useDebouncedValue(search.trim())
 
   const activeTab = TABS.find(t => t.key === tab)!
@@ -66,19 +70,25 @@ export default function DeliveriesPage() {
       .catch(err => { if (!controller.signal.aborted) { setOrders([]); setError(err instanceof Error ? err : new Error('Không tải được danh sách giao hàng')) } })
       .finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
-  }, [page, status, debouncedSearch])
+  }, [page, status, debouncedSearch, revision])
 
   useEffect(() => {
     const controller = new AbortController()
+    setCounts({ pending: null, retry: null, done: null })
     Promise.all(TABS.map(async item => {
       const results = await Promise.all(item.statuses.map(status => deliveriesApi.getDeliveries({ status, page: 1, pageSize: 1 }, controller.signal)))
       return [item.key, results.reduce((sum, result) => sum + result.totalCount, 0)] as const
     })).then(entries => { if (!controller.signal.aborted) setCounts(Object.fromEntries(entries) as Record<TabKey, number>) }).catch(() => {})
     return () => controller.abort()
-  }, [])
+  }, [revision])
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
+      <ListReportCards title="Tổng hợp giao hàng được phân công" totalCount={totalCount} unit="chuyến giao" loading={loading} error={!!error} metrics={[
+        { label: 'Cần giao', value: counts.pending, note: 'Tất cả chuyến được phân công' },
+        { label: 'Chờ xuất phát', value: counts.retry, note: 'Tất cả chuyến được phân công' },
+        { label: 'Đã giao', value: counts.done, note: 'Tất cả chuyến được phân công' },
+      ]} />
       {/* Tabs */}
       <div className="flex gap-2 overflow-x-auto pb-1">
         {TABS.map((t) => (
@@ -99,7 +109,7 @@ export default function DeliveriesPage() {
                 tab === t.key ? 'bg-on-primary/20 text-on-primary' : 'bg-surface-container text-on-surface-variant'
               }`}
             >
-              {counts[t.key]}
+              {counts[t.key] ?? '—'}
             </span>
           </button>
         ))}
@@ -110,7 +120,7 @@ export default function DeliveriesPage() {
       </ListToolbar>
 
       {/* Retry pending notice */}
-      {tab === 'retry' && counts.retry > 0 && (
+      {tab === 'retry' && (counts.retry ?? 0) > 0 && (
         <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
           <span className="material-symbols-outlined text-[20px] text-amber-600 shrink-0">warning</span>
           <span>Có <strong>{counts.retry}</strong> chuyến đang chờ cửa hàng xuất phát. Khi cửa hàng bấm xuất phát, chuyến sẽ chuyển sang mục "Cần giao".</span>

@@ -20,6 +20,7 @@
 - Báo cáo kho, công nợ, thẻ kho chưa có `page/pageSize` ở backend; frontend chia dữ liệu trả về thành 10 dòng/trang. Báo cáo giao hàng chỉ hiển thị biểu đồ.
 - API mô hình AI chỉ hỗ trợ `Status`. Khi tìm kiếm, frontend đọc các trang API 10 phần tử tới hết rồi lọc tên/ID/phiên bản, không giới hạn 100 dòng đầu. Chính sách AI là mảng theo mô hình; lựa chọn mô hình cũng đọc API từng trang 10 phần tử.
 - Hoàn tiền chưa có endpoint danh sách chung. Các nguồn đơn hủy/trả hàng được gọi từng trang 10 phần tử rồi hợp nhất theo thứ tự backend. Để tạo trang N đúng thứ tự, có thể phải đọc đến trang N của mỗi nguồn. Tổng phân trang ở tab đơn hủy là số đơn nguồn; bộ lọc trạng thái khoản hoàn có thể khiến trang hiển thị dưới 10 dòng. Các KPI của tab này ghi rõ phạm vi trang.
+- Tối ưu tải hoàn tiền: các trang nguồn và khoản hoàn của từng đơn được giữ trong bộ nhớ của màn hình trong 30 giây (tối đa 100 mục mỗi nhóm). Chuyển trang chỉ tải phần còn thiếu; tab còn lại giữ số liệu trang 1 và không tải theo phân trang/tìm kiếm của tab đang mở. Khi chỉ chọn một trạng thái, gọi thẳng trang API tương ứng. Hủy các yêu cầu cũ khi đổi trang/bộ lọc; hiển thị trạng thái tải hoặc lỗi thay vì dữ liệu trang cũ. Ghi dữ liệu thành công hoặc nút **Làm mới danh sách** xóa cache. Lần đầu và khi nhảy xa qua nhiều trạng thái vẫn phụ thuộc các API nguồn/từng đơn hiện có.
 - Truy vấn lựa chọn trong biểu mẫu, xuất CSV, tính toán công nợ và số đếm KPI giữ giới hạn riêng (ví dụ 100 hoặc 1); đây không phải danh sách chính đang phân trang.
 - Không thay đổi schema, migration hay hợp đồng backend. Các màn hình Admin vừa nối dữ liệu thực cũng gọi đúng endpoint ghi của backend, không trộn thao tác dữ liệu mẫu với bản ghi thực.
 
@@ -29,6 +30,7 @@
 - Build: `npm run build` thành công; Vite còn cảnh báo kích thước bundle.
 - Lint: không có lỗi, 77 cảnh báo trong toàn bộ `src`.
 - `scripts/test-pagination-filters.mjs`: 32 trường hợp về danh sách/API/bố cục, hợp nhất nguồn, báo cáo và hợp đồng tạo/sửa danh mục. API được giả lập hoàn toàn, không đọc hoặc ghi dữ liệu cửa hàng thực.
+- `scripts/test-refunds-performance.mjs`: 9 kiểm tra về số lượt gọi API, quay lại trang đã tải, phân trang độc lập giữa hai tab, hủy yêu cầu cũ, làm mới số tiền sau thao tác ghi, lỗi/thử lại, giới hạn/hết hạn cache và nhảy thẳng trang khi chọn một trạng thái. Có thể đặt `UI_START_SERVER=1` để script tự chạy và dừng Vite; mặc định dùng cổng 5174 (đổi bằng `UI_TEST_URL`). Toàn bộ API được giả lập.
 - Kiểm tra bản ghi thứ 121 để phát hiện giới hạn lấy 100 dòng đầu; trang 2, tìm kiếm, xóa lọc, trang cuối, danh sách rỗng và màn hình 1024/768/375px.
 - Ảnh kiểm tra: `artifacts/pagination-filters/toolbar-1440.png`, `price-lists-375.png`.
 

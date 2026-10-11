@@ -1,4 +1,5 @@
 import ListToolbar from '@/components/ui/ListToolbar'
+import FilterSelect from '@/components/ui/FilterSelect'
 import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import { useState } from 'react';
 
@@ -108,12 +109,7 @@ export default function SystemNotificationsPage() {
             <span className="material-symbols-outlined text-[18px]">campaign</span>
             Tạo thông báo mới
           </button></>}>
-<select aria-label="Lọc trạng thái" className="h-10 px-3 rounded-[10px] border border-slate-200 bg-white text-sm text-slate-700" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}>
-              <option value="">Tất cả</option>
-              <option value="Đã gửi">Đã gửi</option>
-              <option value="Lên lịch">Lên lịch</option>
-              <option value="Bản nháp">Bản nháp</option>
-            </select>
+        <FilterSelect label="Trạng thái" value={statusFilter} onChange={value => { setStatusFilter(value); setPage(1) }} options={[{ value: '', label: 'Mọi trạng thái' }, 'Đã gửi', 'Lên lịch', 'Bản nháp']} />
       </ListToolbar>
 
       <div className="border border-outline-variant/60 rounded-xl overflow-hidden bg-white shadow-sm mt-2 flex flex-col">
@@ -195,10 +191,7 @@ export default function SystemNotificationsPage() {
             </tbody>
           </table>
         </div>
-        <div className="px-4 py-3 bg-white flex items-center justify-between text-sm text-on-surface-variant border-t border-outline-variant/40">
-          <div>Hiển thị {startIndex + 1} đến {endIndex} của {totalCount} thông báo</div>
-          <Pagination page={page} totalPages={totalPages} startIndex={startIndex} endIndex={endIndex} totalCount={totalCount} unitLabel="" goPrev={goPrev} goNext={goNext} setPage={setPage} />
-        </div>
+        <Pagination page={page} totalPages={totalPages} startIndex={startIndex} endIndex={endIndex} totalCount={totalCount} unitLabel="" goPrev={goPrev} goNext={goNext} setPage={setPage} />
       </div>
 
       <FormModal

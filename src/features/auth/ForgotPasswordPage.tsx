@@ -1,14 +1,23 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { authApi } from '@/api/authApi'
+import { describeError } from '@/api/client'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!email) return
-    setSubmitted(true)
+    if (!email.trim() || busy) return
+    setBusy(true); setError('')
+    try {
+      await authApi.forgotPassword(email.trim())
+      setSubmitted(true)
+    } catch (err) { setError(describeError(err, 'Không gửi được yêu cầu khôi phục mật khẩu')) }
+    finally { setBusy(false) }
   }
 
   return (
@@ -35,10 +44,10 @@ export default function ForgotPasswordPage() {
                 <span className="material-symbols-outlined text-[24px] text-primary">mail</span>
               </div>
               <h1 className="font-headline-sm text-headline-sm text-on-surface font-bold">
-                Đã gửi liên kết khôi phục
+                Đã nhận yêu cầu khôi phục
               </h1>
               <p className="font-body-sm text-body-sm text-on-surface-variant mt-2">
-                Kiểm tra hộp thư <span className="font-semibold text-on-surface">{email}</span> để đặt lại mật khẩu.
+                Nếu tài khoản <span className="font-semibold text-on-surface">{email}</span> tồn tại và có email, hệ thống sẽ gửi hướng dẫn đặt lại mật khẩu.
               </p>
               <Link
                 to="/login"
@@ -47,13 +56,14 @@ export default function ForgotPasswordPage() {
                 <span className="material-symbols-outlined text-[16px]">arrow_back</span>
                 Quay lại đăng nhập
               </Link>
+              <Link to="/reset-password" className="block mt-3 text-sm text-emerald-700 hover:underline">Tôi đã có mã khôi phục</Link>
             </div>
           ) : (
             <>
               <div className="mb-6 text-center">
                 <h1 className="font-headline-sm text-headline-sm text-on-surface font-bold">Quên mật khẩu</h1>
                 <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">
-                  Nhập email quản trị để nhận liên kết đặt lại mật khẩu.
+                  Nhập email hoặc số điện thoại đăng nhập để yêu cầu đặt lại mật khẩu.
                 </p>
               </div>
               <form className="space-y-4" onSubmit={handleSubmit} noValidate>
@@ -62,7 +72,7 @@ export default function ForgotPasswordPage() {
                     className="block font-label-sm text-label-sm uppercase text-on-surface-variant mb-1.5"
                     htmlFor="resetEmail"
                   >
-                    Email quản trị
+                    Email hoặc số điện thoại
                   </label>
                   <div className="relative">
                     <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-outline">
@@ -74,17 +84,21 @@ export default function ForgotPasswordPage() {
                       type="text"
                       placeholder="admin@agrisage.vn"
                       autoComplete="username"
+                      required
+                      maxLength={255}
                       className="w-full h-11 pl-10 pr-3 text-sm bg-white border border-outline-variant rounded focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none text-on-surface placeholder:text-outline font-body-md transition-all"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                     />
                   </div>
                 </div>
+                {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
                 <button
                   type="submit"
+                  disabled={busy || !email.trim()}
                   className="w-full h-11 bg-primary hover:bg-primary-container text-on-primary font-semibold text-sm rounded shadow-sm transition-all flex items-center justify-center gap-2"
                 >
-                  Gửi liên kết khôi phục
+                  {busy ? 'Đang gửi yêu cầu...' : 'Gửi yêu cầu khôi phục'}
                   <span className="material-symbols-outlined text-[18px]">send</span>
                 </button>
               </form>

@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { usePermission } from '@/context/PermissionContext'
 import { MoreVertical } from 'lucide-react'
 
@@ -23,11 +24,30 @@ export default function RowActionsMenu({ actions: allActions, triggerLabel = 'Th
   const [menuStyle, setMenuStyle] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const positionMenu = useCallback(() => {
+    if (!triggerRef.current || !menuRef.current) return false
+    const trigger = triggerRef.current.getBoundingClientRect()
+    if (trigger.bottom <= 0 || trigger.top >= window.innerHeight || trigger.right <= 0 || trigger.left >= window.innerWidth) return false
+    const menu = menuRef.current.getBoundingClientRect()
+    const margin = 8
+    const left = Math.max(margin, Math.min(trigger.right - menu.width, window.innerWidth - menu.width - margin))
+    const below = trigger.bottom + 4
+    const top = below + menu.height <= window.innerHeight - margin ? below : Math.max(margin, trigger.top - menu.height - 4)
+    const clampedTop = Math.min(top, Math.max(margin, window.innerHeight - menu.height - margin))
+    setMenuStyle(previous => previous.left === left && previous.top === clampedTop ? previous : { left, top: clampedTop })
+    return true
+  }, [])
 
   useEffect(() => {
     if (!open) return
 
     const close = () => setOpen(false)
+    const handleScroll = (event: Event) => {
+      // A long menu can scroll internally without moving its anchor.
+      if (event.target instanceof Node && menuRef.current?.contains(event.target)) return
+      // Focus restoration can scroll the page immediately after opening; keep the menu anchored while its trigger is visible.
+      if (!positionMenu()) close()
+    }
 
     const handlePointerDown = (e: MouseEvent) => {
       const target = e.target as Node
@@ -41,32 +61,24 @@ export default function RowActionsMenu({ actions: allActions, triggerLabel = 'Th
 
     document.addEventListener('mousedown', handlePointerDown)
     document.addEventListener('keydown', handleKey)
-    window.addEventListener('scroll', close, true)
+    window.addEventListener('scroll', handleScroll, true)
     window.addEventListener('resize', close)
 
     return () => {
       document.removeEventListener('mousedown', handlePointerDown)
       document.removeEventListener('keydown', handleKey)
-      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('scroll', handleScroll, true)
       window.removeEventListener('resize', close)
     }
-  }, [open])
+  }, [open, positionMenu])
+
+  useLayoutEffect(() => {
+    if (open) positionMenu()
+  }, [open, actions.length, positionMenu])
 
   if (!actions.length) return null
 
   const toggleOpen = () => {
-    if (!open && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect()
-      const menuWidth = 208
-      const estimatedMenuHeight = actions.length * 36 + 8
-      const left = Math.min(Math.max(8, rect.right - menuWidth), window.innerWidth - menuWidth - 8)
-      const spaceBelow = window.innerHeight - rect.bottom
-      const top =
-        spaceBelow < estimatedMenuHeight + 8 && rect.top > estimatedMenuHeight
-          ? Math.max(8, rect.top - estimatedMenuHeight - 4)
-          : rect.bottom + 4
-      setMenuStyle({ top, left })
-    }
     setOpen((v) => !v)
   }
 
@@ -98,11 +110,11 @@ export default function RowActionsMenu({ actions: allActions, triggerLabel = 'Th
       >
         <MoreVertical size={16} />
       </button>
-      {open ? (
+      {open ? createPortal(
         <div
           ref={menuRef}
-          className="fixed z-50 w-48 rounded-lg border border-slate-200 bg-white shadow-lg py-1"
-          style={{ top: menuStyle.top, left: menuStyle.left }}
+          className="fixed z-50 w-48 rounded-lg border border-slate-200 bg-white shadow-lg py-1 overflow-y-auto"
+          style={{ top: menuStyle.top, left: menuStyle.left, maxHeight: 'calc(100vh - 16px)', maxWidth: 'calc(100vw - 16px)' }}
           onClick={(e) => e.stopPropagation()}
         >
           {actions.map((action, i) => (
@@ -119,7 +131,7 @@ export default function RowActionsMenu({ actions: allActions, triggerLabel = 'Th
               <span>{action.label}</span>
             </button>
           ))}
-        </div>
+        </div>, document.body
       ) : null}
     </>
   )
