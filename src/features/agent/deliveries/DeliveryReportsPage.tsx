@@ -6,7 +6,7 @@ import ListToolbar from '@/components/ui/ListToolbar'
 import FilterSelect from '@/components/ui/FilterSelect'
 import Button from '@/components/ui/Button'
 import KpiCard from '@/components/ui/KpiCard'
-import { CheckCircle, RotateCcw, Truck, XCircle } from 'lucide-react'
+
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell, PieChart, Pie } from 'recharts'
 import { isoDateOffsetFromToday } from '@/utils/date'
 import { FAILURE_REASON_LABEL, labelOf } from '@/utils/deliveryLabels'
@@ -101,10 +101,10 @@ export default function DeliveryReportsPage() {
         <>
           {/* Tổng quan */}
           <div className="agrisage-summary-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4" aria-busy={loading}>
-            <KpiCard title="Tổng số chuyến" icon={Truck} iconClassName="bg-primary/10 text-primary" value={loading ? '…' : data.totals.deliveries} subtitle="Trong kỳ báo cáo đã tải" />
-            <KpiCard title="Lượt giao hàng" icon={RotateCcw} iconClassName="bg-slate-100 text-slate-600" value={loading ? '…' : data.totals.attempts} subtitle="Trong kỳ báo cáo đã tải" />
-            <KpiCard title="Giao thành công" icon={CheckCircle} iconClassName="bg-emerald-50 text-emerald-600" value={loading ? '…' : data.totals.successful} subtitle={`Tỷ lệ ${(data.totals.successRate * 100).toFixed(0)}% trong kỳ báo cáo`} />
-            <KpiCard title="Giao thất bại" icon={XCircle} iconClassName="bg-rose-50 text-rose-600" value={loading ? '…' : data.totals.failed} subtitle="Trong kỳ báo cáo đã tải" />
+            <KpiCard title="Tổng số chuyến" value={loading ? '…' : data.totals.deliveries} subtitle="Trong kỳ báo cáo đã tải" />
+            <KpiCard title="Lượt giao hàng" value={loading ? '…' : data.totals.attempts} subtitle="Trong kỳ báo cáo đã tải" />
+            <KpiCard title="Giao thành công" value={loading ? '…' : data.totals.successful} subtitle={`Tỷ lệ ${(data.totals.successRate * 100).toFixed(0)}% trong kỳ báo cáo`} />
+            <KpiCard title="Giao thất bại" value={loading ? '…' : data.totals.failed} subtitle="Trong kỳ báo cáo đã tải" />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-space-md">

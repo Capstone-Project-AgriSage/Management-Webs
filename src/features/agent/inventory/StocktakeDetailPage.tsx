@@ -3,7 +3,7 @@ import { useDetailBusy } from '@/hooks/useDetailBusy'
 import PermissionAction from '@/components/auth/PermissionAction'
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, CheckCircle2, ClipboardCheck, Layers, RefreshCw, Scale, Search, Sigma } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, RefreshCw, Search } from 'lucide-react';
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
@@ -284,21 +284,15 @@ export default function StocktakeDetailPage() {
       {st.note ? <p className="text-sm text-slate-600 -mt-2">Ghi chú: {st.note}</p> : null}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <KpiCard icon={Layers} iconClassName="bg-slate-100 text-slate-600" title="Số lô cần đếm" layout="side" value={st.totals.lines} />
+        <KpiCard title="Số lô cần đếm" value={st.totals.lines} />
         <KpiCard
-          icon={ClipboardCheck}
-          iconClassName="bg-sky-50 text-sky-600"
           title="Đã đếm"
-          layout="side"
           value={`${st.totals.counted}/${st.totals.lines}`}
           subtitle={uncounted > 0 ? `Còn ${uncounted} lô chưa đếm` : st.totals.lines > 0 ? 'Đã đếm hết' : undefined}
         />
-        <KpiCard icon={Scale} iconClassName="bg-amber-50 text-amber-600" title="Lô có chênh lệch" layout="side" value={st.totals.withDifference} valueClassName={st.totals.withDifference > 0 ? 'text-amber-700' : 'text-slate-900'} />
+        <KpiCard title="Lô có chênh lệch" value={st.totals.withDifference} valueClassName={st.totals.withDifference > 0 ? 'text-amber-700' : 'text-slate-900'} />
         <KpiCard
-          icon={Sigma}
-          iconClassName="bg-rose-50 text-rose-600"
           title="Giá trị chênh lệch"
-          layout="side"
           value={`${st.totals.differenceCostValue > 0 ? '+' : ''}${formatVnd(st.totals.differenceCostValue)}`}
           valueClassName={st.totals.differenceCostValue < 0 ? 'text-rose-600' : st.totals.differenceCostValue > 0 ? 'text-emerald-700' : 'text-slate-900'}
           subtitle="Theo giá vốn, so với sổ sách"

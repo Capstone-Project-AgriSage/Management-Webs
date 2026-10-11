@@ -6,8 +6,8 @@ import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
-import { Link } from 'react-router-dom';
-import { ChevronRight, Download, Banknote, Link2 } from 'lucide-react';
+
+import { Banknote, Link2 } from 'lucide-react';
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
 import RowActionsMenu from '@/components/ui/RowActionsMenu'
@@ -17,7 +17,7 @@ import Pagination from '@/components/ui/Pagination'
 
 import StatusBadge from '@/components/ui/StatusBadge'
 import { formatVnd } from '@/utils/money';
-import { downloadCsv } from '@/utils/csv';
+
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 import { ordersApi } from '@/api/ordersApi';
 import { paymentsApi } from '@/api/paymentsApi';
@@ -179,41 +179,8 @@ export default function PaymentsPage() {
     setIsPaymentModalOpen(true)
   }
 
-  const handleExport = () => {
-    downloadCsv(
-      `thanh-toan-${Date.now()}.csv`,
-      orders.map((o) => {
-        const sum = paymentSummaries[o.id]
-        return {
-          'Mã đơn': o.orderNumber,
-          'Khách hàng': o.customerName,
-          'Tổng đơn': sum ? formatVnd(sum.orderTotal) : '',
-          'Đã thu': sum ? formatVnd(sum.paidAmount) : '',
-          'Còn lại': sum ? formatVnd(sum.remainingToPay) : '',
-          'Trạng thái': getPaymentStatus(sum),
-        }
-      })
-    )
-    showToast(`Đã xuất Excel ${orders.length} bản ghi`, 'success')
-  }
-
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <nav className="flex items-center gap-1 text-body-sm text-on-surface-variant" aria-label="Breadcrumb">
-          <Link className="hover:text-primary transition-colors" to="/">Bảng điều khiển</Link>
-          <ChevronRight size={14} />
-          <span className="text-on-surface font-medium">Thanh toán</span>
-        </nav>
-        {view === 'orders' && <button
-          className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface-container-lowest border border-outline-variant text-on-surface text-sm font-medium rounded-lg hover:bg-surface-container-low transition-colors shadow-sm"
-          type="button"
-          onClick={handleExport}
-        >
-          <Download size={16} className="text-on-surface-variant" />
-          <span>Xuất Excel trang này</span>
-        </button>}
-      </div>
 
       <BusinessReportCards kind="payments" searchResult={{ count: view === 'orders' ? totalCount : ledgerCount, unit: view === 'orders' ? 'đơn hàng' : 'phiếu thanh toán' }} />
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Xem thanh toán">

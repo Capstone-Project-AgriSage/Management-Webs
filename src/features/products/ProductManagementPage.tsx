@@ -214,7 +214,7 @@ export default function ProductManagementPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
-      <BusinessReportCards kind="valuation" searchResult={{ count: data?.totalCount ?? 0, unit: 'sản phẩm' }} leadingCards={<KpiCard icon={PackagePlus} iconClassName="bg-emerald-50 text-emerald-600" title="Đang kinh doanh trên trang" value={loading ? '…' : data?.items.filter(product => product.status === 'ACTIVE').length ?? '—'} subtitle="Trong các sản phẩm đang hiển thị" className="border-slate-200 min-h-40" />} />
+      <BusinessReportCards kind="valuation" searchResult={{ count: data?.totalCount ?? 0, unit: 'sản phẩm' }} leadingCards={<KpiCard title="Đang kinh doanh trên trang" value={loading ? '…' : data?.items.filter(product => product.status === 'ACTIVE').length ?? '—'} subtitle="Trong các sản phẩm đang hiển thị" className="border-slate-200 min-h-40" />} />
       <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: "Tìm theo tên hoặc mã SKU..." }} onClear={resetFilters} actions={<><PermissionAction codes={["PRODUCTS.CREATE"]}><button type="button" className="h-9 px-4 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 flex items-center gap-1.5" onClick={() => setForm({ product: null })}>
             <PackagePlus size={16} /> Thêm sản phẩm
           </button></PermissionAction></>}>

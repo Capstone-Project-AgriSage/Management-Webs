@@ -1,4 +1,4 @@
-import { BarChart3, Receipt } from 'lucide-react';
+
 import KpiCard from '@/components/ui/KpiCard'
 import { formatVnd } from '@/utils/money';
 
@@ -30,8 +30,8 @@ export default function ListReportCards({ title, totalCount, totalLabel = 'Kết
   return <section aria-label={title} className="space-y-3">
     <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
     <div aria-busy={loading} className="agrisage-summary-grid grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-      <KpiCard className="border-slate-200 min-h-40" icon={Receipt} iconClassName="bg-primary/10 text-primary" title={totalLabel} value={display(totalCount ?? 0)} valueSuffix={!loading && !unavailable ? <span className="ml-1 text-xs text-slate-500">{unit}</span> : undefined} subtitle={totalNote} />
-      {metrics.slice(0, 3).map(metric => <KpiCard key={metric.label} className="border-slate-200 min-h-40" icon={BarChart3} iconClassName="bg-emerald-50 text-emerald-600" title={metric.label} value={display(metric.value, metric.kind === 'money')} subtitle={metric.note ?? 'Trên trang đang hiển thị'} />)}
+      <KpiCard className="border-slate-200 min-h-40" title={totalLabel} value={display(totalCount ?? 0)} valueSuffix={!loading && !unavailable ? <span className="ml-1 text-xs text-slate-500">{unit}</span> : undefined} subtitle={totalNote} />
+      {metrics.slice(0, 3).map(metric => <KpiCard key={metric.label} className="border-slate-200 min-h-40" title={metric.label} value={display(metric.value, metric.kind === 'money')} subtitle={metric.note ?? 'Trên trang đang hiển thị'} />)}
     </div>
   </section>
 }

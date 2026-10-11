@@ -1,6 +1,5 @@
 import { useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { CheckCircle, Clock, RotateCcw, Truck } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { usePermission } from '@/context/PermissionContext'
 import { deliveriesApi, type DeliveryStatus } from '@/api/deliveriesApi'
@@ -11,10 +10,10 @@ const STATUS_GROUPS: DeliveryStatus[][] = [
   ['OUT_FOR_DELIVERY'], ['ASSIGNED'], ['RETRY_PENDING', 'PARTIALLY_DELIVERED'], ['DELIVERED'],
 ]
 const CARDS = [
-  { label: 'Cần giao', icon: Truck, tone: 'bg-primary/10 text-primary' },
-  { label: 'Chờ xuất phát', icon: Clock, tone: 'bg-slate-100 text-slate-600' },
-  { label: 'Chờ giao lại', icon: RotateCcw, tone: 'bg-amber-50 text-amber-600' },
-  { label: 'Đã giao', icon: CheckCircle, tone: 'bg-emerald-50 text-emerald-600' },
+  { label: 'Cần giao' },
+  { label: 'Chờ xuất phát' },
+  { label: 'Chờ giao lại' },
+  { label: 'Đã giao' },
 ]
 
 export default function DashboardPage() {
@@ -28,7 +27,7 @@ export default function DashboardPage() {
   const { data, loading, error, refresh } = useReportData(load, canRead ? null : 'Chưa được cấp quyền xem giao hàng.')
   return <div className="agrisage-dashboard max-w-[1440px] mx-auto flex flex-col gap-5">
     <div className="agrisage-summary-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4" aria-busy={loading}>
-      {CARDS.map((card, index) => <KpiCard key={card.label} icon={card.icon} iconClassName={card.tone} title={card.label} value={loading ? '…' : data?.[index] ?? '—'} subtitle="Tất cả chuyến được phân công" />)}
+      {CARDS.map((card, index) => <KpiCard key={card.label} title={card.label} value={loading ? '…' : data?.[index] ?? '—'} subtitle="Tất cả chuyến được phân công" />)}
     </div>
     {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
     {!canRead && <p role="status" className="text-sm text-slate-600">Chưa được cấp quyền xem giao hàng.</p>}

@@ -79,6 +79,7 @@ async function makeSession(role = 'STORE_OWNER', permissions = READ_PERMISSIONS,
       await page.locator('.agrisage-kpi-card').first().waitFor()
       await page.waitForFunction(() => document.querySelectorAll('.agrisage-kpi-card').length === 4 && [...document.querySelectorAll('[aria-busy]')].every(element => element.getAttribute('aria-busy') !== 'true') && !document.querySelector('.agrisage-kpi-card .animate-pulse'))
       assert.equal(await page.locator('.agrisage-kpi-card').count(), 4, `${path} must render exactly four summary cards`)
+      assert.equal(await page.locator('.agrisage-kpi-card svg.lucide').count(), 0, `${path} summary cards must not render decorative icons`)
       assert.deepEqual(errors, [], `${path} must not throw in the browser`)
       assert.deepEqual(unknown, [], `${path} must use supported fixture APIs`)
       assert.equal(await page.locator('select:not(.agrisage-select)').count(), 0, `${path}: all dropdowns use the shared popup`)

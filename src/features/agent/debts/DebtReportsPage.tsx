@@ -3,7 +3,7 @@ import Pagination from '@/components/ui/Pagination'
 import ListToolbar from '@/components/ui/ListToolbar'
 import FilterSelect from '@/components/ui/FilterSelect'
 import { useState, useEffect } from 'react';
-import { Banknote, CircleDollarSign, Clock, Receipt, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import KpiCard from '@/components/ui/KpiCard'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { usePageHeader } from '@/context/PageHeaderContext';
@@ -129,10 +129,10 @@ export default function DebtReportsPage() {
   return (
     <div className="max-w-[1400px] mx-auto flex flex-col gap-space-lg p-space-md">
       <div className="agrisage-summary-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4" aria-busy={loading}>
-        <KpiCard title="Tổng dư nợ" icon={CircleDollarSign} iconClassName="bg-slate-100 text-slate-600" value={moneySummary(totals?.total)} subtitle={`Tại ngày ${formatDay(asOf)}`} />
-        <KpiCard title="Nợ quá hạn" icon={Clock} iconClassName="bg-rose-50 text-rose-600" value={moneySummary(totals ? overdue : undefined)} subtitle={`Tại ngày ${formatDay(asOf)}`} />
-        <KpiCard title="Tiền thu nợ trong kỳ" icon={Banknote} iconClassName="bg-emerald-50 text-emerald-600" value={moneySummary(collections?.totals.collectedAmount)} subtitle={`${formatDay(fromDate)} – ${formatDay(toDate)}`} />
-        <KpiCard title="Lần thu nợ trong kỳ" icon={Receipt} iconClassName="bg-primary/10 text-primary" value={loading ? '…' : loadError || fromDate > toDate || !collections ? '—' : collections.totals.paymentCount.toLocaleString('vi-VN')} subtitle={`${formatDay(fromDate)} – ${formatDay(toDate)}`} />
+        <KpiCard title="Tổng dư nợ" value={moneySummary(totals?.total)} subtitle={`Tại ngày ${formatDay(asOf)}`} />
+        <KpiCard title="Nợ quá hạn" value={moneySummary(totals ? overdue : undefined)} subtitle={`Tại ngày ${formatDay(asOf)}`} />
+        <KpiCard title="Tiền thu nợ trong kỳ" value={moneySummary(collections?.totals.collectedAmount)} subtitle={`${formatDay(fromDate)} – ${formatDay(toDate)}`} />
+        <KpiCard title="Lần thu nợ trong kỳ" value={loading ? '…' : loadError || fromDate > toDate || !collections ? '—' : collections.totals.paymentCount.toLocaleString('vi-VN')} subtitle={`${formatDay(fromDate)} – ${formatDay(toDate)}`} />
       </div>
       {/* Aging */}
       <section className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">

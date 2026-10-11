@@ -103,12 +103,12 @@ export default function ProductSearchPanel({ onAddToCart }: ProductSearchPanelPr
   }
 
   return (
-    <div className="flex flex-col h-full bg-surface">
+    <div className="flex flex-col h-full">
       <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: 'Tìm theo tên hoặc mã sản phẩm...' }} onClear={() => { setSearch(''); setCategoryId(''); setPage(1) }}>
         <FilterSelect label="Lọc danh mục" disabled={catsLoading} value={categoryId} onChange={value => { setCategoryId(value); setPage(1) }} options={[{ value: '', label: 'Mọi danh mục' }, ...categories.map(category => ({ value: category.id, label: category.name }))]} />
       </ListToolbar>
 
-      <div className="flex-1 overflow-y-auto p-5 bg-surface-container-lowest min-h-0">
+      <div className="flex-1 overflow-y-auto p-5 min-h-0">
         {loading ? (
           <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
@@ -125,7 +125,7 @@ export default function ProductSearchPanel({ onAddToCart }: ProductSearchPanelPr
             {products.map(p => (
               <div
                 key={p.id}
-                className="bg-surface border border-outline-variant/50 rounded-2xl p-4 cursor-pointer hover:border-primary/60 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col group overflow-hidden relative"
+                className="agrisage-counter-product border border-outline-variant/50 rounded-2xl p-4 cursor-pointer hover:border-primary/60 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col group overflow-hidden relative"
                 onClick={() => handleSelectProduct(p)}
               >
                 <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-primary/5 to-transparent rounded-bl-full -z-10 transition-transform group-hover:scale-125"></div>

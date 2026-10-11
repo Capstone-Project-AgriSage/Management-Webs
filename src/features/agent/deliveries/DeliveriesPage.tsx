@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
-import { Link, useLocation, useSearchParams } from 'react-router-dom';
-import { ChevronRight, MapPin, UserCircle } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { MapPin, UserCircle } from 'lucide-react';
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { deliveriesApi, type DeliveryListItem, type DeliveryStatus } from '@/api/deliveriesApi';
 import { useToast } from '@/context/ToastContext';
@@ -29,7 +29,6 @@ export default function DeliveriesPage() {
   usePageHeader({ title: 'Quản lý giao hàng', subtitle: 'Theo dõi lộ trình và kết quả giao nhận' })
   const { showToast } = useToast()
   // Shared by Đại lý (/agent) and Bán hàng (/sales) — FE_GUIDE_FLOW_2 §4.
-  const homePath = useLocation().pathname.startsWith('/sales') ? '/sales' : '/agent'
 
   const [deliveries, setDeliveries] = useState<DeliveryListItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -77,11 +76,6 @@ export default function DeliveriesPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
-      <nav className="flex items-center gap-1.5 text-xs text-slate-500">
-        <Link className="hover:text-slate-900 transition-colors" to={homePath}>Bảng điều khiển</Link>
-        <ChevronRight size={14} />
-        <span className="text-slate-900 font-medium">Quản lý giao hàng</span>
-      </nav>
 
       <BusinessReportCards kind="deliveries" />
       <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: 'Tìm mã phiếu, mã đơn, tên hoặc SĐT người nhận...' }} onClear={() => { setSearch(''); setStatusFilter(ALL_STATUSES); setPage(1) }}>

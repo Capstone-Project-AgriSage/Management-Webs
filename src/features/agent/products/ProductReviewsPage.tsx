@@ -1,7 +1,7 @@
 import ListToolbar from '@/components/ui/ListToolbar'
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ChevronRight, Star } from 'lucide-react';
+
+import { Star } from 'lucide-react';
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
 
@@ -37,11 +37,6 @@ export default function ProductReviewsPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
-      <nav className="flex items-center gap-1.5 text-xs text-slate-500">
-        <Link className="hover:text-slate-900 transition-colors" to="/agent">Bảng điều khiển</Link>
-        <ChevronRight size={14} />
-        <span className="text-slate-900 font-medium">Đánh giá sản phẩm</span>
-      </nav>
 
       <p role="status" className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Dữ liệu mẫu — chưa có API backend cho đánh giá sản phẩm.</p>
       <ListReportCards title="Tổng hợp đánh giá mẫu" totalLabel="Đánh giá mẫu theo bộ lọc" totalNote="Tất cả dữ liệu mẫu khớp bộ lọc" totalCount={totalCount} unit="đánh giá mẫu" loading={false} metrics={[

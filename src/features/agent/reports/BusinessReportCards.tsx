@@ -1,6 +1,6 @@
 import { Children, Fragment, isValidElement, useCallback, useState } from 'react';
 import type { ReactNode } from 'react';
-import { BarChart3, Receipt, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { usePermission } from '@/context/PermissionContext';
 import KpiCard from '@/components/ui/KpiCard'
 import { todayVn } from '@/utils/creditLabels';
@@ -20,7 +20,7 @@ interface Props {
 }
 
 function SearchResult({ result }: { result: NonNullable<Props['searchResult']> }) {
-  return <KpiCard icon={Receipt} iconClassName="bg-primary/10 text-primary" title="Kết quả tìm kiếm" value={result.count} valueSuffix={<span className="text-xs text-slate-500">{result.unit}</span>} subtitle="Tất cả kết quả theo bộ lọc" className="border-slate-200 min-h-40" />
+  return <KpiCard title="Kết quả tìm kiếm" value={result.count} valueSuffix={<span className="text-xs text-slate-500">{result.unit}</span>} subtitle="Tất cả kết quả theo bộ lọc" className="border-slate-200 min-h-40" />
 }
 
 function flattenCards(cards: ReactNode): ReactNode[] {
@@ -36,7 +36,7 @@ export default function BusinessReportCards(props: Props) {
     return <section aria-label="Tổng hợp danh sách" className="space-y-3">
       <div className="agrisage-summary-grid grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         {cards.slice(0, 4)}
-        {Array.from({ length: Math.max(0, 4 - cards.length) }, (_, index) => <KpiCard key={labels[index] ?? index} icon={BarChart3} iconClassName="bg-slate-100 text-slate-400" title={labels[index] ?? 'Số liệu tổng hợp'} value="—" subtitle="Cần quyền xem báo cáo" className="border-slate-200 min-h-40" />)}
+        {Array.from({ length: Math.max(0, 4 - cards.length) }, (_, index) => <KpiCard key={labels[index] ?? index} title={labels[index] ?? 'Số liệu tổng hợp'} value="—" subtitle="Cần quyền xem báo cáo" className="border-slate-200 min-h-40" />)}
       </div>
     </section>
   }
@@ -78,7 +78,7 @@ function AuthorizedReportCards({ kind, fromDate, toDate, onFromDateChange, onToD
       {includeSearchCard && searchResult && <SearchResult result={searchResult} />}
       {config.labels.slice(0, reportSlots).map((label, index) => {
         const metric = data?.metrics[index]
-        return <KpiCard key={label} className="border-slate-200 min-h-40" icon={BarChart3} iconClassName="bg-emerald-50 text-emerald-600" title={label} value={metric ? valueText(metric) : loading ? <span aria-hidden="true" className="inline-block h-7 w-28 rounded bg-slate-100 animate-pulse align-middle" /> : '—'} trend={metric?.trend} subtitle={metric?.note} />
+        return <KpiCard key={label} className="border-slate-200 min-h-40" title={label} value={metric ? valueText(metric) : loading ? <span aria-hidden="true" className="inline-block h-7 w-28 rounded bg-slate-100 animate-pulse align-middle" /> : '—'} subtitle={metric?.note} />
       })}
     </div>
     {searchResult && !includeSearchCard && <p className="text-xs text-slate-500">Kết quả theo bộ lọc: <strong className="font-semibold text-slate-700">{searchResult.count.toLocaleString('vi-VN')} {searchResult.unit}</strong></p>}

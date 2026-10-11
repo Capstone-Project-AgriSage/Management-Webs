@@ -174,7 +174,7 @@ export default function CounterSalesPage() {
   ) : review ? (
     <QuickSaleReview preview={review} selling={busy === 'sell'} onBack={() => setReview(null)} onSell={sell} />
   ) : (
-    <div className="flex flex-col min-h-0 xl:h-full bg-surface-container-lowest z-10">
+    <div className="flex flex-col min-h-0 xl:h-full z-10">
       <div className="px-5 py-4 border-b border-outline-variant/40 flex items-center justify-between">
         <h2 className="font-bold text-lg flex items-center gap-2.5 text-on-surface">
           <ShoppingCart className="w-5 h-5 text-emerald-600" /> Đơn đang soạn
@@ -208,7 +208,7 @@ export default function CounterSalesPage() {
         {items.length > 0 && <OrderOptions draft={draft} total={total} errors={fieldErrors} onChange={setDraft} />}
       </div>
 
-      <div className="p-4 sm:p-5 shrink-0 border-t border-outline-variant/40 bg-surface-container-lowest space-y-3">
+      <div className="p-4 sm:p-5 shrink-0 border-t border-outline-variant/40 space-y-3">
         {previewError && <p className="text-xs text-amber-700">{previewError}</p>}
         {submitError && (
           <p className="text-sm font-medium text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2" role="alert">

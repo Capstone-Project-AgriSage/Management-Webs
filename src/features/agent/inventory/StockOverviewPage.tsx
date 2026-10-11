@@ -4,7 +4,7 @@ import ListToolbar from '@/components/ui/ListToolbar'
 import PermissionAction from '@/components/auth/PermissionAction'
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, CalendarClock, Eye, ChevronsRight, History, PackageX, Wallet } from 'lucide-react';
+import { CalendarClock, Eye, ChevronsRight, History } from 'lucide-react';
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
 import { usePermission } from '@/context/PermissionContext';
@@ -263,19 +263,13 @@ export default function StockOverviewPage() {
       {/* KPIs */}
       <section aria-label="Tổng hợp tồn kho" className="agrisage-summary-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <KpiCard
-          icon={Wallet}
-          iconClassName="bg-emerald-50 text-emerald-600"
           title="Giá trị tồn kho"
-          layout="side"
           value={kpis.stockValue === null ? '—' : formatVnd(kpis.stockValue)}
           subtitle={canReadReports ? 'Theo giá vốn bình quân' : 'Cần quyền xem báo cáo'}
         />
         <button type="button" className="text-left" onClick={() => goToAlerts('EXPIRING')}>
           <KpiCard
-            icon={CalendarClock}
-            iconClassName="bg-amber-50 text-amber-600"
             title={`Sắp hết hạn (${EXPIRING_DAYS_DEFAULT} ngày)`}
-            layout="side"
             value={kpis.expiring ?? '—'}
             valueSuffix={<span className="text-sm text-slate-500">lô</span>}
             subtitle="Bấm để xem danh sách"
@@ -284,10 +278,7 @@ export default function StockOverviewPage() {
         </button>
         <button type="button" className="text-left" onClick={() => goToAlerts('EXPIRED')}>
           <KpiCard
-            icon={PackageX}
-            iconClassName="bg-rose-50 text-rose-600"
             title="Hết hạn còn tồn"
-            layout="side"
             value={kpis.expired ?? '—'}
             valueClassName={kpis.expired ? 'text-rose-600' : 'text-slate-900'}
             valueSuffix={<span className="text-sm text-slate-500">lô</span>}
@@ -297,10 +288,7 @@ export default function StockOverviewPage() {
         </button>
         <button type="button" className="text-left" onClick={() => goToAlerts('LOW_STOCK')}>
           <KpiCard
-            icon={AlertTriangle}
-            iconClassName="bg-orange-50 text-orange-600"
             title="Sắp hết hàng"
-            layout="side"
             value={kpis.lowStock ?? '—'}
             valueSuffix={<span className="text-sm text-slate-500">sản phẩm</span>}
             subtitle="Dưới mức tồn tối thiểu"

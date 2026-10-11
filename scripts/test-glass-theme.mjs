@@ -70,27 +70,23 @@ try {
   await page.goto(base + '/agent')
   await settled(page)
   assert.equal(await page.locator('.agrisage-kpi-card').count(), 4)
-  assert.equal(await page.locator('.agrisage-kpi-trend').count(), 3)
-  const line = await page.locator('.agrisage-kpi-trend polyline').first().getAttribute('points')
-  assert.equal(line, net.map((value, index) => `${4 + index * 58},${40 - value * 32 / 700000}`).join(' '), 'Trend must use API observations including the zero day')
-  assert.equal(state.requests.filter(request => request.path.startsWith('/api/reports/')).length, 3, 'Trends reuse existing report requests')
-  assert.match(await page.locator('body').evaluate(element => getComputedStyle(element).backgroundImage), /farmland-dawn-v1\.jpg/)
-  const asset = await page.request.get(base + '/images/farmland-dawn-v1.jpg')
-  assert.equal(asset.ok(), true)
-  assert.ok((await asset.body()).length < 150000, 'Background stays below 150 KB')
+  assert.equal(await page.locator('.agrisage-kpi-card svg').count(), 0, 'Summary cards contain no icons or trend lines')
+  assert.equal(state.requests.filter(request => request.path.startsWith('/api/reports/')).length, 3, 'Summary report requests stay unchanged')
+  const background = await page.locator('body').evaluate(element => getComputedStyle(element).backgroundImage)
+  assert.match(background, /linear-gradient/)
+  assert.doesNotMatch(background, /url\(/, 'Plain background does not load a landscape image')
   await picture(page, 'dashboard-desktop')
-  pass('Dashboard: four glass cards, exact API trends, three existing report calls, compressed background')
+  pass('Dashboard: four glass cards without icons or trends, three existing report calls, plain gradient background')
 
-  for (const [mode, expected] of [['partial', 2], ['empty', 0], ['flat', 3], ['negative', 3]]) {
+  for (const mode of ['partial', 'empty', 'flat', 'negative']) {
     state.mode = mode
     await page.reload()
     await settled(page)
-    assert.equal(await page.locator('.agrisage-kpi-trend').count(), expected)
-    assert.equal(await page.locator('.agrisage-kpi-trend').evaluateAll(elements => elements.some(element => /NaN|Infinity/.test(element.innerHTML))), false)
-    if (mode === 'flat') assert.equal(await page.locator('.agrisage-kpi-trend polyline').first().getAttribute('points'), '4,24 62,24 120,24 178,24 236,24')
+    assert.equal(await page.locator('.agrisage-kpi-card').count(), 4)
+    assert.equal(await page.locator('.agrisage-kpi-card svg').count(), 0)
   }
   state.mode = 'normal'
-  pass('Trends: suppress empty/partial series; finite lines for flat and negative observations')
+  pass('Summary cards remain text-only with partial, empty, flat and negative report data')
 
   await page.goto(base + '/agent/orders')
   await settled(page)
@@ -145,6 +141,7 @@ try {
     const mobile = await session(width)
     await mobile.page.goto(base + '/agent/orders')
     await settled(mobile.page)
+    assert.equal(await mobile.page.locator('body').evaluate(element => getComputedStyle(element).backgroundImage), background, 'Same plain background on every screen size')
     assert.equal(await mobile.page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${width}px: no page overflow`)
     await mobile.page.getByRole('button', { name: 'Xóa lọc', exact: true }).click()
     if (width < 1024) {

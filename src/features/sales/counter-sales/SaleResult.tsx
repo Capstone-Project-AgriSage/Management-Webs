@@ -15,7 +15,7 @@ export default function SaleResult({ result, onOpenOrder, onNew }: SaleResultPro
   const { order } = result
   const sale = result.kind === 'SALE'
   return (
-    <div className="flex flex-col h-full bg-surface z-10" role="status" aria-live="polite" aria-label="Kết quả bán hàng">
+    <div className="flex flex-col h-full z-10" role="status" aria-live="polite" aria-label="Kết quả bán hàng">
       <div className="flex-1 overflow-y-auto p-6">
         <div className="flex flex-col items-center text-center gap-2 mb-6">
           <CheckCircle2 size={44} className="text-emerald-600" />

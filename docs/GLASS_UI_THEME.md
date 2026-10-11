@@ -4,29 +4,21 @@
 
 ## Bố cục và dữ liệu
 
-- Nền ruộng lúa xanh, ánh sáng kem, các khối kính mờ và nút xanh. Bảng có từng hàng bo góc, trạng thái có màu và biểu tượng; chữ trạng thái vẫn được giữ nguyên.
+- Nền trơn chuyển nhẹ từ xanh nhạt sang vàng kem, các khối kính mờ và nút xanh. Bảng có từng hàng bo góc, trạng thái có màu và biểu tượng; chữ trạng thái vẫn được giữ nguyên.
 - Bốn ô thống kê trên desktop; bố cục 2 × 2 trên điện thoại. Giá trị dài được xuống dòng trong ô; bảng rộng cuộn bên trong thay vì làm tràn toàn trang.
-- Đường xu hướng là SVG nhẹ, lấy các dòng báo cáo đã trả về từ API hiện có. Không thêm thư viện biểu đồ, không thêm lượt gọi API cho xu hướng.
-- Dòng báo cáo được hiển thị theo thứ tự API. Các báo cáo ngày về bán hàng, đơn hàng, nhập hàng, thanh toán, trả hàng và hoàn tiền trả về thứ tự ngày tăng dần. Một số báo cáo chỉ chứa ngày có phát sinh; các đường nhỏ mô tả chuỗi quan sát đó, không thay thế biểu đồ có trục ngày.
-- Khi ít hơn hai điểm hoặc có giá trị không hữu hạn, không vẽ đường. Giá trị tổng hợp vẫn lấy từ `totals`. Không vẽ xu hướng giá trị đơn trung bình nếu API doanh thu mới trả một phần các ngày trong kỳ.
-- Không thêm xu hướng cho chỉ số API chỉ cung cấp tổng. Số liệu không có quyền xem hoặc tải lỗi vẫn hiện trạng thái tương ứng.
+- Ô báo cáo dùng chung bố cục và khoảng cách: nhãn, số liệu và ghi chú có vị trí thống nhất, nội dung cân đối theo chiều dọc. Bỏ breadcrumb “Bảng điều khiển > …” và các nút xuất Excel/CSV chưa dùng.
+- Các ô thống kê không hiển thị icon trang trí hoặc đường xu hướng; giữ tiêu đề, giá trị và ghi chú. Giá trị tổng hợp vẫn lấy từ `totals`. Số liệu không có quyền xem hoặc tải lỗi vẫn hiện trạng thái tương ứng.
+- Bán tại quầy dùng nền pane chung, không chồng thêm nền riêng cho danh sách sản phẩm và đơn đang soạn. Thẻ sản phẩm dùng cùng màu nền với các hàng bảng; tab khách hàng được chọn dùng màu xanh chung.
 - Giữ nguyên hợp đồng API, phân quyền, tìm kiếm, bộ lọc, phân trang và cache hoàn tiền đã có. Không thay đổi backend hoặc database/migration.
 
 ## Hiệu ứng và khả năng đọc
 
-Chỉ các pane chính dùng `backdrop-filter`; từng ô bảng dùng màu nền trong suốt, không làm mờ riêng mỗi ô. Mobile tăng độ phủ sáng của ảnh nền để ghi chú ngoài thẻ vẫn đọc được. Hộp thoại có nền gần đặc để biểu mẫu rõ ràng; viền lỗi `aria-invalid` được giữ lại. Hệ thống tôn trọng `prefers-reduced-motion` và `prefers-reduced-transparency`.
+Chỉ các pane chính dùng `backdrop-filter`; từng ô bảng dùng màu nền trong suốt, không làm mờ riêng mỗi ô. Nền trơn dùng chung trên desktop và mobile. Hộp thoại có nền gần đặc để biểu mẫu rõ ràng; viền lỗi `aria-invalid` được giữ lại. Hệ thống tôn trọng `prefers-reduced-motion` và `prefers-reduced-transparency`.
 
-## Ảnh nền và prompt cuối
+## Nền trơn
 
-- Công cụ: **Imagegen tích hợp** (`image_gen.imagegen`), tạo ảnh mới; không dùng CLI fallback.
-- Tệp dùng trong web: `public/images/farmland-dawn-v1.jpg`, 1672 × 940, **116.644 byte**, JPEG chất lượng 78. Chỉ chuyển định dạng/nén từ bản PNG gốc, không sửa nội dung ảnh sau khi sinh.
-- PNG gốc: `C:/Users/thinh/.codex/generated_images/01a12973-38e4-7843-a431-b6fd8f384c5e/exec-dcb09760-e084-4694-8f7d-8e1171d3de8b.png`.
-
-Prompt đã gửi nguyên văn:
-
-```text
-Use case: photorealistic-natural. Asset type: wide background photograph for an agricultural management web application, not a UI mockup. Create a cinematic 16:9 landscape of lush green Vietnamese rice fields with neat cultivated rows at warm early morning golden light. A softly out-of-focus tall wind turbine stands at the far right edge and faint smaller turbines in the distant horizon. Composition leaves the left half and upper center very calm, pale mint-green atmospheric haze, with warm cream sunlight on the upper right and green fields visible mainly lower right. Low contrast, soft focus and natural shallow depth of field suitable behind translucent glass interface cards, refined quiet photographic look. No text, no interface, no cards, no logos, no people, no watermark. Landscape format.
-```
+- Nền CSS `linear-gradient(115deg, #cce1cf 0%, #e5e4ce 48%, #fae9cb 100%)` giữ tông xanh nhạt – vàng kem của ảnh tham chiếu và bỏ chi tiết phong cảnh theo yêu cầu.
+- Không tải ảnh nền; gradient dùng chung cho tất cả trang quản lý và xác thực ở mọi kích thước màn hình.
 
 ## Kiểm tra và ảnh xem trước
 
@@ -50,7 +42,7 @@ Use case: photorealistic-natural. Asset type: wide background photograph for an 
 Kiểm tra trình duyệt sử dụng API giả lập, không gọi backend cửa hàng thật. Ảnh chụp dùng dữ liệu kiểm thử, không phải số liệu kinh doanh.
 
 - `test-summary-consistency.mjs`: 35 trang/đường dẫn và kiểm tra phạm vi số liệu, phân quyền, API lỗi; bốn ô trên các trang.
-- `test-glass-theme.mjs`: 9 nhóm gồm số điểm SVG chính xác, dữ liệu trống/âm/phẳng, không vẽ chuỗi bị phân trang, số request không tăng, ảnh dưới 150 KB, màu trạng thái, tìm kiếm/bộ lọc/phân trang, hộp thoại, viền lỗi, giảm hiệu ứng, desktop/tablet/phone 1440/1024/768/390 px, menu điện thoại và ba trang xác thực.
+- `test-glass-theme.mjs`: các kiểm tra hiện tại xác nhận ô thống kê chỉ có chữ, dữ liệu trống/âm/phẳng, số request không tăng, nền trơn đồng bộ không tải ảnh, màu trạng thái, tìm kiếm/bộ lọc/phân trang, hộp thoại, viền lỗi, giảm hiệu ứng, desktop/tablet/phone 1440/1024/768/390 px, menu điện thoại và ba trang xác thực. Chưa chạy lại sau khi bỏ đường xu hướng và đồng bộ nền bán tại quầy, theo yêu cầu không test. Ảnh ở `artifacts/plain-background/` là ảnh của lần thay nền trước đó.
 - `test-pagination-filters.mjs`: 32 kiểm tra; `test-staff-payments.mjs`: 9 nhóm; `test-auth-integration.mjs`: 7 kiểm tra.
 - `test-refunds-performance.mjs`: 9 nhóm, gồm cache, chuyển trang nhanh, hủy request cũ và không đọc lại trang đã cache.
 - `test-reports.mjs`: 13 kiểm tra tích hợp báo cáo và phân quyền.

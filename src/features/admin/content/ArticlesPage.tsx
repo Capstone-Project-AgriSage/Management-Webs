@@ -1,7 +1,7 @@
 import ListToolbar from '@/components/ui/ListToolbar'
 import FilterSelect from '@/components/ui/FilterSelect'
 import KpiCard from '@/components/ui/KpiCard'
-import { BookOpen, CheckCircle2, Clock, Eye } from 'lucide-react'
+
 import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import { useState } from 'react';
 
@@ -107,10 +107,10 @@ export default function ArticlesPage() {
 
       <p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Dữ liệu mẫu — chưa có API backend quản lý bài viết.</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
-        <KpiCard icon={BookOpen} iconClassName="bg-blue-50 text-blue-600" title="Tổng bài viết" value={articleList.length} layout="header" />
-        <KpiCard icon={CheckCircle2} iconClassName="bg-emerald-50 text-emerald-600" title="Đã xuất bản" value={articleList.filter(a => a.status === 'Đã xuất bản').length} layout="header" />
-        <KpiCard icon={Clock} iconClassName="bg-amber-50 text-amber-600" title="Chờ duyệt" value={articleList.filter(a => a.status === 'Chờ duyệt').length} layout="header" />
-        <KpiCard icon={Eye} iconClassName="bg-purple-50 text-purple-600" title="Tổng lượt xem" value={articleList.reduce((acc, curr) => acc + curr.views, 0)} layout="header" />
+        <KpiCard title="Tổng bài viết" value={articleList.length} />
+        <KpiCard title="Đã xuất bản" value={articleList.filter(a => a.status === 'Đã xuất bản').length} />
+        <KpiCard title="Chờ duyệt" value={articleList.filter(a => a.status === 'Chờ duyệt').length} />
+        <KpiCard title="Tổng lượt xem" value={articleList.reduce((acc, curr) => acc + curr.views, 0)} />
       </div>
 
       <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: "Tìm kiếm tiêu đề hoặc tác giả..." }} onClear={() => { setSearch(''); setStatusFilter(''); setPage(1) }} actions={<><button

@@ -7,7 +7,7 @@ import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 import { usePermission } from '@/context/PermissionContext';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Banknote, CircleDollarSign, Clock, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import KpiCard from '@/components/ui/KpiCard'
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
@@ -152,10 +152,10 @@ export default function DebtsPage() {
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
       {canReadDashboard ? (
         <div className="agrisage-summary-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          <KpiCard icon={CircleDollarSign} iconClassName="bg-slate-100 text-slate-600" title="Tổng dư nợ" value={dashboard ? formatVnd(dashboard.totalOutstandingDebt) : '—'} subtitle={dashboard ? `${dashboard.customersWithDebt} khách đang nợ` : 'Chưa có số liệu tổng hợp'} />
-          <KpiCard icon={Clock} iconClassName="bg-rose-50 text-rose-600" title="Nợ quá hạn" value={dashboard ? formatVnd(dashboard.totalOverdueDebt) : '—'} subtitle={dashboard ? `${dashboard.customersWithOverdueDebt} khách quá hạn` : 'Chưa có số liệu tổng hợp'} valueClassName={dashboard && dashboard.totalOverdueDebt > 0 ? 'text-rose-600' : undefined} />
-          <KpiCard icon={Banknote} iconClassName="bg-emerald-50 text-emerald-600" title="Thu nợ hôm nay" value={dashboard ? formatVnd(dashboard.collectedToday) : '—'} subtitle="Khoản thu đã xác nhận hôm nay" />
-          <KpiCard icon={Banknote} iconClassName="bg-emerald-50 text-emerald-600" title="Thu nợ tháng này" value={dashboard ? formatVnd(dashboard.collectedThisMonth) : '—'} subtitle="Khoản thu đã xác nhận trong tháng" />
+          <KpiCard title="Tổng dư nợ" value={dashboard ? formatVnd(dashboard.totalOutstandingDebt) : '—'} subtitle={dashboard ? `${dashboard.customersWithDebt} khách đang nợ` : 'Chưa có số liệu tổng hợp'} />
+          <KpiCard title="Nợ quá hạn" value={dashboard ? formatVnd(dashboard.totalOverdueDebt) : '—'} subtitle={dashboard ? `${dashboard.customersWithOverdueDebt} khách quá hạn` : 'Chưa có số liệu tổng hợp'} valueClassName={dashboard && dashboard.totalOverdueDebt > 0 ? 'text-rose-600' : undefined} />
+          <KpiCard title="Thu nợ hôm nay" value={dashboard ? formatVnd(dashboard.collectedToday) : '—'} subtitle="Khoản thu đã xác nhận hôm nay" />
+          <KpiCard title="Thu nợ tháng này" value={dashboard ? formatVnd(dashboard.collectedThisMonth) : '—'} subtitle="Khoản thu đã xác nhận trong tháng" />
         </div>
       ) : <BusinessReportCards kind="debt" />}
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col">

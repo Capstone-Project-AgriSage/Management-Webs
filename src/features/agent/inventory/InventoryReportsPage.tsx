@@ -2,7 +2,7 @@ import { usePagination } from '@/hooks/usePagination'
 import Pagination from '@/components/ui/Pagination'
 import ListToolbar from '@/components/ui/ListToolbar'
 import { useEffect, useRef, useState } from 'react';
-import { BarChart3, Download } from 'lucide-react';
+
 import KpiCard from '@/components/ui/KpiCard'
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
@@ -12,7 +12,7 @@ import type { CatalogCategory } from '@/api/types'
 import { inventoryReportsApi, type InventoryMovementAmount, type InventoryMovementReport, type InventoryValuationReport } from '@/api/inventoryReportsApi';
 import FilterSelect from '@/components/ui/FilterSelect'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
-import { downloadCsv } from '@/utils/csv';
+
 import { formatVnd } from '@/utils/money';
 import { formatQty, monthStartInput, rangeDays, todayInput, unitLabel } from '@/utils/units';
 
@@ -87,45 +87,6 @@ export default function InventoryReportsPage() {
       })
   }, [tab, from, to, categoryId, rangeProblem, showToast])
 
-  const exportMovement = () => {
-    if (!movement || movement.rows.length === 0) return showToast('Không có dòng nào để xuất', 'info')
-    const cell = (a: InventoryMovementAmount) => `${a.quantity} | ${Math.round(a.value)}`
-    downloadCsv(
-      `xuat-nhap-ton-${movement.fromDate}-${movement.toDate}.csv`,
-      movement.rows.map((r) => ({
-        'Mã SP': r.sku,
-        'Tên sản phẩm': r.productName,
-        'Đơn vị': unitLabel(r.baseUnit),
-        'Tồn đầu (SL)': r.openingQuantity,
-        'Tồn đầu (GT)': Math.round(r.openingValue),
-        'Nhập kho (SL | GT)': cell(r.stockIn),
-        'Khách trả (SL | GT)': cell(r.returnIn),
-        'Điều chỉnh tăng (SL | GT)': cell(r.adjustmentIn),
-        'Bán (SL | GT)': cell(r.sale),
-        'Điều chỉnh giảm (SL | GT)': cell(r.adjustmentOut),
-        'Đảo phiếu (SL | GT)': cell(r.reversal),
-        'Tồn cuối (SL)': r.closingQuantity,
-        'Tồn cuối (GT)': Math.round(r.closingValue),
-      })),
-    )
-  }
-
-  const exportValuation = () => {
-    if (!valuation || valuation.rows.length === 0) return showToast('Không có dòng nào để xuất', 'info')
-    downloadCsv(
-      `dinh-gia-kho-${todayInput()}.csv`,
-      valuation.rows.map((r) => ({
-        'Mã SP': r.sku,
-        'Tên sản phẩm': r.productName,
-        'Danh mục': r.category ?? '',
-        'Tồn (đơn vị cơ sở)': r.onHandBaseQuantity,
-        'Giá vốn bình quân': r.averageUnitCost === null ? '' : Math.round(r.averageUnitCost),
-        'Giá trị tồn': Math.round(r.stockValue),
-        'Giá trị hàng hết hạn': Math.round(r.expiredValue),
-      })),
-    )
-  }
-
   const movementPages = usePagination(movement?.rows ?? [], 10, [from, to, categoryId].join('|'))
   const valuationPages = usePagination(valuation?.rows ?? [], 10, [categoryId].join('|'))
   const summaryMetrics = tab === 'movement' ? [
@@ -162,13 +123,7 @@ export default function InventoryReportsPage() {
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          onClick={tab === 'movement' ? exportMovement : exportValuation}
-          className="inline-flex items-center gap-2 h-10 px-3 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-medium shadow-sm"
-        >
-          <Download size={16} /> Xuất CSV
-        </button>
+
       </div>
 
       <ListToolbar  onClear={() => { setCategoryId(''); setFrom(monthStartInput()); setTo(todayInput()) }}>
@@ -200,7 +155,7 @@ export default function InventoryReportsPage() {
       </ListToolbar>
 
       <div className="agrisage-summary-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4" aria-busy={loading}>
-        {summaryMetrics.map(metric => <KpiCard key={metric.title} title={metric.title} icon={BarChart3} iconClassName="bg-emerald-50 text-emerald-600" value={loading ? '…' : loadError || rangeProblem || metric.value == null ? '—' : metric.money ? formatVnd(metric.value) : metric.value.toLocaleString('vi-VN')} subtitle={tab === 'movement' ? 'Theo kỳ và danh mục đã chọn' : 'Toàn bộ kết quả theo danh mục đã chọn'} />)}
+        {summaryMetrics.map(metric => <KpiCard key={metric.title} title={metric.title} value={loading ? '…' : loadError || rangeProblem || metric.value == null ? '—' : metric.money ? formatVnd(metric.value) : metric.value.toLocaleString('vi-VN')} subtitle={tab === 'movement' ? 'Theo kỳ và danh mục đã chọn' : 'Toàn bộ kết quả theo danh mục đã chọn'} />)}
       </div>
 
       {rangeProblem ? (

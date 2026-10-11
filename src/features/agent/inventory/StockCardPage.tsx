@@ -3,7 +3,7 @@ import Pagination from '@/components/ui/Pagination'
 import ListToolbar from '@/components/ui/ListToolbar'
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowDownToLine, ArrowUpFromLine, Download, Layers, Scale } from 'lucide-react';
+import { Layers } from 'lucide-react';
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
 import { describeError } from '@/api/client';
@@ -11,7 +11,7 @@ import { stockApi, type StockCard, type StockLot } from '@/api/stockApi';
 import KpiCard from '@/components/ui/KpiCard'
 import FilterSelect from '@/components/ui/FilterSelect'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
-import { downloadCsv } from '@/utils/csv';
+
 import { formatVnd } from '@/utils/money';
 import { formatDateTime, formatQty, formatQtyUnit, monthStartInput, rangeDays, todayInput, unitLabel } from '@/utils/units';
 import ProductPicker, { type PickedProduct } from './ProductPicker';
@@ -97,39 +97,11 @@ export default function StockCardPage() {
 
   const unit = card?.baseUnit ?? product?.baseUnit
 
-  const exportCsv = () => {
-    if (!card || card.lines.length === 0) {
-      showToast('Không có dòng nào để xuất', 'info')
-      return
-    }
-    downloadCsv(
-      `the-kho-${card.sku}-${from}-${to}.csv`,
-      card.lines.map((l) => ({
-        'Thời điểm': formatDateTime(l.postedAt),
-        'Phiếu kho': l.movementNumber,
-        Loại: MOVEMENT_TYPE_LABEL[l.movementType] ?? l.movementType,
-        'Chứng từ gốc': l.reference ? `${REFERENCE_TYPE_LABEL[l.reference.type] ?? l.reference.type} ${l.reference.number ?? ''}`.trim() : 'Điều chỉnh tay',
-        Lô: l.lotNumber ?? '',
-        Nhập: l.inBaseQuantity,
-        Xuất: l.outBaseQuantity,
-        Tồn: l.balanceBaseQuantity,
-        'Giá vốn': l.unitCost,
-      })),
-    )
-  }
-
   const linePages = usePagination(card?.lines ?? [], 10, [productId, lotId, from, to].join('|'))
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
-      <ListToolbar  onClear={() => { pick(null); setFrom(monthStartInput()); setTo(todayInput()) }} actions={<><button
-          type="button"
-          onClick={exportCsv}
-          disabled={!card || card.lines.length === 0}
-          className="inline-flex items-center gap-2 h-10 px-3 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-medium shadow-sm disabled:opacity-50"
-        >
-          <Download size={16} /> Xuất CSV
-        </button></>}>
+      <ListToolbar onClear={() => { pick(null); setFrom(monthStartInput()); setTo(todayInput()) }}>
 <div className="flex-1 min-w-[260px]">
           <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Sản phẩm</label>
           <ProductPicker value={product} onChange={pick} pendingLabel={productId && !product ? 'Đang tải sản phẩm...' : null} />
@@ -181,10 +153,10 @@ export default function StockCardPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            <KpiCard icon={Scale} iconClassName="bg-slate-100 text-slate-600" title="Tồn đầu kỳ" layout="side" value={card ? formatQty(card.openingBaseQuantity) : '...'} valueSuffix={<span className="text-sm text-slate-500">{unitLabel(unit)}</span>} />
-            <KpiCard icon={ArrowDownToLine} iconClassName="bg-emerald-50 text-emerald-600" title="Tổng nhập" layout="side" value={card ? formatQty(totals.inQty) : '...'} valueClassName="text-emerald-700" valueSuffix={<span className="text-sm text-slate-500">{unitLabel(unit)}</span>} />
-            <KpiCard icon={ArrowUpFromLine} iconClassName="bg-amber-50 text-amber-600" title="Tổng xuất" layout="side" value={card ? formatQty(totals.outQty) : '...'} valueClassName="text-amber-700" valueSuffix={<span className="text-sm text-slate-500">{unitLabel(unit)}</span>} />
-            <KpiCard icon={Scale} iconClassName="bg-sky-50 text-sky-600" title="Tồn cuối kỳ" layout="side" value={card ? formatQty(card.closingBaseQuantity) : '...'} valueSuffix={<span className="text-sm text-slate-500">{unitLabel(unit)}</span>} subtitle={card ? `${card.lines.length} dòng phát sinh` : undefined} />
+            <KpiCard title="Tồn đầu kỳ" value={card ? formatQty(card.openingBaseQuantity) : '...'} valueSuffix={<span className="text-sm text-slate-500">{unitLabel(unit)}</span>} />
+            <KpiCard title="Tổng nhập" value={card ? formatQty(totals.inQty) : '...'} valueClassName="text-emerald-700" valueSuffix={<span className="text-sm text-slate-500">{unitLabel(unit)}</span>} />
+            <KpiCard title="Tổng xuất" value={card ? formatQty(totals.outQty) : '...'} valueClassName="text-amber-700" valueSuffix={<span className="text-sm text-slate-500">{unitLabel(unit)}</span>} />
+            <KpiCard title="Tồn cuối kỳ" value={card ? formatQty(card.closingBaseQuantity) : '...'} valueSuffix={<span className="text-sm text-slate-500">{unitLabel(unit)}</span>} subtitle={card ? `${card.lines.length} dòng phát sinh` : undefined} />
           </div>
 
           <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden">

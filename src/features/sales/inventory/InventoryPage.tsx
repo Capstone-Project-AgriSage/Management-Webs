@@ -1,8 +1,8 @@
 import ListToolbar from '@/components/ui/ListToolbar'
 import { useState, useEffect, useMemo } from 'react';
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
-import { Link } from 'react-router-dom';
-import { ChevronRight, PackageSearch, PackageOpen, AlertTriangle } from 'lucide-react';
+
+import { PackageOpen, AlertTriangle } from 'lucide-react';
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
 import Pagination from '@/components/ui/Pagination'
@@ -87,13 +87,6 @@ export default function InventoryPage() {
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
       <BusinessReportCards kind="inventory" />
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <nav className="flex items-center gap-1 text-body-sm text-on-surface-variant" aria-label="Breadcrumb">
-          <Link className="hover:text-primary transition-colors" to="/">Bảng điều khiển</Link>
-          <ChevronRight size={14} />
-          <span className="text-on-surface font-medium">Tồn kho</span>
-        </nav>
-      </div>
 
       <ListToolbar search={{ value: search, onChange: (val) => { setSearch(val); setPage(1) }, placeholder: "Tìm theo mã lô..." }} onClear={() => { setSearch(''); setPage(1) }}>
 

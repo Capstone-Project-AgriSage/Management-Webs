@@ -6,8 +6,8 @@ import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronRight, Download, Plus, Receipt, Clock, PackageCheck, CheckCircle, Phone, StickyNote, Pencil, ArrowRight } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Plus, Receipt, Clock, PackageCheck, CheckCircle, Phone, StickyNote, Pencil, ArrowRight } from 'lucide-react';
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
 import RowActionsMenu from '@/components/ui/RowActionsMenu'
@@ -18,7 +18,7 @@ import Pagination from '@/components/ui/Pagination'
 
 import StatusBadge from '@/components/ui/StatusBadge'
 import { formatVnd } from '@/utils/money';
-import { downloadCsv } from '@/utils/csv';
+
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 import { ordersApi } from '@/api/ordersApi';
 import { paymentsApi } from '@/api/paymentsApi';
@@ -200,21 +200,6 @@ export default function OrdersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openId])
 
-  const handleExportOrders = () => {
-    downloadCsv(
-      `don-hang-${Date.now()}.csv`,
-      orders?.map((o) => ({
-        'Mã đơn': o.orderNumber,
-        'Khách hàng': o.customerName,
-        'SĐT': o.customerPhone || '',
-        'Tổng tiền': formatVnd(o.totalAmount),
-        'Trạng thái': STATUS_MAP[o.status],
-        'Nguồn': o.source,
-      }))
-    )
-    showToast(`Đã xuất Excel ${orders?.length || 0} đơn hàng`, 'success')
-  }
-
   const buildActions = (order: OrderResponse): RowAction[] => {
     const actions: RowAction[] = [{ label: 'Xem chi tiết', icon: 'visibility', onClick: () => handleOpenDetail(order) }]
     return actions
@@ -394,24 +379,6 @@ export default function OrdersPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <nav className="flex items-center gap-1 text-body-sm text-on-surface-variant" aria-label="Breadcrumb">
-          <Link className="hover:text-primary transition-colors" to="/">Bảng điều khiển</Link>
-          <ChevronRight size={14} />
-          <span className="text-on-surface font-medium">Đơn hàng</span>
-        </nav>
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface-container-lowest border border-outline-variant text-on-surface text-sm font-medium rounded-lg hover:bg-surface-container-low transition-colors shadow-sm"
-            type="button"
-            onClick={handleExportOrders}
-          >
-            <Download size={16} className="text-on-surface-variant" />
-            <span>Xuất Excel trang này</span>
-          </button>
-
-        </div>
-      </div>
 
       <BusinessReportCards kind="orders" fromDate={fromDate} toDate={toDate} onFromDateChange={value => { setFromDate(value); setPage(1) }} onToDateChange={value => { setToDate(value); setPage(1) }} searchResult={{ count: totalCount, unit: 'đơn hàng' }} />
 

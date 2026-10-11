@@ -1,7 +1,7 @@
 import ListToolbar from '@/components/ui/ListToolbar'
 import FilterSelect from '@/components/ui/FilterSelect'
 import { LIST_PAGE_SIZE } from '@/utils/pagination';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { auditLogsApi, type AuditLogListParams, type AuditLogResponse } from '@/api/auditLogsApi';
 import { ApiError, describeError } from '@/api/client';
 import type { PagedResult } from '@/api/types';
@@ -9,9 +9,9 @@ import ModalLayout from '@/components/ui/ModalLayout'
 import DetailModal from '@/components/ui/DetailModal'
 import ServerPagination from '@/components/ui/ServerPagination'
 import { usePageHeader } from '@/context/PageHeaderContext';
-import { useToast } from '@/context/ToastContext';
+
 import { useAuth } from '@/context/AuthContext';
-import { downloadCsv } from '@/utils/csv';
+
 import ListReportCards from '@/features/agent/reports/ListReportCards'
 import { actionLabel, actionLabels, actorLabel, browserLabel, changeRows, entityLabels, eventStatus, resourceLabel, roleLabels, valueLabel } from './auditLogPresentation';
 
@@ -62,25 +62,18 @@ function auditError(error: unknown): string {
   return describeError(error, 'Không thể tải nhật ký. Vui lòng thử lại.')
 }
 
-function csvCell(value: unknown): string {
-  const text = value == null ? '' : String(value)
-  // Audit metadata can contain user input; keep it as text when opened in Excel.
-  return /^\s*[=+\-@]/.test(text) || /^[\t\r\n]/.test(text) ? "'" + text : text
-}
-
 export default function AuditLogsPage() {
   const { currentRole } = useAuth()
   const ownerView = currentRole === 'agent'
   usePageHeader({ title: ownerView ? 'Nhật ký đại lý' : 'Nhật ký hệ thống (Audit Logs)', subtitle: 'Theo dõi lịch sử thao tác và thay đổi dữ liệu' })
-  const { showToast } = useToast()
+
   const [draft, setDraft] = useState<Filters>(defaults)
   const [applied, setApplied] = useState(() => ({ filters: defaults, params: queryFor(defaults) }))
   const [page, setPage] = useState(1)
   const [result, setResult] = useState<PagedResult<AuditLogResponse> | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
-  const [exporting, setExporting] = useState(false)
-  const exportController = useRef<AbortController | null>(null)
+
   const [detailId, setDetailId] = useState<string | null>(null)
   const [detail, setDetail] = useState<AuditLogResponse | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
@@ -118,8 +111,6 @@ export default function AuditLogsPage() {
       .finally(() => { if (!controller.signal.aborted) setDetailLoading(false) })
     return () => controller.abort()
   }, [detailId, detailAttempt])
-
-  useEffect(() => () => exportController.current?.abort(), [])
 
   const prepareListLoad = () => {
     setLoading(true)
@@ -159,57 +150,6 @@ export default function AuditLogsPage() {
     setDetailAttempt(attempt => attempt + 1)
   }
 
-  const exportCsv = async () => {
-    if (exportController.current || !result?.totalCount || loading || loadError) return
-    const controller = new AbortController()
-    exportController.current = controller
-    setExporting(true)
-    try {
-      const logs: AuditLogResponse[] = []
-      let exportPage = 1
-      let totalPages = 1
-      do {
-        const data = await auditLogsApi.list({ ...applied.params, page: exportPage, pageSize: 100 }, controller.signal)
-        if (controller.signal.aborted) return
-        logs.push(...data.items)
-        totalPages = data.totalPages
-        exportPage++
-      } while (exportPage <= totalPages)
-      if (logs.length === 0) {
-        showToast('Không có dữ liệu để xuất.', 'info')
-        return
-      }
-      downloadCsv('audit_logs_' + new Date().toISOString().replace(/[:.]/g, '-') + '.csv', logs.map(log => ({
-        'ID': log.id,
-        'Thời gian (UTC+7)': dateFormatter.format(new Date(log.occurredAt)),
-        'ID cửa hàng': log.storeId ?? '',
-        'ID người thực hiện': log.actorUserId ?? '',
-        'Người thực hiện': csvCell(actorLabel(log)),
-        'Email': csvCell(log.actorEmail),
-        'Vai trò': csvCell(log.actorRole ? roleLabels[log.actorRole] ?? log.actorRole : ''),
-        'Chi tiết hành động': csvCell(actionLabel(log)),
-        'Hành động': csvCell(log.action),
-        'Trạng thái': eventStatus(log) === 'FAILURE' ? 'Thất bại' : 'Thành công',
-        'Loại tài nguyên': csvCell(log.entityType),
-        'Đối tượng': csvCell(resourceLabel(log)),
-        'ID tài nguyên': log.entityId ?? '',
-        'IP': csvCell(log.ipAddress),
-        'Lý do': csvCell(log.reason),
-        'User Agent': csvCell(log.userAgent),
-        'Trình duyệt': csvCell(browserLabel(log.userAgent)),
-        'Correlation ID': csvCell(log.correlationId),
-        'Giá trị trước': csvCell(log.oldValues == null ? '' : JSON.stringify(log.oldValues)),
-        'Giá trị sau': csvCell(log.newValues == null ? '' : JSON.stringify(log.newValues)),
-      })))
-      showToast('Đã xuất ' + logs.length + ' nhật ký thành công!')
-    } catch (error) {
-      if (!controller.signal.aborted) showToast(describeError(error, 'Không thể xuất nhật ký. Vui lòng thử lại.'), 'error')
-    } finally {
-      exportController.current = null
-      if (!controller.signal.aborted) setExporting(false)
-    }
-  }
-
   return (
     <div className="w-full min-w-0 max-w-[1600px] mx-auto flex flex-col gap-space-lg">
       <ListReportCards title={ownerView ? 'Tổng hợp nhật ký đại lý' : 'Tổng hợp nhật ký hệ thống'} totalCount={result?.totalCount ?? null} unit="nhật ký" loading={loading} error={!!loadError} metrics={[
@@ -222,17 +162,14 @@ export default function AuditLogsPage() {
           <h1 className="text-3xl font-semibold text-on-surface">{ownerView ? 'Nhật ký đại lý' : 'Nhật ký Hệ thống'}</h1>
         </div>
         <div className="flex items-center gap-3">
-          <button type="button" onClick={reload} disabled={loading || exporting} className={buttonClass}>Tải lại</button>
-          <button type="button" onClick={() => void exportCsv()} disabled={loading || exporting || !!loadError || !result?.totalCount} className={buttonClass}>
-            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">download</span>
-            {exporting ? 'Đang xuất...' : 'Xuất CSV'}
-          </button>
+          <button type="button" onClick={reload} disabled={loading} className={buttonClass}>Tải lại</button>
+
         </div>
       </div>
 
       <form onSubmit={applyFilters}>
-        <fieldset disabled={exporting} className="min-w-0 space-y-3 disabled:opacity-60">
-          <ListToolbar search={{ value: draft.search, onChange: value => setDraft({ ...draft, search: value.slice(0, 200) }), placeholder: 'Tìm tên, email người thực hiện, mã hành động hoặc đối tượng...' }} onClear={resetFilters} disabled={exporting} actions={<button type="submit" className={buttonClass + ' !bg-primary-dark !text-white'}>Lọc</button>}>
+        <fieldset className="min-w-0 space-y-3 disabled:opacity-60">
+          <ListToolbar search={{ value: draft.search, onChange: value => setDraft({ ...draft, search: value.slice(0, 200) }), placeholder: 'Tìm tên, email người thực hiện, mã hành động hoặc đối tượng...' }} onClear={resetFilters} actions={<button type="submit" className={buttonClass + ' !bg-primary-dark !text-white'}>Lọc</button>}>
             <FilterSelect label="Vai trò người thực hiện" value={draft.actorRole} onChange={value => setDraft({ ...draft, actorRole: value })} options={[{ value: '', label: 'Tất cả vai trò' }, ...Object.entries(roleLabels).map(([value, label]) => ({ value, label }))]} />
             <FilterSelect label="Trạng thái hành động" value={draft.status} onChange={value => setDraft({ ...draft, status: value })} options={[{ value: '', label: 'Mọi trạng thái' }, { value: 'SUCCESS', label: 'Thành công' }, { value: 'FAILURE', label: 'Thất bại' }]} />
             <FilterSelect label="Thời gian" value={draft.timeRange} onChange={value => setDraft({ ...draft, timeRange: value as Filters['timeRange'] })} options={[{ value: '7days', label: '7 ngày qua' }, { value: '30days', label: '30 ngày qua' }, { value: 'all', label: 'Tất cả' }, { value: 'custom', label: 'Khoảng ngày' }]} />
@@ -300,9 +237,8 @@ export default function AuditLogsPage() {
             </tbody>
           </table>
         </div>
-        {!loading && !loadError && result && <fieldset disabled={exporting} className="min-w-0 font-sans"><ServerPagination page={result.page} pageSize={result.pageSize} totalCount={result.totalCount} totalPages={result.totalPages} unitLabel="nhật ký" onPageChange={changePage} /></fieldset>}
+        {!loading && !loadError && result && <fieldset className="min-w-0 font-sans"><ServerPagination page={result.page} pageSize={result.pageSize} totalCount={result.totalCount} totalPages={result.totalPages} unitLabel="nhật ký" onPageChange={changePage} /></fieldset>}
       </div>
-
 
       <DetailModal open={detailId !== null} onClose={() => setDetailId(null)} widthClassName="max-w-5xl">
         <ModalLayout header={<h2 className="text-xl font-semibold text-on-surface">Chi tiết Audit Log</h2>} footer={<div className="flex justify-end"><button type="button" className={buttonClass} onClick={() => setDetailId(null)}>Đóng</button></div>}>

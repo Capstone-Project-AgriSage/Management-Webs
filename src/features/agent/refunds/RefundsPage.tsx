@@ -2,7 +2,7 @@ import DetailModal from '@/components/ui/DetailModal'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
-import { Eye, Coins, Hourglass, RefreshCw } from 'lucide-react';
+import { Eye, RefreshCw } from 'lucide-react';
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
 import { describeError } from '@/api/client';
@@ -194,8 +194,6 @@ export default function RefundsPage() {
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
       <BusinessReportCards kind="refunds" leadingCards={<>
         <KpiCard
-          icon={Hourglass}
-          iconClassName="bg-amber-50 text-amber-600"
           title="Đơn cần hoàn tiền trên trang"
           className="border-slate-200 min-h-40"
           value={ordersLoading || orderError || orders === null ? '...' : pendingOrderCount}
@@ -203,8 +201,6 @@ export default function RefundsPage() {
           subtitle={orderError || (ordersLoading || orders === null ? undefined : `${formatVnd(pendingOrders)} đang chờ trả khách (gồm cả đơn cần tạo khoản hoàn mới)`)}
         />
         <KpiCard
-          icon={Coins}
-          iconClassName="bg-violet-50 text-violet-600"
           title="Phiếu chờ hoàn tiền trên trang"
           className="border-slate-200 min-h-40"
           value={returnsLoading || returnsError || returns === null ? '...' : returnsToPay.length}

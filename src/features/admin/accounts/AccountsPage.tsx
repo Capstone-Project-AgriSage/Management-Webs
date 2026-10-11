@@ -1,7 +1,7 @@
 import ListToolbar from '@/components/ui/ListToolbar'
 import FilterSelect from '@/components/ui/FilterSelect'
 import KpiCard from '@/components/ui/KpiCard'
-import { Users, UserCheck, Clock, UserLock } from 'lucide-react'
+
 import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useState } from 'react';
@@ -17,7 +17,6 @@ import { useFilteredList } from '@/hooks/useFilteredList';
 import { usePagination } from '@/hooks/usePagination';
 import { useFormValues } from '@/hooks/useFormValues';
 import * as accountsService from '@/features/admin/services/accountsService'
-import { downloadCsv } from '@/utils/csv';
 import type { Account, AccountActionId, AccountRole, AccountStatus } from '@/types';
 
 export default function AccountsPage() {
@@ -148,10 +147,10 @@ export default function AccountsPage() {
       {/* KPI CARDS */}
       <p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Dữ liệu mẫu — chưa có API backend quản lý toàn bộ tài khoản.</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
-        <KpiCard icon={Users} iconClassName="bg-blue-50 text-blue-600" title="Tổng số tài khoản" value={totalAccounts} subtitle="Đại lý, nông dân, quản trị viên" layout="header" />
-        <KpiCard icon={UserCheck} iconClassName="bg-emerald-50 text-emerald-600" title="Đang hoạt động" value={activeCount} subtitle="Hệ thống ghi nhận bình thường" layout="header" />
-        <KpiCard icon={Clock} iconClassName="bg-amber-50 text-amber-600" title="Chờ duyệt" value={pendingCount} subtitle="Cần xem xét phê duyệt" layout="header" />
-        <KpiCard icon={UserLock} iconClassName="bg-red-50 text-red-600" title="Bị khóa" value={lockedCount} subtitle="Vi phạm hoặc tạm khóa" layout="header" />
+        <KpiCard title="Tổng số tài khoản" value={totalAccounts} subtitle="Đại lý, nông dân, quản trị viên" />
+        <KpiCard title="Đang hoạt động" value={activeCount} subtitle="Hệ thống ghi nhận bình thường" />
+        <KpiCard title="Chờ duyệt" value={pendingCount} subtitle="Cần xem xét phê duyệt" />
+        <KpiCard title="Bị khóa" value={lockedCount} subtitle="Vi phạm hoặc tạm khóa" />
       </div>
 
       {/* ALERT BANNER */}
@@ -169,19 +168,6 @@ export default function AccountsPage() {
 
       {/* TOOLBAR */}
       <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: "Tìm kiếm tài khoản..." }} onClear={() => { setSearch(''); setStatusFilter(''); setRoleFilter(''); setRegionFilter(''); setPage(1) }} actions={<><button
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-outline-variant rounded bg-white hover:bg-surface-container-low text-on-surface font-medium text-sm shadow-sm"
-            onClick={() => downloadCsv('tai-khoan.csv', filteredAccounts.map(a => ({
-              ID: a.id,
-              'Họ và tên': a.fullName,
-              Email: a.email,
-              'SĐT': a.phone,
-              'Vai trò': a.role,
-              'Trạng thái': a.status,
-              'Ngày tạo': a.createdAt
-            })))}
-          >
-            <span className="material-symbols-outlined text-[16px]">download</span> Xuất danh sách
-          </button><button
             className="flex items-center gap-1.5 px-4 py-1.5 bg-primary-dark hover:bg-green-900 text-white rounded-[10px] font-medium text-sm shadow-sm transition-colors"
             onClick={() => setCreateOpen(true)}
           >

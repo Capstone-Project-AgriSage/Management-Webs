@@ -13,8 +13,8 @@ interface QuickSaleReviewProps {
 export default function QuickSaleReview({ preview, selling, onBack, onSell }: QuickSaleReviewProps) {
   const short = preview.items.some((i) => i.shortageBaseQuantity > 0)
   return (
-    <div className="flex flex-col h-full bg-surface shadow-lg z-10">
-      <div className="p-4 border-b border-outline-variant flex justify-between items-center bg-surface-container">
+    <div className="flex flex-col h-full z-10">
+      <div className="p-4 border-b border-outline-variant flex justify-between items-center">
         <h2 className="font-bold text-lg flex items-center gap-2">
           <span className="material-symbols-outlined text-primary">receipt_long</span>
           Xác nhận thanh toán
@@ -58,7 +58,7 @@ export default function QuickSaleReview({ preview, selling, onBack, onSell }: Qu
         ))}
       </div>
 
-      <div className="p-6 border-t border-outline-variant/30 bg-surface z-20">
+      <div className="p-6 border-t border-outline-variant/30 z-20">
         <div className="flex justify-between items-end mb-6">
           <span className="font-bold text-on-surface-variant uppercase text-sm tracking-wider">Khách phải trả</span>
           <span className="font-bold text-4xl text-emerald-600 tracking-tight tabular-nums">{formatVnd(preview.totalAmount)}</span>
