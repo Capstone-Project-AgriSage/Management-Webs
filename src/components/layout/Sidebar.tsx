@@ -57,7 +57,7 @@ function useNavConfig() {
       {
         title: 'Chung',
         items: [
-          { label: 'Tổng quan', to: '/', icon: 'dashboard', iconTone: 'primary' as const },
+          { label: 'Tổng quan', to: '/agent', icon: 'dashboard' },
           { label: 'Bán tại quầy', to: '/agent/counter-sales', icon: 'point_of_sale' },
           { label: 'Đơn hàng', to: '/agent/orders', icon: 'receipt_long' },
           { label: 'Thanh toán', to: '/agent/payments', icon: 'payments' },
@@ -104,7 +104,7 @@ function useNavConfig() {
 
   if (currentRole === 'sales_staff') {
     const items: NavItem[] = [
-      { label: 'Tổng quan', to: '/', icon: 'dashboard', iconTone: 'primary' },
+      { label: 'Tổng quan', to: '/sales', icon: 'dashboard' },
       { label: 'Bán tại quầy', to: '/sales/counter-sales', icon: 'point_of_sale' },
       { label: 'Khách hàng', to: '/sales/farmers', icon: 'groups' },
       { label: 'Sản phẩm', to: '/sales/products', icon: 'category' },
@@ -130,7 +130,7 @@ function useNavConfig() {
 
   // delivery_staff
   const items: NavItem[] = [
-    { label: 'Tổng quan', to: '/', icon: 'dashboard', iconTone: 'primary' },
+    { label: 'Tổng quan', to: '/delivery', icon: 'dashboard' },
     { label: 'Danh sách giao hàng', to: '/delivery/deliveries', icon: 'local_shipping' },
   ]
   return { groups: [{ title: '', items }], brandIcon: 'eco', brandLabel: 'Delivery', hubLabel: user.hubName }
@@ -231,7 +231,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggle }: SidebarP
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  end={item.to === '/' || item.to === '/agent/inventory' || item.to === '/agent/debts' || item.to === '/agent/products'}
+                  end={['/', '/agent', '/sales', '/delivery', '/agent/inventory', '/agent/debts', '/agent/products'].includes(item.to)}
                   onClick={onClose}
                   title={collapsed ? item.label : undefined}
                   aria-label={item.label}
@@ -249,7 +249,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggle }: SidebarP
                         <span
                           aria-hidden="true"
                           className={`material-symbols-outlined text-[20px] flex-shrink-0 ${
-                            isActive || item.iconTone === 'primary' ? 'text-primary' : ''
+                            isActive ? 'text-primary' : ''
                           }`}
                         >
                           {item.icon}

@@ -94,7 +94,7 @@ try {
   assert.equal(await table('order').getByText('OD-CANCELLED-10', { exact: true }).count(), 0)
   console.log('PASS Rapid navigation cancels obsolete reads and never displays late/stale rows')
 
-  await page.getByRole('tab', { name: 'Từ trả hàng', exact: true }).click()
+  await page.getByRole('combobox', { name: 'Nguồn hoàn tiền', exact: true }).selectOption('returns')
   await ready('return', 'RT-INSPECTED-0')
   const beforeReturns = { orders: count('/api/orders'), refunds: refundCount(), returns: count('/api/returns') }
   await table('return').getByRole('button', { name: 'Trang 2', exact: true }).click()
@@ -104,7 +104,7 @@ try {
   assert.equal(count('/api/returns'), beforeReturns.returns + 2)
   console.log('PASS Return pagination leaves order APIs untouched')
 
-  await page.getByRole('tab', { name: 'Từ đơn đã hủy', exact: true }).click()
+  await page.getByRole('combobox', { name: 'Nguồn hoàn tiền', exact: true }).selectOption('orders')
   await ready('order', 'OD-CANCELLED-0')
   amount = 20000
   const beforeWrite = refundCount()

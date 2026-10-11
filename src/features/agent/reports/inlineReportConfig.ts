@@ -2,11 +2,11 @@ import { businessReportsApi } from '@/api/businessReportsApi'
 import { reportsApi } from '@/api/reportsApi'
 import { inventoryReportsApi } from '@/api/inventoryReportsApi'
 
-export interface ReportMetric { label: string; value: number | null; kind: 'money' | 'count' | 'percent'; note?: string }
+export interface ReportMetric { label: string; value: number | null; kind: 'money' | 'count' | 'percent'; note?: string; trend?: number[] }
 export interface InlineReportResult { metrics: ReportMetric[] }
 type Period = { fromDate: string; toDate: string }
-const money = (label: string, value: number): ReportMetric => ({ label, value, kind: 'money' })
-const count = (label: string, value: number): ReportMetric => ({ label, value, kind: 'count' })
+const money = (label: string, value: number, trend?: number[]): ReportMetric => ({ label, value, kind: 'money', trend })
+const count = (label: string, value: number, trend?: number[]): ReportMetric => ({ label, value, kind: 'count', trend })
 const percent = (label: string, value: number | null, note?: string): ReportMetric => ({ label, value, kind: 'percent', note })
 
 export const inlineReports = {
@@ -15,40 +15,40 @@ export const inlineReports = {
     title: 'Tổng hợp đơn hàng', period: true,
     note: 'Đơn được tạo trong kỳ; giá trị đơn hàng chưa phải doanh thu đã ghi nhận.',
     async load(period: Period, signal: AbortSignal): Promise<InlineReportResult> {
-      const { totals } = await businessReportsApi.orders(period, signal)
-      return { metrics: [count('Đơn trong kỳ', totals.orderCount), money('Giá trị đơn trong kỳ', totals.orderValue), money('Giá trị đơn trung bình', totals.orderCount ? totals.orderValue / totals.orderCount : 0)] }
+      const { totals, rows } = await businessReportsApi.orders(period, signal)
+      return { metrics: [count('Đơn trong kỳ', totals.orderCount, rows.map(row => row.orderCount)), money('Giá trị đơn trong kỳ', totals.orderValue, rows.map(row => row.orderValue)), money('Giá trị đơn trung bình', totals.orderCount ? totals.orderValue / totals.orderCount : 0, rows.map(row => row.orderCount ? row.orderValue / row.orderCount : 0))] }
     },
   },
   payments: {
     labels: ['Tiền đã thu', 'Tiền đã hoàn', 'Tiền thu ròng'],
     title: 'Tổng hợp thanh toán', period: true, note: 'Khoản thu đã xác nhận và hoàn tiền đã hoàn tất trong kỳ.',
     async load(period: Period, signal: AbortSignal): Promise<InlineReportResult> {
-      const { totals } = await businessReportsApi.payments(period, signal)
-      return { metrics: [money('Tiền đã thu', totals.receivedAmount), money('Tiền đã hoàn', totals.refundedAmount), money('Tiền thu ròng', totals.netReceivedAmount)] }
+      const { totals, rows } = await businessReportsApi.payments(period, signal)
+      return { metrics: [money('Tiền đã thu', totals.receivedAmount, rows.map(row => row.receivedAmount)), money('Tiền đã hoàn', totals.refundedAmount), money('Tiền thu ròng', totals.netReceivedAmount)] }
     },
   },
   purchases: {
     labels: ['Phiếu nhập đã xác nhận', 'Giá trị nhập trong kỳ', 'Giá trị nhập trung bình'],
     title: 'Tổng hợp nhập hàng', period: true, note: 'Phiếu nhập đã xác nhận trong kỳ, tính theo ngày xác nhận.',
     async load(period: Period, signal: AbortSignal): Promise<InlineReportResult> {
-      const { totals } = await businessReportsApi.purchases(period, signal)
-      return { metrics: [count('Phiếu nhập đã xác nhận', totals.receiptCount), money('Giá trị nhập trong kỳ', totals.purchaseAmount), money('Giá trị nhập trung bình', totals.receiptCount ? totals.purchaseAmount / totals.receiptCount : 0)] }
+      const { totals, rows } = await businessReportsApi.purchases(period, signal)
+      return { metrics: [count('Phiếu nhập đã xác nhận', totals.receiptCount, rows.map(row => row.receiptCount)), money('Giá trị nhập trong kỳ', totals.purchaseAmount, rows.map(row => row.purchaseAmount)), money('Giá trị nhập trung bình', totals.receiptCount ? totals.purchaseAmount / totals.receiptCount : 0, rows.map(row => row.receiptCount ? row.purchaseAmount / row.receiptCount : 0))] }
     },
   },
   returns: {
     labels: ['Phiếu trả hoàn tất', 'Giá trị trả trong kỳ', 'Công nợ được giảm', 'Khoản cần hoàn trong kỳ'],
     title: 'Tổng hợp trả hàng', period: true, note: 'Phiếu trả đã hoàn tất trong kỳ. Khoản cần hoàn là nghĩa vụ hoàn tiền của phiếu trả.',
     async load(period: Period, signal: AbortSignal): Promise<InlineReportResult> {
-      const { totals } = await businessReportsApi.returns(period, signal)
-      return { metrics: [count('Phiếu trả hoàn tất', totals.returnCount), money('Giá trị trả trong kỳ', totals.returnAmount), money('Công nợ được giảm', totals.debtAdjustmentAmount), money('Khoản cần hoàn trong kỳ', totals.refundAmount)] }
+      const { totals, rows } = await businessReportsApi.returns(period, signal)
+      return { metrics: [count('Phiếu trả hoàn tất', totals.returnCount, rows.map(row => row.returnCount)), money('Giá trị trả trong kỳ', totals.returnAmount, rows.map(row => row.returnAmount)), money('Công nợ được giảm', totals.debtAdjustmentAmount, rows.map(row => row.debtAdjustmentAmount)), money('Khoản cần hoàn trong kỳ', totals.refundAmount, rows.map(row => row.refundAmount))] }
     },
   },
   refunds: {
     labels: ['Lần hoàn tiền trong kỳ', 'Tiền đã hoàn trong kỳ'],
     title: 'Tổng hợp hoàn tiền', period: true, note: 'Khoản hoàn tiền đã hoàn tất trong kỳ, từ trả hàng hoặc hủy đơn.',
     async load(period: Period, signal: AbortSignal): Promise<InlineReportResult> {
-      const { totals } = await businessReportsApi.refunds(period, signal)
-      return { metrics: [count('Lần hoàn tiền trong kỳ', totals.refundCount), money('Tiền đã hoàn trong kỳ', totals.refundedAmount)] }
+      const { totals, rows } = await businessReportsApi.refunds(period, signal)
+      return { metrics: [count('Lần hoàn tiền trong kỳ', totals.refundCount, rows.map(row => row.refundCount)), money('Tiền đã hoàn trong kỳ', totals.refundedAmount, rows.map(row => row.refundedAmount))] }
     },
   },
   sales: {
@@ -60,7 +60,8 @@ export const inlineReports = {
         businessReportsApi.revenue({ ...period, groupBy: 'DAY', page: 1, pageSize: 20 }, signal),
         businessReportsApi.revenueSummary(period, signal),
       ])
-      return { metrics: [money('Doanh thu thuần trong kỳ', revenue.totals.netSales), money('Lãi gộp trong kỳ', sales.totals.grossProfit), money('Giá trị đơn trung bình', revenue.totals.averageOrderValue), percent('So với kỳ trước', summary.netSalesChangePercent, summary.netSalesChangePercent == null ? 'Kỳ trước bằng 0' : undefined)] }
+      // Sales is unpaged; revenue rows are paged. Avoid a partial-period trend for average value.
+      return { metrics: [money('Doanh thu thuần trong kỳ', revenue.totals.netSales, sales.rows.map(row => row.netSales)), money('Lãi gộp trong kỳ', sales.totals.grossProfit, sales.rows.map(row => row.grossProfit)), money('Giá trị đơn trung bình', revenue.totals.averageOrderValue, revenue.totalCount <= revenue.rows.length ? revenue.rows.map(row => row.averageOrderValue) : undefined), percent('So với kỳ trước', summary.netSalesChangePercent, summary.netSalesChangePercent == null ? 'Kỳ trước bằng 0' : undefined)] }
     },
   },
   inventory: {

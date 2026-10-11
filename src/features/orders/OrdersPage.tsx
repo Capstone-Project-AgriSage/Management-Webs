@@ -1,5 +1,6 @@
 import ListToolbar from '@/components/ui/ListToolbar'
 import FilterSelect from '@/components/ui/FilterSelect'
+import DateFilter from '@/components/ui/DateFilter'
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -442,17 +443,15 @@ export default function OrdersPage() {
           </button></>}>
         <FilterSelect label="Trạng thái đơn hàng" value={statusFilter} onChange={value => { setStatusFilter(value as OrderStatus | ''); setPage(1) }} options={STATUS_OPTIONS} />
         <FilterSelect label="Nguồn đơn hàng" value={sourceFilter} onChange={value => { setSourceFilter(value); setPage(1) }} options={SOURCE_OPTIONS} />
-<input
-              type="date"
-              aria-label="Từ ngày"
+<DateFilter
+              label="Từ ngày"
               value={fromDate}
               max={toDate || undefined}
               onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
               className="h-10 min-w-0 w-36 flex-1 px-2 bg-surface-container-lowest border border-outline-variant rounded-lg text-sm"
             />
-<input
-              type="date"
-              aria-label="Đến ngày"
+<DateFilter
+              label="Đến ngày"
               value={toDate}
               min={fromDate || undefined}
               onChange={(e) => { setToDate(e.target.value); setPage(1) }}

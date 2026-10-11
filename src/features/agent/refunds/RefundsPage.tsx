@@ -212,32 +212,10 @@ export default function RefundsPage() {
           subtitle={returnsError || (returnsLoading || returns === null ? undefined : `Cần hoàn ${formatVnd(returnsToPay.reduce((s, r) => s + r.totalRefundAmount, 0))} (trước khi trừ các khoản đã hoàn)`)}
         />
       </>} />
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1 shadow-sm" role="tablist">
-          {(
-            [
-              ['orders', 'Từ đơn đã hủy'],
-              ['returns', 'Từ trả hàng'],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              role="tab"
-              aria-selected={tab === value}
-              onClick={() => { setTab(value); setSourceStatus(''); setPage(1) }}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${tab === value ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-      </div>
-
       <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: tab === 'orders' ? 'Tìm mã đơn hoặc tên khách...' : 'Tìm mã trả hàng, mã đơn hoặc tên khách...' }} onClear={() => { setSearch(''); setSourceStatus(''); setOnlyOpen(true); setPage(1) }} actions={<button type="button" onClick={refreshLists} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600"><RefreshCw size={16} aria-hidden="true" />Làm mới danh sách</button>}>
+        <FilterSelect label="Nguồn hoàn tiền" value={tab} onChange={value => { setTab(value as Tab); setSourceStatus(''); setPage(1) }} options={[{ value: 'orders', label: 'Từ đơn đã hủy' }, { value: 'returns', label: 'Từ trả hàng' }]} />
         <FilterSelect label="Lọc trạng thái nguồn hoàn tiền" value={sourceStatus} onChange={value => { setSourceStatus(value); setPage(1) }} options={tab === 'orders' ? [{ value: '', label: 'Mọi trạng thái' }, { value: 'CANCELLED', label: 'Đã hủy' }, { value: 'PARTIALLY_CANCELLED', label: 'Hủy một phần' }] : [{ value: '', label: 'Mọi trạng thái' }, { value: 'INSPECTED', label: 'Đã kiểm tra' }, { value: 'PARTIALLY_RESOLVED', label: 'Đã xử lý một phần' }, ...(!onlyOpen ? [{ value: 'COMPLETED', label: 'Hoàn tất' }] : [])]} />
-        <label className="inline-flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={onlyOpen} onChange={event => { setOnlyOpen(event.target.checked); setSourceStatus(''); setPage(1) }} />Chỉ khoản đang chờ hoàn</label>
+        <FilterSelect label="Phạm vi hoàn tiền" value={onlyOpen ? 'open' : 'all'} className="relative sm:col-span-2" onChange={value => { setOnlyOpen(value === 'open'); setSourceStatus(''); setPage(1) }} options={[{ value: 'open', label: 'Khoản còn cần hoàn' }, { value: 'all', label: 'Tất cả khoản hoàn' }]} />
       </ListToolbar>
 
       {tab === 'orders' ? (

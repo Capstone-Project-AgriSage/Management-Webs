@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 
 interface KpiCardProps {
   icon: LucideIcon
@@ -17,7 +17,22 @@ interface KpiCardProps {
    * 'side' (icon beside the whole value block, Products-style). */
   layout?: 'stacked' | 'header' | 'side'
   className?: string
+  /** Ordered observations from the report API; omitted when no time series is available. */
+  trend?: readonly number[]
   children?: ReactNode
+}
+
+function ReportTrend({ values }: { values: readonly number[] }) {
+  const gradientId = useId()
+  if (values.length < 2 || values.some(value => !Number.isFinite(value))) return null
+  const low = Math.min(...values)
+  const range = Math.max(...values) - low
+  const points = values.map((value, index) => `${4 + index * 232 / (values.length - 1)},${range ? 40 - (value - low) * 32 / range : 24}`).join(' ')
+  return <svg className="agrisage-kpi-trend" viewBox="0 0 240 48" preserveAspectRatio="none" role="img" aria-label="Diễn biến theo kỳ báo cáo">
+    <defs><linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1"><stop stopColor="currentColor" stopOpacity=".22" /><stop offset="1" stopColor="currentColor" stopOpacity="0" /></linearGradient></defs>
+    <polygon points={`4,48 ${points} 236,48`} fill={`url(#${gradientId})`} />
+    <polyline points={points} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+  </svg>
 }
 
 export default function KpiCard({
@@ -31,6 +46,7 @@ export default function KpiCard({
   subtitleClassName = 'text-slate-500',
   layout = 'side',
   className = 'border-slate-200',
+  trend,
   children,
 }: KpiCardProps) {
   const iconBox = (
@@ -56,6 +72,7 @@ export default function KpiCard({
         </div>
         {valueEl}
         {subtitleEl}
+        {trend && <ReportTrend values={trend} />}
         {children}
       </div>
     )
@@ -63,13 +80,17 @@ export default function KpiCard({
 
   if (layout === 'side') {
     return (
-      <div className={`agrisage-kpi-card min-w-0 bg-white rounded-xl p-5 shadow-[0_2px_8px_rgba(15,23,42,0.03)] border flex items-start justify-between gap-3 ${className}`}>
-        <div className="min-w-0 space-y-2">
-          {titleEl}
+      <div className={`agrisage-kpi-card min-w-0 bg-white rounded-xl p-5 shadow-[0_2px_8px_rgba(15,23,42,0.03)] border ${className}`}>
+        <div className="agrisage-kpi-content">
+          <div className="flex items-start justify-between gap-3">
+            {titleEl}
+            {iconBox}
+          </div>
           {valueEl}
           {subtitleEl}
         </div>
-        {iconBox}
+        {trend && <ReportTrend values={trend} />}
+        {children}
       </div>
     )
   }
@@ -83,6 +104,7 @@ export default function KpiCard({
         {valueSuffix}
       </div>
       {subtitleEl}
+      {trend && <ReportTrend values={trend} />}
       {children}
     </div>
   )

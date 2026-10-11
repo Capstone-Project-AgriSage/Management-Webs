@@ -21,7 +21,7 @@ export default function DashboardLayout() {
 
   return (
     <PageHeaderProvider>
-      <div className={`management-shell bg-background text-on-surface antialiased text-body-md min-h-screen flex selection:bg-primary-fixed selection:text-on-primary-fixed ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <div className={`agrisage-glass-app management-shell bg-background text-on-surface antialiased text-body-md min-h-screen flex selection:bg-primary-fixed selection:text-on-primary-fixed ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
         <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(value => !value)} />
         <div className="management-workspace flex-1 flex flex-col min-w-0">
           <Topbar onMenuClick={() => setSidebarOpen(true)} menuOpen={sidebarOpen} />

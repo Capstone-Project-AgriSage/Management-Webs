@@ -128,7 +128,7 @@ export default function Topbar({ onMenuClick, menuOpen }: TopbarProps) {
         </div>
         <div className="flex items-center gap-2 border-l border-outline-variant pl-3" title={`${displayName} · ${roleLabel}`}>
             <span className="w-9 h-9 flex items-center justify-center rounded-full bg-primary-container text-on-primary-container text-xs font-semibold">{initials}</span>
-            <span className="hidden 2xl:block text-left max-w-32"><span className="block text-xs font-semibold truncate">{displayName}</span><span className="block text-[11px] text-on-surface-variant">{roleLabel}</span></span>
+            <span className="hidden xl:block text-left max-w-32"><span className="block text-xs font-semibold truncate">{displayName}</span><span className="block text-[11px] text-on-surface-variant">{roleLabel}</span></span>
         </div>
       </div>
     </header>

@@ -38,6 +38,7 @@ async function makeSession(role = 'STORE_OWNER', permissions = READ_PERMISSIONS,
     if (path === '/api/me/permissions') return json({ role, permissions })
     if (path.endsWith('/unread-count')) return json({ count: 0 })
     if (path === '/api/catalog/categories') return json(categoryTree)
+    if (path === '/api/suppliers') return json(paged([{ id: 'supplier-1', name: 'Nhà cung cấp kiểm thử', code: 'NCC-1', isActive: true }], 1, query))
     if (path === '/api/inventory/lots') return json(paged([lot], 73, query))
     if (path === '/api/inventory/stock-summary') return json(paged([{ storeProductId: lot.storeProductId, sku: lot.sku, productName: lot.productName, baseUnit: 'BOTTLE', onHandBaseQuantity: 10, reservedBaseQuantity: 2, availableBaseQuantity: 8, sellableAvailableBaseQuantity: 8, stockValue: 120000, minStockLevelBase: 2, isLowStock: false, nearestExpiryDate: lot.expiryDate, lotCount: 1 }], 1, query))
     if (path === '/api/inventory/alerts' && failAlerts) return json({ title: 'Unavailable', detail: 'Fixture alerts unavailable' }, 503)
@@ -76,10 +77,12 @@ async function makeSession(role = 'STORE_OWNER', permissions = READ_PERMISSIONS,
     try {
       await page.goto(base + path)
       await page.locator('.agrisage-kpi-card').first().waitFor()
-      await page.waitForFunction(() => [...document.querySelectorAll('[aria-busy]')].every(element => element.getAttribute('aria-busy') !== 'true') && !document.querySelector('.agrisage-kpi-card .animate-pulse'))
+      await page.waitForFunction(() => document.querySelectorAll('.agrisage-kpi-card').length === 4 && [...document.querySelectorAll('[aria-busy]')].every(element => element.getAttribute('aria-busy') !== 'true') && !document.querySelector('.agrisage-kpi-card .animate-pulse'))
       assert.equal(await page.locator('.agrisage-kpi-card').count(), 4, `${path} must render exactly four summary cards`)
       assert.deepEqual(errors, [], `${path} must not throw in the browser`)
       assert.deepEqual(unknown, [], `${path} must use supported fixture APIs`)
+      assert.equal(await page.locator('.sidebar-link:not(.is-active) .material-symbols-outlined.text-primary').count(), 0, `${path}: inactive navigation icons must not be green`)
+      if (['/', '/agent', '/sales', '/delivery'].includes(path)) assert.equal(await page.locator('.sidebar-link.is-active').count(), 1, 'The role overview must be active only on its exact route')
       if (process.env.UI_SCREENSHOT_DIR && ['/agent/inventory', '/agent/orders', '/notifications', '/sales/inventory'].includes(path)) await page.screenshot({ path: join(process.env.UI_SCREENSHOT_DIR, path.replaceAll('/', '-').slice(1) + '.png'), fullPage: true })
       console.log(`PASS ${path}: exactly four cards with scoped data`)
     } catch (error) {
@@ -97,6 +100,78 @@ try {
   try {
     for (const path of ['/agent', '/agent/inventory', '/agent/debts', '/agent/deliveries', '/agent/orders', '/agent/payments', '/agent/returns', '/agent/refunds', '/agent/purchases/receipts', '/agent/purchases/suppliers', '/agent/inventory/movements', '/agent/inventory/stocktake', '/agent/ai-recommendations', '/agent/products', '/agent/staff', '/agent/farmers', '/agent/price-lists', '/agent/credit-config', '/agent/activity-log', '/agent/products/reviews', '/notifications']) await owner.check(path)
     assert.equal(owner.requests.filter(request => request.path === '/api/reports/debt-aging' || request.path === '/api/reports/debt-collections').length, 0, 'The debt list must reuse its four operational dashboard totals rather than fetch a second report row')
+    // Follow-up UI corrections: visible inner captions, real dropdown filters and accurate navigation.
+    await owner.page.setViewportSize({ width: 1440, height: 960 })
+    const toolbar = owner.page.locator('.agrisage-list-toolbar')
+    const picture = async name => {
+      if (process.env.UI_SCREENSHOT_DIR) await toolbar.screenshot({ path: join(process.env.UI_SCREENSHOT_DIR, `${name}.png`) })
+    }
+    for (const path of ['/agent/orders', '/agent/inventory/movements']) {
+      await owner.check(path)
+      assert.equal(await toolbar.locator('.agrisage-date-filter').count(), 2)
+      for (const label of ['Từ ngày', 'Đến ngày']) {
+        assert.equal(await toolbar.locator('.agrisage-date-filter .agrisage-filter-caption').filter({ hasText: label }).isVisible(), true)
+        assert.equal(await toolbar.getByLabel(label, { exact: true }).evaluate(input => getComputedStyle(input).paddingTop), '22px')
+      }
+      await picture(path.endsWith('/orders') ? 'corrected-orders-filter' : 'corrected-movements-filter')
+    }
+    assert.equal(await toolbar.locator('label.uppercase').count(), 0, 'Stock filters must not duplicate outer headings')
+    let request = owner.page.waitForRequest(request => new URL(request.url()).pathname === '/api/inventory/stock-movements' && new URL(request.url()).searchParams.get('type') === 'STOCK_IN')
+    await toolbar.getByRole('combobox', { name: 'Loại phiếu kho', exact: true }).selectOption('STOCK_IN')
+    await request
+    await toolbar.getByRole('button', { name: 'Xóa lọc', exact: true }).click()
+    assert.equal(await toolbar.getByRole('combobox', { name: 'Loại phiếu kho', exact: true }).inputValue(), '')
+    console.log('PASS Date filters show inner captions; stock filter headings are not duplicated and the API filter remains working')
+
+    await owner.check('/agent/purchases/receipts')
+    await owner.page.waitForFunction(() => !document.querySelector('#receipt-supplier-filter').disabled)
+    const supplier = toolbar.getByLabel('Nhà cung cấp', { exact: true })
+    assert.equal(await supplier.evaluate(select => {
+      const caption = select.closest('.agrisage-filter').querySelector('.agrisage-filter-caption')
+      return caption.getBoundingClientRect().bottom < select.getBoundingClientRect().top + parseFloat(getComputedStyle(select).paddingTop)
+    }), true, 'Supplier caption must be above the selected value, without overlap')
+    request = owner.page.waitForRequest(request => new URL(request.url()).pathname === '/api/goods-receipts' && new URL(request.url()).searchParams.get('supplierId') === 'supplier-1')
+    await supplier.selectOption('supplier-1')
+    await request
+    await picture('corrected-supplier-filter')
+    console.log('PASS Supplier filter caption/value do not overlap and the selection reaches the API')
+
+    await owner.check('/agent/refunds')
+    assert.equal(await toolbar.getByRole('checkbox').count(), 0)
+    assert.equal(await toolbar.getByRole('combobox').count(), 3)
+    await toolbar.getByRole('combobox', { name: 'Nguồn hoàn tiền', exact: true }).selectOption('returns')
+    request = owner.page.waitForRequest(request => new URL(request.url()).pathname === '/api/returns' && new URL(request.url()).searchParams.get('status') === 'COMPLETED')
+    await toolbar.getByRole('combobox', { name: 'Phạm vi hoàn tiền', exact: true }).selectOption('all')
+    await request
+    const sourceStatus = toolbar.getByRole('combobox', { name: 'Lọc trạng thái nguồn hoàn tiền', exact: true })
+    assert.equal(await sourceStatus.getByRole('option', { name: 'Hoàn tất', exact: true }).count(), 1)
+    await sourceStatus.selectOption('COMPLETED')
+    await toolbar.getByRole('combobox', { name: 'Phạm vi hoàn tiền', exact: true }).selectOption('open')
+    assert.equal(await sourceStatus.inputValue(), '')
+    assert.equal(await sourceStatus.getByRole('option', { name: 'Hoàn tất', exact: true }).count(), 0)
+    await toolbar.getByRole('button', { name: 'Xóa lọc', exact: true }).click()
+    assert.equal(await toolbar.getByRole('combobox', { name: 'Phạm vi hoàn tiền', exact: true }).inputValue(), 'open')
+    await picture('corrected-refunds-filter')
+    console.log('PASS Refund source/scope/status dropdowns preserve allowed backend states, reset stale status and remove the checkbox')
+
+    await owner.check('/agent/debts')
+    assert.equal(await toolbar.getByRole('checkbox').count(), 0)
+    request = owner.page.waitForRequest(request => new URL(request.url()).pathname === '/api/debt-accounts' && new URL(request.url()).searchParams.get('OverdueOnly') === 'true')
+    await toolbar.getByRole('combobox', { name: 'Tình trạng quá hạn', exact: true }).selectOption('overdue')
+    await request
+    await toolbar.getByRole('button', { name: 'Xóa lọc', exact: true }).click()
+    assert.equal(await toolbar.getByRole('combobox', { name: 'Tình trạng quá hạn', exact: true }).inputValue(), 'all')
+    await picture('corrected-debt-filter')
+    console.log('PASS Debt dropdown sends the existing overdue parameter and clears consistently')
+
+    await owner.page.setViewportSize({ width: 390, height: 844 })
+    for (const path of ['/agent/orders', '/agent/purchases/receipts', '/agent/refunds', '/agent/inventory/movements', '/agent/debts']) {
+      await owner.check(path)
+      assert.equal(await owner.page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${path}: filters fit the phone width`)
+    }
+    await picture('corrected-debt-filter-mobile')
+    await owner.page.setViewportSize({ width: 1280, height: 720 })
+    console.log('PASS Corrected filters fit desktop and mobile; all four roles have exact overview activation')
     for (const [path, placeholder, rows, totalLabel] of [
       ['/agent/inventory/movements', 'Tìm mã, loại phiếu trong trang hiện tại...', 'main table tbody tr', '73 phiếu kho'],
       ['/notifications', 'Tìm trong trang hiện tại...', 'article[data-notification-id]', '73'],

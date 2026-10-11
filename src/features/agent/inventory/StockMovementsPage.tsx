@@ -9,6 +9,7 @@ import { describeError } from '@/api/client';
 import { stockApi, type MovementType, type StockMovement, type StockMovementListItem } from '@/api/stockApi';
 import type { Paged } from '@/api/types';
 import FilterSelect from '@/components/ui/FilterSelect'
+import DateFilter from '@/components/ui/DateFilter'
 import Pagination from '@/components/ui/Pagination'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import DetailModal from '@/components/ui/DetailModal'
@@ -93,8 +94,6 @@ export default function StockMovementsPage() {
           Xem thẻ kho theo sản phẩm
         </Link>
       }>
-<div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Loại phiếu</label>
           <FilterSelect
             label="Loại phiếu kho"
             value={type}
@@ -105,14 +104,9 @@ export default function StockMovementsPage() {
             className="relative min-w-[200px]"
             options={[{ value: '', label: 'Tất cả loại' }, ...MOVEMENT_TYPE_OPTIONS]}
           />
-        </div>
-<div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1" htmlFor="mv-from">
-            Từ ngày
-          </label>
-          <input
+          <DateFilter
+            label="Từ ngày"
             id="mv-from"
-            type="date"
             className={dateInputClassName}
             value={from}
             max={to || undefined}
@@ -121,14 +115,9 @@ export default function StockMovementsPage() {
               setPage(1)
             }}
           />
-        </div>
-<div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1" htmlFor="mv-to">
-            Đến ngày
-          </label>
-          <input
+          <DateFilter
+            label="Đến ngày"
             id="mv-to"
-            type="date"
             className={dateInputClassName}
             value={to}
             min={from || undefined}
@@ -137,7 +126,6 @@ export default function StockMovementsPage() {
               setPage(1)
             }}
           />
-        </div>
       </ListToolbar>
       {keyword && <p role="status" className="text-xs text-slate-500">Tìm trong trang hiện tại: {items.length} / {data?.items.length ?? 0} phiếu. Chọn loại phiếu và thời gian để lọc toàn bộ danh sách.</p>}
 

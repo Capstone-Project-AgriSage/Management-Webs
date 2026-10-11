@@ -113,7 +113,7 @@ export default function RowActionsMenu({ actions: allActions, triggerLabel = 'Th
       {open ? createPortal(
         <div
           ref={menuRef}
-          className="fixed z-50 w-48 rounded-lg border border-slate-200 bg-white shadow-lg py-1 overflow-y-auto"
+          className="agrisage-row-menu fixed z-50 w-48 rounded-lg border border-slate-200 bg-white shadow-lg py-1 overflow-y-auto"
           style={{ top: menuStyle.top, left: menuStyle.left, maxHeight: 'calc(100vh - 16px)', maxWidth: 'calc(100vw - 16px)' }}
           onClick={(e) => e.stopPropagation()}
         >

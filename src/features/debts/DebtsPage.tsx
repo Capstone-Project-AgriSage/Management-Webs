@@ -160,7 +160,7 @@ export default function DebtsPage() {
       ) : <BusinessReportCards kind="debt" />}
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col">
         <div className="px-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex gap-1" role="tablist">
+          <div className="flex min-w-0 max-w-full gap-1 overflow-x-auto" role="tablist">
             {([
               ['accounts', 'Theo khách hàng'],
               ['entries', 'Khoản nợ'],
@@ -170,7 +170,7 @@ export default function DebtsPage() {
                 key={t}
                 role="tab"
                 aria-selected={tab === t}
-                className={`px-3 py-3 text-sm font-medium border-b-2 -mb-px whitespace-nowrap ${tab === t ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+                className={`shrink-0 px-3 py-3 text-sm font-medium border-b-2 -mb-px whitespace-nowrap ${tab === t ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
                 onClick={() => setTab(t)}
               >
                 {text}
@@ -183,10 +183,7 @@ export default function DebtsPage() {
               <RefreshCw size={14} /> Làm mới
             </button></>}>
 {tab !== 'transfers' && (
-              <label className="flex items-center gap-2 text-sm text-slate-700 h-9 px-3 rounded-lg border border-slate-200 bg-white">
-                <input type="checkbox" className="accent-rose-600" checked={overdueOnly} onChange={(e) => setOverdueOnly(e.target.checked)} />
-                Chỉ quá hạn
-              </label>
+              <FilterSelect label="Tình trạng quá hạn" value={overdueOnly ? 'overdue' : 'all'} onChange={value => { setOverdueOnly(value === 'overdue'); setPage(1) }} options={[{ value: 'all', label: 'Tất cả khoản nợ' }, { value: 'overdue', label: 'Chỉ quá hạn' }]} />
             )}
 {tab === 'entries' && (
               <>

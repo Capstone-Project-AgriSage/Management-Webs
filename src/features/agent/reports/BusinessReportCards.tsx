@@ -78,7 +78,7 @@ function AuthorizedReportCards({ kind, fromDate, toDate, onFromDateChange, onToD
       {includeSearchCard && searchResult && <SearchResult result={searchResult} />}
       {config.labels.slice(0, reportSlots).map((label, index) => {
         const metric = data?.metrics[index]
-        return <KpiCard key={label} className="border-slate-200 min-h-40" icon={BarChart3} iconClassName="bg-emerald-50 text-emerald-600" title={label} value={metric ? valueText(metric) : loading ? <span aria-hidden="true" className="inline-block h-7 w-28 rounded bg-slate-100 animate-pulse align-middle" /> : '—'} subtitle={<span className="block min-h-4">{metric?.note ?? '\u00a0'}</span>} />
+        return <KpiCard key={label} className="border-slate-200 min-h-40" icon={BarChart3} iconClassName="bg-emerald-50 text-emerald-600" title={label} value={metric ? valueText(metric) : loading ? <span aria-hidden="true" className="inline-block h-7 w-28 rounded bg-slate-100 animate-pulse align-middle" /> : '—'} trend={metric?.trend} subtitle={metric?.note} />
       })}
     </div>
     {searchResult && !includeSearchCard && <p className="text-xs text-slate-500">Kết quả theo bộ lọc: <strong className="font-semibold text-slate-700">{searchResult.count.toLocaleString('vi-VN')} {searchResult.unit}</strong></p>}

@@ -20,7 +20,7 @@ export default function ResetPasswordPage() {
     catch (err) { setError(describeError(err, 'Không đặt lại được mật khẩu')) }
     finally { setBusy(false) }
   }
-  return <div className="min-h-screen bg-background flex items-center justify-center p-4">
+  return <div className="agrisage-auth min-h-screen bg-background flex items-center justify-center p-4">
     <section className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 space-y-4">
       <h1 className="text-xl font-semibold text-slate-900">Đặt lại mật khẩu</h1>
       {done ? <p role="status" className="text-sm text-emerald-700">Đã đặt lại mật khẩu. Bạn có thể đăng nhập bằng mật khẩu mới.</p> : <form onSubmit={submit} className="space-y-4">
