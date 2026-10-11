@@ -12,6 +12,7 @@ import { describeApiError, rowErrors } from '@/utils/apiError';
 import { useRoleBase } from '@/utils/creditLabels';
 import ProductSearchPanel from './ProductSearchPanel'
 import CustomerSection from './CustomerSection'
+import CounterSalesReportCards from './CounterSalesReportCards'
 import CartLines from './CartLines'
 import OrderOptions from './OrderOptions'
 import QuickSaleReview from './QuickSaleReview'
@@ -244,11 +245,14 @@ export default function CounterSalesPage() {
   )
 
   return (
-    <div className="agrisage-counter-sales min-h-0 xl:h-[calc(100dvh-116px)] flex flex-col xl:flex-row bg-surface-container-lowest xl:overflow-hidden rounded-xl border border-outline-variant shadow-sm">
-      <div className="flex-1 min-w-0 min-h-0 flex flex-col border-b xl:border-b-0 xl:border-r border-outline-variant">
-        <ProductSearchPanel onAddToCart={addItem} />
+    <div className="min-h-0 flex flex-col gap-5">
+      <CounterSalesReportCards />
+      <div className="agrisage-counter-sales min-h-0 flex flex-col xl:flex-row bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm">
+        <div className="flex-1 min-w-0 min-h-0 flex flex-col border-b xl:border-b-0 xl:border-r border-outline-variant">
+          <ProductSearchPanel onAddToCart={addItem} />
+        </div>
+        <div className="w-full xl:w-[420px] 2xl:w-[460px] min-w-0 min-h-0 shrink-0 flex flex-col">{right}</div>
       </div>
-      <div className="w-full xl:w-[420px] 2xl:w-[460px] min-w-0 min-h-0 shrink-0 flex flex-col">{right}</div>
     </div>
   )
 }

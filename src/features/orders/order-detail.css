@@ -1,0 +1,55 @@
+.modal-footer > .order-detail-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+}
+
+.order-detail-secondary-actions,
+.order-detail-primary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.order-detail-primary-actions {
+  margin-left: auto;
+  justify-content: flex-end;
+}
+
+.order-detail-actions .order-detail-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 10px 14px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  transition: background-color 150ms, color 150ms;
+}
+
+.order-detail-button svg {
+  flex-shrink: 0;
+}
+
+@media (max-width: 639px) {
+  .modal-footer > .order-detail-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .order-detail-secondary-actions,
+  .order-detail-primary-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .order-detail-actions .order-detail-button {
+    flex: 1 1 140px;
+  }
+}

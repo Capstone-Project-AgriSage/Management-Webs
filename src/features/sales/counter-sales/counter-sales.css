@@ -1,0 +1,8 @@
+@media (min-width: 1024px) {
+  .agrisage-glass-app .agrisage-counter-catalog .agrisage-list-toolbar {
+    grid-template-columns: minmax(0, 1fr) minmax(140px, .85fr) auto;
+    grid-template-areas: 'search filters actions';
+    align-items: end;
+    column-gap: 12px;
+  }
+}

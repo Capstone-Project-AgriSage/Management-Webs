@@ -61,7 +61,10 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     const body = res.status === 204 ? '' : await res.text()
     const result = (body ? JSON.parse(body) : undefined) as T
     // Summaries refresh after a successful business write, never after a list GET.
-    if (init.method && !['GET', 'HEAD', 'OPTIONS'].includes(init.method.toUpperCase()) && /^\/api\/(orders|payments|refunds|returns|goods-receipts|deliveries|inventory|stock-adjustments|stocktakes|customers|customer-groups|credit-tiers|products|store-products)(\/|\?|$)/.test(path)) {
+    if (init.method && !['GET', 'HEAD', 'OPTIONS'].includes(init.method.toUpperCase()) && (
+      /^\/api\/(orders|payments|refunds|returns|goods-receipts|deliveries|inventory|stock-adjustments|stocktakes|customers|customer-groups|credit-tiers|products|store-products)(\/|\?|$)/.test(path)
+      || /^\/api\/counter-sales(?:\?|$)/.test(path)
+    )) {
       window.dispatchEvent(new Event('agrisage-business-data-changed'))
     }
     return result

@@ -5,12 +5,14 @@ import type { CartItem } from './orderDraft'
 import ListToolbar from '@/components/ui/ListToolbar'
 import FilterSelect from '@/components/ui/FilterSelect'
 import ServerPagination from '@/components/ui/ServerPagination'
-import { LIST_PAGE_SIZE } from '@/utils/pagination'
 import { catalogApi, flattenCatalogCategories } from '@/api/catalogApi'
 import type { CatalogProduct, CatalogCategory, CatalogProductDetail, CatalogPackaging } from '@/api/types'
 import { formatVnd } from '@/utils/money'
 import { useToast } from '@/context/ToastContext'
 import ProductThumb from '@/components/ui/ProductThumb'
+import './counter-sales.css'
+
+const COUNTER_PRODUCT_PAGE_SIZE = 8
 
 interface ProductSearchPanelProps {
   onAddToCart: (item: CartItem) => void
@@ -51,7 +53,7 @@ export default function ProductSearchPanel({ onAddToCart }: ProductSearchPanelPr
     const fetchProducts = async () => {
       setLoading(true)
       try {
-        const params = { search, page, pageSize: LIST_PAGE_SIZE, categoryId: categoryId || undefined }
+        const params = { search, page, pageSize: COUNTER_PRODUCT_PAGE_SIZE, categoryId: categoryId || undefined }
         if (categoryId) params.categoryId = categoryId
 
         const res = await catalogApi.getProducts(params)
@@ -103,16 +105,16 @@ export default function ProductSearchPanel({ onAddToCart }: ProductSearchPanelPr
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="agrisage-counter-catalog flex flex-col h-full">
       <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: 'Tìm theo tên hoặc mã sản phẩm...' }} onClear={() => { setSearch(''); setCategoryId(''); setPage(1) }}>
         <FilterSelect label="Lọc danh mục" disabled={catsLoading} value={categoryId} onChange={value => { setCategoryId(value); setPage(1) }} options={[{ value: '', label: 'Mọi danh mục' }, ...categories.map(category => ({ value: category.id, label: category.name }))]} />
       </ListToolbar>
 
-      <div className="flex-1 overflow-y-auto p-5 min-h-0">
+      <div className="flex-1 p-4">
         {loading ? (
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-              <div key={i} className="animate-pulse bg-surface-container border border-outline-variant/30 rounded-2xl h-[180px]"></div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {Array.from({ length: COUNTER_PRODUCT_PAGE_SIZE }, (_, i) => (
+              <div key={i} className="animate-pulse bg-surface-container border border-outline-variant/30 rounded-xl h-[204px]"></div>
             ))}
           </div>
         ) : products.length === 0 ? (
@@ -121,17 +123,17 @@ export default function ProductSearchPanel({ onAddToCart }: ProductSearchPanelPr
             <p className="font-medium">Không tìm thấy sản phẩm</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {products.map(p => (
               <div
                 key={p.id}
-                className="agrisage-counter-product border border-outline-variant/50 rounded-2xl p-4 cursor-pointer hover:border-primary/60 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col group overflow-hidden relative"
+                className="agrisage-counter-product min-h-[204px] border border-outline-variant/50 rounded-xl p-3 cursor-pointer hover:border-primary/60 hover:shadow-md transition-all duration-200 flex flex-col group overflow-hidden relative"
                 onClick={() => handleSelectProduct(p)}
               >
                 <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-primary/5 to-transparent rounded-bl-full -z-10 transition-transform group-hover:scale-125"></div>
-                <ProductThumb src={p.imageUrl} alt={p.name} className="w-full aspect-[4/3] rounded-xl mb-3 border border-outline-variant/30 shadow-sm" iconSize={32} />
-                <div className="font-bold text-sm mb-1 text-on-surface line-clamp-2 group-hover:text-primary transition-colors">{p.name}</div>
-                <div className="text-xs text-on-surface-variant mb-4 font-mono">{p.sku}</div>
+                <ProductThumb src={p.imageUrl} alt={p.name} className="w-full h-20 rounded-lg mb-2 border border-outline-variant/30" iconSize={28} />
+                <div title={p.name} className="min-h-10 font-semibold text-sm leading-5 mb-1 text-on-surface line-clamp-2 group-hover:text-primary transition-colors">{p.name}</div>
+                <div title={p.sku} className="text-xs text-on-surface-variant mb-2 font-mono truncate">{p.sku}</div>
                 <div className="mt-auto font-bold text-primary text-base">
                   {p.fromPrice ? formatVnd(p.fromPrice) : <span className="text-on-surface-variant font-medium text-xs">Chưa có giá</span>}
                 </div>
@@ -141,7 +143,7 @@ export default function ProductSearchPanel({ onAddToCart }: ProductSearchPanelPr
         )}
       </div>
 
-      <ServerPagination page={page} pageSize={LIST_PAGE_SIZE} totalCount={totalCount} totalPages={totalPages} unitLabel="sản phẩm" onPageChange={setPage} />
+      <ServerPagination page={page} pageSize={COUNTER_PRODUCT_PAGE_SIZE} totalCount={totalCount} totalPages={totalPages} unitLabel="sản phẩm" onPageChange={setPage} />
       <Modal open={choosing !== null} onClose={() => setChoosing(null)} title="Chọn quy cách bán">
         {choosing && (
           <div className="space-y-2">

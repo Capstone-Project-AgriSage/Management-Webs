@@ -31,6 +31,7 @@ import { useRoleBase } from '@/utils/creditLabels';
 import OrderEditModal from './OrderEditModal'
 import ConfirmOrderModal from './ConfirmOrderModal'
 import PickupModal from './PickupModal'
+import './order-detail.css'
 /**
  * Made by staff at the counter. Orders from the farmer web or mobile app are paid through payOS or put on credit, so
  * staff do not collect cash for them. A screen rule only: the API still accepts a cash payment for any order.
@@ -372,6 +373,7 @@ export default function OrdersPage() {
   // Tính trạng thái thanh toán tự động theo summary
   const getPaymentStatus = () => {
     if (!paymentSummary) return { label: 'Đang tải...', color: 'text-slate-500' }
+    if (selectedOrder?.settlementType === 'CREDIT' && paymentSummary.paidAmount === 0) return { label: 'Mua chịu', color: 'text-violet-700' }
     if (paymentSummary.paidAmount === 0) return { label: 'Chưa thanh toán', color: 'text-rose-600' }
     if (paymentSummary.paidAmount >= paymentSummary.orderTotal) return { label: 'Đã thanh toán đủ', color: 'text-emerald-600' }
     return { label: 'Thanh toán 1 phần', color: 'text-amber-600' }
@@ -492,99 +494,206 @@ export default function OrdersPage() {
         />
       </div>
 
-      <DetailModal open={selectedOrder !== null} onClose={() => setSelectedOrder(null)}>
+      <DetailModal open={selectedOrder !== null} onClose={() => setSelectedOrder(null)} title="Chi tiết đơn hàng">
         {selectedOrder ? (
           <ModalLayout header={<div className="flex items-center justify-between">
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono font-bold text-sm text-on-surface">#{selectedOrder.orderNumber}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="font-bold text-on-surface">#{selectedOrder.orderNumber}</h3>
                 <StatusBadge label={STATUS_MAP[selectedOrder.status]} className={STATUS_VISUALS[selectedOrder.status]?.className} />
               </div>
               <div className="text-label-sm text-on-surface-variant mt-1">Tạo lúc: {new Date(selectedOrder.createdAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
             </div>
-          </div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
-            <div className="flex justify-between items-center text-sm">
-              <span className="font-medium text-on-surface-variant">Trạng thái thanh toán:</span>
-              <span className={`font-bold ${getPaymentStatus().color}`}>{getPaymentStatus().label}</span>
+          </div>} footer={<div className="order-detail-actions">
+            <div className="order-detail-secondary-actions">
+              {selectedOrder.status === 'PENDING_CONFIRMATION' && selectedOrder.items && (
+                <PermissionAction codes={['ORDERS.UPDATE']}><button
+                  type="button"
+                  className="order-detail-button border border-outline-variant text-on-surface hover:bg-surface-container"
+                  onClick={() => setEditingOrder(selectedOrder)}
+                >
+                  <Pencil size={15} /> Sửa đơn hàng
+                </button></PermissionAction>
+              )}
+              {['PENDING_CONFIRMATION', 'CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT'].includes(selectedOrder.status) && (
+                <PermissionAction codes={['ORDERS.CANCEL']}><button
+                  type="button"
+                  className="order-detail-button text-rose-600 hover:bg-rose-50"
+                  onClick={() => setCancelModal({ open: true, type: 'ORDER', title: `Hủy toàn bộ đơn hàng #${selectedOrder.orderNumber}` })}
+                >
+                  Hủy đơn hàng
+                </button></PermissionAction>
+              )}
+              {['COMPLETED', 'PARTIALLY_FULFILLED', 'PARTIALLY_CANCELLED'].includes(selectedOrder.status) && (
+                <PermissionAction codes={['RETURNS.CREATE']}><button
+                  type="button"
+                  className="order-detail-button border border-amber-200 text-amber-800 hover:bg-amber-50"
+                  onClick={() => navigate(`${base}/returns/new?orderId=${selectedOrder.id}`)}
+                >
+                  Tạo yêu cầu trả hàng
+                </button></PermissionAction>
+              )}
             </div>
-
-            {selectedOrder.status === 'PENDING_CONFIRMATION' && selectedOrder.items && (
-              <PermissionAction codes={['ORDERS.UPDATE']}><button
-                type="button"
-                className="w-full h-10 mt-2 border border-outline-variant text-on-surface hover:bg-surface-container rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
-                onClick={() => setEditingOrder(selectedOrder)}
-              >
-                <Pencil size={15} /> SỬA ĐƠN (DÒNG HÀNG, GIÁ, GHI CHÚ)
-              </button></PermissionAction>
-            )}
-
-            {/* Online orders (farmer web / mobile) are paid through payOS or put on credit: cash is only for counter orders. */}
-            <div className={isCounterOrder(selectedOrder) ? 'grid grid-cols-2 gap-3 mt-2' : 'mt-2'}>
+            <div className="order-detail-primary-actions">
               {isCounterOrder(selectedOrder) && (
                 <PermissionAction codes={['PAYMENTS.RECEIVE_CASH']}><button
-                  className="w-full h-10 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg font-bold flex items-center justify-center transition-colors disabled:opacity-50"
+                  type="button"
+                  className="order-detail-button border border-primary/20 bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={!paymentSummary || paymentSummary.remainingToPay <= 0 || ['COMPLETED', 'CANCELLED', 'PARTIALLY_CANCELLED'].includes(selectedOrder.status)}
                   onClick={() => setIsPaymentModalOpen(true)}
                 >
-                  <Receipt size={16} className="mr-2" />
-                  THU TIỀN TẠI QUẦY
+                  <Receipt size={16} /> Thu tiền tại quầy
                 </button></PermissionAction>
               )}
-              <PermissionAction codes={['ORDERS.CONFIRM']}><button
-                className="w-full h-10 bg-primary text-on-primary hover:bg-primary/90 rounded-lg font-bold flex items-center justify-center transition-colors disabled:opacity-50"
-                // A FULL_PAYMENT order is confirmed only once it is fully paid (server: "Payment does not cover the order total"); CREDIT orders are not.
-                disabled={selectedOrder.status !== 'PENDING_CONFIRMATION' || (selectedOrder.settlementType === 'FULL_PAYMENT' && (!paymentSummary || paymentSummary.remainingToPay > 0))}
-                title={selectedOrder.settlementType === 'FULL_PAYMENT' && (paymentSummary?.remainingToPay ?? 0) > 0 ? 'Đơn trả ngay: cần thu đủ tiền trước khi xác nhận' : undefined}
-                onClick={() => setConfirmFor(selectedOrder)}
-              >
-                <CheckCircle size={16} className="mr-2" />
-                XÁC NHẬN ĐƠN (M5)
-              </button></PermissionAction>
-            </div>
-            <div className="text-xs text-center text-on-surface-variant mt-1">
-              {selectedOrder.settlementType === 'CREDIT' ? '* Đơn mua chịu: xác nhận không cần thu tiền trước' : '* Chỉ có thể xác nhận đơn khi đã thu đủ tiền'}
-            </div>
-
-            {/* Optional tracking steps (FE_GUIDE_FLOW_1 §M5/§M9): skipping them does not block the hand-over. */}
-            {['CONFIRMED', 'PREPARING'].includes(selectedOrder.status) && (
-              <div className="grid grid-cols-2 gap-3">
-                <PermissionAction codes={["ORDERS.START_PREPARING"]}><button
+              {selectedOrder.status === 'PENDING_CONFIRMATION' && (
+                <PermissionAction codes={['ORDERS.CONFIRM']}><button
                   type="button"
-                  className="h-9 rounded-lg border border-outline-variant text-sm font-semibold hover:bg-surface-container disabled:opacity-40"
-                  disabled={stepping || selectedOrder.status !== 'CONFIRMED'}
-                  onClick={() => runStep(() => ordersApi.startPreparing(selectedOrder.id), 'Đã chuyển sang Đang chuẩn bị')}
+                  className="order-detail-button bg-primary text-on-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={selectedOrder.settlementType === 'FULL_PAYMENT' && (!paymentSummary || paymentSummary.remainingToPay > 0)}
+                  aria-describedby={selectedOrder.settlementType === 'FULL_PAYMENT' && paymentSummary && paymentSummary.remainingToPay > 0 ? 'order-confirm-hint' : undefined}
+                  onClick={() => setConfirmFor(selectedOrder)}
                 >
-                  Bắt đầu chuẩn bị
+                  <CheckCircle size={16} /> Xác nhận đơn
                 </button></PermissionAction>
-                <PermissionAction codes={["ORDERS.MARK_READY"]}><button
+              )}
+              {['CONFIRMED', 'PREPARING'].includes(selectedOrder.status) && (
+                <>
+                  <PermissionAction codes={['ORDERS.START_PREPARING']}><button
+                    type="button"
+                    className="order-detail-button border border-outline-variant text-on-surface hover:bg-surface-container disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={stepping || selectedOrder.status !== 'CONFIRMED'}
+                    onClick={() => runStep(() => ordersApi.startPreparing(selectedOrder.id), 'Đã chuyển sang Đang chuẩn bị')}
+                  >
+                    Bắt đầu chuẩn bị
+                  </button></PermissionAction>
+                  <PermissionAction codes={['ORDERS.MARK_READY']}><button
+                    type="button"
+                    className="order-detail-button border border-outline-variant text-on-surface hover:bg-surface-container disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={stepping}
+                    onClick={() => runStep(() => ordersApi.markReady(selectedOrder.id), 'Đơn đã sẵn sàng giao')}
+                  >
+                    Sẵn sàng giao
+                  </button></PermissionAction>
+                </>
+              )}
+              {['CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT', 'PARTIALLY_FULFILLED'].includes(selectedOrder.status) && selectedOrder.fulfillmentType === 'PICKUP' && (
+                <PermissionAction codes={['ORDERS.PICKUP']}><button
                   type="button"
-                  className="h-9 rounded-lg border border-outline-variant text-sm font-semibold hover:bg-surface-container disabled:opacity-40"
-                  disabled={stepping}
-                  onClick={() => runStep(() => ordersApi.markReady(selectedOrder.id), 'Đơn đã sẵn sàng giao')}
+                  className="order-detail-button bg-indigo-600 text-white hover:bg-indigo-700"
+                  onClick={() => setPickupFor(selectedOrder)}
                 >
-                  Sẵn sàng giao
+                  <PackageCheck size={16} /> Giao hàng tại quầy
                 </button></PermissionAction>
+              )}
+              {['CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT', 'PARTIALLY_FULFILLED'].includes(selectedOrder.status) && selectedOrder.fulfillmentType === 'DELIVERY' && (
+                <PermissionAction codes={['DELIVERIES.CREATE']}><button
+                  type="button"
+                  className="order-detail-button bg-blue-600 text-white hover:bg-blue-700"
+                  onClick={handleOpenDeliveryModal}
+                >
+                  <PackageCheck size={16} /> Lập phiếu giao hàng
+                </button></PermissionAction>
+              )}
+            </div>
+          </div>} bodyClassName="space-y-5"><div className="pb-4 space-y-2 border-b border-outline-variant">
+              <div>
+                <span className="text-label-sm font-bold text-on-surface-variant uppercase tracking-wider block">Khách hàng</span>
+                <div className="text-sm text-on-surface font-bold mt-1">{selectedOrder.customerName}</div>
+                {selectedOrder.customerPhone && (
+                  <div className="text-xs text-on-surface-variant flex items-center gap-1 mt-1">
+                    <Phone size={12} />
+                    <span className="font-mono font-medium">{selectedOrder.customerPhone}</span>
+                  </div>
+                )}
               </div>
-            )}
+              {selectedOrder.note ? (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-md p-2.5 text-xs text-amber-900 dark:text-amber-300 mt-3">
+                  <div className="flex items-start gap-1.5">
+                    <StickyNote size={14} className="shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-semibold">Ghi chú:</span> {selectedOrder.note}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div><div className="space-y-2">
+              <span className="text-label-sm font-bold text-on-surface-variant uppercase tracking-wider block">Danh sách sản phẩm</span>
+              <div className="space-y-3 pt-2 text-sm">
+                {selectedOrder.items?.map((item) => (
+                  <div key={item.id} className="flex flex-col gap-1">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 break-words">
+                        <p className="font-semibold text-on-surface">{item.productName}</p>
+                        <p className="text-xs text-on-surface-variant mt-1">
+                          {item.quantity} {item.packagingName} x {formatVnd(item.unitPrice)}
+                        </p>
+                      </div>
+                      <span className="shrink-0 tabular-nums font-semibold text-on-surface">{formatVnd(item.lineTotalAmount)}</span>
+                    </div>
+                    {item.remainingBaseQuantity > 0 && ['CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT', 'PARTIALLY_FULFILLED'].includes(selectedOrder.status) && (
+                      <div className="flex justify-end">
+                        <PermissionAction codes={["ORDERS.CANCEL_REMAINING"]}><button
+                          className="text-rose-600 hover:text-rose-800 text-[11px] font-bold underline"
+                          onClick={() => setCancelModal({ open: true, type: 'ITEM', itemId: item.id, title: `Hủy phần chưa giao của ${item.productName}` })}
+                        >
+                          Hủy phần còn lại ({item.remainingBaseQuantity} đơn vị cơ sở)
+                        </button></PermissionAction>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+              <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 flex flex-col gap-3">
+                <div className="flex flex-wrap justify-between items-center gap-2 pb-3 border-b border-outline-variant">
+                  <span className="text-sm font-semibold text-on-surface">Thanh toán</span>
+                  <span className={`rounded-full bg-surface-container px-3 py-1 text-xs font-semibold ${getPaymentStatus().color}`}>{getPaymentStatus().label}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm font-medium">
+                  <span className="text-on-surface-variant">Tổng tiền đơn hàng:</span>
+                  <span className="text-on-surface">{formatVnd(selectedOrder.totalAmount)}</span>
+                </div>
+                {paymentSummary ? (
+                  <>
+                    <div className="flex justify-between items-center text-sm font-medium">
+                      <span className="text-on-surface-variant">Đã thu:</span>
+                      <span className="text-on-surface tabular-nums">{formatVnd(paymentSummary.paidAmount)}</span>
+                    </div>
+                    <div className="flex justify-between items-center gap-3 border-t border-outline-variant pt-3 text-sm font-bold">
+                      <span className="text-on-surface-variant">Còn phải thu:</span>
+                      <span className="text-lg text-on-surface tabular-nums">{formatVnd(paymentSummary.remainingToPay)}</span>
+                    </div>
 
-            {selectedOrder.status === 'PENDING_CONFIRMATION' && selectedOrder.settlementType === 'FULL_PAYMENT' && paymentSummary && paymentSummary.remainingToPay > 0 && (
-              <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                {isCounterOrder(selectedOrder)
-                  ? 'Đơn trả ngay chưa thanh toán đủ: chờ khách trả qua payOS hoặc thu tiền tại quầy rồi mới xác nhận được.'
-                  : 'Đơn online trả ngay chưa thanh toán đủ: chờ khách thanh toán qua payOS rồi mới xác nhận được.'}
-              </p>
-            )}
-
-            {['CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT', 'PARTIALLY_FULFILLED'].includes(selectedOrder.status) && selectedOrder.fulfillmentType === 'PICKUP' && (
-              <PermissionAction codes={['ORDERS.PICKUP']}><button
-                className="w-full h-10 mt-1 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg font-bold flex items-center justify-center transition-colors shadow-sm"
-                onClick={() => setPickupFor(selectedOrder)}
-              >
-                <PackageCheck size={16} className="mr-2" />
-                GIAO HÀNG TẠI QUẦY (M6)
-              </button></PermissionAction>
-            )}
-
+                    {/* Hiển thị hoàn tiền M8 */}
+                    {paymentSummary.refunds && paymentSummary.refunds.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {paymentSummary.refunds?.map(rf => (
+                          <div
+                            key={rf.id}
+                            className={`flex justify-between items-center text-sm font-bold p-2 rounded-lg border ${rf.status === 'PENDING' ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}
+                          >
+                            <span>{rf.status === 'PENDING' ? 'Cần hoàn tiền mặt' : rf.status === 'COMPLETED' ? 'Đã hoàn tiền' : 'Khoản hoàn đã huỷ'} · {rf.refundNumber}</span>
+                            <span>{formatVnd(rf.amount)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-sm text-on-surface-variant animate-pulse">Đang tải thông tin thanh toán...</div>
+                )}
+                {selectedOrder.status === 'PENDING_CONFIRMATION' && selectedOrder.settlementType === 'FULL_PAYMENT' && paymentSummary && paymentSummary.remainingToPay > 0 && (
+                  <p id="order-confirm-hint" className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-amber-800">
+                    <Clock size={15} className="shrink-0 mt-0.5" />
+                    <span>{isCounterOrder(selectedOrder)
+                      ? 'Cần thanh toán đủ trước khi xác nhận. Thu tiền tại quầy hoặc chờ khách thanh toán qua payOS.'
+                      : 'Chờ khách thanh toán đủ qua payOS để xác nhận đơn.'}</span>
+                  </p>
+                )}
+                {selectedOrder.status === 'PENDING_CONFIRMATION' && selectedOrder.settlementType === 'CREDIT' && (
+                  <p className="text-xs leading-relaxed text-on-surface-variant">Đơn mua chịu có thể xác nhận mà không cần thu tiền trước.</p>
+                )}
+              </div>
             {selectedOrder.fulfillmentType === 'DELIVERY' && orderDeliveries.length > 0 && (
               <div className="rounded-lg border border-outline-variant bg-surface-container-lowest p-3 text-sm">
                 <div className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Phiếu giao của đơn</div>
@@ -617,117 +726,6 @@ export default function OrdersPage() {
               </div>
             )}
 
-            {['CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT', 'PARTIALLY_FULFILLED'].includes(selectedOrder.status) && selectedOrder.fulfillmentType === 'DELIVERY' && (
-              <PermissionAction codes={['DELIVERIES.CREATE']}><button
-                className="w-full h-10 mt-1 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-bold flex items-center justify-center transition-colors shadow-sm"
-                onClick={handleOpenDeliveryModal}
-              >
-                <PackageCheck size={16} className="mr-2" />
-                LẬP PHIẾU GIAO HÀNG (M7)
-              </button></PermissionAction>
-            )}
-
-            {['PENDING_CONFIRMATION', 'CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT'].includes(selectedOrder.status) && (
-              <PermissionAction codes={["ORDERS.CANCEL"]}><button
-                className="w-full h-10 mt-1 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 rounded-lg font-bold flex items-center justify-center transition-colors shadow-sm"
-                onClick={() => setCancelModal({ open: true, type: 'ORDER', title: `Hủy toàn bộ đơn hàng #${selectedOrder.orderNumber}` })}
-              >
-                HỦY ĐƠN HÀNG (M8)
-              </button></PermissionAction>
-            )}
-
-            {['COMPLETED', 'PARTIALLY_FULFILLED', 'PARTIALLY_CANCELLED'].includes(selectedOrder.status) && (
-              <PermissionAction codes={['RETURNS.CREATE']}><button
-                className="w-full h-10 mt-1 bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 rounded-lg font-bold flex items-center justify-center transition-colors shadow-sm"
-                onClick={() => navigate(`${base}/returns/new?orderId=${selectedOrder.id}`)}
-              >
-                TẠO YÊU CẦU TRẢ HÀNG
-              </button></PermissionAction>
-            )}
-          </div>} bodyClassName="space-y-4"><div className="p-4 space-y-2 border-b border-outline-variant">
-              <div>
-                <span className="text-label-sm font-bold text-on-surface-variant uppercase tracking-wider block">Khách hàng</span>
-                <div className="text-sm text-on-surface font-bold mt-1">{selectedOrder.customerName}</div>
-                {selectedOrder.customerPhone && (
-                  <div className="text-xs text-on-surface-variant flex items-center gap-1 mt-1">
-                    <Phone size={12} />
-                    <span className="font-mono font-medium">{selectedOrder.customerPhone}</span>
-                  </div>
-                )}
-              </div>
-              {selectedOrder.note ? (
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-md p-2.5 text-xs text-amber-900 dark:text-amber-300 mt-3">
-                  <div className="flex items-start gap-1.5">
-                    <StickyNote size={14} className="shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-semibold">Ghi chú:</span> {selectedOrder.note}
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-            </div><div className="p-4 space-y-2 border-b border-outline-variant">
-              <span className="text-label-sm font-bold text-on-surface-variant uppercase tracking-wider block">Danh sách sản phẩm</span>
-              <div className="space-y-3 pt-2 text-xs">
-                {selectedOrder.items?.map((item) => (
-                  <div key={item.id} className="flex flex-col gap-1">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-semibold text-on-surface">{item.productName}</p>
-                        <p className="text-label-sm text-on-surface-variant font-mono mt-0.5">
-                          {item.quantity} {item.packagingName} x {formatVnd(item.unitPrice)}
-                        </p>
-                      </div>
-                      <span className="font-mono font-bold text-on-surface">{formatVnd(item.lineTotalAmount)}</span>
-                    </div>
-                    {item.remainingBaseQuantity > 0 && ['CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT', 'PARTIALLY_FULFILLED'].includes(selectedOrder.status) && (
-                      <div className="flex justify-end">
-                        <PermissionAction codes={["ORDERS.CANCEL_REMAINING"]}><button
-                          className="text-rose-600 hover:text-rose-800 text-[11px] font-bold underline"
-                          onClick={() => setCancelModal({ open: true, type: 'ITEM', itemId: item.id, title: `Hủy phần chưa giao của ${item.productName}` })}
-                        >
-                          Hủy phần còn lại ({item.remainingBaseQuantity} đơn vị cơ sở)
-                        </button></PermissionAction>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div className="pt-3 mt-3 border-t border-outline-variant flex flex-col gap-2">
-                <div className="flex justify-between items-center text-sm font-medium">
-                  <span className="text-on-surface-variant">Tổng tiền đơn hàng:</span>
-                  <span className="text-on-surface">{formatVnd(selectedOrder.totalAmount)}</span>
-                </div>
-                {paymentSummary ? (
-                  <>
-                    <div className="flex justify-between items-center text-sm font-medium">
-                      <span className="text-on-surface-variant">Đã thu:</span>
-                      <span className="text-emerald-600">{formatVnd(paymentSummary.paidAmount)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm font-bold">
-                      <span className="text-on-surface-variant">Còn phải thu:</span>
-                      <span className="text-rose-600">{formatVnd(paymentSummary.remainingToPay)}</span>
-                    </div>
-
-                    {/* Hiển thị hoàn tiền M8 */}
-                    {paymentSummary.refunds && paymentSummary.refunds.length > 0 && (
-                      <div className="mt-2 space-y-1">
-                        {paymentSummary.refunds?.map(rf => (
-                          <div
-                            key={rf.id}
-                            className={`flex justify-between items-center text-sm font-bold p-2 rounded-lg border ${rf.status === 'PENDING' ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}
-                          >
-                            <span>{rf.status === 'PENDING' ? 'Cần hoàn tiền mặt' : rf.status === 'COMPLETED' ? 'Đã hoàn tiền' : 'Khoản hoàn đã huỷ'} · {rf.refundNumber}</span>
-                            <span>{formatVnd(rf.amount)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="text-sm text-on-surface-variant animate-pulse">Đang tải thông tin thanh toán...</div>
-                )}
-              </div>
-            </div>
           </ModalLayout>
         ) : null}
       </DetailModal>

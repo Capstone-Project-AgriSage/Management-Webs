@@ -1,6 +1,14 @@
 import { api, toQuery } from './client'
 
 export interface ReportPeriod { fromDate: string; toDate: string; groupBy?: string }
+export interface CounterSalesTodaySummary {
+  date: string
+  asOf: string
+  paidSalesRevenue: number
+  completedOrderCount: number
+  receivedAmount: number
+  creditSalesAmount: number
+}
 export interface PeriodReport<M, T = M> {
   fromDate: string
   toDate: string
@@ -53,6 +61,7 @@ export interface CreditExposureReport {
 
 // Report requests share the authenticated client and support cancellation when filters or pages change.
 export const businessReportsApi = {
+  counterSalesToday: (signal?: AbortSignal) => api<CounterSalesTodaySummary>('/api/reports/counter-sales-today', { signal }),
   sales: (params: ReportPeriod, signal?: AbortSignal) => api<PeriodReport<SalesMetrics>>(`/api/reports/sales${toQuery({ ...params })}`, { signal }),
   revenue: (params: RevenueFilters & { groupBy: string; page: number; pageSize: number }, signal?: AbortSignal) =>
     api<RevenueReport>(`/api/reports/revenue${toQuery({ ...params })}`, { signal }),
