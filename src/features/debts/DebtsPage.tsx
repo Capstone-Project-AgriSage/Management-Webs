@@ -160,7 +160,7 @@ export default function DebtsPage() {
       ) : <BusinessReportCards kind="debt" />}
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col">
         <div className="px-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex min-w-0 max-w-full gap-1 overflow-x-auto" role="tablist">
+          <div className="flex min-w-0 max-w-full flex-wrap gap-1" role="tablist">
             {([
               ['accounts', 'Theo khách hàng'],
               ['entries', 'Khoản nợ'],
@@ -170,7 +170,7 @@ export default function DebtsPage() {
                 key={t}
                 role="tab"
                 aria-selected={tab === t}
-                className={`shrink-0 px-3 py-3 text-sm font-medium border-b-2 -mb-px whitespace-nowrap ${tab === t ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+                className={`px-3 py-3 text-sm font-medium border-b-2 -mb-px whitespace-nowrap ${tab === t ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
                 onClick={() => setTab(t)}
               >
                 {text}

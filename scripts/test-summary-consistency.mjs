@@ -81,9 +81,19 @@ async function makeSession(role = 'STORE_OWNER', permissions = READ_PERMISSIONS,
       assert.equal(await page.locator('.agrisage-kpi-card').count(), 4, `${path} must render exactly four summary cards`)
       assert.deepEqual(errors, [], `${path} must not throw in the browser`)
       assert.deepEqual(unknown, [], `${path} must use supported fixture APIs`)
+      assert.equal(await page.locator('select:not(.agrisage-select)').count(), 0, `${path}: all dropdowns use the shared popup`)
+      assert.equal(await page.locator('.agrisage-filter select').evaluateAll(selects => selects.every(select => {
+        const caption = select.closest('.agrisage-filter').querySelector('.agrisage-filter-caption')
+        if (!caption) return false
+        const field = select.getBoundingClientRect()
+        const text = caption.getBoundingClientRect()
+        return text.top > field.top && text.bottom < field.top + parseFloat(getComputedStyle(select).paddingTop)
+      })), true, `${path}: every filter caption stays inside the field, above its value`)
+      assert.equal(await page.locator('table').evaluateAll(tables => tables.every(table => [...table.querySelectorAll('th, td, .font-mono')].every(cell => getComputedStyle(cell).fontFamily === getComputedStyle(document.body).fontFamily))), true, `${path}: table text uses the shared font`)
       assert.equal(await page.locator('.sidebar-link:not(.is-active) .material-symbols-outlined.text-primary').count(), 0, `${path}: inactive navigation icons must not be green`)
       if (['/', '/agent', '/sales', '/delivery'].includes(path)) assert.equal(await page.locator('.sidebar-link.is-active').count(), 1, 'The role overview must be active only on its exact route')
       if (process.env.UI_SCREENSHOT_DIR && ['/agent/inventory', '/agent/orders', '/notifications', '/sales/inventory'].includes(path)) await page.screenshot({ path: join(process.env.UI_SCREENSHOT_DIR, path.replaceAll('/', '-').slice(1) + '.png'), fullPage: true })
+      if (process.env.UI_SCREENSHOT_DIR && path === '/agent/returns') await page.locator('.agrisage-list-toolbar').screenshot({ path: join(process.env.UI_SCREENSHOT_DIR, 'returns-filter.png') })
       console.log(`PASS ${path}: exactly four cards with scoped data`)
     } catch (error) {
       console.error('Failed route:', path, 'Browser errors:', errors, 'Unexpected APIs:', unknown)
@@ -128,7 +138,8 @@ try {
     const supplier = toolbar.getByLabel('Nhà cung cấp', { exact: true })
     assert.equal(await supplier.evaluate(select => {
       const caption = select.closest('.agrisage-filter').querySelector('.agrisage-filter-caption')
-      return caption.getBoundingClientRect().bottom < select.getBoundingClientRect().top + parseFloat(getComputedStyle(select).paddingTop)
+      const field = select.getBoundingClientRect()
+      return caption.getBoundingClientRect().top > field.top && caption.getBoundingClientRect().bottom < field.top + parseFloat(getComputedStyle(select).paddingTop)
     }), true, 'Supplier caption must be above the selected value, without overlap')
     request = owner.page.waitForRequest(request => new URL(request.url()).pathname === '/api/goods-receipts' && new URL(request.url()).searchParams.get('supplierId') === 'supplier-1')
     await supplier.selectOption('supplier-1')
@@ -164,12 +175,80 @@ try {
     await picture('corrected-debt-filter')
     console.log('PASS Debt dropdown sends the existing overdue parameter and clears consistently')
 
+    const debtTabs = owner.page.getByRole('tablist')
+    assert.equal(await debtTabs.evaluate(tabs => getComputedStyle(tabs).overflowY), 'visible', 'Debt tabs must not introduce a vertical scrollbar')
+    await debtTabs.getByRole('tab', { name: 'Khoản nợ', exact: true }).click()
+    if (process.env.UI_SCREENSHOT_DIR) await debtTabs.screenshot({ path: join(process.env.UI_SCREENSHOT_DIR, 'corrected-debt-tabs.png') })
+
+    await owner.check('/agent/payments')
+    const paymentStatus = toolbar.getByRole('combobox', { name: 'Trạng thái đơn hàng', exact: true })
+    assert.equal(await toolbar.getByRole('combobox').count(), 2, 'Order payments need status and source filters')
+    await paymentStatus.click()
+    const popup = owner.page.locator('.agrisage-select-menu')
+    await popup.waitFor()
+    assert.equal(await paymentStatus.getAttribute('aria-expanded'), 'true')
+    assert.equal(await popup.getByRole('option', { selected: true }).innerText(), 'Tất cả trạng thái')
+    assert.equal(await paymentStatus.evaluate(select => {
+      const caption = select.closest('.agrisage-filter').querySelector('.agrisage-filter-caption').getBoundingClientRect()
+      const field = select.getBoundingClientRect()
+      return caption.top > field.top && caption.bottom < field.top + parseFloat(getComputedStyle(select).paddingTop)
+    }), true, 'Order status label sits inside the field above its value')
+    if (process.env.UI_SCREENSHOT_DIR) await owner.page.screenshot({ path: join(process.env.UI_SCREENSHOT_DIR, 'dropdown-open-desktop.png') })
+    request = owner.page.waitForRequest(request => new URL(request.url()).pathname === '/api/orders' && new URL(request.url()).searchParams.get('status') === 'CONFIRMED')
+    await popup.getByRole('option', { name: 'Đã xác nhận', exact: true }).click()
+    await request
+    assert.equal(await paymentStatus.inputValue(), 'CONFIRMED', 'Custom popup dispatches the native form change')
+    assert.equal(await popup.count(), 0)
+    await paymentStatus.press('Enter')
+    await paymentStatus.press('End')
+    await paymentStatus.press('Enter')
+    assert.equal(await paymentStatus.inputValue(), 'PARTIALLY_CANCELLED', 'Keyboard selection commits the focused option')
+    await paymentStatus.press('Enter')
+    await paymentStatus.press('Escape')
+    assert.equal(await popup.count(), 0)
+    assert.equal(await paymentStatus.inputValue(), 'PARTIALLY_CANCELLED', 'Escape leaves the selected value intact')
+    await paymentStatus.click()
+    await owner.page.getByRole('heading', { name: 'Tổng hợp thanh toán', exact: true }).click()
+    assert.equal(await popup.count(), 0, 'Outside clicks dismiss the popup')
+    await toolbar.getByRole('combobox', { name: 'Nguồn đơn hàng', exact: true }).selectOption('COUNTER')
+    await toolbar.getByLabel('Từ ngày', { exact: true }).fill('2026-10-01')
+    request = owner.page.waitForRequest(request => {
+      const url = new URL(request.url())
+      return url.pathname === '/api/orders' && url.searchParams.get('source') === 'COUNTER' && url.searchParams.get('fromDate') === '2026-10-01' && url.searchParams.get('toDate') === '2026-10-11' && url.searchParams.get('page') === '1'
+    })
+    await toolbar.getByLabel('Đến ngày', { exact: true }).fill('2026-10-11')
+    await request
+    await toolbar.getByRole('button', { name: 'Xóa lọc', exact: true }).click()
+    assert.equal(await paymentStatus.inputValue(), '')
+    assert.equal(await toolbar.getByRole('combobox', { name: 'Nguồn đơn hàng', exact: true }).inputValue(), '')
+    assert.equal(await toolbar.getByLabel('Từ ngày', { exact: true }).inputValue(), '')
+    assert.equal(await toolbar.getByLabel('Đến ngày', { exact: true }).inputValue(), '')
+    await picture('corrected-payments-filter')
+    console.log('PASS Shared popup: mouse, keyboard, Escape, outside click, label and payment API filters')
+
+    await owner.check('/agent/credit-config')
+    const selectedTab = owner.page.getByRole('tab', { selected: true })
+    assert.equal(await selectedTab.evaluate(tab => getComputedStyle(tab).color), 'rgb(255, 255, 255)', 'Credit configuration selected tab is green with white text')
+    assert.equal(await selectedTab.evaluate(tab => getComputedStyle(tab).backgroundImage.includes('linear-gradient')), true)
+    await owner.page.getByRole('tab', { name: 'Hạng tín dụng', exact: true }).click()
+    assert.equal(await owner.page.getByRole('tab', { selected: true }).innerText(), 'Hạng tín dụng')
+    await owner.check('/agent/activity-log')
+    const advanced = owner.page.locator('.agrisage-advanced-filters')
+    await advanced.locator('summary').click()
+    assert.equal(await advanced.evaluate(panel => getComputedStyle(panel).backgroundColor), 'rgba(252, 255, 248, 0.6)', 'Advanced audit filters match the glass panel')
+    if (process.env.UI_SCREENSHOT_DIR) await advanced.screenshot({ path: join(process.env.UI_SCREENSHOT_DIR, 'corrected-audit-filter.png') })
+    console.log('PASS Credit tab colors, audit filter surface, scrollbar-free debt tabs and common table fonts')
+
     await owner.page.setViewportSize({ width: 390, height: 844 })
-    for (const path of ['/agent/orders', '/agent/purchases/receipts', '/agent/refunds', '/agent/inventory/movements', '/agent/debts']) {
+    for (const path of ['/agent/orders', '/agent/purchases/receipts', '/agent/refunds', '/agent/inventory/movements', '/agent/debts', '/agent/payments']) {
       await owner.check(path)
       assert.equal(await owner.page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${path}: filters fit the phone width`)
     }
-    await picture('corrected-debt-filter-mobile')
+    await toolbar.getByRole('combobox', { name: 'Trạng thái đơn hàng', exact: true }).click()
+    assert.equal(await owner.page.locator('.agrisage-select-menu').evaluate(menu => { const rect = menu.getBoundingClientRect(); return rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight }), true, 'Mobile popup fits the viewport')
+    if (process.env.UI_SCREENSHOT_DIR) await owner.page.screenshot({ path: join(process.env.UI_SCREENSHOT_DIR, 'dropdown-open-mobile.png') })
+    await toolbar.getByRole('combobox', { name: 'Trạng thái đơn hàng', exact: true }).press('Escape')
+    await picture('corrected-payments-filter-mobile')
     await owner.page.setViewportSize({ width: 1280, height: 720 })
     console.log('PASS Corrected filters fit desktop and mobile; all four roles have exact overview activation')
     for (const [path, placeholder, rows, totalLabel] of [
@@ -180,11 +259,12 @@ try {
       const search = owner.page.getByPlaceholder(placeholder)
       await search.waitFor()
       await owner.page.locator(rows).first().waitFor()
-      const before = owner.requests.length
+      const endpoint = path === '/notifications' ? '/api/me/notifications' : '/api/inventory/stock-movements'
+      const before = owner.requests.filter(request => request.path === endpoint).length
       await search.fill('không khớp')
       await owner.page.getByText(/Không có .*phù hợp trong trang hiện tại|Không có thông báo khớp từ khóa trên trang này/).waitFor()
       assert.match(await owner.page.locator('main').innerText(), new RegExp(totalLabel))
-      assert.equal(owner.requests.length, before, 'Current-page search must not send unsupported backend Search')
+      assert.equal(owner.requests.filter(request => request.path === endpoint).length, before, 'Current-page search must not send unsupported backend Search')
       await owner.page.getByRole('button', { name: 'Xóa lọc', exact: true }).click()
       await owner.page.locator(rows).first().waitFor()
     }

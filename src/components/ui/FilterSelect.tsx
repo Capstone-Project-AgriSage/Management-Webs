@@ -1,4 +1,4 @@
-import { ChevronDown } from 'lucide-react';
+import Select from './Select'
 
 type FilterSelectOption = string | { value: string; label: string }
 
@@ -8,14 +8,15 @@ interface FilterSelectProps {
   options: FilterSelectOption[]
   className?: string
   label?: string
+  labelPlacement?: 'above' | 'inside'
   disabled?: boolean
 }
 
-export default function FilterSelect({ value, onChange, options, className = 'relative', label = 'Lọc danh sách', disabled = false }: FilterSelectProps) {
+export default function FilterSelect({ value, onChange, options, className = '', label = 'Lọc danh sách', labelPlacement = 'inside', disabled = false }: FilterSelectProps) {
   return (
-    <div className={`agrisage-filter ${className}`}>
-      {label !== 'Lọc danh sách' && <span aria-hidden="true" className="agrisage-filter-caption">{label}</span>}
-      <select
+    <div className={`agrisage-filter relative ${className}`} data-label-placement={labelPlacement}>
+      <span aria-hidden="true" title={label} className={labelPlacement === 'inside' ? 'agrisage-filter-caption' : 'agrisage-select-label'}>{label}</span>
+      <Select
         className="w-full min-h-[42px] appearance-none bg-white border border-slate-200 hover:border-slate-300 text-slate-700 text-sm py-2 pl-3 pr-9 rounded-[10px] focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-primary transition-colors cursor-pointer"
         aria-label={label}
         disabled={disabled}
@@ -31,10 +32,7 @@ export default function FilterSelect({ value, onChange, options, className = 're
             </option>
           )
         })}
-      </select>
-      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
-        <ChevronDown size={16} aria-hidden="true" />
-      </div>
+      </Select>
     </div>
   )
 }

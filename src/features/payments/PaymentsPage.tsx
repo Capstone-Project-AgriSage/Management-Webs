@@ -1,4 +1,7 @@
 import ListToolbar from '@/components/ui/ListToolbar'
+import FilterSelect from '@/components/ui/FilterSelect'
+import DateFilter from '@/components/ui/DateFilter'
+import { ORDER_SOURCE_OPTIONS, ORDER_STATUS_OPTIONS } from '@/features/orders/orderFilterOptions'
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -18,7 +21,7 @@ import { downloadCsv } from '@/utils/csv';
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 import { ordersApi } from '@/api/ordersApi';
 import { paymentsApi } from '@/api/paymentsApi';
-import type { OrderResponse } from '@/api/types';
+import type { OrderResponse, OrderStatus } from '@/api/types';
 import type { OrderPaymentsSummary } from '@/api/paymentsApi';
 import type { PayOsPaymentResponse } from '@/api/paymentsApi'
 import { usePermission } from '@/context/PermissionContext'
@@ -54,6 +57,10 @@ export default function PaymentsPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
+  const [status, setStatus] = useState<OrderStatus | ''>('')
+  const [source, setSource] = useState('')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const debouncedSearch = useDebouncedValue(search)
   const listRequest = useRef<AbortController | null>(null)
@@ -71,7 +78,7 @@ export default function PaymentsPage() {
     listRequest.current = controller
     setIsLoading(true)
     try {
-      const res = await ordersApi.getOrders({ page, pageSize: 10, search: debouncedSearch }, controller.signal)
+      const res = await ordersApi.getOrders({ page, pageSize: 10, search: debouncedSearch, status: status || undefined, source: source || undefined, fromDate: fromDate || undefined, toDate: toDate || undefined }, controller.signal)
       if (controller.signal.aborted) return
       setOrders(res.items)
       setPaymentSummaries({})
@@ -101,7 +108,7 @@ export default function PaymentsPage() {
     } finally {
       if (!controller.signal.aborted) setIsLoading(false)
     }
-  }, [page, debouncedSearch, showToast])
+  }, [page, debouncedSearch, status, source, fromDate, toDate, showToast])
 
   useEffect(() => {
     if (view !== 'orders' || !has('ORDERS.READ') || !has('PAYMENTS.READ')) { listRequest.current?.abort(); return }
@@ -215,8 +222,11 @@ export default function PaymentsPage() {
       </div>
       {view === 'payments' ? has('PAYMENTS.READ') ? <PaymentsLedger revision={ledgerRevision} onSelect={setPaymentId} onCountChange={setLedgerCount} /> : <p className="text-sm text-slate-500">Bạn chưa được cấp quyền xem thanh toán.</p> : <>
 
-      <ListToolbar search={{ value: search, onChange: (val) => { setSearch(val); setPage(1) }, placeholder: "Tìm theo mã đơn, SĐT..." }} onClear={() => { setSearch(''); setPage(1) }}>
-
+      <ListToolbar search={{ value: search, onChange: (val) => { setSearch(val); setPage(1) }, placeholder: "Tìm theo mã đơn, SĐT..." }} onClear={() => { setSearch(''); setStatus(''); setSource(''); setFromDate(''); setToDate(''); setPage(1) }}>
+        <FilterSelect label="Trạng thái đơn hàng" labelPlacement="inside" value={status} onChange={value => { setStatus(value as OrderStatus | ''); setPage(1) }} options={ORDER_STATUS_OPTIONS} />
+        <FilterSelect label="Nguồn đơn hàng" labelPlacement="inside" value={source} onChange={value => { setSource(value); setPage(1) }} options={ORDER_SOURCE_OPTIONS} />
+        <DateFilter label="Từ ngày" value={fromDate} max={toDate || undefined} onChange={event => { setFromDate(event.target.value); setPage(1) }} />
+        <DateFilter label="Đến ngày" value={toDate} min={fromDate || undefined} onChange={event => { setToDate(event.target.value); setPage(1) }} />
       </ListToolbar>
 
       <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col mt-4">

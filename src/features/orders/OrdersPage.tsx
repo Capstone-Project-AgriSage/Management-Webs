@@ -1,6 +1,7 @@
 import ListToolbar from '@/components/ui/ListToolbar'
 import FilterSelect from '@/components/ui/FilterSelect'
 import DateFilter from '@/components/ui/DateFilter'
+import { ORDER_SOURCE_OPTIONS as SOURCE_OPTIONS, ORDER_STATUS_OPTIONS as STATUS_OPTIONS } from './orderFilterOptions'
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -47,18 +48,6 @@ const STATUS_MAP: Record<OrderStatus, string> = {
   PARTIALLY_CANCELLED: 'Hủy một phần',
 }
 
-const STATUS_OPTIONS: { label: string; value: OrderStatus | '' }[] = [
-  { label: 'Tất cả trạng thái', value: '' },
-  { label: 'Chờ xác nhận', value: 'PENDING_CONFIRMATION' },
-  { label: 'Đã xác nhận', value: 'CONFIRMED' },
-  { label: 'Đang chuẩn bị', value: 'PREPARING' },
-  { label: 'Sẵn sàng giao', value: 'READY_FOR_FULFILLMENT' },
-  { label: 'Giao một phần', value: 'PARTIALLY_FULFILLED' },
-  { label: 'Hoàn thành', value: 'COMPLETED' },
-  { label: 'Đã hủy', value: 'CANCELLED' },
-  { label: 'Hủy một phần', value: 'PARTIALLY_CANCELLED' },
-]
-
 /** Payment state of a list row, derived from GET /api/orders/{id}/payments (the list itself has no payment fields). */
 function paymentBadge(order: OrderResponse, p: OrderPaymentsSummary | undefined): { label: string; className: string } {
   if (!p) return { label: '…', className: 'bg-slate-50 text-slate-400 border-slate-200' }
@@ -68,13 +57,6 @@ function paymentBadge(order: OrderResponse, p: OrderPaymentsSummary | undefined)
   if (p.paidAmount < p.orderTotal) return { label: 'Thanh toán 1 phần', className: 'bg-amber-50 text-amber-800 border-amber-200' }
   return { label: 'Đã thanh toán', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
 }
-
-const SOURCE_OPTIONS: { label: string; value: string }[] = [
-  { label: 'Tất cả nguồn', value: '' },
-  { label: 'Tại quầy', value: 'COUNTER' },
-  { label: 'Đơn Online (Web)', value: 'FARMER_WEB' },
-  { label: 'Đơn Online (App)', value: 'FARMER_MOBILE' },
-]
 
 const STATUS_VISUALS: Record<OrderStatus, { className: string; dotClassName: string }> = {
   PENDING_CONFIRMATION: { className: 'bg-amber-100 text-amber-800 border-amber-300', dotClassName: 'bg-amber-600' },
@@ -441,8 +423,8 @@ export default function OrdersPage() {
             <Plus size={16} />
             <span>Soạn đơn tại quầy</span>
           </button></>}>
-        <FilterSelect label="Trạng thái đơn hàng" value={statusFilter} onChange={value => { setStatusFilter(value as OrderStatus | ''); setPage(1) }} options={STATUS_OPTIONS} />
-        <FilterSelect label="Nguồn đơn hàng" value={sourceFilter} onChange={value => { setSourceFilter(value); setPage(1) }} options={SOURCE_OPTIONS} />
+        <FilterSelect label="Trạng thái đơn hàng" labelPlacement="inside" value={statusFilter} onChange={value => { setStatusFilter(value as OrderStatus | ''); setPage(1) }} options={STATUS_OPTIONS} />
+        <FilterSelect label="Nguồn đơn hàng" labelPlacement="inside" value={sourceFilter} onChange={value => { setSourceFilter(value); setPage(1) }} options={SOURCE_OPTIONS} />
 <DateFilter
               label="Từ ngày"
               value={fromDate}

@@ -1,3 +1,4 @@
+import Select from '@/components/ui/Select'
 import { useDetailBusy } from '@/hooks/useDetailBusy'
 import { usePermission } from '@/context/PermissionContext';
 import PermissionAction from '@/components/auth/PermissionAction'
@@ -325,7 +326,7 @@ export default function ReturnDetailPage() {
                     <td className="py-2.5 px-3">
                       {inspecting ? (
                         <div className="flex flex-wrap items-center gap-2">
-                          <select
+                          <Select
                             className={`${cellInput} min-w-[150px]`}
                             aria-label="Tình trạng hàng trả"
                             value={edit?.condition ?? (inspected ? (it.conditionStatus as Inspectable) : '')}
@@ -337,7 +338,7 @@ export default function ReturnDetailPage() {
                                 {c.label} ({c.hint})
                               </option>
                             ))}
-                          </select>
+                          </Select>
                           <input
                             className={`${cellInput} flex-1 min-w-[120px]`}
                             maxLength={500}

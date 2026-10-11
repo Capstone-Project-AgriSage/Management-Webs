@@ -1,3 +1,4 @@
+import Select from '@/components/ui/Select'
 import { useDetailBusy } from '@/hooks/useDetailBusy'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
@@ -479,14 +480,14 @@ export default function DiagnosisCasePage() {
             )
           })}
           {decision === 'CORRECTED' && (
-            <select value={correctedId} onChange={(e) => setCorrectedId(e.target.value)} className={field} aria-label="Bệnh đúng">
+            <Select value={correctedId} onChange={(e) => setCorrectedId(e.target.value)} className={field} aria-label="Bệnh đúng">
               <option value="">Chọn bệnh đúng...</option>
               {diseases.map((d) => (
                 <option key={d.id} value={d.id}>
                   {diseaseLabel(d.code, d.name)}
                 </option>
               ))}
-            </select>
+            </Select>
           )}
           <textarea
             value={comment}
@@ -525,14 +526,14 @@ export default function DiagnosisCasePage() {
             treatments.length === 0 ? (
               <p className="text-sm text-slate-600">Bệnh này chưa có cách xử lý nào. Chủ cửa hàng nhập ở mục nội dung bệnh.</p>
             ) : (
-              <select value={treatmentId} onChange={(e) => setTreatmentId(e.target.value)} className={field} aria-label="Cách xử lý">
+              <Select value={treatmentId} onChange={(e) => setTreatmentId(e.target.value)} className={field} aria-label="Cách xử lý">
                 <option value="">Chọn cách xử lý...</option>
                 {treatments.map((t) => (
                   <option key={t.id} value={t.id}>
                     [{TREATMENT_KIND_LABEL[t.treatmentType]}] {t.title}
                   </option>
                 ))}
-              </select>
+              </Select>
             )
           ) : item.finalDisease?.isHealthy ? (
             <p className="text-sm text-amber-800">Lá khỏe không được gợi ý sản phẩm.</p>

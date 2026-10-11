@@ -304,7 +304,7 @@ export default function CreditConfigPage() {
             key={tab}
             role="tab"
             aria-selected={activeTab === tab}
-            className={`px-6 py-2 rounded-md font-label-md text-label-md transition-colors ${activeTab === tab ? 'bg-white shadow text-primary font-bold' : 'text-on-surface-variant hover:text-on-surface'
+            className={`px-6 py-2 rounded-md font-label-md text-label-md transition-colors ${activeTab === tab ? 'bg-primary-dark shadow text-white font-bold' : 'text-on-surface-variant hover:text-on-surface'
               }`}
             onClick={() => { setActiveTab(tab); setPage(1) }}
           >

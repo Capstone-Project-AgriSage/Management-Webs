@@ -5,7 +5,7 @@ import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronDown, FileSpreadsheet, Plus } from 'lucide-react';
+import { FileSpreadsheet, Plus } from 'lucide-react';
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -97,7 +97,7 @@ export default function GoodsReceiptsPage() {
             }}
             options={[{ value: '', label: 'Tất cả trạng thái' }, ...(Object.keys(RECEIPT_STATUS_LABEL) as ReceiptStatus[]).map((s) => ({ value: s, label: RECEIPT_STATUS_LABEL[s] }))]}
           />
-<div className="agrisage-filter relative">
+<div className="agrisage-filter relative" data-label-placement="inside">
   <label className="agrisage-filter-caption" htmlFor="receipt-supplier-filter">Nhà cung cấp</label>
   <SupplierSelect
               id="receipt-supplier-filter"
@@ -110,7 +110,6 @@ export default function GoodsReceiptsPage() {
               emptyLabel="Tất cả nhà cung cấp"
               className="appearance-none pr-9"
             />
-    <ChevronDown size={16} aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
   </div>
       </ListToolbar>
 

@@ -1,3 +1,4 @@
+import Select from '@/components/ui/Select'
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
@@ -204,7 +205,7 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
               <div>
                 <label htmlFor="driver-select" className="text-xs font-bold text-slate-700 block mb-1">Phân công tài xế</label>
                 <div className="flex gap-2">
-                  <select
+                  <Select
                     id="driver-select"
                     className="flex-1 h-9 px-3 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
                     value={selectedDriverId}
@@ -215,7 +216,7 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
                     {drivers.map((d) => (
                       <option key={d.id} value={d.id}>{d.fullName}{d.phoneNumber ? ` · ${d.phoneNumber}` : ''}</option>
                     ))}
-                  </select>
+                  </Select>
                   <PermissionAction codes={["DELIVERIES.ASSIGN"]}><button
                     type="button"
                     className="px-4 h-9 bg-slate-800 text-white hover:bg-slate-900 font-medium rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center gap-1"
@@ -473,7 +474,7 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
         </div>}><div className="p-4 space-y-4">
             <div>
               <label htmlFor="resolution-type" className="text-sm font-medium text-slate-700 block mb-1">Hướng giải quyết</label>
-              <select
+              <Select
                 id="resolution-type"
                 className="w-full h-10 px-3 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 value={resolutionType}
@@ -482,7 +483,7 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
                 {(Object.keys(RESOLUTION_TYPE_LABEL) as ResolutionType[]).map((t) => (
                   <option key={t} value={t}>{RESOLUTION_TYPE_LABEL[t]}</option>
                 ))}
-              </select>
+              </Select>
               {STOCK_CHANGING_RESOLUTIONS.includes(resolutionType) && (
                 <p className="mt-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-2 flex gap-1.5">
                   <AlertTriangle size={14} className="shrink-0 mt-0.5" />

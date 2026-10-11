@@ -1,3 +1,4 @@
+import Select from '@/components/ui/Select'
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useRef, useState } from 'react'
@@ -222,24 +223,24 @@ export default function ProductFormModal({ open, product, categories, brands, un
               <input className={inputClassName} value={v.name} maxLength={255} onChange={(e) => set('name', e.target.value)} />
             </Field>
             <Field label="Danh mục" required error={errors.categoryId}>
-              <select className={inputClassName} value={v.categoryId} onChange={(e) => set('categoryId', e.target.value)}>
+              <Select className={inputClassName} value={v.categoryId} onChange={(e) => set('categoryId', e.target.value)}>
                 <option value="">Chọn danh mục</option>
                 {categoryOptions.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </Field>
             <Field label="Thương hiệu">
-              <select className={inputClassName} value={v.brandId} onChange={(e) => set('brandId', e.target.value)}>
+              <Select className={inputClassName} value={v.brandId} onChange={(e) => set('brandId', e.target.value)}>
                 <option value="">Không có</option>
                 {brandOptions.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </Field>
           </section><section className="grid grid-cols-1 gap-3">
             <Field label="Mô tả">

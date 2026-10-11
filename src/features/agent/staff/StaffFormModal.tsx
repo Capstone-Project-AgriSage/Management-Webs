@@ -1,3 +1,4 @@
+import Select from '@/components/ui/Select'
 import { useEffect, useId, useState } from 'react'
 import { staffApi, type StaffProfileRequest, type StaffRole, type StaffResponse } from '@/api/staffApi'
 import { describeError } from '@/api/client'
@@ -75,7 +76,7 @@ export default function StaffFormModal({ mode, member, roles, onClose, onSaved }
         <fieldset disabled={saving || (mode === 'edit' && !!error && !record)} className="contents">
           {mode !== 'reset-password' && <>
             <label className="space-y-1 text-sm sm:col-span-2">Họ và tên *<input className={inputClass} required maxLength={150} value={profile.fullName} onChange={event => setField('fullName', event.target.value)} /></label>
-            {mode === 'create' && <label className="space-y-1 text-sm sm:col-span-2">Vai trò *<select className={inputClass} required value={role} onChange={event => setRole(event.target.value as StaffRole)}>{roles.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>}
+            {mode === 'create' && <label className="space-y-1 text-sm sm:col-span-2">Vai trò *<Select className={inputClass} required value={role} onChange={event => setRole(event.target.value as StaffRole)}>{roles.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</Select></label>}
             <label className="space-y-1 text-sm">Số điện thoại<input className={inputClass} type="tel" autoComplete="tel" value={profile.phoneNumber ?? ''} onChange={event => setField('phoneNumber', event.target.value)} /></label>
             <label className="space-y-1 text-sm">Email<input className={inputClass} type="email" maxLength={254} autoComplete="email" value={profile.email ?? ''} onChange={event => setField('email', event.target.value)} /></label>
             <label className="space-y-1 text-sm">Mã nhân viên<input className={inputClass} maxLength={50} value={profile.employeeCode ?? ''} onChange={event => setField('employeeCode', event.target.value)} /></label>

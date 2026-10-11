@@ -1,3 +1,4 @@
+import Select from '@/components/ui/Select'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useId, type ReactNode } from 'react'
 import DetailModal from '@/components/ui/DetailModal'
@@ -107,7 +108,7 @@ export default function FormModal({
                       </label>
                     ) : null}
                     {field.type === 'select' ? (
-                      <select id={`${formId}-${field.key}`} className={inputClassName} value={values[field.key] ?? ''} onChange={(e) => onChange(field.key, e.target.value)}>
+                      <Select id={`${formId}-${field.key}`} className={inputClassName} value={values[field.key] ?? ''} onChange={(e) => onChange(field.key, e.target.value)}>
                         {(field.options ?? []).map((option) => {
                           const optValue = typeof option === 'string' ? option : option.value
                           const optLabel = typeof option === 'string' ? (field.renderOption?.(option) ?? option) : option.label
@@ -117,7 +118,7 @@ export default function FormModal({
                             </option>
                           )
                         })}
-                      </select>
+                      </Select>
                     ) : (
                       <input
                         id={`${formId}-${field.key}`}

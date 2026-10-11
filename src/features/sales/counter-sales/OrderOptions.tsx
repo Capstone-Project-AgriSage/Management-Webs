@@ -1,3 +1,4 @@
+import Select from '@/components/ui/Select'
 import { formatVnd } from '@/utils/money'
 import { EMPTY_ADDRESS, MAX_NOTE, creditUsable, deliveryAllowed, type OrderDraft } from './orderDraft'
 
@@ -99,7 +100,7 @@ export default function OrderOptions({ draft, total, errors, onChange }: OrderOp
       {draft.fulfillmentType === 'DELIVERY' && (
         <div className="space-y-2 p-3 rounded-lg bg-surface-container">
           {saved.length > 0 && (
-            <select
+            <Select
               aria-label="Địa chỉ giao hàng đã lưu"
               className={`${inputClass} border-outline-variant`}
               value={a.addressId ?? ''}
@@ -112,7 +113,7 @@ export default function OrderOptions({ draft, total, errors, onChange }: OrderOp
                 </option>
               ))}
               <option value="">Nhập địa chỉ khác...</option>
-            </select>
+            </Select>
           )}
           {!a.addressId && (
             <div className="grid grid-cols-2 gap-2">

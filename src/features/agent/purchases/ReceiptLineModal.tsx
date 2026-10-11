@@ -1,3 +1,4 @@
+import Select from '@/components/ui/Select'
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useMemo, useState } from 'react'
@@ -160,14 +161,14 @@ export default function ReceiptLineModal({ receiptId, item, onClose, onSaved }: 
           <label className="text-sm font-medium text-slate-700" htmlFor="rl-pack">
             Quy cách nhập *
           </label>
-          <select id="rl-pack" className={inputClassName} value={packagingId} onChange={(e) => setPackagingId(e.target.value)} disabled={productLoading}>
+          <Select id="rl-pack" className={inputClassName} value={packagingId} onChange={(e) => setPackagingId(e.target.value)} disabled={productLoading}>
             <option value="">{productLoading ? 'Đang tải...' : purchasePackagings.length === 0 ? 'Sản phẩm chưa có quy cách nhập' : 'Chọn quy cách...'}</option>
             {purchasePackagings.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.packagingName ?? p.unitName} (1 = {formatQty(p.conversionToBase)} {unitLabel(baseUnit ?? p.unitCode)})
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       ) : null}<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1">

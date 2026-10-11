@@ -1,3 +1,4 @@
+import Select from '@/components/ui/Select'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Modal from '@/components/ui/Modal'
@@ -219,12 +220,12 @@ export function CompleteAttemptModal({ outcome, lines, loading, onClose, onSubmi
             <span className="font-label-md text-label-md text-on-surface-variant block mb-1">
               {isFailed ? 'Lý do không giao được' : 'Lý do phần chưa giao'} <span className="text-error">*</span>
             </span>
-            <select className={inputClassName} value={reason} onChange={(e) => setReason(e.target.value as FailureReason)}>
+            <Select className={inputClassName} value={reason} onChange={(e) => setReason(e.target.value as FailureReason)}>
               <option value="">-- Chọn lý do --</option>
               {FAILURE_CODES.map((c) => (
                 <option key={c} value={c}>{FAILURE_REASON_LABEL[c]}</option>
               ))}
-            </select>
+            </Select>
           </label>
         )}
 
@@ -316,12 +317,12 @@ export function ReportIncidentModal({ open, lines, loading, onClose, onSubmit }:
         </p>
         <label className="block">
           <span className="font-label-md text-label-md text-on-surface-variant block mb-1">Loại sự cố <span className="text-error">*</span></span>
-          <select className={inputClassName} value={incidentType} onChange={(e) => setIncidentType(e.target.value as IncidentType)}>
+          <Select className={inputClassName} value={incidentType} onChange={(e) => setIncidentType(e.target.value as IncidentType)}>
             <option value="">-- Chọn loại sự cố --</option>
             {FAILURE_CODES.map((c) => (
               <option key={c} value={c}>{FAILURE_REASON_LABEL[c]}</option>
             ))}
-          </select>
+          </Select>
         </label>
         <label className="block">
           <span className="font-label-md text-label-md text-on-surface-variant block mb-1">Mô tả chi tiết <span className="text-error">*</span></span>
@@ -336,12 +337,12 @@ export function ReportIncidentModal({ open, lines, loading, onClose, onSubmit }:
           <div className="grid grid-cols-[1fr_7rem] gap-2">
             <label className="block">
               <span className="font-label-md text-label-md text-on-surface-variant block mb-1">Lô bị ảnh hưởng</span>
-              <select className={inputClassName} value={allocationId} onChange={(e) => setAllocationId(e.target.value)}>
+              <Select className={inputClassName} value={allocationId} onChange={(e) => setAllocationId(e.target.value)}>
                 <option value="">-- Không chọn --</option>
                 {lots.map((l) => (
                   <option key={l.id} value={l.id}>{l.label}</option>
                 ))}
-              </select>
+              </Select>
             </label>
             <label className="block">
               <span className="font-label-md text-label-md text-on-surface-variant block mb-1">Số lượng gốc</span>

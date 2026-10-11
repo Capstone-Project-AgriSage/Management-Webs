@@ -47,7 +47,7 @@ export default function OrderDashboard({ reports = false, ordersPath }: { report
       ]} />}
     {canReadOrders ? <>
       <ListToolbar search={{ value: search, onChange: setSearch, placeholder: 'Tìm mã đơn, tên hoặc số điện thoại khách hàng...' }} onClear={reset} actions={<button type="button" disabled={loading || !!problem} onClick={refresh} className="inline-flex h-10 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-600 disabled:opacity-50"><RefreshCw size={14} className={loading ? 'animate-spin' : ''} />Làm mới</button>}>
-        <FilterSelect label="Trạng thái đơn hàng" value={status} onChange={value => setStatus(value as OrderStatus | '')} options={[{ value: '', label: 'Tất cả trạng thái' }, ...Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))]} />
+        <FilterSelect label="Trạng thái đơn hàng" labelPlacement="inside" value={status} onChange={value => setStatus(value as OrderStatus | '')} options={[{ value: '', label: 'Tất cả trạng thái' }, ...Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))]} />
         {!reports && <>
           <input aria-label="Từ ngày" type="date" className={reportInputClass} value={fromDate} max={toDate} onChange={event => setFromDate(event.target.value)} />
           <input aria-label="Đến ngày" type="date" className={reportInputClass} value={toDate} min={fromDate} onChange={event => setToDate(event.target.value)} />

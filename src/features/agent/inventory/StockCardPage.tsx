@@ -147,8 +147,8 @@ export default function StockCardPage() {
           <input id="sc-to" type="date" className={dateInputClassName} value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} />
         </div>
 <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Lô</label>
           <FilterSelect
+            label="Lô hàng"
             value={lotId}
             onChange={setLotId}
             className="relative min-w-[180px]"

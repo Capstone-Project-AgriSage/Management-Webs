@@ -1,3 +1,4 @@
+import Select from '@/components/ui/Select'
 import { useEffect, useState } from 'react'
 import { suppliersApi, type Supplier } from '@/api/suppliersApi'
 
@@ -37,7 +38,7 @@ export default function SupplierSelect({ value, onChange, activeOnly = true, emp
   }, [activeOnly])
 
   return (
-    <select id={id} className={`${selectClassName} ${className}`} value={value} onChange={(e) => onChange(e.target.value)} disabled={loading}>
+    <Select id={id} className={`${selectClassName} ${className}`} value={value} onChange={(e) => onChange(e.target.value)} disabled={loading}>
       <option value="">{loading ? 'Đang tải...' : emptyLabel}</option>
       {suppliers.map((s) => (
         <option key={s.id} value={s.id}>
@@ -46,6 +47,6 @@ export default function SupplierSelect({ value, onChange, activeOnly = true, emp
           {!s.isActive ? ' - ngừng hợp tác' : ''}
         </option>
       ))}
-    </select>
+    </Select>
   )
 }

@@ -1,3 +1,4 @@
+import Select from '@/components/ui/Select'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState, type ReactNode } from 'react'
 import Modal from '@/components/ui/Modal'
@@ -77,12 +78,12 @@ export default function PromptModal({ open, title, description, fields, initialV
               {f.type === 'textarea' ? (
                 <textarea {...common} rows={3} className={`${inputClassName} py-2`} />
               ) : f.type === 'select' ? (
-                <select {...common} className={`${inputClassName} h-10`}>
+                <Select {...common} className={`${inputClassName} h-10`}>
                   <option value="">-- Chọn --</option>
                   {(f.options ?? []).map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
-                </select>
+                </Select>
               ) : (
                 <input {...common} type={f.type ?? 'text'} min={f.min} className={`${inputClassName} h-10`} />
               )}

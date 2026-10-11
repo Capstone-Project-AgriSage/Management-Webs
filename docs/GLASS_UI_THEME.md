@@ -38,6 +38,15 @@ Use case: photorealistic-natural. Asset type: wide background photograph for an 
 - Biểu tượng menu chỉ xanh khi đường dẫn đang được chọn; Tổng quan trỏ về trang tổng quan của đúng vai trò. Thanh tab công nợ cuộn trong khung trên điện thoại.
 - `test-summary-consistency.mjs` kiểm tra thêm nhãn ngày, khoảng cách ô nhà cung cấp, tham số API hoàn tiền/công nợ, màu menu và độ rộng trang ở 390 px. Ảnh xem trước bộ lọc nằm trong `artifacts/filter-corrections/`.
 
+### Dropdown, thanh toán và bảng
+
+- Toàn bộ ô chọn HTML và các bộ lọc dùng `FilterSelect` đã chuyển sang `Select` dùng chung. Nhãn của tất cả dropdown bộ lọc nằm bên trong ô, phía trên giá trị; ô nhà cung cấp cũng dùng bố cục này. Các bộ lọc danh mục, tồn kho, cảnh báo, lô hàng và phạm vi kiểm kê có nhãn rõ ràng. Danh sách mở có nền gần trắng, bo góc và mục được chọn xanh nhạt. Biểu mẫu vẫn giữ giá trị, validation, nhãn và sự kiện thay đổi của ô chọn HTML.
+- Danh sách mở hỗ trợ chuột, phím mũi tên, Home/End, gõ chữ tìm mục, Enter, Escape và Tab. Danh sách được đưa ra ngoài khung cuộn để không bị cắt trong bảng/hộp thoại; vị trí theo ô chọn khi trang cuộn.
+- “Theo đơn hàng” ở Thanh toán có trạng thái đơn hàng, nguồn đơn và khoảng ngày tạo đơn, gửi các tham số có sẵn của `/api/orders`. “Xóa lọc” xóa cả bốn lựa chọn và tìm kiếm, đồng thời về trang 1. Không thêm bộ lọc trạng thái thanh toán ở cấp toàn bộ đơn vì hợp đồng danh sách đơn chưa hỗ trợ tham số đó.
+- Tab công nợ tự xuống hàng khi hẹp, không có thanh cuộn. Tab cấu hình nhóm khách hàng/hạng tín dụng được chọn dùng nền xanh, chữ trắng.
+- Bộ lọc nâng cao nhật ký dùng nền kính chung. Tất cả bảng trong trang quản lý và hộp thoại dùng font ứng dụng, tiêu đề 12 px, nội dung 14 px và thông tin phụ 12 px; màu trạng thái và độ đậm vẫn giữ vai trò của từng cột.
+- Kiểm thử thêm popup bằng chuột/bàn phím, đóng popup trong hộp thoại, tham số bộ lọc thanh toán, font bảng và màn hình 390 px. Ảnh cập nhật nằm trong `artifacts/dropdown-consistency/` (`dropdown-open-desktop.png`, `dropdown-open-mobile.png`, `corrected-payments-filter.png`, `corrected-audit-filter.png`). Backend và database không thay đổi.
+
 Kiểm tra trình duyệt sử dụng API giả lập, không gọi backend cửa hàng thật. Ảnh chụp dùng dữ liệu kiểm thử, không phải số liệu kinh doanh.
 
 - `test-summary-consistency.mjs`: 35 trang/đường dẫn và kiểm tra phạm vi số liệu, phân quyền, API lỗi; bốn ô trên các trang.

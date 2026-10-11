@@ -1,3 +1,4 @@
+import Select from '@/components/ui/Select'
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
@@ -285,14 +286,14 @@ function AddLine({ disabled, onAdd }: { disabled: boolean; onAdd: (storeProductI
             </div>
           )}
         </div>
-        <select aria-label="Quy cách" className={`${input} min-w-[160px]`} disabled={!product} value={packagingId} onChange={(e) => setPackagingId(e.target.value)}>
+        <Select aria-label="Quy cách" className={`${input} min-w-[160px]`} disabled={!product} value={packagingId} onChange={(e) => setPackagingId(e.target.value)}>
           {!product && <option value="">Quy cách</option>}
           {product?.packagings.map((p) => (
             <option key={p.id} value={p.id} disabled={p.price === null}>
               {packagingLabel(p)}{p.price === null ? ' — chưa có giá' : ''}
             </option>
           ))}
-        </select>
+        </Select>
         <input aria-label="Số lượng thêm" inputMode="numeric" className={`${input} w-20 text-center`} value={qty} onChange={(e) => setQty(e.target.value.replace(/[^\d]/g, ''))} />
         <button
           type="button"

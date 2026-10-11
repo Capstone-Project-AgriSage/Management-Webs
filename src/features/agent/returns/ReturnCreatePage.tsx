@@ -1,3 +1,4 @@
+import Select from '@/components/ui/Select'
 import PermissionAction from '@/components/auth/PermissionAction'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -276,7 +277,7 @@ export default function ReturnCreatePage() {
                             ) : null}
                           </td>
                           <td className="py-2.5 px-3 min-w-[190px]">
-                            <select
+                            <Select
                               className={`${cellInput} w-full`}
                               value={reasons[r.key] ?? ''}
                               disabled={disabled}
@@ -289,7 +290,7 @@ export default function ReturnCreatePage() {
                                   {x.label}
                                 </option>
                               ))}
-                            </select>
+                            </Select>
                             {r.problem ? <div className="text-[11px] text-rose-600 mt-1">{r.problem}</div> : null}
                           </td>
                           <td className="py-2.5 px-4 text-right tabular-nums whitespace-nowrap">

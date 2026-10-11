@@ -1,3 +1,4 @@
+import Select from '@/components/ui/Select'
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useRef, useState } from 'react'
@@ -355,13 +356,13 @@ function RequestRefundModal({ scope, remaining, onClose, onDone }: { scope: Refu
             <label className="text-sm font-medium text-slate-700" htmlFor="rq-method">
               Hình thức hoàn
             </label>
-            <select id="rq-method" className={inputClassName} value={method} onChange={(e) => setMethod(e.target.value as RefundMethod)}>
+            <Select id="rq-method" className={inputClassName} value={method} onChange={(e) => setMethod(e.target.value as RefundMethod)}>
               {(Object.keys(REFUND_METHOD_LABEL) as RefundMethod[]).map((m) => (
                 <option key={m} value={m}>
                   {REFUND_METHOD_LABEL[m]}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium text-slate-700" htmlFor="rq-amount">
@@ -373,14 +374,14 @@ function RequestRefundModal({ scope, remaining, onClose, onDone }: { scope: Refu
           <label className="text-sm font-medium text-slate-700" htmlFor="rq-pay">
             Hoàn cho khoản thanh toán {scope.kind === 'order' ? '*' : '(không bắt buộc)'}
           </label>
-          <select id="rq-pay" className={inputClassName} value={paymentId} onChange={(e) => setPaymentId(e.target.value)}>
+          <Select id="rq-pay" className={inputClassName} value={paymentId} onChange={(e) => setPaymentId(e.target.value)}>
             {scope.kind === 'return' ? <option value="">Không chọn</option> : payments.length === 0 ? <option value="">Đang tải...</option> : null}
             {payments.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.paymentNumber} · {p.paymentMethod === 'CASH' ? 'Tiền mặt' : 'payOS'} · {formatVnd(p.amount)}
               </option>
             ))}
-          </select>
+          </Select>
         </div>{amount !== '' && !amountOk ? (
           <p className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2" role="alert">
             {remaining !== null && value > remaining ? `Tối đa ${formatVnd(remaining)}.` : 'Số tiền phải lớn hơn 0, tối đa 2 chữ số thập phân.'}

@@ -1,3 +1,4 @@
+import Select from '@/components/ui/Select'
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
@@ -200,12 +201,12 @@ export default function CustomerFormModal({ open, customer, groups, tiers, onClo
                   <input className={inputClassName} type="password" autoComplete="new-password" value={v.password} onChange={(e) => set('password', e.target.value)} />
                 </Field>
                 <Field label="Nhóm khách hàng">
-                  <select className={inputClassName} value={v.customerGroupId} onChange={(e) => set('customerGroupId', e.target.value)}>
+                  <Select className={inputClassName} value={v.customerGroupId} onChange={(e) => set('customerGroupId', e.target.value)}>
                     <option value="">Nhóm mặc định</option>
                     {groups.filter((g) => g.isActive).map((g) => (
                       <option key={g.id} value={g.id}>{g.name}</option>
                     ))}
-                  </select>
+                  </Select>
                 </Field>
               </>
             )}
@@ -244,12 +245,12 @@ export default function CustomerFormModal({ open, customer, groups, tiers, onClo
               {v.allowCreditPurchase && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Field label="Hạng tín dụng">
-                    <select className={inputClassName} value={v.creditTierId} onChange={(e) => set('creditTierId', e.target.value)}>
+                    <Select className={inputClassName} value={v.creditTierId} onChange={(e) => set('creditTierId', e.target.value)}>
                       <option value="">Theo nhóm khách</option>
                       {tiers.filter((t) => t.isActive).map((t) => (
                         <option key={t.id} value={t.id}>{t.name} — {formatVnd(t.defaultCreditLimit)}, {t.defaultPaymentTermDays} ngày</option>
                       ))}
-                    </select>
+                    </Select>
                   </Field>
                   <Field label="Hạn mức (đ)" error={errors.creditLimit}>
                     <input className={inputClassName} type="number" min={0} value={v.creditLimit} onChange={(e) => set('creditLimit', e.target.value)} placeholder="Mặc định theo hạng" />

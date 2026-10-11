@@ -1,3 +1,4 @@
+import Select from '@/components/ui/Select'
 import { Plus, Trash2 } from 'lucide-react'
 import type { PackagingInput, UnitOption } from '@/api/productsApi'
 
@@ -102,7 +103,7 @@ export default function PackagingEditor({ rows, units, rowErrors, tableError, on
       {rows.map((r, i) => (
         <div key={r.key} className="space-y-1">
           <div className="grid grid-cols-2 sm:grid-cols-[1.2fr_1.3fr_80px_52px_44px_44px_1fr_32px] gap-2 items-center">
-            <select aria-label={`Đơn vị dòng ${i + 1}`} className={cell} value={r.unitId} onChange={(e) => patch(i, { unitId: e.target.value })}>
+            <Select aria-label={`Đơn vị dòng ${i + 1}`} className={cell} value={r.unitId} onChange={(e) => patch(i, { unitId: e.target.value })}>
               <option value="">Chọn đơn vị</option>
               {units.map((u) => (
                 <option key={u.id} value={u.id} disabled={used.has(u.id) && u.id !== r.unitId}>
@@ -110,7 +111,7 @@ export default function PackagingEditor({ rows, units, rowErrors, tableError, on
                   {u.symbol ? ` (${u.symbol})` : ''}
                 </option>
               ))}
-            </select>
+            </Select>
             <input aria-label={`Tên quy cách dòng ${i + 1}`} className={cell} placeholder="VD: Bao 50 kg" value={r.packagingName} maxLength={150} onChange={(e) => patch(i, { packagingName: e.target.value })} />
             <input
               aria-label={`Quy đổi dòng ${i + 1}`}

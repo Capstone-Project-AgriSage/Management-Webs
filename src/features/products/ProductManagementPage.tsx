@@ -218,8 +218,8 @@ export default function ProductManagementPage() {
       <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: "Tìm theo tên hoặc mã SKU..." }} onClear={resetFilters} actions={<><PermissionAction codes={["PRODUCTS.CREATE"]}><button type="button" className="h-9 px-4 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 flex items-center gap-1.5" onClick={() => setForm({ product: null })}>
             <PackagePlus size={16} /> Thêm sản phẩm
           </button></PermissionAction></>}>
-<FilterSelect value={categoryId} onChange={setCategoryId} options={categoryOptions} className="relative min-w-[170px]" />
-<FilterSelect value={status} onChange={setStatus} options={selectedStatuses} className="relative min-w-[170px]" />
+<FilterSelect label="Danh mục sản phẩm" value={categoryId} onChange={setCategoryId} options={categoryOptions} className="relative min-w-[170px]" />
+<FilterSelect label="Trạng thái sản phẩm" value={status} onChange={setStatus} options={selectedStatuses} className="relative min-w-[170px]" />
       </ListToolbar>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col">

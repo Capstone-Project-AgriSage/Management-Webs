@@ -61,7 +61,6 @@ export default function StockOverviewPage() {
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebouncedValue(search)
   const [stockFilter, setStockFilter] = useState('')
-  const [lowOnly, setLowOnly] = useState(false)
   const [page, setPage] = useState(1)
   const [summary, setSummary] = useState<Paged<StockSummaryItem> | null>(null)
   const [summaryLoading, setSummaryLoading] = useState(false)
@@ -107,7 +106,6 @@ export default function StockOverviewPage() {
     try {
       const res = await stockApi.getSummary({
         search: debouncedSearch.trim() || undefined,
-        lowStockOnly: lowOnly || undefined,
         hasStock: stockFilter === '' ? undefined : stockFilter === 'true',
         page,
         pageSize: PAGE_SIZE,
@@ -118,7 +116,7 @@ export default function StockOverviewPage() {
     } finally {
       if (id === summaryRequest.current) setSummaryLoading(false)
     }
-  }, [debouncedSearch, lowOnly, stockFilter, page, showToast])
+  }, [debouncedSearch, stockFilter, page, showToast])
 
   const loadAlerts = useCallback(async () => {
     const id = ++alertsRequest.current
@@ -362,8 +360,9 @@ export default function StockOverviewPage() {
           <ListToolbar search={{ value: search, onChange: (v) => {
                 setSearch(v)
                 setPage(1)
-              }, placeholder: "Tìm theo mã hoặc tên sản phẩm..." }} onClear={() => { setSearch(''); setStockFilter(''); setLowOnly(false); setPage(1) }}>
+              }, placeholder: "Tìm theo mã hoặc tên sản phẩm..." }} onClear={() => { setSearch(''); setStockFilter(''); setPage(1) }}>
 <FilterSelect
+              label="Tình trạng tồn kho"
               value={stockFilter}
               onChange={(v) => {
                 setStockFilter(v)
@@ -375,18 +374,6 @@ export default function StockOverviewPage() {
                 { value: 'false', label: 'Hết hàng' },
               ]}
             />
-<label className="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                className="w-4 h-4 accent-emerald-600"
-                checked={lowOnly}
-                onChange={(e) => {
-                  setLowOnly(e.target.checked)
-                  setPage(1)
-                }}
-              />
-              Chỉ sắp hết hàng
-            </label>
       </ListToolbar>
 
           <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col mt-4">
@@ -480,6 +467,7 @@ export default function StockOverviewPage() {
         <section aria-label="Cảnh báo kho">
           <ListToolbar  onClear={() => { setAlertType(''); setWithinDays(String(EXPIRING_DAYS_DEFAULT)); setAlertPage(1) }}>
 <FilterSelect
+              label="Loại cảnh báo kho"
               value={alertType}
               onChange={(v) => {
                 setAlertType(v as '' | AlertType)
@@ -494,6 +482,7 @@ export default function StockOverviewPage() {
             />
 {alertType !== 'EXPIRED' && alertType !== 'LOW_STOCK' ? (
               <FilterSelect
+                label="Thời gian sắp hết hạn"
                 value={withinDays}
                 onChange={(v) => {
                   setWithinDays(v)

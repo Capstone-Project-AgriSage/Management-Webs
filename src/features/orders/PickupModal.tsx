@@ -1,3 +1,4 @@
+import Select from '@/components/ui/Select'
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
@@ -217,7 +218,7 @@ export default function PickupModal({ order, onClose, onDone }: PickupModalProps
                       <Plus size={13} /> Lấy từ lô khác
                     </button>
                   ) : (
-                    <select
+                    <Select
                       aria-label={`Thêm lô cho ${line.item.productName}`}
                       className="h-8 px-2 rounded-md border border-slate-200 text-xs"
                       value=""
@@ -232,7 +233,7 @@ export default function PickupModal({ order, onClose, onDone }: PickupModalProps
                           {x.lotNumber ?? 'Không số'} · HSD {x.expiryDate ? formatDay(x.expiryDate.slice(0, 10)) : '--'} · còn {x.quantityAvailable}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   )}
                   <span className={`text-xs font-semibold tabular-nums ${problem ? 'text-rose-700' : 'text-slate-700'}`}>
                     Xuất {total}

@@ -189,8 +189,8 @@ export default function InventoryReportsPage() {
           </>
         ) : null}
 <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Danh mục</label>
           <FilterSelect
+            label="Danh mục sản phẩm"
             value={categoryId}
             onChange={setCategoryId}
             className="relative min-w-[220px]"

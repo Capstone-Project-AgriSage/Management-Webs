@@ -241,7 +241,7 @@ export default function AuditLogsPage() {
                 <label className="text-sm text-on-surface">Đến ngày (UTC+7)<input type="date" className={inputClass} value={draft.toDate} min={draft.fromDate || undefined} onChange={e => setDraft({ ...draft, toDate: e.target.value })} /></label>
               </>}
           </ListToolbar>
-          <details className="rounded-xl border border-slate-200 bg-white p-3">
+          <details className="agrisage-advanced-filters rounded-xl border border-slate-200 bg-white p-3">
             <summary className="cursor-pointer text-sm font-medium text-slate-600">Bộ lọc nâng cao</summary>
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mt-3">
               <label className="text-sm text-on-surface space-y-1 block">

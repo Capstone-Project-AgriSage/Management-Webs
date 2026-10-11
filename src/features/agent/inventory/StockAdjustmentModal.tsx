@@ -1,3 +1,4 @@
+import Select from '@/components/ui/Select'
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
@@ -168,13 +169,13 @@ export default function StockAdjustmentModal({ target, defaultReason, onClose, o
             <label className="text-sm font-medium text-slate-700" htmlFor="adj-reason">
               Lý do
             </label>
-            <select id="adj-reason" className={inputClassName} value={reason} onChange={(e) => setReason(e.target.value as AdjustmentReason)}>
+            <Select id="adj-reason" className={inputClassName} value={reason} onChange={(e) => setReason(e.target.value as AdjustmentReason)}>
               {ADJUSTMENT_REASONS.map((r) => (
                 <option key={r.value} value={r.value}>
                   {r.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </div>{direction === 'INCREASE' ? (
           <div className="space-y-1">

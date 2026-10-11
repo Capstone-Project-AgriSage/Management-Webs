@@ -1,3 +1,4 @@
+import Select from '@/components/ui/Select'
 import { useDetailBusy } from '@/hooks/useDetailBusy'
 import PermissionAction from '@/components/auth/PermissionAction'
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -373,6 +374,7 @@ export default function StocktakeDetailPage() {
           />
         </div>
         <FilterSelect
+          label="Phạm vi kiểm kê"
           value={filter}
           onChange={(v) => setFilter(v as LineFilter)}
           options={[
@@ -462,14 +464,14 @@ export default function StocktakeDetailPage() {
                       <td className="py-2.5 px-3 min-w-[180px]">
                         {editable ? (
                           <>
-                            <select className={`${cellInput} w-full`} value={v.reason} disabled={it.isStale || saving} onChange={(e) => setEdit(it, { reason: e.target.value })} aria-label="Lý do chênh lệch">
+                            <Select className={`${cellInput} w-full`} value={v.reason} disabled={it.isStale || saving} onChange={(e) => setEdit(it, { reason: e.target.value })} aria-label="Lý do chênh lệch">
                               <option value="">{a.diff !== null && a.diff !== 0 ? 'Chọn lý do...' : '-'}</option>
                               {STOCKTAKE_REASONS.map((r) => (
                                 <option key={r.value} value={r.value}>
                                   {r.label}
                                 </option>
                               ))}
-                            </select>
+                            </Select>
                             {a.needsCost ? (
                               <input
                                 type="number"
