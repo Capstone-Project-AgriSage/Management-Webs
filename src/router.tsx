@@ -34,6 +34,7 @@ import PaymentsPage from '@/features/payments/PaymentsPage'
 import DiagnosisQueuePage from '@/features/diagnosis/DiagnosisQueuePage'
 import DiagnosisCasePage from '@/features/diagnosis/DiagnosisCasePage'
 import DiseaseContentPage from '@/features/diagnosis/DiseaseContentPage'
+import NotFoundPage from '@/features/not-found/NotFoundPage'
 import AgentInventoryPage from '@/features/agent/inventory/StockOverviewPage'
 import AgentInventoryMovementsPage from '@/features/agent/inventory/StockMovementsPage'
 import AgentStockCardPage from '@/features/agent/inventory/StockCardPage'
@@ -345,6 +346,9 @@ export const router = createBrowserRouter([
             element: <RequireRole role="delivery_staff"><DetailListLayout><DeliveriesPage /></DetailListLayout></RequireRole>,
             children: [{ path: ':id', element: <DetailRoute><DeliveryDetailPage /></DetailRoute> }],
           },
+
+          // Last: any address above does not match. Signed-out visitors never get here, ProtectedRoute sends them to /login.
+          { path: '*', element: <NotFoundPage />, handle: { notFound: true } },
         ],
       },
     ],

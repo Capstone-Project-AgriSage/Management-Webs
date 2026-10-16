@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useMatches } from 'react-router-dom'
 import { usePermission } from '@/context/PermissionContext'
 const routes: [RegExp, string[]][] = [
   [/^\/$|^\/(agent|sales|delivery)$|^\/notifications$|\/settings$/, []],
@@ -46,7 +46,10 @@ export function canAccessRoute(path: string, has: (code: string) => boolean): bo
 export function PermissionRoute({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
   const { has, loading, error, refresh } = usePermission()
+  // The catch-all "not found" route (handle.notFound) asks for no permission. Every real route stays closed unless the table above lists it.
+  const notFound = useMatches().some(match => (match.handle as { notFound?: boolean } | undefined)?.notFound === true)
   useEffect(() => { void refresh() }, [pathname, refresh])
+  if (notFound) return <>{children}</>
   if (loading) return <p role="status">Đang tải quyền truy cập…</p>
   if (error) return <div role="alert">{error} <button onClick={() => void refresh()}>Thử lại</button></div>
   if (!canAccessRoute(pathname, has)) return <div className="rounded-xl bg-white p-10 text-center" role="alert">Không có quyền truy cập chức năng này. Liên hệ Owner hoặc Admin để được cấp quyền.</div>
