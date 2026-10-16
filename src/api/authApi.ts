@@ -44,6 +44,10 @@ export const authApi = {
   },
   forgotPassword: (identifier: string) => publicAuthPost('/api/auth/forgot-password', { identifier }),
   resetPassword: (token: string, newPassword: string) => publicAuthPost('/api/auth/reset-password', { token, newPassword }),
+  /** SMS reset: the phone number and the 6-digit code the SMS carried (an email still uses `resetPassword` with its token). */
+  resetPasswordWithCode: (identifier: string, code: string, newPassword: string) => publicAuthPost('/api/auth/reset-password', { identifier, code, newPassword }),
+  /** Checks the SMS code without using it (204 right, 422 wrong or expired); the reset that follows sends it again. */
+  verifyResetCode: (identifier: string, code: string) => publicAuthPost('/api/auth/reset-password/verify-code', { identifier, code }),
   changePassword: (currentPassword: string, newPassword: string) => publicAuthPost('/api/auth/change-password', { currentPassword, newPassword }, true),
   logout: () => api<void>('/api/auth/logout', { method: 'POST' }),
   logoutAll: () => api<void>('/api/auth/logout-all', { method: 'POST' }),

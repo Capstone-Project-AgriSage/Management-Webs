@@ -47,7 +47,7 @@ export default function ForgotPasswordPage() {
                 Đã nhận yêu cầu khôi phục
               </h1>
               <p className="font-body-sm text-body-sm text-on-surface-variant mt-2">
-                Nếu tài khoản <span className="font-semibold text-on-surface">{email}</span> tồn tại và có email, hệ thống sẽ gửi hướng dẫn đặt lại mật khẩu.
+                Nếu tài khoản <span className="font-semibold text-on-surface">{email}</span> tồn tại, hệ thống sẽ gửi mã đặt lại mật khẩu: 6 chữ số qua tin nhắn SMS nếu bạn nhập số điện thoại, hoặc mã dài trong email.
               </p>
               <Link
                 to="/login"
@@ -56,7 +56,7 @@ export default function ForgotPasswordPage() {
                 <span className="material-symbols-outlined text-[16px]">arrow_back</span>
                 Quay lại đăng nhập
               </Link>
-              <Link to="/reset-password" className="block mt-3 text-sm text-emerald-700 hover:underline">Tôi đã có mã khôi phục</Link>
+              <Link to="/reset-password" state={{ identifier: email.trim() }} className="block mt-3 text-sm text-emerald-700 hover:underline">Tôi đã có mã khôi phục</Link>
             </div>
           ) : (
             <>
