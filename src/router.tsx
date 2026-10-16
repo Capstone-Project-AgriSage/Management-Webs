@@ -15,7 +15,6 @@ import ResetPasswordPage from '@/features/auth/ResetPasswordPage'
 // ADMIN FEATURES
 // =======================
 import AdminDashboardPage from '@/features/admin/dashboard/DashboardPage'
-import AccountsPage from '@/features/admin/accounts/AccountsPage'
 import RolesPage from '@/features/admin/roles/RolesPage'
 import CategoriesPage from '@/features/admin/products/CategoriesPage'
 import ProductManagementPage from '@/features/products/ProductManagementPage'
@@ -105,7 +104,7 @@ export const router = createBrowserRouter([
           // --- ADMIN ROUTES ---
           {
             path: 'admin/accounts',
-            element: <RequireRole role="admin"><RequirePermission module="accounts"><AccountsPage /></RequirePermission></RequireRole>,
+            element: <RequireRole role="admin"><RequirePermission module="accounts"><AgentStaffPage /></RequirePermission></RequireRole>,
           },
           {
             path: 'admin/roles',

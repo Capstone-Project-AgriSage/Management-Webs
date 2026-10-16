@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { lazy, Suspense, useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { RefreshCw } from 'lucide-react'
 import { ordersApi } from '@/api/ordersApi'
@@ -9,6 +9,7 @@ import ListToolbar from '@/components/ui/ListToolbar'
 import FilterSelect from '@/components/ui/FilterSelect'
 import StatusBadge from '@/components/ui/StatusBadge'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
+import AttentionTiles from './AttentionTiles'
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 import ListReportCards from '@/features/agent/reports/ListReportCards'
 import { useReportData } from '@/features/agent/reports/useReportData'
@@ -23,8 +24,11 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   CANCELLED: 'Đã hủy', PARTIALLY_CANCELLED: 'Hủy một phần',
 }
 
-/** Period totals use report APIs; operational counts always state their visible-list scope. */
-export default function OrderDashboard({ reports = false, ordersPath }: { reports?: boolean; ordersPath?: string }) {
+// recharts is heavy and only the owner's dashboard draws it, so it loads on demand.
+const RevenueByDayChart = lazy(() => import('./RevenueByDayChart'))
+
+/** Period totals use report APIs; operational counts always state their visible-list scope. `area` adds the "needs doing now" tiles. */
+export default function OrderDashboard({ reports = false, ordersPath, area }: { reports?: boolean; ordersPath?: string; area?: 'agent' | 'sales' }) {
   const { has } = usePermission()
   const canReadOrders = has('ORDERS.READ')
   const [fromDate, setFromDate] = useState(reports ? firstOfMonthVn : todayVn)
@@ -39,12 +43,14 @@ export default function OrderDashboard({ reports = false, ordersPath }: { report
   const reset = () => { setSearch(''); setStatus(''); setFromDate(reports ? firstOfMonthVn() : todayVn()); setToDate(todayVn()) }
 
   return <div className="agrisage-dashboard max-w-[1440px] min-w-0 mx-auto flex flex-col gap-5">
+    {area && <AttentionTiles area={area} />}
     {reports ? <BusinessReportCards kind="sales" fromDate={fromDate} toDate={toDate} onFromDateChange={setFromDate} onToDateChange={setToDate} /> :
       <ListReportCards title="Tổng hợp đơn hàng theo bộ lọc" totalCount={canReadOrders ? data?.totalCount ?? null : null} unit="đơn hàng" loading={loading} error={!!error || !!problem} metrics={[
         { label: 'Cần xử lý', value: items.filter(order => ['PENDING_CONFIRMATION', 'CONFIRMED', 'PREPARING', 'READY_FOR_FULFILLMENT', 'PARTIALLY_FULFILLED'].includes(order.status)).length, note: 'Trong 5 đơn gần nhất đang hiển thị' },
         { label: 'Đã hoàn thành', value: items.filter(order => order.status === 'COMPLETED').length, note: 'Trong 5 đơn gần nhất đang hiển thị' },
         { label: 'Giá trị đơn đang hiển thị', value: items.filter(order => order.status !== 'CANCELLED').reduce((sum, order) => sum + order.totalAmount, 0), kind: 'money', note: 'Trong 5 đơn gần nhất, chưa phải doanh thu' },
       ]} />}
+    {reports && has('REPORTS.READ') && <Suspense fallback={<div aria-hidden="true" className="h-80 animate-pulse rounded-xl bg-slate-50" />}><RevenueByDayChart fromDate={fromDate} toDate={toDate} /></Suspense>}
     {canReadOrders ? <>
       <ListToolbar search={{ value: search, onChange: setSearch, placeholder: 'Tìm mã đơn, tên hoặc số điện thoại khách hàng...' }} onClear={reset} actions={<button type="button" disabled={loading || !!problem} onClick={refresh} className="inline-flex h-10 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-600 disabled:opacity-50"><RefreshCw size={14} className={loading ? 'animate-spin' : ''} />Làm mới</button>}>
         <FilterSelect label="Trạng thái đơn hàng" labelPlacement="inside" value={status} onChange={value => setStatus(value as OrderStatus | '')} options={[{ value: '', label: 'Tất cả trạng thái' }, ...Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))]} />
