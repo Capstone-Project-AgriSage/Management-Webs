@@ -34,6 +34,7 @@ import OrdersPage from '@/features/orders/OrdersPage'
 import PaymentsPage from '@/features/payments/PaymentsPage'
 import DiagnosisQueuePage from '@/features/diagnosis/DiagnosisQueuePage'
 import DiagnosisCasePage from '@/features/diagnosis/DiagnosisCasePage'
+import DiseaseContentPage from '@/features/diagnosis/DiseaseContentPage'
 import AgentInventoryPage from '@/features/agent/inventory/StockOverviewPage'
 import AgentInventoryMovementsPage from '@/features/agent/inventory/StockMovementsPage'
 import AgentStockCardPage from '@/features/agent/inventory/StockCardPage'
@@ -132,6 +133,10 @@ export const router = createBrowserRouter([
             element: <RequireRole role="admin"><RequirePermission module="ai-config"><AiPolicyConfigsPage /></RequirePermission></RequireRole>,
           },
           {
+            path: 'admin/diseases',
+            element: <RequireRole role="admin"><RequirePermission module="diseases"><DiseaseContentPage /></RequirePermission></RequireRole>,
+          },
+          {
             path: 'admin/articles',
             element: <RequireRole role="admin"><RequirePermission module="articles"><ArticlesPage /></RequirePermission></RequireRole>,
           },
@@ -169,6 +174,10 @@ export const router = createBrowserRouter([
             path: 'agent/ai-recommendations',
             element: <RequireRole role={["agent", "sales_staff"]}><DetailListLayout><DiagnosisQueuePage /></DetailListLayout></RequireRole>,
             children: [{ path: ':id', element: <DetailRoute><DiagnosisCasePage /></DetailRoute> }],
+          },
+          {
+            path: 'agent/diseases',
+            element: <RequireRole role="agent"><DiseaseContentPage /></RequireRole>,
           },
           {
             path: 'agent/products',

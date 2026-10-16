@@ -5,6 +5,8 @@ const routes: [RegExp, string[]][] = [
   [/^\/$|^\/(agent|sales|delivery)$|^\/notifications$|\/settings$/, []],
   // AI diagnosis queue and case pages (the API additionally needs the member's review right to decide a case).
   [/\/(ai-review|ai-recommendations)(?:\/|$)/, ['DIAGNOSIS.READ']],
+  // Disease content and treatments (reading; editing is checked per button, and by the API).
+  [/\/diseases(?:\/|$)/, ['DISEASES.READ']],
   [/^\/admin\/roles/, ['PERMISSIONS.MANAGE_ROLES']],
   [/^\/admin\/accounts/, ['STAFF.READ']],
   [/^\/admin\/products\/categories/, ['CATEGORIES.READ']],

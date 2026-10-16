@@ -524,7 +524,7 @@ export default function DiagnosisCasePage() {
           </div>
           {kind === 'TREATMENT' ? (
             treatments.length === 0 ? (
-              <p className="text-sm text-slate-600">Bệnh này chưa có cách xử lý nào. Chủ cửa hàng nhập ở mục nội dung bệnh.</p>
+              <p className="text-sm text-slate-600">Bệnh này chưa có cách xử lý nào. Chủ cửa hàng nhập ở mục "Bệnh & cách xử lý".</p>
             ) : (
               <Select value={treatmentId} onChange={(e) => setTreatmentId(e.target.value)} className={field} aria-label="Cách xử lý">
                 <option value="">Chọn cách xử lý...</option>

@@ -190,7 +190,42 @@ export const diagnosisApi = {
     api<void>(`/api/diagnosis-cases/${id}/recommendations/${recommendationId}`, { method: 'DELETE' }),
 }
 
+/** What the PUT replaces: every text field is overwritten, an empty one clears it. The seeded code and the healthy flag never change. */
+export interface DiseaseContentInput {
+  name: string
+  scientificName?: string | null
+  description?: string | null
+  symptoms?: string | null
+  causes?: string | null
+  prevention?: string | null
+}
+
+/** The same body creates and replaces a treatment; a higher `priority` is listed first. */
+export interface TreatmentInput {
+  treatmentType: TreatmentKind
+  title: string
+  instructions: string
+  activeIngredientId?: Uuid | null
+  precautions?: string | null
+  priority: number
+}
+
 export const diseasesApi = {
-  /** The five rice classes with their treatments. */
+  /** The five rice classes with their treatments (inactive treatments included). */
   list: (isActive?: boolean) => api<Disease[]>(`/api/diseases${buildQuery({ isActive })}`),
+
+  /** Admin and store owner. Returns the disease with its treatments. */
+  update: (id: Uuid, data: DiseaseContentInput) =>
+    api<Disease>(`/api/diseases/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  createTreatment: (diseaseId: Uuid, data: TreatmentInput) =>
+    api<Treatment>(`/api/diseases/${diseaseId}/treatments`, { method: 'POST', body: JSON.stringify(data) }),
+
+  updateTreatment: (id: Uuid, data: TreatmentInput) =>
+    api<Treatment>(`/api/disease-treatments/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  activateTreatment: (id: Uuid) => api<Treatment>(`/api/disease-treatments/${id}/activate`, { method: 'POST' }),
+
+  /** Semantic delete: the treatment is deactivated, recommendations that used it keep working. */
+  deactivateTreatment: (id: Uuid) => api<void>(`/api/disease-treatments/${id}`, { method: 'DELETE' }),
 }
