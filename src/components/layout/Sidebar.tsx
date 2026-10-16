@@ -6,7 +6,6 @@ import type { NavItem } from '@/types';
 import { useEffect, useRef } from 'react';
 
 /* ── Admin-only imports (used for dynamic badges) ── */
-import * as accountsService from '@/features/admin/services/accountsService'
 
 
 function badgeClasses(tone: NavItem['badgeTone']) {
@@ -33,11 +32,10 @@ function useNavConfig() {
   const { user, currentRole } = useAuth()
 
   if (currentRole === 'admin') {
-    const pendingAccountCount = accountsService.list().filter((a) => a.status === 'Chờ duyệt').length
     const items: NavItem[] = [
       { label: 'Tổng quan hệ thống', to: '/', icon: 'monitoring', iconTone: 'primary' },
       { label: 'Cấu hình Tín dụng', to: '/admin/credit-config', icon: 'credit_score' },
-      { label: 'Quản lý tài khoản', to: '/admin/accounts', icon: 'group', badge: pendingAccountCount ? String(pendingAccountCount) : undefined, badgeTone: 'warning' },
+      { label: 'Quản lý tài khoản', to: '/admin/accounts', icon: 'group' },
       { label: 'Phân quyền', to: '/admin/roles', icon: 'admin_panel_settings' },
       { label: 'Danh mục', to: '/admin/products/categories', icon: 'category' },
       { label: 'Sản phẩm gốc', to: '/admin/products/master', icon: 'inventory_2' },

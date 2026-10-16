@@ -18,7 +18,6 @@ import FilterSelect from '@/components/ui/FilterSelect'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import ServerPagination from '@/components/ui/ServerPagination'
 export default function StaffPage() {
-  usePageHeader({ title: 'Quản lý nhân sự', subtitle: 'Nhân viên và quyền truy cập tại đại lý' })
   const [staff, setStaff] = useState<StaffResponse[]>([])
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
@@ -36,6 +35,10 @@ export default function StaffPage() {
   const [refreshKey, setRefreshKey] = useState(0)
   const { has } = usePermission()
   const { currentRole, user } = useAuth()
+  // The admin opens this page as "Quản lý tài khoản" and also manages the store owner's account.
+  usePageHeader(currentRole === 'admin'
+    ? { title: 'Quản lý tài khoản', subtitle: 'Tài khoản chủ cửa hàng và nhân viên của hệ thống' }
+    : { title: 'Quản lý nhân sự', subtitle: 'Nhân viên và quyền truy cập tại đại lý' })
   const { showToast } = useToast()
   const [form, setForm] = useState<{ mode: StaffFormMode; member?: StaffResponse } | null>(null)
   const [confirmation, setConfirmation] = useState<{ kind: 'lock' | 'unlock' | 'remove'; member: StaffResponse } | null>(null)
