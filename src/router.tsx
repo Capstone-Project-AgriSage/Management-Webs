@@ -22,7 +22,6 @@ import ProductManagementPage from '@/features/products/ProductManagementPage'
 import ActiveIngredientsPage from '@/features/admin/products/ActiveIngredientsPage'
 import AiModelsPage from '@/features/admin/ai-models/AiModelsPage'
 import AiPolicyConfigsPage from '@/features/admin/ai-models/AiPolicyConfigsPage'
-import ArticlesPage from '@/features/admin/content/ArticlesPage'
 import AuditLogsPage from '@/features/admin/system/AuditLogsPage'
 import CreditConfigPage from '@/features/admin/credit-config/CreditConfigPage'
 
@@ -50,7 +49,6 @@ import ReturnDetailPage from '@/features/agent/returns/ReturnDetailPage'
 import AgentGoodsReceiptsPage from '@/features/agent/purchases/GoodsReceiptsPage'
 import GoodsReceiptDetailPage from '@/features/agent/purchases/GoodsReceiptDetailPage'
 import ReceiptImportPage from '@/features/agent/purchases/ReceiptImportPage'
-import AgentProductReviewsPage from '@/features/agent/products/ProductReviewsPage'
 import AgentStaffPage from '@/features/agent/staff/StaffPage'
 import AgentActivityLogPage from '@/features/agent/system/ActivityLogPage'
 import AgentSettingsPage from '@/features/agent/system/SettingsPage'
@@ -136,10 +134,8 @@ export const router = createBrowserRouter([
             path: 'admin/diseases',
             element: <RequireRole role="admin"><RequirePermission module="diseases"><DiseaseContentPage /></RequirePermission></RequireRole>,
           },
-          {
-            path: 'admin/articles',
-            element: <RequireRole role="admin"><RequirePermission module="articles"><ArticlesPage /></RequirePermission></RequireRole>,
-          },
+          // Not routed until their API exists (the backend has none): Articles (admin) and Product reviews (owner).
+          // The pages stay in features/admin/content and features/agent/products, still on sample data, to be wired then.
           {
             path: 'admin/notifications',
             element: <RequireRole role="admin"><NotificationsPage /></RequireRole>,
@@ -259,10 +255,6 @@ export const router = createBrowserRouter([
           {
             path: 'agent/credit-config',
             element: <RequireRole role={["agent", "sales_staff"]}><CreditConfigPage /></RequireRole>,
-          },
-          {
-            path: 'agent/products/reviews',
-            element: <RequireRole role={["agent", "sales_staff"]}><AgentProductReviewsPage /></RequireRole>,
           },
           {
             path: 'agent/staff',
