@@ -44,6 +44,7 @@ function useNavConfig() {
       { label: 'Hoạt chất', to: '/admin/products/ingredients', icon: 'science' },
       { label: 'AI Models', to: '/admin/ai/models', icon: 'model_training' },
       { label: 'AI Policy', to: '/admin/ai/policies', icon: 'settings_suggest' },
+      { label: 'Bệnh & cách xử lý', to: '/admin/diseases', icon: 'healing' },
       { label: 'Bài viết', to: '/admin/articles', icon: 'article' },
       { label: 'Thông báo', to: '/admin/notifications', icon: 'notifications' },
       { label: 'Nhật ký', to: '/admin/audit-logs', icon: 'manage_search' },
@@ -92,6 +93,7 @@ function useNavConfig() {
         title: 'Cộng đồng & Quản trị',
         items: [
           { label: 'Khách hàng', to: '/agent/farmers', icon: 'groups' },
+          { label: 'Bệnh & cách xử lý', to: '/agent/diseases', icon: 'healing' },
           { label: 'Đánh giá sản phẩm', to: '/agent/products/reviews', icon: 'reviews' },
           { label: 'Nhân sự', to: '/agent/staff', icon: 'manage_accounts' },
           { label: 'Nhật ký kiểm toán', to: '/agent/activity-log', icon: 'history_toggle_off' },
