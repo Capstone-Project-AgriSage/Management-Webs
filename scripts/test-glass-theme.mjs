@@ -44,7 +44,16 @@ async function session(width = 1440, authenticated = true) {
       const paidAmount = path.includes('order-1/') ? 100000 : path.includes('order-3/') ? 50000 : 0
       return json({ orderTotal: 100000, paidAmount, refundedAmount: 0, remainingToPay: 100000 - paidAmount, payments: [], refunds: [] })
     }
-    if (path === '/api/reports/orders') return json({ rows: rows.map(row => ({ key: row.key, label: row.key, orderCount: 1, orderValue: row.fulfilledValue })), totals: { orderCount: 5, orderValue: totals.fulfilledValue } })
+    if (path === '/api/reports/orders') {
+      const by = url.searchParams.get('groupBy')
+      const grouped = by === 'SOURCE' ? [['COUNTER', 3], ['FARMER_WEB', 2]] : by === 'STATUS' ? [['COMPLETED', 3], ['PENDING_CONFIRMATION', 1], ['CANCELLED', 1]] : null
+      if (grouped) return json({ rows: grouped.map(([key, orderCount]) => ({ key, label: key, orderCount, orderValue: orderCount * 100000 })), totals: { orderCount: 5, orderValue: 500000 } })
+      return json({ rows: rows.map(row => ({ key: row.key, label: row.key, orderCount: 1, orderValue: row.fulfilledValue })), totals: { orderCount: 5, orderValue: totals.fulfilledValue } })
+    }
+    if (path === '/api/reports/payments') return json({ rows: [{ key: 'CASH', label: 'CASH', paymentCount: 3, receivedAmount: 900000 }, { key: 'PAY_OS', label: 'PAY_OS', paymentCount: 2, receivedAmount: 300000 }], totals: { paymentCount: 5, receivedAmount: 1200000, orderPaymentAmount: 1100000, debtRepaymentAmount: 100000, refundedAmount: 0, netReceivedAmount: 1200000 } })
+    if (path === '/api/reports/debt-aging') return json({ asOf: '2026-10-17', rows: [], totals: { notDue: 700000, days1To30: 200000, days31To60: 0, days61To90: 0, over90: 0, total: 900000 } })
+    if (path === '/api/reports/debt-by-customer-group') return json({ rows: [{ customerGroup: { id: 'group-1', code: 'VIP', name: 'Khách VIP' }, customersWithDebt: 2, outstanding: 900000, overdueAmount: 200000, totalCreditLimit: 5000000, utilization: 0.18 }] })
+    if (path === '/api/deliveries' || path === '/api/diagnosis-cases' || path === '/api/inventory/alerts') return json({ items: [], page: 1, pageSize: 1, totalCount: 2, totalPages: 2 })
     if (path === '/api/reports/sales' || path === '/api/reports/revenue') {
       const series = state.mode === 'empty' ? [] : state.mode === 'flat' ? rows.map(row => ({ ...row, netSales: 0, grossProfit: 0, averageOrderValue: 0 })) : state.mode === 'negative' ? rows.map((row, index) => ({ ...row, netSales: -net[index], grossProfit: -net[index] })) : rows
       return json({ rows: series, totals, page: 1, pageSize: 20, totalCount: state.mode === 'partial' ? 31 : series.length, totalPages: 1 })
@@ -58,7 +67,13 @@ async function session(width = 1440, authenticated = true) {
   page.on('pageerror', error => state.errors.push(error.message))
   return { context, page, state }
 }
-async function settled(page) {
+async function settled(page, kind = 'list') {
+  if (kind === 'dashboard') {
+    await page.getByText('Đơn hàng gần đây', { exact: true }).first().waitFor()
+    await page.waitForLoadState('networkidle')
+    await page.waitForFunction(() => !document.querySelector('main .animate-pulse') && [...document.querySelectorAll('main [aria-busy]')].every(element => element.getAttribute('aria-busy') !== 'true'))
+    return
+  }
   await page.locator('.agrisage-kpi-card').first().waitFor()
   await page.waitForFunction(() => !document.querySelector('.agrisage-kpi-card .animate-pulse') && [...document.querySelectorAll('[aria-busy]')].every(element => element.getAttribute('aria-busy') !== 'true'))
 }
@@ -68,30 +83,35 @@ try {
   const desktop = await session()
   const { page, state } = desktop
   await page.goto(base + '/agent')
-  await settled(page)
-  assert.equal(await page.locator('.agrisage-kpi-card').count(), 4)
-  assert.equal(await page.locator('.agrisage-kpi-card svg').count(), 0, 'Summary cards contain no icons or trend lines')
-  assert.equal(state.requests.filter(request => request.path.startsWith('/api/reports/')).length, 3, 'Summary report requests stay unchanged')
-  const background = await page.locator('body').evaluate(element => getComputedStyle(element).backgroundImage)
-  assert.match(background, /linear-gradient/)
-  assert.doesNotMatch(background, /url\(/, 'Plain background does not load a landscape image')
+  await settled(page, 'dashboard')
+  assert.equal(await page.locator('.agrisage-kpi-card').count(), 0, 'The dashboard draws its own strip and panels, not the list summary cards')
+  for (const name of ['Việc cần xử lý', 'Kết quả kinh doanh', 'Doanh thu thuần theo ngày', 'Nhóm sản phẩm bán chạy', 'Kênh bán hàng', 'Phương thức thanh toán', 'Tỷ lệ hoàn thành đơn', 'Công nợ phải thu', 'Công nợ theo nhóm khách', 'Đơn hàng gần đây']) await page.getByText(name, { exact: true }).first().waitFor()
+  assert((await page.locator('main .recharts-surface').count()) >= 1, 'The revenue chart is drawn')
+  const reportCalls = state.requests.filter(request => request.path.startsWith('/api/reports/')).map(request => request.path + ':' + (request.query.groupBy ?? ''))
+  for (const expected of ['/api/reports/revenue-summary:', '/api/reports/revenue:DAY', '/api/reports/revenue:CATEGORY', '/api/reports/payments:METHOD', '/api/reports/orders:SOURCE', '/api/reports/orders:STATUS', '/api/reports/debt-aging:', '/api/reports/debt-by-customer-group:']) assert(reportCalls.includes(expected), `The dashboard must read ${expected}`)
+  const surface = await page.locator('body').evaluate(element => [getComputedStyle(element).backgroundImage, getComputedStyle(element).backgroundColor])
+  assert.deepEqual(surface, ['none', 'rgb(255, 255, 255)'], 'White theme: no gradient or image behind the page')
+  for (const selector of ['.management-shell', '.management-sidebar', '.management-topbar']) assert.equal(await page.locator(selector).first().evaluate(element => getComputedStyle(element).backgroundColor), 'rgb(255, 255, 255)', `${selector} is white`)
+  const background = surface[0]
   await picture(page, 'dashboard-desktop')
-  pass('Dashboard: four glass cards without icons or trends, three existing report calls, plain gradient background')
+  pass('Dashboard: strip and report panels from the report APIs, white shell, sidebar and top bar')
 
   for (const mode of ['partial', 'empty', 'flat', 'negative']) {
     state.mode = mode
     await page.reload()
-    await settled(page)
-    assert.equal(await page.locator('.agrisage-kpi-card').count(), 4)
-    assert.equal(await page.locator('.agrisage-kpi-card svg').count(), 0)
+    await settled(page, 'dashboard')
+    assert.equal(await page.locator('.agrisage-kpi-card').count(), 0)
+    assert.doesNotMatch(await page.locator('main').innerText(), /NaN|undefined|Infinity/, `${mode} report data must not leak NaN into the dashboard`)
   }
+  assert.deepEqual(state.errors, [])
   state.mode = 'normal'
-  pass('Summary cards remain text-only with partial, empty, flat and negative report data')
+  pass('Dashboard renders without errors for partial, empty, flat and negative report data')
 
   await page.goto(base + '/agent/orders')
   await settled(page)
   await page.locator('table tbody tr').filter({ hasText: orders[0].orderNumber }).waitFor()
-  assert.equal(await page.locator('.agrisage-list-toolbar').evaluate(element => getComputedStyle(element).backdropFilter), 'blur(12px)')
+  assert.equal(await page.locator('.agrisage-list-toolbar').evaluate(element => getComputedStyle(element).backdropFilter), 'none', 'White theme: no blur behind the toolbar')
+  assert.equal(await page.locator('.agrisage-list-toolbar').evaluate(element => getComputedStyle(element).backgroundColor), 'rgb(255, 255, 255)')
   assert.equal(await page.locator('table').evaluate(element => getComputedStyle(element).borderCollapse), 'separate')
   assert.equal(await page.locator('table td').first().evaluate(element => getComputedStyle(element).borderTopLeftRadius), '14px')
   for (const [label, tone] of [['Chờ xác nhận', 'warning'], ['Hoàn thành', 'success'], ['Sẵn sàng giao', 'info'], ['Mua chịu', 'credit'], ['Chưa thanh toán', 'neutral'], ['Đã thanh toán', 'success'], ['Thanh toán 1 phần', 'warning']]) {
@@ -106,7 +126,7 @@ try {
   await page.getByText(orders[1].orderNumber, { exact: true }).waitFor()
   assert.equal(state.requests.filter(request => request.path === '/api/orders').at(-1).query.page, '1')
   assert.equal(state.requests.filter(request => request.path === '/api/orders').at(-1).query.status, 'COMPLETED')
-  pass('Order list: glass toolbar, rounded rows, semantic badges, pagination and filter reset')
+  pass('Order list: white toolbar, rounded rows, semantic badges, pagination and filter reset')
 
   const cdp = await desktop.context.newCDPSession(page)
   await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-transparency', value: 'reduce' }, { name: 'prefers-reduced-motion', value: 'reduce' }] })
@@ -132,7 +152,7 @@ try {
   await picture(page, 'staff-modal-desktop')
   await page.keyboard.press('Escape')
   await page.getByRole('dialog').waitFor({ state: 'hidden' })
-  pass('Modal: glass appearance, scroll lock, Escape dismissal')
+  pass('Modal: rounded white panel, scroll lock, Escape dismissal')
   assert.deepEqual(state.errors, [])
   assert.deepEqual(state.unknown, [])
   await desktop.context.close()
@@ -141,7 +161,7 @@ try {
     const mobile = await session(width)
     await mobile.page.goto(base + '/agent/orders')
     await settled(mobile.page)
-    assert.equal(await mobile.page.locator('body').evaluate(element => getComputedStyle(element).backgroundImage), background, 'Same plain background on every screen size')
+    assert.equal(await mobile.page.locator('body').evaluate(element => getComputedStyle(element).backgroundImage), background, 'Same white background on every screen size')
     assert.equal(await mobile.page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${width}px: no page overflow`)
     await mobile.page.getByRole('button', { name: 'Xóa lọc', exact: true }).click()
     if (width < 1024) {

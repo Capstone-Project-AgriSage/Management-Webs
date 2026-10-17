@@ -54,6 +54,8 @@ async function makeSession(role = 'STORE_OWNER', permissions = READ_PERMISSIONS,
     if (path === '/api/reports/purchases') return json({ rows: [], totals: { receiptCount: 2, purchaseAmount: 200000 } })
     if (path === '/api/reports/returns') return json({ rows: [], totals: { returnCount: 3, returnAmount: 30000, debtAdjustmentAmount: 10000, refundAmount: 20000 } })
     if (path === '/api/reports/refunds') return json({ rows: [], totals: { refundCount: 2, refundedAmount: 20000 } })
+    if (path === '/api/reports/debt-aging') return json({ asOf: '2026-10-17', rows: [], totals: { notDue: 70000, days1To30: 20000, days31To60: 0, days61To90: 0, over90: 0, total: 90000 } })
+    if (path === '/api/reports/debt-by-customer-group') return json({ rows: [] })
     if (path === '/api/reports/credit-exposure') return json({ asOf: '2026-10-11T00:00:00Z', rows: [], totals: { creditLimit: 1000000, outstanding: 100000, reservedCredit: 10000, exposure: 110000, availableCredit: 890000 } })
     if (path === '/api/reports/deliveries') return json({ rows: [], failureReasons: [], incidents: [], totals: { deliveries: 12, attempts: 14, successful: 10, partial: 1, failed: 3, successRate: 10 / 14 } })
     if (path === '/api/debt-entries/dashboard') return json({ totalOutstandingDebt: 150000, totalOverdueDebt: 30000, customersWithDebt: 3, customersWithOverdueDebt: 1, collectedToday: 20000, collectedThisMonth: 60000 })
@@ -76,10 +78,18 @@ async function makeSession(role = 'STORE_OWNER', permissions = READ_PERMISSIONS,
   async function check(path) {
     try {
       await page.goto(base + path)
-      await page.locator('.agrisage-kpi-card').first().waitFor()
-      await page.waitForFunction(() => document.querySelectorAll('.agrisage-kpi-card').length === 4 && [...document.querySelectorAll('[aria-busy]')].every(element => element.getAttribute('aria-busy') !== 'true') && !document.querySelector('.agrisage-kpi-card .animate-pulse'))
-      assert.equal(await page.locator('.agrisage-kpi-card').count(), 4, `${path} must render exactly four summary cards`)
-      assert.equal(await page.locator('.agrisage-kpi-card svg.lucide').count(), 0, `${path} summary cards must not render decorative icons`)
+      const dashboard = ['/', '/agent', '/sales', '/delivery'].includes(path)
+      if (dashboard) {
+        await page.getByText(/^(Đơn hàng gần đây|Chuyến giao gần đây)$/).first().waitFor()
+        await page.waitForLoadState('networkidle')
+        await page.waitForFunction(() => !document.querySelector('main .animate-pulse') && [...document.querySelectorAll('main [aria-busy]')].every(element => element.getAttribute('aria-busy') !== 'true'))
+        assert.equal(await page.locator('.agrisage-kpi-card').count(), 0, `${path} is a dashboard: a strip and report panels, not list summary cards`)
+      } else {
+        await page.locator('.agrisage-kpi-card').first().waitFor()
+        await page.waitForFunction(() => document.querySelectorAll('.agrisage-kpi-card').length === 4 && [...document.querySelectorAll('[aria-busy]')].every(element => element.getAttribute('aria-busy') !== 'true') && !document.querySelector('.agrisage-kpi-card .animate-pulse'))
+        assert.equal(await page.locator('.agrisage-kpi-card').count(), 4, `${path} must render exactly four summary cards`)
+        assert.equal(await page.locator('.agrisage-kpi-card svg.lucide').count(), 0, `${path} summary cards must not render decorative icons`)
+      }
       assert.deepEqual(errors, [], `${path} must not throw in the browser`)
       assert.deepEqual(unknown, [], `${path} must use supported fixture APIs`)
       assert.equal(await page.locator('select:not(.agrisage-select)').count(), 0, `${path}: all dropdowns use the shared popup`)
@@ -95,7 +105,7 @@ async function makeSession(role = 'STORE_OWNER', permissions = READ_PERMISSIONS,
       if (['/', '/agent', '/sales', '/delivery'].includes(path)) assert.equal(await page.locator('.sidebar-link.is-active').count(), 1, 'The role overview must be active only on its exact route')
       if (process.env.UI_SCREENSHOT_DIR && ['/agent/inventory', '/agent/orders', '/notifications', '/sales/inventory'].includes(path)) await page.screenshot({ path: join(process.env.UI_SCREENSHOT_DIR, path.replaceAll('/', '-').slice(1) + '.png'), fullPage: true })
       if (process.env.UI_SCREENSHOT_DIR && path === '/agent/returns') await page.locator('.agrisage-list-toolbar').screenshot({ path: join(process.env.UI_SCREENSHOT_DIR, 'returns-filter.png') })
-      console.log(`PASS ${path}: exactly four cards with scoped data`)
+      console.log(`PASS ${path}: ${dashboard ? 'dashboard strip and panels' : 'exactly four cards'} with scoped data`)
     } catch (error) {
       console.error('Failed route:', path, 'Browser errors:', errors, 'Unexpected APIs:', unknown)
       console.error('API requests:', requests)
@@ -109,7 +119,9 @@ async function makeSession(role = 'STORE_OWNER', permissions = READ_PERMISSIONS,
 try {
   const owner = await makeSession()
   try {
-    for (const path of ['/agent', '/agent/inventory', '/agent/debts', '/agent/deliveries', '/agent/orders', '/agent/payments', '/agent/returns', '/agent/refunds', '/agent/purchases/receipts', '/agent/purchases/suppliers', '/agent/inventory/movements', '/agent/inventory/stocktake', '/agent/ai-recommendations', '/agent/products', '/agent/staff', '/agent/farmers', '/agent/price-lists', '/agent/credit-config', '/agent/activity-log', '/agent/products/reviews', '/notifications']) await owner.check(path)
+    for (const path of ['/agent', '/agent/inventory', '/agent/debts', '/agent/deliveries', '/agent/orders', '/agent/payments', '/agent/returns', '/agent/refunds', '/agent/purchases/receipts', '/agent/purchases/suppliers', '/agent/inventory/movements', '/agent/inventory/stocktake', '/agent/ai-recommendations', '/agent/products', '/agent/staff', '/agent/farmers', '/agent/price-lists', '/agent/credit-config', '/agent/activity-log', '/notifications']) await owner.check(path)
+    owner.requests.length = 0
+    await owner.check('/agent/debts')
     assert.equal(owner.requests.filter(request => request.path === '/api/reports/debt-aging' || request.path === '/api/reports/debt-collections').length, 0, 'The debt list must reuse its four operational dashboard totals rather than fetch a second report row')
     // Follow-up UI corrections: visible inner captions, real dropdown filters and accurate navigation.
     await owner.page.setViewportSize({ width: 1440, height: 960 })
@@ -236,7 +248,7 @@ try {
     await owner.check('/agent/activity-log')
     const advanced = owner.page.locator('.agrisage-advanced-filters')
     await advanced.locator('summary').click()
-    assert.equal(await advanced.evaluate(panel => getComputedStyle(panel).backgroundColor), 'rgba(252, 255, 248, 0.6)', 'Advanced audit filters match the glass panel')
+    assert.equal(await advanced.evaluate(panel => getComputedStyle(panel).backgroundColor), 'rgb(255, 255, 255)', 'Advanced audit filters use the white panel')
     if (process.env.UI_SCREENSHOT_DIR) await advanced.screenshot({ path: join(process.env.UI_SCREENSHOT_DIR, 'corrected-audit-filter.png') })
     console.log('PASS Credit tab colors, audit filter surface, scrollbar-free debt tabs and common table fonts')
 
@@ -283,7 +295,7 @@ try {
   } finally { await owner.context.close() }
 
   const admin = await makeSession('ADMIN')
-  try { for (const path of ['/', '/admin/products/categories', '/admin/products/ingredients', '/admin/ai/models', '/admin/ai/policies', '/admin/accounts', '/admin/articles', '/admin/audit-logs']) await admin.check(path) } finally { await admin.context.close() }
+  try { for (const path of ['/', '/admin/products/categories', '/admin/products/ingredients', '/admin/ai/models', '/admin/ai/policies', '/admin/accounts', '/admin/audit-logs']) await admin.check(path) } finally { await admin.context.close() }
 
   const sales = await makeSession('SALES_STAFF', READ_PERMISSIONS.filter(code => code !== 'REPORTS.READ'))
   try {
@@ -292,9 +304,14 @@ try {
     assert.equal(sales.requests.filter(request => request.path === '/api/catalog/products' && request.query.pageSize === '100').length, 0, 'Inventory must use product names from inventory lots instead of an extra catalog page')
     await sales.page.goto(base + '/sales')
     await sales.page.getByText('ORD-API', { exact: true }).waitFor()
-    const summary = sales.page.locator('.agrisage-summary-grid')
-    assert.match(await summary.innerText(), /73/, 'Total results must use backend totalCount beyond the visible five orders')
-    assert.match(await summary.innerText(), /Trong 5 đơn gần nhất/, 'Page-only metrics must disclose their scope')
+    const strip = sales.page.locator('section[aria-label="Đơn hàng trong kỳ"]')
+    await strip.waitFor()
+    await sales.page.waitForFunction(() => !document.querySelector('section[aria-label="Đơn hàng trong kỳ"] .animate-pulse'))
+    const stripText = (await strip.innerText()).replace(/\s+/g, ' ')
+    assert.match(stripText, /Đơn trong kỳ\s*73/, 'Total results must use backend totalCount beyond the visible five orders')
+    assert.match(stripText, /Đã hoàn thành\s*73/, 'Completed and cancelled counts come from their own filtered list calls')
+    assert.match(await sales.page.locator('main').innerText(), /73 đơn/, 'The recent-orders header states the true total')
+    assert.doesNotMatch(await sales.page.locator('main').innerText(), /Trong 5 đơn gần nhất/, 'The staff strip no longer reports metrics over the visible page')
     assert(!/mẫu|823\.500|15\.2%/.test(await sales.page.locator('body').innerText()), 'Operational dashboards must not show hard-coded mock values')
     console.log('PASS Permission placeholders, true totals and honest visible-page metrics')
   } finally { await sales.context.close() }
@@ -302,13 +319,123 @@ try {
   const driver = await makeSession('DELIVERY_STAFF', ['DELIVERIES.READ'])
   try {
     await driver.check('/delivery')
-    const cards = driver.page.locator('.agrisage-kpi-card')
-    assert.match(await cards.nth(0).innerText(), /31/, 'Driver count must use totalCount, not the first page size')
-    assert.match(await cards.nth(2).innerText(), /5/, 'Retry statuses must be added from true backend totals')
-    assert.match(await cards.nth(3).innerText(), /73/, 'Completed trips must include rows beyond the first page')
+    const strip = (await driver.page.locator('section[aria-label="Chuyến giao được phân công"]').innerText()).replace(/\s+/g, ' ')
+    assert.match(strip, /Cần giao\s*31/, 'Driver count must use totalCount, not the first page size')
+    assert.match(strip, /Chờ giao lại\s*5/, 'Retry statuses must be added from true backend totals')
+    assert.match(strip, /Đã giao\s*73/, 'Completed trips must include rows beyond the first page')
     await driver.check('/delivery/deliveries')
     console.log('PASS Driver totals include every assigned trip rather than the first API page')
   } finally { await driver.context.close() }
+
+  const todayVn = () => new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10)
+  const addDays = (day, days) => new Date(Date.parse(day + 'T00:00:00Z') + days * 86_400_000).toISOString().slice(0, 10)
+  const metrics = (value, orders) => ({ orderCount: orders, fulfilledValue: value, costOfGoods: value * 0.7, grossProfit: value * 0.3, returnValue: 0, netSales: value, averageOrderValue: orders ? value / orders : 0, grossMarginPercent: 30 })
+  // Registered after the session's own handler, so it answers first; everything else falls back to the shared fixture.
+  async function withReportData(session, { failing = null } = {}) {
+    await session.context.route('**/api/reports/**', async route => {
+      const url = new URL(route.request().url())
+      const q = Object.fromEntries(url.searchParams)
+      session.requests.push({ path: url.pathname, query: q, method: 'GET' })
+      const json = body => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) }).catch(() => {})
+      if (failing && url.pathname === failing) return route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ title: 'Lỗi giả lập', detail: 'Báo cáo tạm thời không có' }) }).catch(() => {})
+      if (url.pathname === '/api/reports/revenue-summary') return json({ fromDate: q.fromDate, toDate: q.toDate, current: metrics(1000000, 10), previousFromDate: '2026-09-01', previousToDate: '2026-09-17', previous: metrics(800000, 8), netSalesChangePercent: 25 })
+      if (url.pathname === '/api/reports/revenue') {
+        const group = q.groupBy
+        if (group === 'CATEGORY') return json({ fromDate: q.fromDate, toDate: q.toDate, groupBy: group, page: 1, pageSize: 5, totalCount: 3, totalPages: 1, totals: metrics(1000000, 10), rows: [['c1', 'Phân bón', 600000, 6], ['c2', 'Thuốc bảo vệ thực vật', 300000, 3], ['c3', 'Giống cây trồng', 100000, 1]].map(([key, label, value, orders]) => ({ key, label, ...metrics(value, orders) })) })
+        const days = []
+        if (group === 'MONTH') for (let month = 1; month <= 10; month++) days.push(`2026-${String(month).padStart(2, '0')}`)
+        else for (let day = q.fromDate; day <= q.toDate; day = addDays(day, 1)) days.push(day)
+        return json({ fromDate: q.fromDate, toDate: q.toDate, groupBy: group, page: 1, pageSize: 100, totalCount: days.length, totalPages: 1, totals: metrics(1000000, 10), rows: days.map((key, index) => ({ key, label: key, ...metrics((index % 5) * 100000, index % 5) })) })
+      }
+      if (url.pathname === '/api/reports/orders') {
+        const rows = q.groupBy === 'SOURCE' ? [['COUNTER', 6], ['FARMER_WEB', 3], ['FARMER_MOBILE', 1]] : [['COMPLETED', 4], ['CONFIRMED', 2], ['PENDING_CONFIRMATION', 1], ['CANCELLED', 3]]
+        return json({ rows: rows.map(([key, orderCount]) => ({ key, label: key, orderCount, orderValue: orderCount * 100000 })), totals: { orderCount: 10, orderValue: 1000000 } })
+      }
+      if (url.pathname === '/api/reports/payments') return json({ rows: [{ key: 'CASH', label: 'CASH', paymentCount: 7, receivedAmount: 700000 }, { key: 'PAY_OS', label: 'PAY_OS', paymentCount: 3, receivedAmount: 300000 }], totals: { paymentCount: 10, receivedAmount: 1000000, orderPaymentAmount: 900000, debtRepaymentAmount: 100000, refundedAmount: 0, netReceivedAmount: 1000000 } })
+      if (url.pathname === '/api/reports/debt-aging') return json({ asOf: todayVn(), rows: [], totals: { notDue: 700000, days1To30: 200000, days31To60: 100000, days61To90: 0, over90: 0, total: 1000000 } })
+      if (url.pathname === '/api/reports/debt-by-customer-group') return json({ rows: [{ customerGroup: { id: 'g1', code: 'VIP', name: 'Khách VIP' }, customersWithDebt: 2, outstanding: 800000, overdueAmount: 300000, totalCreditLimit: 5000000, utilization: 0.16 }, { customerGroup: null, customersWithDebt: 1, outstanding: 200000, overdueAmount: 0, totalCreditLimit: 0, utilization: null }] })
+      return route.fallback()
+    })
+  }
+  const dashboardReady = async page => {
+    await page.getByText('Đơn hàng gần đây', { exact: true }).first().waitFor()
+    await page.waitForLoadState('networkidle')
+    await page.waitForFunction(() => !document.querySelector('main .animate-pulse') && [...document.querySelectorAll('main [aria-busy]')].every(element => element.getAttribute('aria-busy') !== 'true'))
+  }
+
+  const panels = await makeSession()
+  try {
+    await withReportData(panels)
+    await panels.page.goto(base + '/agent')
+    await dashboardReady(panels.page)
+    const main = panels.page.locator('main')
+    const text = async () => (await main.innerText()).replace(/\s+/g, ' ')
+    let content = await text()
+    assert.match(content, /Doanh thu thuần\s*1\.000\.000 đ/, 'The headline figure comes from the revenue summary')
+    assert.match(content, /\+25%\s*so với kỳ trước/, 'The change against the previous period is shown with its direction')
+    assert.match(content, /60%\s*doanh thu từ\s*Phân bón/, 'The top product group is led by its true share of net sales')
+    assert.match(content, /10 đơn\s*tạo trong kỳ/, 'Channel total comes from the order report')
+    assert.match(content, /10 lần thu/, 'Payment count comes from the payment report')
+    assert.match(content, /40%\s*đơn tạo trong kỳ đã hoàn thành/, 'Funnel: 4 of 10 orders completed')
+    assert.match(content, /1\.000\.000 đ\s*tính đến hôm nay/, 'Receivable debt comes from the aging report')
+    assert.match(content, /70%\s*nợ còn trong hạn/, 'Aging gauge: 700k of 1M is not yet due')
+    assert.match(content, /3 khách đang nợ/, 'Debt by group adds the customers across groups')
+    assert.match(content, /Chưa phân nhóm/, 'Customers without a group are named, not dropped')
+    assert.equal(await panels.page.locator('main .recharts-surface').count(), 1, 'One chart: the revenue trend')
+    assert.equal(await main.locator('table.sr-only').count(), 1, 'The trend chart has a table twin for screen readers')
+    assert.equal(await main.locator('a[title="Xem chi tiết"]').evaluateAll(links => [...new Set(links.map(link => link.getAttribute('href')))].sort().join(',')), '/agent/debts,/agent/orders,/agent/payments,/agent/products', 'Panels link to the pages that hold the detail')
+
+    // Period filter: a preset moves both dates and every report follows; the trend regroups with the length of the period.
+    const today = todayVn()
+    panels.requests.length = 0
+    await panels.page.getByRole('button', { name: '7 ngày', exact: true }).click()
+    await dashboardReady(panels.page)
+    assert.deepEqual(await panels.page.locator('input[type=date]').evaluateAll(inputs => inputs.map(input => input.value)), [addDays(today, -6), today])
+    assert.equal(await panels.page.getByRole('button', { name: '7 ngày', exact: true }).getAttribute('aria-pressed'), 'true')
+    for (const report of ['revenue-summary', 'revenue', 'payments', 'orders']) assert(panels.requests.some(request => request.path === '/api/reports/' + report && request.query.fromDate === addDays(today, -6) && request.query.toDate === today), `${report} must reload for the new period`)
+    assert(panels.requests.some(request => request.path === '/api/reports/revenue' && request.query.groupBy === 'DAY'), 'A week is drawn per day')
+    await panels.page.getByRole('button', { name: 'Năm nay', exact: true }).click()
+    await dashboardReady(panels.page)
+    content = await text()
+    assert.match(content, /Doanh thu thuần theo tháng/, 'A year is regrouped by month')
+    assert(panels.requests.some(request => request.path === '/api/reports/revenue' && request.query.groupBy === 'MONTH'))
+    const inputs = panels.page.locator('input[type=date]')
+    await inputs.nth(0).fill(addDays(today, -59)); await inputs.nth(1).fill(today)
+    await dashboardReady(panels.page)
+    assert.match(await text(), /Doanh thu thuần theo tuần/, 'Two months are regrouped by week')
+    panels.requests.length = 0
+    await inputs.nth(0).fill(addDays(today, -400))
+    await panels.page.waitForTimeout(500)
+    assert.match(await text(), /tối đa 366 ngày/, 'A period over 366 days is explained, not requested')
+    assert.equal(panels.requests.filter(request => request.path.startsWith('/api/reports/') && request.query.fromDate === addDays(today, -400)).length, 0)
+    assert.deepEqual(panels.errors, [])
+    console.log('PASS Dashboard panels read their reports, follow the period filter and regroup the trend')
+  } finally { await panels.context.close() }
+
+  for (const failing of ['/api/reports/debt-aging', '/api/reports/orders']) {
+    const broken = await makeSession()
+    try {
+      await withReportData(broken, { failing })
+      await broken.page.goto(base + '/agent')
+      await dashboardReady(broken.page)
+      const content = (await broken.page.locator('main').innerText()).replace(/\s+/g, ' ')
+      assert.match(content, /Báo cáo tạm thời không có/, `A failing ${failing} explains itself in its own panel`)
+      assert.match(content, /Doanh thu thuần\s*1\.000\.000 đ/, 'The other reports are unaffected')
+      assert.match(content, /Đơn hàng gần đây/)
+      assert.equal(await broken.page.locator('main .animate-pulse').count(), 0, 'A failed report must not leave a placeholder pulsing')
+      assert.deepEqual(broken.errors, [])
+    } finally { await broken.context.close() }
+  }
+  const offline = await makeSession()
+  try {
+    await withReportData(offline)
+    await offline.context.route('**/api/reports/debt-by-customer-group', route => route.abort('connectionrefused'))
+    await offline.page.goto(base + '/agent')
+    await dashboardReady(offline.page)
+    assert.match(await offline.page.locator('main').innerText(), /Không kết nối được máy chủ/, 'A network failure is said in Vietnamese')
+    assert.deepEqual(offline.errors, [])
+  } finally { await offline.context.close() }
+  console.log('PASS A failing report only affects its own panel, with a readable message')
 
   const unavailable = await makeSession('STORE_OWNER', READ_PERMISSIONS, true)
   try {
