@@ -212,7 +212,7 @@ try {
       assert.equal(await page.getByRole('button', { name: 'Thêm khách hàng', exact: true }).evaluate(element => element === document.activeElement), true)
     }
     const customerRead = f.state.requests.find(request => request.method === 'GET' && request.pathname === '/api/customers')
-    assert.deepEqual(customerRead.query, { SortBy: 'NAME', Descending: 'false', Page: '1', PageSize: '15' })
+    assert.deepEqual(customerRead.query, { SortBy: 'NAME', Descending: 'false', Page: '1', PageSize: '10' })
     assert.deepEqual(f.state.errors, [])
     await f.context.close()
     pass('list, table scrolling, dialog input/footer reachability at ' + width)

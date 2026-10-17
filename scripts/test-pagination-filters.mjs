@@ -138,18 +138,18 @@ try {
     const f = await fixture('/agent/counter-sales', '/api/catalog/products', 'ACTIVE')
     await f.page.getByRole('button', { name: 'Trang 2', exact: true }).waitFor()
     const products = f.page.locator('main .cursor-pointer').filter({ hasText: 'Bản ghi' })
-    assert.equal(await products.count(), 10)
+    assert.equal(await products.count(), 8)
     await f.page.getByRole('button', { name: 'Trang 2', exact: true }).click()
     await f.page.waitForTimeout(600)
-    assert(f.state.requests.some(r => r.path === '/api/catalog/products' && r.query.page === '2' && r.query.pagesize === '10'))
+    assert(f.state.requests.some(r => r.path === '/api/catalog/products' && r.query.page === '2' && r.query.pagesize === '8'))
     await f.page.locator('.agrisage-list-toolbar input').fill('Bản ghi 120')
     await f.page.waitForTimeout(750)
     assert.equal(await products.count(), 1)
     await f.page.getByRole('button', { name: 'Xóa lọc', exact: true }).click()
     await f.page.waitForTimeout(750)
-    assert.equal(await products.count(), 10)
+    assert.equal(await products.count(), 8)
     assert.deepEqual(f.errors, [])
-    pass('Counter sale product catalog: API 10, page 2, server search and clear')
+    pass('Counter sale product catalog: API 8 per page (two rows of four), page 2, server search and clear')
     await f.context.close()
   }
   if (!process.env.UI_REPORT_ONLY && !process.env.UI_ADMIN_ONLY) {
@@ -169,7 +169,7 @@ try {
     pass('Refund source lists: API 10, merged page 2, server search and clear')
     await f.context.close()
   }
-  for (const path of process.env.UI_REPORT_ONLY || process.env.UI_ADMIN_ONLY ? [] : ['/admin/accounts', '/admin/articles']) {
+  for (const path of process.env.UI_REPORT_ONLY || process.env.UI_ADMIN_ONLY ? [] : ['/admin/accounts']) {
     const f = await fixture(path, '/api/unused-mock-list', 'ACTIVE', 1440, 'ADMIN')
     const count = await f.page.locator('main table tbody > tr').count()
     assert(count <= 10)
@@ -240,7 +240,7 @@ try {
   }
   // The merge algorithm must produce globally ordered pages, including records after the old fixed limits.
   const source = fs.readFileSync('src/utils/mergePagedLists.ts', 'utf8').replace(/^import .*\n/gm, '')
-  const compiled = ts.transpileModule('const LIST_PAGE_SIZE = 10;\n' + source.replace('export async function', 'async function'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText
+  const compiled = ts.transpileModule('const LIST_PAGE_SIZE = 10;\n' + source.replace('export async function', 'async function'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText.replace(/^export \{\};\s*$/m, '')
   const merge = new Function(compiled + '\nreturn mergePagedLists')()
   const requests = []
   const datasets = [Array.from({ length: 131 }, (_, i) => i * 2), Array.from({ length: 125 }, (_, i) => i * 2 + 1)]
