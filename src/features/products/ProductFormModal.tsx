@@ -16,6 +16,7 @@ import {
 } from '@/api/productsApi'
 import ImageUploader from './ImageUploader'
 import PackagingEditor, { firstPackagingRow, toPackagingInputs, validatePackagings, type PackagingDraft } from './PackagingEditor'
+import IngredientEditor from './IngredientEditor'
 
 interface ProductFormModalProps {
   open: boolean
@@ -312,6 +313,11 @@ export default function ProductFormModal({ open, product, categories, brands, un
                 SKU, quản lý theo lô ({product.requiresLotTracking ? 'có' : 'không'}) và hạn sử dụng ({product.requiresExpiryDate ? 'có' : 'không'}) không đổi được sau khi tạo.
               </p>
             </section>
+          )}
+          {product ? (
+            <IngredientEditor key={product.id} product={product} />
+          ) : (
+            <p className="text-[11px] text-slate-500">Hoạt chất của sản phẩm được gắn sau khi tạo (mở lại sản phẩm để sửa).</p>
           )}
         </ModalLayout>
       </form>

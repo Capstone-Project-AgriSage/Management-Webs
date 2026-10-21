@@ -49,7 +49,7 @@ async function fixture(path, endpoint, status, width = 1440, role = 'STORE_OWNER
     const query = Object.fromEntries([...url.searchParams].map(([key, value]) => [key.toLowerCase(), value]))
     state.requests.push({ path: url.pathname, query, method: route.request().method(), body: route.request().postData() ? JSON.parse(route.request().postData()) : null })
     const json = body => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) }).catch(() => {})
-    if (url.pathname === '/api/auth/me') return json({ id: 'owner', fullName: 'Người kiểm thử', role, status: 'ACTIVE', canReviewAi: true })
+    if (url.pathname === '/api/auth/me') return json({ id: 'owner', fullName: 'Người kiểm thử', role, status: 'ACTIVE' })
     if (url.pathname === '/api/me/permissions') return json({ permissions: path.endsWith('/reports') ? [...codes, 'REPORTS.READ'] : codes })
     if (url.pathname.endsWith('/unread-count')) return json({ count: 0 })
     if (url.pathname === '/api/catalog/categories') return json([{ id: 'category', code: 'CAT', name: 'Danh mục', displayOrder: 0, isActive: true, children: [] }])

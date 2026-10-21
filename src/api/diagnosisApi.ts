@@ -3,9 +3,9 @@ import { buildQuery } from './stockApi'
 import type { Paged, Uuid } from './types'
 
 /**
- * AI diagnosis, reviewer side (docs/reference/api-flows/AI_DIAGNOSIS.md). Reading the queue needs the permission code of
- * the route; deciding a case (start review, review, rerun, recommendations) also needs the member's review right
- * (`canReviewAi` in /api/auth/me).
+ * AI diagnosis, store side (docs/reference/api-flows/AI_DIAGNOSIS.md 2.0): read only. Since 2026-10-21 there is no Human
+ * Review: the Farmer reads the AI result at once (`farmerResult` shows exactly what they saw). Reviews and stored
+ * recommendations exist only on cases decided before that date.
  */
 
 export type DiagnosisStatus =
@@ -23,6 +23,9 @@ export type ReviewDecision = 'CONFIRMED' | 'CORRECTED' | 'INCONCLUSIVE'
 export type RecommendationKind = 'TREATMENT' | 'PRODUCT'
 
 export type TreatmentKind = 'CULTURAL' | 'CHEMICAL' | 'PREVENTIVE' | 'OTHER'
+
+/** CONFIDENT: the AI passed the policy. UNCERTAIN: it did not (no chemical treatment, no product). VERIFIED: a review before 2.0. */
+export type DiagnosisCertainty = 'CONFIDENT' | 'UNCERTAIN' | 'VERIFIED'
 
 export interface DiseaseSummary {
   id: Uuid
@@ -111,6 +114,33 @@ export interface Recommendation {
   approvedAt: string
 }
 
+/** What the Farmer read for the case, exactly as the farmer API returns it. */
+export interface FarmerResult {
+  certainty: DiagnosisCertainty
+  hint: string | null
+  disease: DiseaseSummary
+  reviewerComment: string | null
+  treatments: {
+    id: Uuid
+    type: TreatmentKind
+    title: string
+    instructions: string
+    precautions: string | null
+    rankOrder: number
+    reason: string | null
+    activeIngredientName: string | null
+  }[]
+  products: {
+    storeProductId: Uuid
+    productId: Uuid
+    name: string
+    sku: string
+    imageUrl: string | null
+    reason: string | null
+    rankOrder: number
+  }[]
+}
+
 export interface DiagnosisCase {
   id: Uuid
   caseNumber: string
@@ -122,9 +152,11 @@ export interface DiagnosisCase {
   finalDisease: DiseaseSummary | null
   images: DiagnosisImage[]
   inferences: AiInference[]
+  /** Only on cases reviewed before 2.0. */
   currentReview: AgentReview | null
   reviewHistory: AgentReview[]
   recommendations: Recommendation[]
+  farmerResult: FarmerResult | null
 }
 
 export interface Treatment {
@@ -156,7 +188,7 @@ export interface Disease {
 }
 
 export const diagnosisApi = {
-  /** The review queue, oldest first. `aiPassed`: only cases whose latest AI result passed (true) or did not pass (false) the policy. */
+  /** The farmers' cases, newest first. `aiPassed`: only cases whose latest AI result passed (true) or did not pass (false) the policy. */
   list: (params: {
     status?: DiagnosisStatus
     aiPassed?: boolean
@@ -168,26 +200,6 @@ export const diagnosisApi = {
   }) => api<Paged<DiagnosisListItem>>(`/api/diagnosis-cases${buildQuery(params)}`),
 
   get: (id: Uuid) => api<DiagnosisCase>(`/api/diagnosis-cases/${id}`),
-
-  /** AI_COMPLETED -> UNDER_REVIEW. */
-  startReview: (id: Uuid) => api<DiagnosisCase>(`/api/diagnosis-cases/${id}/start-review`, { method: 'POST' }),
-
-  /** CONFIRMED needs the disease the AI predicted; CORRECTED any disease; INCONCLUSIVE none. A new review replaces the current one. */
-  review: (id: Uuid, data: { decision: ReviewDecision; finalDiseaseId?: Uuid | null; primaryAiInferenceId?: Uuid | null; comment?: string | null }) =>
-    api<DiagnosisCase>(`/api/diagnosis-cases/${id}/review`, { method: 'POST', body: JSON.stringify(data) }),
-
-  /** Only on a case that is submitted or failed; 503 when the AI service cannot be reached. */
-  rerunAi: (id: Uuid) => api<DiagnosisCase>(`/api/diagnosis-cases/${id}/rerun-ai`, { method: 'POST' }),
-
-  /** Only on a verified case. Exactly one target: a treatment or a store product. */
-  recommend: (
-    id: Uuid,
-    data: { type: RecommendationKind; diseaseTreatmentId?: Uuid | null; storeProductId?: Uuid | null; rankOrder?: number; reason?: string | null },
-  ) => api<Recommendation>(`/api/diagnosis-cases/${id}/recommendations`, { method: 'POST', body: JSON.stringify(data) }),
-
-  /** Deactivates the recommendation (the row is kept). */
-  unrecommend: (id: Uuid, recommendationId: Uuid) =>
-    api<void>(`/api/diagnosis-cases/${id}/recommendations/${recommendationId}`, { method: 'DELETE' }),
 }
 
 /** What the PUT replaces: every text field is overwritten, an empty one clears it. The seeded code and the healthy flag never change. */
@@ -200,7 +212,10 @@ export interface DiseaseContentInput {
   prevention?: string | null
 }
 
-/** The same body creates and replaces a treatment; a higher `priority` is listed first. */
+/**
+ * The same body creates and replaces a treatment; a higher `priority` is listed first. A treatment's active ingredient
+ * decides which products the Farmer is offered for a confident AI result (products containing it).
+ */
 export interface TreatmentInput {
   treatmentType: TreatmentKind
   title: string
@@ -226,6 +241,6 @@ export const diseasesApi = {
 
   activateTreatment: (id: Uuid) => api<Treatment>(`/api/disease-treatments/${id}/activate`, { method: 'POST' }),
 
-  /** Semantic delete: the treatment is deactivated, recommendations that used it keep working. */
+  /** Semantic delete: the treatment is deactivated and no longer shown or used for suggestions. */
   deactivateTreatment: (id: Uuid) => api<void>(`/api/disease-treatments/${id}`, { method: 'DELETE' }),
 }

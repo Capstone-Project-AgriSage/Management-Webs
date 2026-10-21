@@ -20,4 +20,7 @@ export const adminCatalogApi = {
   update: (kind: CatalogKind, id: string, data: CatalogInput) => api<AdminCatalogRow>(`/api/${kind}/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   setActive: (kind: CatalogKind, id: string, active: boolean) => api<void>(`/api/${kind}/${id}/${active ? 'activate' : 'deactivate'}`, { method: 'POST' }),
   remove: (kind: CatalogKind, id: string) => api<void>(`/api/${kind}/${id}`, { method: 'DELETE' }),
+  /** Every active ingredient for a picker (the catalog is small: one page of 100). */
+  activeIngredients: (signal?: AbortSignal) =>
+    api<Paged<AdminCatalogRow>>(`/api/active-ingredients${toQuery({ page: 1, pageSize: 100, isActive: true })}`, { signal }),
 }
