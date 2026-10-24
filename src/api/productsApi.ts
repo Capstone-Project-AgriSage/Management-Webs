@@ -198,6 +198,12 @@ export const productsApi = {
   addToStore: (productId: Uuid) =>
     api<StoreProductRow>('/api/store-products', { method: 'POST', body: JSON.stringify({ productId }) }),
 
+  /** Replaces the product's whole list of active ingredients (each one once, only active ingredients). */
+  setIngredients: (
+    id: Uuid,
+    data: { ingredients: { activeIngredientId: Uuid; concentration: string | null; note: string | null }[] },
+  ) => api<ProductResponse>(`/api/products/${id}/ingredients`, { method: 'PUT', body: JSON.stringify(data) }),
+
   setSellable: (storeProductId: Uuid, sellable: boolean) =>
     api<void>(`/api/store-products/${storeProductId}/${sellable ? 'mark-sellable' : 'mark-not-sellable'}`, { method: 'POST' }),
 

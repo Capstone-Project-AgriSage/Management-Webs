@@ -53,7 +53,7 @@ export default function AiPolicyConfigsPage() {
   const create = () => {
     const confidence = Number(form.minimumConfidence), topK = Number(form.topK), effectiveFrom = new Date(form.effectiveFrom)
     if (!form.version.trim() || !Number.isFinite(confidence) || confidence < 0 || confidence > 1 || !Number.isInteger(topK) || topK < 1 || topK > 10 || !Number.isFinite(effectiveFrom.getTime())) { showToast('Kiểm tra phiên bản, ngưỡng 0–1, Top K từ 1–10 và ngày hiệu lực.', 'warning'); return }
-    if (modelId && has('AI_POLICIES.CREATE')) void run(() => aiModelsApi.createPolicy(modelId, { version: form.version.trim(), minimumConfidence: confidence, topK, effectiveFrom: effectiveFrom.toISOString(), requiresHumanReview: true }))
+    if (modelId && has('AI_POLICIES.CREATE')) void run(() => aiModelsApi.createPolicy(modelId, { version: form.version.trim(), minimumConfidence: confidence, topK, effectiveFrom: effectiveFrom.toISOString() }))
   }
   return <div className="max-w-[1600px] mx-auto space-y-5">
     <ListReportCards title="Tổng hợp chính sách AI" totalCount={pages.totalCount} unit="chính sách" loading={loading} error={!!error} metrics={[

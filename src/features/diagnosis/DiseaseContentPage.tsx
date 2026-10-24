@@ -12,6 +12,7 @@ import {
   type TreatmentInput,
   type TreatmentKind,
 } from '@/api/diagnosisApi'
+import { adminCatalogApi, type AdminCatalogRow } from '@/api/adminCatalogApi'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import Select from '@/components/ui/Select'
 import { TREATMENT_KIND_LABEL, diseaseLabel } from './diagnosisLabels'
@@ -34,6 +35,8 @@ interface TreatmentForm {
   treatmentType: TreatmentKind
   title: string
   instructions: string
+  /** '' = no ingredient. */
+  activeIngredientId: string
   precautions: string
   priority: string
 }
@@ -51,13 +54,14 @@ function contentFormOf(d: Disease): ContentForm {
   }
 }
 
-const emptyTreatment: TreatmentForm = { treatmentType: 'CHEMICAL', title: '', instructions: '', precautions: '', priority: '0' }
+const emptyTreatment: TreatmentForm = { treatmentType: 'CHEMICAL', title: '', instructions: '', activeIngredientId: '', precautions: '', priority: '0' }
 
 function treatmentFormOf(t: Treatment): TreatmentForm {
   return {
     treatmentType: t.treatmentType,
     title: t.title,
     instructions: t.instructions,
+    activeIngredientId: t.activeIngredientId ?? '',
     precautions: t.precautions ?? '',
     priority: String(t.priority),
   }
@@ -80,7 +84,7 @@ function Fact({ label, value }: { label: string; value: string | null }) {
 export default function DiseaseContentPage() {
   usePageHeader({
     title: 'Bệnh lúa và cách xử lý',
-    subtitle: 'Nội dung nông dân đọc trong app khi chuyên gia đã kết luận: mô tả bệnh và các cách xử lý',
+    subtitle: 'Nội dung nông dân đọc ngay khi AI nhận ra bệnh: mô tả bệnh, cách xử lý và hoạt chất để gợi ý sản phẩm',
   })
   const { has } = usePermission()
   const { showToast } = useToast()
@@ -100,6 +104,16 @@ export default function DiseaseContentPage() {
   const [treating, setTreating] = useState<{ disease: Disease; treatment: Treatment | null } | null>(null)
   const [treatmentForm, setTreatmentForm] = useState<TreatmentForm>(emptyTreatment)
   const [stopping, setStopping] = useState<Treatment | null>(null)
+  const [ingredients, setIngredients] = useState<AdminCatalogRow[]>([])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    adminCatalogApi
+      .activeIngredients(controller.signal)
+      .then((res) => setIngredients(res.items))
+      .catch(() => undefined) // the picker then only offers "no ingredient"; the page still works
+    return () => controller.abort()
+  }, [])
 
   const load = useCallback(async () => {
     try {
@@ -161,8 +175,7 @@ export default function DiseaseContentPage() {
       treatmentType: treatmentForm.treatmentType,
       title: treatmentForm.title.trim(),
       instructions: treatmentForm.instructions.trim(),
-      // There is no ingredient picker here; an update keeps the link the treatment already has.
-      activeIngredientId: treating.treatment?.activeIngredientId ?? null,
+      activeIngredientId: treatmentForm.activeIngredientId || null,
       precautions: orNull(treatmentForm.precautions),
       priority,
     }
@@ -188,8 +201,9 @@ export default function DiseaseContentPage() {
   return (
     <div className="max-w-[1100px] mx-auto space-y-5">
       <p className="text-sm text-slate-600">
-        Mỗi bệnh có phần mô tả và nhiều cách xử lý. Khi chuyên gia gợi ý một cách xử lý trên ca chẩn đoán, nông dân sẽ đọc đúng nội dung ở đây.
-        Cách xử lý đã ngừng không còn được chọn cho ca mới, còn các ca cũ đã dùng nó vẫn giữ nguyên.
+        Mỗi bệnh có phần mô tả và nhiều cách xử lý. Nông dân đọc nội dung này ngay khi AI nhận ra bệnh, không còn bước duyệt,
+        nên chỉ nhập nội dung đã được người hiểu bệnh lúa kiểm tra. Cách xử lý loại Hóa học chỉ hiện khi AI chắc chắn, và sản phẩm
+        của cửa hàng chứa hoạt chất của cách xử lý được gợi ý kèm. Cách xử lý đã ngừng không còn hiện cho nông dân.
       </p>
 
       {loadError && (
@@ -381,6 +395,33 @@ export default function DiseaseContentPage() {
             <textarea className={`${field} mt-1 font-normal min-h-[110px]`} maxLength={4000} value={treatmentForm.instructions} onChange={(e) => setTreatmentForm({ ...treatmentForm, instructions: e.target.value })} />
           </label>
           <label className="block text-sm font-semibold text-slate-700">
+            Hoạt chất (để gợi ý sản phẩm)
+            <Select
+              className={`${field} mt-1 font-normal`}
+              value={treatmentForm.activeIngredientId}
+              onChange={(e) => setTreatmentForm({ ...treatmentForm, activeIngredientId: e.target.value })}
+              aria-label="Hoạt chất"
+            >
+              <option value="">Không gắn hoạt chất</option>
+              {ingredients.map((i) => (
+                <option key={i.id} value={i.id}>
+                  {i.name}
+                  {i.code ? ` (${i.code})` : ''}
+                </option>
+              ))}
+              {treatmentForm.activeIngredientId && !ingredients.some((i) => i.id === treatmentForm.activeIngredientId) && (
+                <option value={treatmentForm.activeIngredientId}>
+                  {treating?.treatment?.activeIngredientName ?? 'Hoạt chất hiện tại'} (đã ngừng)
+                </option>
+              )}
+            </Select>
+            <span className="mt-1 block text-xs font-normal text-slate-500">
+              {treatmentForm.treatmentType === 'CHEMICAL' && !treatmentForm.activeIngredientId
+                ? 'Nên gắn hoạt chất: nếu không, nông dân sẽ không được gợi ý sản phẩm nào cho cách xử lý này.'
+                : 'Sản phẩm của cửa hàng chứa hoạt chất này được gợi ý khi AI chắc chắn về bệnh.'}
+            </span>
+          </label>
+          <label className="block text-sm font-semibold text-slate-700">
             Lưu ý an toàn (không bắt buộc)
             <textarea className={`${field} mt-1 font-normal min-h-[70px]`} maxLength={2000} value={treatmentForm.precautions} onChange={(e) => setTreatmentForm({ ...treatmentForm, precautions: e.target.value })} />
           </label>
@@ -394,7 +435,7 @@ export default function DiseaseContentPage() {
       <ConfirmModal
         open={stopping !== null}
         title="Ngừng cách xử lý"
-        message={stopping ? `"${stopping.title}" sẽ không còn được chọn cho ca mới. Các ca đã dùng nó vẫn giữ nguyên, và bạn có thể kích hoạt lại sau.` : undefined}
+        message={stopping ? `"${stopping.title}" sẽ không còn hiện cho nông dân và không còn dùng để gợi ý sản phẩm. Bạn có thể kích hoạt lại sau.` : undefined}
         confirmLabel="Ngừng cách xử lý"
         tone="danger"
         busy={busy}

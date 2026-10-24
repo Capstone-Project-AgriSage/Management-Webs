@@ -1,27 +1,13 @@
-import Select from '@/components/ui/Select'
-import { useDetailBusy } from '@/hooks/useDetailBusy'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { AlertTriangle, ArrowLeft, Check, Image as ImageIcon, Plus, RotateCw, Trash2 } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Image as ImageIcon, Phone } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
-import { useToast } from '@/context/ToastContext'
-import { useAuth } from '@/context/AuthContext'
-import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { describeError } from '@/api/client'
-import {
-  diagnosisApi,
-  diseasesApi,
-  type AiInference,
-  type AgentReview,
-  type Disease,
-  type DiagnosisCase,
-  type RecommendationKind,
-  type ReviewDecision,
-} from '@/api/diagnosisApi'
-import { productLookupApi, type StoreProductRef } from '@/api/productLookupApi'
-import ConfirmModal from '@/components/ui/ConfirmModal'
+import { diagnosisApi, type AgentReview, type DiagnosisCase, type FarmerResult } from '@/api/diagnosisApi'
 import { formatDateTime } from '@/utils/units'
 import {
+  CERTAINTY_BADGE_CLASS,
+  CERTAINTY_LABEL,
   DECISION_LABEL,
   DIAGNOSIS_STATUS_BADGE_CLASS,
   DIAGNOSIS_STATUS_LABEL,
@@ -31,50 +17,25 @@ import {
   useDiagnosisBase,
 } from './diagnosisLabels'
 
-type Dialog = null | 'start' | 'review' | 'recommend' | 'rerun'
-
-const field =
-  'w-full px-3 py-2 rounded-md border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500'
-
-const REVIEWABLE = ['AI_COMPLETED', 'UNDER_REVIEW', 'FAILED', 'VERIFIED', 'INCONCLUSIVE']
-
 function percent(value: number): string {
   return `${(value * 100).toFixed(1)}%`
 }
 
+/**
+ * One farmer's case, read only (AI_DIAGNOSIS.md 2.0): since 2026-10-21 nobody reviews the AI. Staff see the photo, the AI
+ * evidence and exactly what the Farmer was shown, and can call the Farmer to follow up.
+ */
 export default function DiagnosisCasePage() {
   const { id = '' } = useParams()
   const base = useDiagnosisBase()
-  const { showToast } = useToast()
-  const { user } = useAuth()
-  const canReview = Boolean(user?.canReviewAi)
 
   const [item, setItem] = useState<DiagnosisCase | null>(null)
-  const [diseases, setDiseases] = useState<Disease[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [dialog, setDialog] = useState<Dialog>(null)
-  const [busy, setBusy] = useState(false)
-
-  // review form
-  const [decision, setDecision] = useState<ReviewDecision>('CONFIRMED')
-  const [correctedId, setCorrectedId] = useState('')
-  const [comment, setComment] = useState('')
-
-  // recommendation form
-  const [kind, setKind] = useState<RecommendationKind>('TREATMENT')
-  const [treatmentId, setTreatmentId] = useState('')
-  const [productSearch, setProductSearch] = useState('')
-  const debouncedProductSearch = useDebouncedValue(productSearch)
-  const [products, setProducts] = useState<StoreProductRef[]>([])
-  const [productId, setProductId] = useState('')
-  const [reason, setReason] = useState('')
-  const [removing, setRemoving] = useState<string | null>(null)
-  useDetailBusy(busy || removing !== null)
 
   usePageHeader({
     title: item ? `Ca chẩn đoán ${item.caseNumber}` : 'Ca chẩn đoán',
-    subtitle: 'Xem bằng chứng của AI, xác minh bệnh và gợi ý cách xử lý cho nông dân',
+    subtitle: 'Ảnh nông dân gửi, kết quả AI và những gì nông dân đã thấy',
   })
 
   const load = useCallback(async () => {
@@ -93,13 +54,6 @@ export default function DiagnosisCasePage() {
     load()
   }, [load])
 
-  useEffect(() => {
-    diseasesApi
-      .list(true)
-      .then(setDiseases)
-      .catch(() => undefined) // names and treatments only; the case itself still shows
-  }, [])
-
   // The signed photo URL lasts an hour: reload the case when it is about to expire so the photo never goes blank.
   useEffect(() => {
     const expiry = item?.images[0]?.expiresAt
@@ -110,177 +64,45 @@ export default function DiagnosisCasePage() {
     return () => window.clearTimeout(timer)
   }, [item?.images, load])
 
-  useEffect(() => {
-    if (dialog !== 'recommend' || kind !== 'PRODUCT') return
-    let cancelled = false
-    productLookupApi
-      .searchStoreProducts({ search: debouncedProductSearch.trim() || undefined, pageSize: 8 })
-      .then((res) => {
-        if (!cancelled) setProducts(res.items)
-      })
-      .catch(() => {
-        if (!cancelled) setProducts([])
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [dialog, kind, debouncedProductSearch])
-
-  const successful = useMemo(() => item?.inferences.filter((i) => i.status === 'SUCCESS') ?? [], [item])
-  const latestSuccess: AiInference | undefined = successful[successful.length - 1]
-  const predictedDisease = diseases.find((d) => d.id === latestSuccess?.predictedDiseaseId)
-  const finalDisease = diseases.find((d) => d.id === item?.finalDisease?.id)
-  const treatments = (finalDisease?.treatments ?? []).filter((t) => t.isActive)
-  const photo = item?.images[0]
-  const canDecide = canReview && item !== null && REVIEWABLE.includes(item.status)
-  const verified = item?.status === 'VERIFIED'
-  const activeRecommendations = (item?.recommendations ?? []).filter((r) => r.isActive)
-
-  const run = async (action: () => Promise<DiagnosisCase>, success: string, failure: string) => {
-    setBusy(true)
-    try {
-      setItem(await action())
-      showToast(success, 'success')
-      setDialog(null)
-    } catch (err) {
-      showToast(describeError(err, failure), 'error')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const openReview = () => {
-    // Default to what the AI saw when it is usable; a failed case has to be decided by hand.
-    setDecision(latestSuccess ? 'CONFIRMED' : 'CORRECTED')
-    setCorrectedId('')
-    setComment('')
-    setDialog('review')
-  }
-
-  const submitReview = () => {
-    if (!item) return
-    const finalDiseaseId =
-      decision === 'INCONCLUSIVE' ? null : decision === 'CONFIRMED' ? latestSuccess?.predictedDiseaseId ?? null : correctedId || null
-    return run(
-      () =>
-        diagnosisApi.review(item.id, {
-          decision,
-          finalDiseaseId,
-          primaryAiInferenceId: latestSuccess?.id ?? null,
-          comment: comment.trim() || null,
-        }),
-      'Đã lưu kết quả duyệt. Nông dân sẽ nhận thông báo.',
-      'Không lưu được kết quả duyệt',
-    )
-  }
-
-  const openRecommend = () => {
-    setKind(treatments.length > 0 ? 'TREATMENT' : 'PRODUCT')
-    setTreatmentId('')
-    setProductId('')
-    setProductSearch('')
-    setReason('')
-    setDialog('recommend')
-  }
-
-  const submitRecommendation = async () => {
-    if (!item) return
-    setBusy(true)
-    try {
-      await diagnosisApi.recommend(item.id, {
-        type: kind,
-        diseaseTreatmentId: kind === 'TREATMENT' ? treatmentId : null,
-        storeProductId: kind === 'PRODUCT' ? productId : null,
-        rankOrder: activeRecommendations.length + 1,
-        reason: reason.trim() || null,
-      })
-      showToast('Đã thêm gợi ý', 'success')
-      setDialog(null)
-      await load()
-    } catch (err) {
-      showToast(describeError(err, 'Không thêm được gợi ý'), 'error')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const removeRecommendation = async (recommendationId: string) => {
-    if (!item) return
-    setRemoving(recommendationId)
-    try {
-      await diagnosisApi.unrecommend(item.id, recommendationId)
-      showToast('Đã gỡ gợi ý', 'success')
-      await load()
-    } catch (err) {
-      showToast(describeError(err, 'Không gỡ được gợi ý'), 'error')
-    } finally {
-      setRemoving(null)
-    }
-  }
-
   if (loading && !item) return <div className="p-space-md text-slate-500 animate-pulse">Đang tải...</div>
   if (!item) {
     return (
       <div className="p-space-md space-y-3">
         <p className="text-rose-700">{loadError ?? 'Không tìm thấy ca chẩn đoán.'}</p>
         <Link to={base} className="text-emerald-700 underline text-sm">
-          Về hàng đợi
+          Về danh sách
         </Link>
       </div>
     )
   }
 
-  const reviewConfirmDisabled =
-    (decision === 'CONFIRMED' && !latestSuccess?.predictedDiseaseId) || (decision === 'CORRECTED' && !correctedId)
+  const photo = item.images[0]
+  const legacy = item.currentReview !== null || item.reviewHistory.length > 0
+  const storedRecommendations = item.recommendations.filter((r) => r.isActive)
 
   return (
     <div className="max-w-[1400px] mx-auto flex flex-col gap-space-lg p-space-md">
       <div className="flex flex-wrap items-center gap-3">
         <Link to={base} className="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900">
-          <ArrowLeft size={16} /> Hàng đợi
+          <ArrowLeft size={16} /> Danh sách
         </Link>
         <span className={`text-[11px] font-bold px-2 py-0.5 rounded tracking-wide ${DIAGNOSIS_STATUS_BADGE_CLASS[item.status]}`}>
           {DIAGNOSIS_STATUS_LABEL[item.status]}
         </span>
         <span className="text-sm text-slate-600">
-          {item.farmer.fullName}
-          {item.farmer.phoneNumber ? ` · ${item.farmer.phoneNumber}` : ''} · gửi lúc {formatDateTime(item.submittedAt)}
+          {item.farmer.fullName} · gửi lúc {formatDateTime(item.submittedAt)}
         </span>
         <div className="flex-1" />
-        {canDecide && item.status === 'AI_COMPLETED' && (
-          <button
-            type="button"
-            onClick={() => setDialog('start')}
-            className="h-10 px-4 rounded-lg border border-slate-300 bg-white text-sm font-medium hover:bg-slate-50"
-          >
-            Bắt đầu duyệt
-          </button>
-        )}
-        {canReview && (item.status === 'FAILED' || item.status === 'SUBMITTED') && (
-          <button
-            type="button"
-            onClick={() => setDialog('rerun')}
+        {item.farmer.phoneNumber && (
+          <a
+            href={`tel:${item.farmer.phoneNumber}`}
             className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-slate-300 bg-white text-sm font-medium hover:bg-slate-50"
+            data-testid="call-farmer"
           >
-            <RotateCw size={16} /> Chạy lại AI
-          </button>
-        )}
-        {canDecide && (
-          <button
-            type="button"
-            onClick={openReview}
-            className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm"
-          >
-            <Check size={16} /> {item.currentReview ? 'Duyệt lại' : 'Duyệt ca này'}
-          </button>
+            <Phone size={16} /> Gọi nông dân {item.farmer.phoneNumber}
+          </a>
         )}
       </div>
-
-      {!canReview && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          Bạn chưa được cấp quyền duyệt AI nên chỉ xem được ca này.
-        </div>
-      )}
 
       <div className="grid gap-space-lg lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
         <section className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-4 space-y-3 self-start">
@@ -303,9 +125,11 @@ export default function DiagnosisCasePage() {
         </section>
 
         <div className="flex flex-col gap-space-lg">
+          <FarmerView result={item.farmerResult} status={item.status} />
+
           <section className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-4 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-on-surface">Kết quả của AI (bằng chứng, chưa phải chẩn đoán)</h2>
+              <h2 className="text-sm font-semibold text-on-surface">Kết quả của AI</h2>
               <span className="text-xs text-slate-500">{item.inferences.length} lần chạy</span>
             </div>
             {item.inferences.length === 0 && (
@@ -332,9 +156,9 @@ export default function DiagnosisCasePage() {
                       <span className="tabular-nums text-sm">độ tin cậy {percent(inference.confidence)}</span>
                       {inference.margin !== null && <span className="tabular-nums text-sm text-slate-600">cách lớp thứ hai {percent(inference.margin)}</span>}
                       {inference.passedPolicy ? (
-                        <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">Đạt ngưỡng</span>
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">Chắc chắn</span>
                       ) : (
-                        <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">Không đạt ngưỡng</span>
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">Chưa chắc</span>
                       )}
                     </div>
                     <p className="text-xs text-slate-500">
@@ -358,47 +182,24 @@ export default function DiagnosisCasePage() {
             ))}
           </section>
 
-          <section className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-4 space-y-3">
-            <h2 className="text-sm font-semibold text-on-surface">Kết quả duyệt</h2>
-            {item.currentReview ? (
-              <ReviewBlock review={item.currentReview} current />
-            ) : (
-              <p className="text-sm text-slate-600">Chưa có ai duyệt ca này. Nông dân chưa thấy kết quả nào.</p>
-            )}
-            {item.reviewHistory.length > 0 && (
-              <details className="text-sm">
-                <summary className="cursor-pointer text-slate-600">Lịch sử duyệt ({item.reviewHistory.length})</summary>
-                <div className="mt-2 space-y-2">
-                  {item.reviewHistory.map((r) => (
-                    <ReviewBlock key={r.id} review={r} />
-                  ))}
-                </div>
-              </details>
-            )}
-          </section>
-
-          {verified && (
-            <section className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-on-surface">Gợi ý cho nông dân</h2>
-                {canDecide && (
-                  <button
-                    type="button"
-                    onClick={openRecommend}
-                    className="inline-flex items-center gap-1 h-9 px-3 rounded-lg border border-slate-300 bg-white text-sm font-medium hover:bg-slate-50"
-                  >
-                    <Plus size={14} /> Thêm gợi ý
-                  </button>
-                )}
-              </div>
-              {item.finalDisease?.isHealthy && (
-                <p className="text-xs text-slate-500">Lá khỏe chỉ nhận hướng dẫn chăm sóc, không gợi ý sản phẩm.</p>
+          {legacy && (
+            <section className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-4 space-y-3" data-testid="legacy-review">
+              <h2 className="text-sm font-semibold text-on-surface">Kết quả duyệt trước đây</h2>
+              <p className="text-xs text-slate-500">Ca này được duyệt trước khi bỏ bước duyệt (21/10/2026).</p>
+              {item.currentReview && <ReviewBlock review={item.currentReview} current />}
+              {item.reviewHistory.length > 0 && (
+                <details className="text-sm">
+                  <summary className="cursor-pointer text-slate-600">Lịch sử duyệt ({item.reviewHistory.length})</summary>
+                  <div className="mt-2 space-y-2">
+                    {item.reviewHistory.map((r) => (
+                      <ReviewBlock key={r.id} review={r} />
+                    ))}
+                  </div>
+                </details>
               )}
-              {activeRecommendations.length === 0 ? (
-                <p className="text-sm text-slate-600">Chưa có gợi ý nào.</p>
-              ) : (
+              {storedRecommendations.length > 0 && (
                 <ul className="divide-y divide-outline-variant/60">
-                  {activeRecommendations.map((r) => (
+                  {storedRecommendations.map((r) => (
                     <li key={r.id} className="py-2 flex items-start gap-3 text-sm">
                       <span className="mt-0.5 text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 whitespace-nowrap">
                         {r.type === 'TREATMENT' ? 'Cách xử lý' : 'Sản phẩm'}
@@ -408,17 +209,6 @@ export default function DiagnosisCasePage() {
                         {r.productSku && <div className="text-xs text-slate-500 font-mono">{r.productSku}</div>}
                         {r.reason && <div className="text-xs text-slate-600">{r.reason}</div>}
                       </div>
-                      {canDecide && (
-                        <button
-                          type="button"
-                          disabled={removing === r.id}
-                          onClick={() => removeRecommendation(r.id)}
-                          className="p-1.5 rounded text-slate-500 hover:text-rose-700 hover:bg-rose-50 disabled:opacity-50"
-                          aria-label="Gỡ gợi ý"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      )}
                     </li>
                   ))}
                 </ul>
@@ -427,137 +217,81 @@ export default function DiagnosisCasePage() {
           )}
         </div>
       </div>
+    </div>
+  )
+}
 
-      <ConfirmModal
-        open={dialog === 'start'}
-        title="Bắt đầu duyệt ca này?"
-        message="Ca chuyển sang trạng thái đang duyệt để đồng nghiệp biết bạn đang xem."
-        confirmLabel="Bắt đầu duyệt"
-        busy={busy}
-        onConfirm={() =>
-          run(() => diagnosisApi.startReview(item.id), 'Ca đã chuyển sang đang duyệt', 'Không bắt đầu duyệt được')
-        }
-        onClose={() => setDialog(null)}
-      />
-
-      <ConfirmModal
-        open={dialog === 'rerun'}
-        title="Chạy lại AI trên ảnh này?"
-        message="Kết quả cũ vẫn được giữ làm lịch sử."
-        confirmLabel="Chạy lại"
-        busy={busy}
-        onConfirm={() => run(() => diagnosisApi.rerunAi(item.id), 'Đã chạy lại AI', 'Không chạy lại được AI')}
-        onClose={() => setDialog(null)}
-      />
-
-      <ConfirmModal
-        open={dialog === 'review'}
-        title="Duyệt ca chẩn đoán"
-        message="Quyết định của bạn là kết quả nông dân nhìn thấy. AI chỉ là bằng chứng."
-        confirmLabel="Lưu kết quả duyệt"
-        busy={busy}
-        confirmDisabled={reviewConfirmDisabled}
-        onConfirm={submitReview}
-        onClose={() => setDialog(null)}
-      >
-        <div className="space-y-3">
-          {(['CONFIRMED', 'CORRECTED', 'INCONCLUSIVE'] as ReviewDecision[]).map((d) => {
-            const disabled = d === 'CONFIRMED' && !latestSuccess
-            return (
-              <label key={d} className={`flex items-start gap-2 text-sm ${disabled ? 'opacity-50' : ''}`}>
-                <input type="radio" name="decision" className="mt-1" checked={decision === d} disabled={disabled} onChange={() => setDecision(d)} />
-                <span>
-                  <span className="font-medium">{DECISION_LABEL[d]}</span>
-                  {d === 'CONFIRMED' && latestSuccess && (
-                    <span className="block text-xs text-slate-600">
-                      Giữ kết quả {diseaseLabel(latestSuccess.predictedClassLabel, predictedDisease?.name)}
-                    </span>
-                  )}
-                  {d === 'CONFIRMED' && !latestSuccess && <span className="block text-xs text-slate-600">Cần có kết quả AI hợp lệ</span>}
-                  {d === 'INCONCLUSIVE' && <span className="block text-xs text-slate-600">Nông dân sẽ được nhắc chụp lại ảnh, không có gợi ý thuốc</span>}
-                </span>
-              </label>
-            )
-          })}
-          {decision === 'CORRECTED' && (
-            <Select value={correctedId} onChange={(e) => setCorrectedId(e.target.value)} className={field} aria-label="Bệnh đúng">
-              <option value="">Chọn bệnh đúng...</option>
-              {diseases.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {diseaseLabel(d.code, d.name)}
-                </option>
-              ))}
-            </Select>
-          )}
-          <textarea
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            rows={3}
-            maxLength={2000}
-            placeholder="Nhận xét cho nông dân (không bắt buộc)"
-            className={field}
-          />
-        </div>
-      </ConfirmModal>
-
-      <ConfirmModal
-        open={dialog === 'recommend'}
-        title="Thêm gợi ý"
-        confirmLabel="Thêm gợi ý"
-        busy={busy}
-        confirmDisabled={kind === 'TREATMENT' ? !treatmentId : !productId || Boolean(item.finalDisease?.isHealthy)}
-        onConfirm={submitRecommendation}
-        onClose={() => setDialog(null)}
-      >
-        <div className="space-y-3">
-          <div className="flex gap-2">
-            {(['TREATMENT', 'PRODUCT'] as RecommendationKind[]).map((k) => (
-              <button
-                key={k}
-                type="button"
-                onClick={() => setKind(k)}
-                className={`flex-1 h-9 rounded-lg border text-sm font-medium ${kind === k ? 'border-emerald-600 bg-emerald-50 text-emerald-800' : 'border-slate-300 bg-white'}`}
-              >
-                {k === 'TREATMENT' ? 'Cách xử lý' : 'Sản phẩm trong cửa hàng'}
-              </button>
-            ))}
+function FarmerView({ result, status }: { result: FarmerResult | null; status: DiagnosisCase['status'] }) {
+  return (
+    <section className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-4 space-y-3" data-testid="farmer-view">
+      <h2 className="text-sm font-semibold text-on-surface">Nông dân đã thấy</h2>
+      {!result ? (
+        <p className="text-sm text-slate-600">
+          {status === 'FAILED'
+            ? 'AI chưa phân tích được ảnh. Nông dân được mời thử lại hoặc gửi ảnh khác.'
+            : status === 'CANCELLED'
+              ? 'Nông dân đã hủy ca này.'
+              : status === 'INCONCLUSIVE'
+                ? 'Nông dân được nhắc chụp lại ảnh (kết luận trước đây).'
+                : 'Chưa có kết quả.'}
+        </p>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-lg font-semibold">{diseaseLabel(result.disease.code, result.disease.name)}</span>
+            <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${CERTAINTY_BADGE_CLASS[result.certainty]}`}>
+              {CERTAINTY_LABEL[result.certainty]}
+            </span>
           </div>
-          {kind === 'TREATMENT' ? (
-            treatments.length === 0 ? (
-              <p className="text-sm text-slate-600">Bệnh này chưa có cách xử lý nào. Chủ cửa hàng nhập ở mục "Bệnh & cách xử lý".</p>
+          {result.certainty === 'UNCERTAIN' && (
+            <p className="text-sm text-amber-800">
+              Nông dân được khuyên chụp lại ảnh hoặc hỏi cửa hàng; không có thuốc nào được gợi ý. Nên gọi tư vấn.
+            </p>
+          )}
+          {result.reviewerComment && <p className="text-sm text-slate-700">Nhận xét: {result.reviewerComment}</p>}
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Cách xử lý ({result.treatments.length})</h3>
+            {result.treatments.length === 0 ? (
+              <p className="text-sm text-slate-600">Chưa có nội dung. Chủ cửa hàng nhập ở mục "Bệnh & cách xử lý".</p>
             ) : (
-              <Select value={treatmentId} onChange={(e) => setTreatmentId(e.target.value)} className={field} aria-label="Cách xử lý">
-                <option value="">Chọn cách xử lý...</option>
-                {treatments.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    [{TREATMENT_KIND_LABEL[t.treatmentType]}] {t.title}
-                  </option>
-                ))}
-              </Select>
-            )
-          ) : item.finalDisease?.isHealthy ? (
-            <p className="text-sm text-amber-800">Lá khỏe không được gợi ý sản phẩm.</p>
-          ) : (
-            <>
-              <input value={productSearch} onChange={(e) => setProductSearch(e.target.value)} placeholder="Tìm sản phẩm..." className={field} />
-              <ul className="max-h-48 overflow-y-auto divide-y divide-outline-variant/60 rounded-md border border-slate-200">
-                {products.length === 0 && <li className="p-2 text-sm text-slate-500">Không có sản phẩm phù hợp.</li>}
-                {products.map((p) => (
-                  <li key={p.id}>
-                    <label className="flex items-center gap-2 p-2 text-sm cursor-pointer hover:bg-slate-50">
-                      <input type="radio" name="product" checked={productId === p.id} onChange={() => setProductId(p.id)} />
-                      <span className="flex-1">{p.name}</span>
-                      <span className="text-xs text-slate-500 font-mono">{p.storeSku ?? p.sku}</span>
-                    </label>
+              <ul className="mt-1 space-y-1 text-sm">
+                {result.treatments.map((t) => (
+                  <li key={t.id}>
+                    <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 mr-2">
+                      {TREATMENT_KIND_LABEL[t.type]}
+                    </span>
+                    {t.title}
+                    {t.activeIngredientName && <span className="text-xs text-slate-500"> · {t.activeIngredientName}</span>}
                   </li>
                 ))}
               </ul>
-            </>
-          )}
-          <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} maxLength={1000} placeholder="Lý do hoặc cách dùng (không bắt buộc)" className={field} />
-        </div>
-      </ConfirmModal>
-    </div>
+            )}
+          </div>
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Sản phẩm gợi ý ({result.products.length})</h3>
+            {result.products.length === 0 ? (
+              <p className="text-sm text-slate-600">
+                {result.certainty === 'CONFIDENT' && !result.disease.isHealthy
+                  ? 'Không có sản phẩm nào của cửa hàng chứa hoạt chất của cách xử lý bệnh này.'
+                  : 'Không gợi ý sản phẩm.'}
+              </p>
+            ) : (
+              <ul className="mt-1 divide-y divide-outline-variant/60 text-sm">
+                {result.products.map((p) => (
+                  <li key={p.storeProductId} className="py-1.5">
+                    <div className="font-medium">{p.name}</div>
+                    <div className="text-xs text-slate-500">
+                      <span className="font-mono">{p.sku}</span>
+                      {p.reason ? ` · ${p.reason}` : ''}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      )}
+    </section>
   )
 }
 

@@ -12,7 +12,6 @@ export interface StaffResponse {
   employeeCode: string | null
   joinedAt: string | null
   leftAt: string | null
-  canReviewAi: boolean
   createdAt: string
 }
 
@@ -49,8 +48,4 @@ export const staffApi = {
   unlock: (id: string) => api<void>(`/api/staff/${encodeURIComponent(id)}/unlock`, { method: 'POST' }),
   resetPassword: (id: string, newPassword: string) => api<void>(`/api/staff/${encodeURIComponent(id)}/reset-password`, { method: 'POST', body: JSON.stringify({ newPassword }) }),
   remove: (id: string) => api<void>(`/api/staff/${encodeURIComponent(id)}`, { method: 'DELETE' }),
-
-  /** Admin and Store Owner. Whether the member may decide AI diagnosis cases (not a role); only Sales staff and Store Owners. */
-  setAiReview: (userId: string, enabled: boolean, reason?: string) =>
-    api<StaffResponse>(`/api/staff/${userId}/ai-review`, { method: 'PUT', body: JSON.stringify({ enabled, reason: reason ?? null }) })
 }

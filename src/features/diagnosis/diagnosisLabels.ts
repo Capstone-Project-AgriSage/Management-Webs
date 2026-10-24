@@ -1,23 +1,36 @@
 import { useLocation } from 'react-router-dom'
-import type { DiagnosisStatus, ReviewDecision, TreatmentKind } from '@/api/diagnosisApi'
+import type { DiagnosisCertainty, DiagnosisStatus, ReviewDecision, TreatmentKind } from '@/api/diagnosisApi'
 
+/** UNDER_REVIEW, VERIFIED and INCONCLUSIVE only exist on cases from before Human Review was removed (2026-10-21). */
 export const DIAGNOSIS_STATUS_LABEL: Record<DiagnosisStatus, string> = {
   SUBMITTED: 'Đã gửi, chờ chạy AI',
   PROCESSING: 'AI đang phân tích',
-  AI_COMPLETED: 'Chờ duyệt',
-  UNDER_REVIEW: 'Đang duyệt',
-  VERIFIED: 'Đã xác minh',
-  INCONCLUSIVE: 'Chưa kết luận',
-  FAILED: 'AI lỗi, cần chẩn đoán tay',
+  AI_COMPLETED: 'Đã có kết quả AI',
+  UNDER_REVIEW: 'Đang duyệt (cũ)',
+  VERIFIED: 'Đã xác minh (cũ)',
+  INCONCLUSIVE: 'Chưa kết luận (cũ)',
+  FAILED: 'AI không phân tích được',
   CANCELLED: 'Đã hủy',
+}
+
+export const CERTAINTY_LABEL: Record<DiagnosisCertainty, string> = {
+  CONFIDENT: 'AI chắc chắn',
+  UNCERTAIN: 'AI chưa chắc chắn',
+  VERIFIED: 'Đã được duyệt (trước đây)',
+}
+
+export const CERTAINTY_BADGE_CLASS: Record<DiagnosisCertainty, string> = {
+  CONFIDENT: 'bg-emerald-100 text-emerald-800',
+  UNCERTAIN: 'bg-amber-100 text-amber-800',
+  VERIFIED: 'bg-slate-200 text-slate-700',
 }
 
 export const DIAGNOSIS_STATUS_BADGE_CLASS: Record<DiagnosisStatus, string> = {
   SUBMITTED: 'bg-slate-200 text-slate-700',
   PROCESSING: 'bg-sky-100 text-sky-800',
-  AI_COMPLETED: 'bg-amber-100 text-amber-800',
+  AI_COMPLETED: 'bg-emerald-100 text-emerald-800',
   UNDER_REVIEW: 'bg-indigo-100 text-indigo-800',
-  VERIFIED: 'bg-emerald-100 text-emerald-800',
+  VERIFIED: 'bg-slate-200 text-slate-700',
   INCONCLUSIVE: 'bg-violet-100 text-violet-800',
   FAILED: 'bg-rose-100 text-rose-700',
   CANCELLED: 'bg-slate-200 text-slate-600',

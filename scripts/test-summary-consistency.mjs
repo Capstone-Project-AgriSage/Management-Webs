@@ -34,7 +34,7 @@ async function makeSession(role = 'STORE_OWNER', permissions = READ_PERMISSIONS,
     requests.push({ path, query, method: route.request().method() })
     const json = (body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) }).catch(() => {})
     if (route.request().method() !== 'GET') return json({ detail: 'This test permits GET only.' }, 405)
-    if (path === '/api/auth/me') return json({ id: 'owner', fullName: 'Kiểm thử tổng hợp', role, storeName: 'Cửa hàng kiểm thử', canReviewAi: true, status: 'ACTIVE' })
+    if (path === '/api/auth/me') return json({ id: 'owner', fullName: 'Kiểm thử tổng hợp', role, storeName: 'Cửa hàng kiểm thử', status: 'ACTIVE' })
     if (path === '/api/me/permissions') return json({ role, permissions })
     if (path.endsWith('/unread-count')) return json({ count: 0 })
     if (path === '/api/catalog/categories') return json(categoryTree)

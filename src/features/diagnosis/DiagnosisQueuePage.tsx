@@ -3,10 +3,9 @@ import ListToolbar from '@/components/ui/ListToolbar'
 import ListReportCards from '@/features/agent/reports/ListReportCards'
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck } from 'lucide-react';
+import { Phone } from 'lucide-react';
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
-import { useAuth } from '@/context/AuthContext';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { describeError } from '@/api/client';
 import { diagnosisApi, type DiagnosisListItem, type DiagnosisStatus } from '@/api/diagnosisApi';
@@ -27,8 +26,8 @@ const STATUS_OPTIONS = [
 
 const POLICY_OPTIONS = [
   { value: '', label: 'Mọi kết quả AI' },
-  { value: 'true', label: 'Đạt ngưỡng của AI' },
-  { value: 'false', label: 'Không đạt ngưỡng' },
+  { value: 'true', label: 'AI chắc chắn' },
+  { value: 'false', label: 'AI chưa chắc chắn' },
 ]
 
 function percent(value: number | null): string {
@@ -37,18 +36,16 @@ function percent(value: number | null): string {
 
 export default function DiagnosisQueuePage() {
   usePageHeader({
-    title: 'Hàng đợi chẩn đoán AI',
-    subtitle: 'Duyệt ảnh lá lúa nông dân gửi: xác nhận, sửa bệnh hoặc chưa kết luận, rồi gợi ý cách xử lý',
+    title: 'Ca chẩn đoán AI của nông dân',
+    subtitle: 'Nông dân thấy kết quả AI ngay khi gửi ảnh. Xem lại ảnh, kết quả và gọi tư vấn khi cần',
   })
   const { showToast } = useToast()
-  const { user } = useAuth()
   const navigate = useNavigate()
   const base = useDiagnosisBase()
-  const canReview = Boolean(user?.canReviewAi)
 
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebouncedValue(search)
-  const [status, setStatus] = useState<string>('AI_COMPLETED')
+  const [status, setStatus] = useState<string>('')
   const [policy, setPolicy] = useState('')
   const [page, setPage] = useState(1)
   const [data, setData] = useState<Paged<DiagnosisListItem> | null>(null)
@@ -70,7 +67,7 @@ export default function DiagnosisQueuePage() {
       })
       if (id === request.current) setData(res)
     } catch (err) {
-      if (id === request.current) { setLoadError(true); showToast(describeError(err, 'Không tải được hàng đợi chẩn đoán'), 'error') }
+      if (id === request.current) { setLoadError(true); showToast(describeError(err, 'Không tải được danh sách ca chẩn đoán'), 'error') }
     } finally {
       if (id === request.current) setLoading(false)
     }
@@ -87,18 +84,10 @@ export default function DiagnosisQueuePage() {
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
       <ListReportCards title="Tổng hợp chẩn đoán AI" totalCount={data?.totalCount ?? null} unit="ca chẩn đoán" loading={loading} error={loadError} metrics={[
-        { label: 'Cần duyệt', value: items.filter(item => item.status === 'AI_COMPLETED' || item.status === 'UNDER_REVIEW').length },
-        { label: 'Không đạt ngưỡng AI', value: items.filter(item => item.passedPolicy === false).length },
-        { label: 'Đã xác minh', value: items.filter(item => item.status === 'VERIFIED').length },
+        { label: 'Có kết quả AI', value: items.filter(item => item.status === 'AI_COMPLETED').length },
+        { label: 'AI chưa chắc chắn', value: items.filter(item => item.passedPolicy === false).length },
+        { label: 'AI lỗi', value: items.filter(item => item.status === 'FAILED').length },
       ]} />
-      {!canReview && (
-        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          <ShieldCheck size={18} className="mt-0.5 shrink-0" />
-          <span>
-            Bạn xem được hàng đợi nhưng chưa được cấp quyền duyệt AI. Chủ cửa hàng cấp quyền này trong mục quản lý nhân viên.
-          </span>
-        </div>
-      )}
 
       <ListToolbar search={{ value: search, onChange: (v) => {
             setSearch(v)
@@ -134,8 +123,8 @@ export default function DiagnosisQueuePage() {
                 <th className="py-3 px-3 font-medium text-center">Trạng thái</th>
                 <th className="py-3 px-3 font-medium">AI đoán</th>
                 <th className="py-3 px-3 font-medium text-right">Độ tin cậy</th>
-                <th className="py-3 px-3 font-medium text-center">Ngưỡng</th>
-                <th className="py-3 px-3 font-medium">Kết luận</th>
+                <th className="py-3 px-3 font-medium text-center">Mức chắc chắn</th>
+                <th className="py-3 px-3 font-medium">Kết luận cũ</th>
                 <th className="py-3 px-4 font-medium">Gửi lúc</th>
               </tr>
             </thead>
@@ -154,7 +143,16 @@ export default function DiagnosisQueuePage() {
                     <td className="py-3 px-4 font-mono text-xs font-semibold">{c.caseNumber}</td>
                     <td className="py-3 px-3">
                       <div>{c.farmerName}</div>
-                      {c.farmerPhone && <div className="text-xs text-slate-500">{c.farmerPhone}</div>}
+                      {c.farmerPhone && (
+                        <a
+                          href={`tel:${c.farmerPhone}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                          title="Gọi nông dân"
+                        >
+                          <Phone size={12} /> {c.farmerPhone}
+                        </a>
+                      )}
                     </td>
                     <td className="py-3 px-3 text-center">
                       <span
@@ -171,9 +169,9 @@ export default function DiagnosisQueuePage() {
                       {c.passedPolicy === null ? (
                         <span className="text-slate-400">—</span>
                       ) : c.passedPolicy ? (
-                        <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">Đạt</span>
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">Chắc chắn</span>
                       ) : (
-                        <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">Không đạt</span>
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">Chưa chắc</span>
                       )}
                     </td>
                     <td className="py-3 px-3">

@@ -6,7 +6,6 @@ import { deliveriesApi } from '@/api/deliveriesApi'
 import { diagnosisApi } from '@/api/diagnosisApi'
 import { stockApi } from '@/api/stockApi'
 import { reportsApi } from '@/api/reportsApi'
-import { useAuth } from '@/context/AuthContext'
 import { usePermission } from '@/context/PermissionContext'
 import { useReportData } from '@/features/agent/reports/useReportData'
 import { formatVnd } from '@/utils/money'
@@ -26,20 +25,20 @@ interface Tile {
 }
 
 // Each tile counts what is waiting for someone right now (not a period total), through the list API of its own area.
-function tilesFor(area: Area, canReviewAi: boolean): Tile[] {
+function tilesFor(area: Area): Tile[] {
   const tiles: Tile[] = [
     {
       key: 'orders', title: 'Đơn chờ xác nhận', note: 'Cần xác nhận hoặc từ chối', icon: ClipboardList, permission: 'ORDERS.READ', to: `/${area}/orders`,
       load: async signal => (await ordersApi.getOrders({ status: 'PENDING_CONFIRMATION', page: 1, pageSize: 1 }, signal)).totalCount,
     },
   ]
-  if (area === 'agent' || canReviewAi) {
-    tiles.push({
-      key: 'diagnosis', title: 'Ca chẩn đoán chờ duyệt', note: 'AI đã chạy, chờ chuyên gia xem', icon: Microscope, permission: 'DIAGNOSIS.READ',
-      to: area === 'agent' ? '/agent/ai-recommendations' : '/sales/ai-review',
-      load: async () => (await diagnosisApi.list({ status: 'AI_COMPLETED', page: 1, pageSize: 1 })).totalCount,
-    })
-  }
+  // Nobody reviews the AI any more: the farmers worth a call are those it was not sure about this week.
+  tiles.push({
+    key: 'diagnosis', title: 'AI chưa chắc chắn (7 ngày)', note: 'Nông dân được khuyên chụp lại hoặc hỏi cửa hàng: nên gọi tư vấn',
+    icon: Microscope, permission: 'DIAGNOSIS.READ',
+    to: area === 'agent' ? '/agent/ai-recommendations' : '/sales/ai-review',
+    load: async () => (await diagnosisApi.list({ aiPassed: false, from: weekAgo(), page: 1, pageSize: 1 })).totalCount,
+  })
   tiles.push(
     {
       key: 'deliveries', title: 'Chuyến chờ giao lại', note: 'Giao chưa thành công, cần xếp lại', icon: Truck, permission: 'DELIVERIES.READ', to: `/${area}/deliveries`,
@@ -57,12 +56,17 @@ function tilesFor(area: Area, canReviewAi: boolean): Tile[] {
   return tiles
 }
 
+// yyyy-MM-dd of the day six days ago, so the range covers this day and the six before it.
+function weekAgo(): string {
+  const d = new Date()
+  d.setDate(d.getDate() - 6)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 /** What needs doing now, one tile per queue the signed-in person may open. A tile that cannot load shows a dash and leaves the others alone. */
 export default function AttentionTiles({ area }: { area: Area }) {
   const { has } = usePermission()
-  const { user } = useAuth()
-  const canReviewAi = Boolean(user?.canReviewAi)
-  const tiles = useMemo(() => tilesFor(area, canReviewAi).filter(tile => has(tile.permission)), [area, canReviewAi, has])
+  const tiles = useMemo(() => tilesFor(area).filter(tile => has(tile.permission)), [area, has])
   const load = useCallback((signal: AbortSignal) => Promise.all(tiles.map(tile => tile.load(signal).catch(() => null))), [tiles])
   const { data, loading, refresh } = useReportData(load, tiles.length ? null : 'Không có mục nào để hiển thị.')
   if (!tiles.length) return null
