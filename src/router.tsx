@@ -181,8 +181,11 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/inventory',
-            element: <RequireRole role={["agent", "sales_staff"]}><DetailListLayout><AgentInventoryPage /></DetailListLayout></RequireRole>,
-            children: [{ path: 'stock-card', element: <DetailRoute><AgentStockCardPage /></DetailRoute> }],
+            element: <RequireRole role={["agent", "sales_staff"]}><AgentInventoryPage /></RequireRole>,
+          },
+          {
+            path: 'agent/inventory/stock-card',
+            element: <RequireRole role={["agent", "sales_staff"]}><AgentStockCardPage /></RequireRole>,
           },
           {
             path: 'agent/farmers',

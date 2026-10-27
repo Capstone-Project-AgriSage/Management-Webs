@@ -34,11 +34,13 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setCodes(new Set()); setLoading(true); void refresh()
     const update = () => { if (!document.hidden) void refresh() }
-    const interval = window.setInterval(update, 15000)
-    window.addEventListener('focus', update)
+    const realtime = (event: Event) => {
+      const topic = (event as CustomEvent<{ topic: string }>).detail?.topic
+      if (topic === 'permissions' || topic === 'resync') void refresh()
+    }
+    window.addEventListener('agrisage-realtime-change', realtime)
     window.addEventListener('agrisage-permissions-changed', update)
-    document.addEventListener('visibilitychange', update)
-    return () => { ++sequence.current; clearInterval(interval); window.removeEventListener('focus', update); window.removeEventListener('agrisage-permissions-changed', update); document.removeEventListener('visibilitychange', update) }
+    return () => { ++sequence.current; window.removeEventListener('agrisage-realtime-change', realtime); window.removeEventListener('agrisage-permissions-changed', update) }
   }, [refresh])
   const has = useCallback((code: string) => isAuthenticated && permissionUserId === user?.id && codes.has(code), [isAuthenticated, permissionUserId, user?.id, codes])
   const hasPermission = useCallback((module: string, operation: string) => has(aliases[module] ?? `${module.toUpperCase()}.${operation === 'view' ? 'READ' : operation.toUpperCase()}`), [has])

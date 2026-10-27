@@ -1,4 +1,5 @@
 import DetailModal from '@/components/ui/DetailModal'
+import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh'
 import ModalLayout from '@/components/ui/ModalLayout'
 import ListToolbar from '@/components/ui/ListToolbar'
 import PermissionAction from '@/components/auth/PermissionAction'
@@ -175,6 +176,8 @@ export default function StockOverviewPage() {
     if (tab === 'alerts') loadAlerts()
     if (selectedProduct) loadLots(selectedProduct.storeProductId, lotsByProduct[selectedProduct.storeProductId]?.page ?? 1)
   }, [loadKpis, loadSummary, loadAlerts, loadLots, tab, selectedProduct, lotsByProduct])
+
+  useRealtimeRefresh(['inventory'], refreshAll)
 
   const openProduct = (item: StockSummaryItem) => {
     setSelectedProduct(item)

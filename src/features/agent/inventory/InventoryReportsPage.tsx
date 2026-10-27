@@ -1,4 +1,5 @@
 import { usePagination } from '@/hooks/usePagination'
+import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh'
 import Pagination from '@/components/ui/Pagination'
 import ListToolbar from '@/components/ui/ListToolbar'
 import { useEffect, useRef, useState } from 'react';
@@ -53,6 +54,8 @@ export default function InventoryReportsPage() {
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState(false)
   const request = useRef(0)
+  const [revision, setRevision] = useState(0)
+  useRealtimeRefresh(['inventory'], () => setRevision(value => value + 1))
 
   const days = rangeDays(from, to)
   const rangeProblem =
@@ -85,7 +88,7 @@ export default function InventoryReportsPage() {
       .finally(() => {
         if (id === request.current) setLoading(false)
       })
-  }, [tab, from, to, categoryId, rangeProblem, showToast])
+  }, [tab, from, to, categoryId, rangeProblem, showToast, revision])
 
   const movementPages = usePagination(movement?.rows ?? [], 10, [from, to, categoryId].join('|'))
   const valuationPages = usePagination(valuation?.rows ?? [], 10, [categoryId].join('|'))

@@ -5,6 +5,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const management = path.basename(root) === 'Management-Webs';
+const PAGE_SIZE = management ? 10 : 20;
 const baseUrl = process.env.NOTIFICATION_TEST_URL || (management ? 'http://127.0.0.1:5173' : 'http://127.0.0.1:5174');
 const modulePath = process.env.NOTIFICATION_PLAYWRIGHT_MODULE;
 const { chromium } = await import(modulePath ? pathToFileURL(modulePath).href : 'playwright');
@@ -16,7 +17,7 @@ const item = (n, status = 'READ') => ({ id: id(n), notificationType: 'ORDER_STAT
   data: { entityType: 'ORDER', entityId: id(1000 + n) }, status,
   readAt: status === 'UNREAD' ? null : '2026-10-09T01:00:00Z', createdAt: '2026-10-09T00:00:00Z' });
 
-async function fixture({ role = management ? 'SALES_STAFF' : 'FARMER', count = 21, viewport = { width: 1440, height: 900 }, clock = false } = {}) {
+async function fixture({ role = management ? 'SALES_STAFF' : 'FARMER', count = PAGE_SIZE + 1, viewport = { width: 1440, height: 900 }, clock = false } = {}) {
   const context = await browser.newContext({ viewport });
   await context.addInitScript(({ management }) => {
     if (location.pathname !== '/notifications') return
@@ -46,7 +47,7 @@ async function fixture({ role = management ? 'SALES_STAFF' : 'FARMER', count = 2
         if (status === 'UNREAD' && state.holdUnread) await state.holdUnread;
         const records = state.records.filter((n) => status ? n.status === status : n.status !== 'ARCHIVED');
         const page = Number(url.searchParams.get('page')); const pageSize = Number(url.searchParams.get('pageSize'));
-        assert.equal(pageSize, 20);
+        assert.equal(pageSize, PAGE_SIZE);
         return json({ items: records.slice((page - 1) * pageSize, page * pageSize), page, pageSize,
           totalCount: records.length, totalPages: Math.ceil(records.length / pageSize) });
       }
@@ -63,7 +64,7 @@ async function fixture({ role = management ? 'SALES_STAFF' : 'FARMER', count = 2
   await page.goto(baseUrl + '/notifications');
   await bell(page, state.records.filter((record) => record.status === 'UNREAD').length).waitFor();
   if (count === 0) await page.getByText('Bạn chưa có thông báo nào.').waitFor();
-  else await page.waitForFunction((expected) => document.querySelectorAll('article[data-notification-id]').length === expected, Math.min(count, 20));
+  else await page.waitForFunction((expected) => document.querySelectorAll('article[data-notification-id]').length === expected, Math.min(count, PAGE_SIZE));
   return { context, page, state, errors };
 }
 async function passed(name) { checks++; console.log('PASS ' + name); }
@@ -72,6 +73,9 @@ const bell = (page, count) => management
   : page.getByRole('link', { name: count ? 'Thông báo, ' + count + ' chưa đọc' : 'Thông báo', exact: true });
 const row = (page, n) => page.locator('[data-notification-id="' + id(n) + '"]');
 const button = (page, name) => page.getByRole('button', { name, exact: true });
+const filter = (page, label) => management
+  ? page.getByRole('combobox', { name: 'Lọc thông báo' }).selectOption({ label })
+  : button(page, label).click();
 
 try {
   const { context, page, state, errors } = await fixture();
@@ -80,7 +84,7 @@ try {
     fs.mkdirSync(process.env.NOTIFICATION_SCREENSHOT_DIR, { recursive: true });
     await page.screenshot({ path: path.join(process.env.NOTIFICATION_SCREENSHOT_DIR, path.basename(root) + '-notifications.png') });
   }
-  assert.equal(await page.locator('article[data-notification-id]').count(), 20);
+  assert.equal(await page.locator('article[data-notification-id]').count(), PAGE_SIZE);
   await passed('paged API list and live unread badge');
 
   await row(page, 0).getByRole('button', { name: 'Đánh dấu đã đọc', exact: true }).click();
@@ -99,26 +103,27 @@ try {
   await row(page, 1).getByRole('button', { name: 'Lưu trữ', exact: true }).click();
   await bell(page, 1).waitFor();
   await row(page, 1).waitFor({ state: 'detached' });
-  await button(page, 'Đã lưu trữ').click();
+  await filter(page, 'Đã lưu trữ');
   await row(page, 1).getByText('Đã lưu trữ', { exact: true }).waitFor();
   assert.equal(await row(page, 1).getByRole('button', { name: 'Lưu trữ', exact: true }).count(), 0);
   await passed('archive uses DELETE and remains accessible in archived filter');
 
-  await button(page, 'Chưa đọc').click();
-  await row(page, 20).waitFor();
+  await filter(page, 'Chưa đọc');
+  await row(page, PAGE_SIZE).waitFor();
   await button(page, 'Đánh dấu tất cả đã đọc').click();
   await bell(page, 0).waitFor();
   await page.getByText('Không có thông báo trong bộ lọc này.').waitFor();
   await passed('read-all removes unread results and zero badge');
 
-  state.records.push(item(21, 'UNREAD'));
-  await button(page, 'Tất cả').click();
+  state.records.push(item(PAGE_SIZE + 1, 'UNREAD'));
+  await filter(page, 'Tất cả');
   await button(page, 'Tải lại').click();
   await bell(page, 1).waitFor();
-  await button(page, 'Trang sau').click();
-  await row(page, 21).waitFor();
-  await row(page, 21).getByRole('button', { name: 'Lưu trữ', exact: true }).click();
-  await page.getByText('20 thông báo · Trang 1/1').waitFor();
+  await button(page, management ? 'Sau' : 'Trang sau').click();
+  await row(page, PAGE_SIZE + 1).waitFor();
+  await row(page, PAGE_SIZE + 1).getByRole('button', { name: 'Lưu trữ', exact: true }).click();
+  if (management) await page.getByRole('button', { name: 'Trang 1', exact: true }).waitFor();
+  else await page.getByText(`${PAGE_SIZE} thông báo · Trang 1/1`).waitFor();
   await passed('archiving last item clamps pagination back to valid page');
 
   state.failList = true;
@@ -133,11 +138,12 @@ try {
   let release;
   state.holdUnread = new Promise((resolve) => { release = resolve; });
   const pending = page.waitForRequest((request) => request.url().includes('status=UNREAD'));
-  await button(page, 'Chưa đọc').click(); await pending;
-  await button(page, 'Đã đọc').click();
+  await filter(page, 'Chưa đọc'); await pending;
+  await filter(page, 'Đã đọc');
   await row(page, 0).waitFor();
   release(); state.holdUnread = null;
-  assert.equal(await button(page, 'Đã đọc').getAttribute('aria-pressed'), 'true');
+  if (management) assert.equal(await page.getByRole('combobox', { name: 'Lọc thông báo' }).inputValue(), 'READ');
+  else assert.equal(await button(page, 'Đã đọc').getAttribute('aria-pressed'), 'true');
   await passed('rapid filter switch aborts stale response');
 
   assert.deepEqual(errors, []);
@@ -149,7 +155,7 @@ try {
   const incoming = await fixture({ count: 0, clock: true });
   await bell(incoming.page, 0).waitFor();
   incoming.state.records.unshift({ ...item(100, 'UNREAD'), notificationType: 'ORDER_PLACED', title: 'Đơn hàng mới chờ xác nhận' });
-  await incoming.page.clock.runFor(30_100);
+  await incoming.page.evaluate(() => window.dispatchEvent(new CustomEvent('agrisage-realtime-change', { detail: { topic: 'notifications' } })));
   await bell(incoming.page, 1).waitFor();
   await incoming.page.getByText('Đơn hàng mới chờ xác nhận', { exact: true }).waitFor();
   const rolePrefix = management ? '/sales/orders' : '/orders/';
@@ -161,7 +167,7 @@ try {
     ['REFUND_REQUESTED', 'REFUND', '/sales/orders'], ['PAYMENT_FAILED', 'PAYMENT', '/sales/payments']];
   links.forEach(([notificationType, entityType], n) => navigation.state.records.push({ ...item(200 + n, 'UNREAD'),
     notificationType, data: { entityType, entityId: id(1300 + n), orderId: id(1200) } }));
-  await navigation.page.clock.runFor(30_100);
+  await navigation.page.evaluate(() => window.dispatchEvent(new CustomEvent('agrisage-realtime-change', { detail: { topic: 'notifications' } })));
   await bell(navigation.page, links.length).waitFor();
   for (let n = 0; n < links.length; n++) {
     await row(navigation.page, 200 + n).waitFor();
@@ -173,7 +179,7 @@ try {
   const ownerInbox = await fixture({ role: 'STORE_OWNER', count: 0, clock: true });
   ownerInbox.state.records.push({ ...item(300, 'UNREAD'), notificationType: 'STOCK_RECEIVED',
     data: { entityType: 'STOCK_MOVEMENT', entityId: id(1400) } });
-  await ownerInbox.page.clock.runFor(30_100);
+  await ownerInbox.page.evaluate(() => window.dispatchEvent(new CustomEvent('agrisage-realtime-change', { detail: { topic: 'notifications' } })));
   await row(ownerInbox.page, 300).waitFor();
   assert.equal(await row(ownerInbox.page, 300).getByRole('link').getAttribute('href'), '/agent/inventory/movements');
   await ownerInbox.context.close();
@@ -203,11 +209,11 @@ try {
   if (management) {
     for (const role of ['ADMIN', 'STORE_OWNER', 'DELIVERY_STAFF']) {
       const roleFixture = await fixture({ role });
-      assert.equal(await roleFixture.page.locator('article[data-notification-id]').count(), 20);
+      assert.equal(await roleFixture.page.locator('article[data-notification-id]').count(), PAGE_SIZE);
       if (role === 'ADMIN') {
         await roleFixture.page.goto(baseUrl + '/admin/notifications');
         await roleFixture.page.locator('article[data-notification-id]').first().waitFor();
-        assert.equal(await roleFixture.page.locator('article[data-notification-id]').count(), 20);
+        assert.equal(await roleFixture.page.locator('article[data-notification-id]').count(), PAGE_SIZE);
         await passed('legacy Admin notification menu uses the real personal API');
       }
       await roleFixture.context.close();

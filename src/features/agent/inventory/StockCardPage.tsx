@@ -1,4 +1,5 @@
 import { usePagination } from '@/hooks/usePagination'
+import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh'
 import Pagination from '@/components/ui/Pagination'
 import ListToolbar from '@/components/ui/ListToolbar'
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -36,6 +37,8 @@ export default function StockCardPage() {
   const [card, setCard] = useState<StockCard | null>(null)
   const [loading, setLoading] = useState(false)
   const request = useRef(0)
+  const [revision, setRevision] = useState(0)
+  useRealtimeRefresh(['inventory'], () => setRevision(value => value + 1))
 
   const days = rangeDays(from, to)
   const rangeProblem = !from || !to ? 'Chọn đủ ngày bắt đầu và ngày kết thúc.' : days <= 0 ? 'Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.' : days > MAX_DAYS ? `Khoảng thời gian tối đa ${MAX_DAYS} ngày.` : null
@@ -64,7 +67,7 @@ export default function StockCardPage() {
     return () => {
       cancelled = true
     }
-  }, [productId])
+  }, [productId, revision])
 
   useEffect(() => {
     if (!productId || rangeProblem) return
@@ -85,7 +88,7 @@ export default function StockCardPage() {
       .finally(() => {
         if (id === request.current) setLoading(false)
       })
-  }, [productId, lotId, from, to, rangeProblem, showToast])
+  }, [productId, lotId, from, to, rangeProblem, showToast, revision])
 
   const totals = useMemo(() => {
     const lines = card?.lines ?? []

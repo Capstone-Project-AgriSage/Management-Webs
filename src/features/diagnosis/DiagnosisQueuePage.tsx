@@ -77,7 +77,7 @@ export default function DiagnosisQueuePage() {
     load()
   }, [load])
 
-  useBusinessDataRefresh(load)
+  useBusinessDataRefresh(load, ['diagnosis'])
 
   const items = data?.items ?? []
 

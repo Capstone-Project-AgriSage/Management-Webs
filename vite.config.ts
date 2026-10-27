@@ -21,6 +21,7 @@ export default defineConfig({
         target: apiTarget,
         changeOrigin: true,
         secure: false, // Bỏ qua lỗi SSL tự ký của localhost
+        ws: true,
       }
     }
   }

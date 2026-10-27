@@ -1,4 +1,5 @@
 import ListToolbar from '@/components/ui/ListToolbar'
+import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh'
 import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -69,6 +70,8 @@ export default function StockMovementsPage() {
   useEffect(() => {
     load()
   }, [load])
+
+  useRealtimeRefresh(['inventory'], load)
 
   const openDetail = async (item: StockMovementListItem) => {
     setDetailLoading(item.id)

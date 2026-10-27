@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh'
 import { Link, useParams } from 'react-router-dom'
 import { AlertTriangle, ArrowLeft, Image as ImageIcon, Phone } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
@@ -53,6 +54,8 @@ export default function DiagnosisCasePage() {
   useEffect(() => {
     load()
   }, [load])
+
+  useRealtimeRefresh(['diagnosis'], load)
 
   // The signed photo URL lasts an hour: reload the case when it is about to expire so the photo never goes blank.
   useEffect(() => {

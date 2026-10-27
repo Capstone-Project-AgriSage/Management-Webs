@@ -12,7 +12,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const confirmed = useRef({ identity: '', count: 0 })
   const request = useRef<AbortController | null>(null)
 
-  const refreshUnread = useCallback(async () => {
+  const refreshUnread = useCallback(async (forceRevision = false) => {
     if (!isAuthenticated) return
     request.current?.abort()
     const controller = new AbortController()
@@ -20,7 +20,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     try {
       const response = await notificationsApi.unreadCount(controller.signal)
       if (!controller.signal.aborted) {
-        if (confirmed.current.identity !== identity || confirmed.current.count !== response.count) {
+        if (forceRevision || confirmed.current.identity !== identity || confirmed.current.count !== response.count) {
           setRevision((value) => value + 1)
         }
         confirmed.current = { identity, count: response.count }
@@ -28,6 +28,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       }
     } catch {
       // Retain the last confirmed badge on transient errors; the API client handles expired sessions.
+      if (!controller.signal.aborted && forceRevision) setRevision(value => value + 1)
     }
   }, [identity, isAuthenticated])
 
@@ -36,21 +37,20 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     let active = true
     const refreshVisible = () => { if (active && document.visibilityState === 'visible') void refreshUnread() }
     queueMicrotask(refreshVisible)
-    const interval = window.setInterval(refreshVisible, 30_000)
-    window.addEventListener('focus', refreshVisible)
-    document.addEventListener('visibilitychange', refreshVisible)
+    const realtime = (event: Event) => {
+      const topic = (event as CustomEvent<{ topic: string }>).detail?.topic
+      if (!document.hidden && (topic === 'notifications' || topic === 'resync')) void refreshUnread(true)
+    }
+    window.addEventListener('agrisage-realtime-change', realtime)
     return () => {
       active = false
       request.current?.abort()
-      window.clearInterval(interval)
-      window.removeEventListener('focus', refreshVisible)
-      document.removeEventListener('visibilitychange', refreshVisible)
+      window.removeEventListener('agrisage-realtime-change', realtime)
     }
   }, [isAuthenticated, refreshUnread])
 
   const notifyChanged = useCallback(() => {
-    setRevision((value) => value + 1)
-    void refreshUnread()
+    void refreshUnread(true)
   }, [refreshUnread])
 
   return <NotificationsContext.Provider value={{

@@ -1,4 +1,5 @@
 import ListToolbar from '@/components/ui/ListToolbar'
+import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh'
 import { useState, useEffect, useMemo } from 'react';
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 
@@ -52,6 +53,8 @@ export default function InventoryPage() {
       setIsLoading(false)
     }
   }
+
+  useRealtimeRefresh(['inventory'], fetchData)
 
   useEffect(() => {
     const timer = setTimeout(fetchData, 300)
