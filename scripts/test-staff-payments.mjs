@@ -9,7 +9,7 @@ const failures = []
 const fullStaffPermissions = ['STAFF.READ', 'STAFF.READ_GET', 'STAFF.CREATE', 'STAFF.UPDATE', 'STAFF.LOCK', 'STAFF.UNLOCK', 'STAFF.DELETE', 'STAFF.RESET_PASSWORD']
 const fullPaymentPermissions = ['PAYMENTS.READ', 'PAYMENTS.CREATE', 'PAYMENTS.SYNC', 'PAYMENTS.CANCEL', 'BANK_PAYMENTS.CONFIRM', 'BANK_PAYMENTS.REJECT']
 const createdAt = '2026-10-10T10:00:00Z'
-const member = (id, name, role = 'SALES_STAFF') => ({ id, fullName: name, phoneNumber: '0901234567', email: null, role, status: 'ACTIVE', memberStatus: 'ACTIVE', employeeCode: 'NV-01', joinedAt: '2026-10-01', leftAt: null, canReviewAi: false, createdAt })
+const member = (id, name, role = 'SALES_STAFF') => ({ id, fullName: name, phoneNumber: '0901234567', email: null, role, status: 'ACTIVE', memberStatus: 'ACTIVE', employeeCode: 'NV-01', joinedAt: '2026-10-01', leftAt: null, createdAt })
 const payment = (id, method = 'BANK_TRANSFER') => ({ id, paymentNumber: 'PAY-' + id, paymentContext: method === 'PAYOS' ? 'ORDER_PAYMENT' : 'DEBT_REPAYMENT', paymentMethod: method, amount: 100000, currency: 'VND', status: 'PENDING', payerFarmerProfileId: 'customer-1', payerName: 'Khách kiểm thử', confirmationSource: null, confirmedBy: null, confirmedAt: null, checkoutUrl: method === 'PAYOS' ? 'https://checkout.payos.vn/test-link' : null, providerOrderCode: method === 'PAYOS' ? 123456 : null, initiatedAt: createdAt, failedAt: null, cancelledAt: null, note: null, unallocatedAmount: 100000, allocations: [] })
 const order = { id: 'order-1', orderNumber: 'OD-TEST-1', status: 'CONFIRMED', customerName: 'Khách kiểm thử', customerPhone: '0901234567', totalAmount: 100000, createdAt, source: 'COUNTER', settlementType: 'FULL_PAYMENT', customerType: 'REGISTERED', items: [] }
 

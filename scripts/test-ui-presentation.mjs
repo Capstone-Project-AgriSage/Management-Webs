@@ -30,7 +30,7 @@ const routeLogic = routeSource.slice(routeSource.indexOf('const routes:'), route
 const canAccess = new Function('path', 'has', compile(routeLogic) + '\nreturn canAccessRoute(path, has)')
 const allCodes = [...new Set([...routeSource.matchAll(/'([A-Z_]+\.[A-Z_]+)'/g)].map(match => match[1]))]
 const roleMapping = { ADMIN: 'admin', STORE_OWNER: 'agent', SALES_STAFF: 'sales_staff', DELIVERY_STAFF: 'delivery_staff' }
-const user = role => ({ id: '00000000-0000-4000-8000-000000000901', fullName: 'Người kiểm thử', name: 'Người kiểm thử', initials: 'KT', role, roleLabel: 'Nhân viên kiểm thử', status: 'ACTIVE', canReviewAi: true, storeName: 'Cửa hàng kiểm thử', hub: 'Cửa hàng kiểm thử', hubName: 'Cửa hàng kiểm thử' })
+const user = role => ({ id: '00000000-0000-4000-8000-000000000901', fullName: 'Người kiểm thử', name: 'Người kiểm thử', initials: 'KT', role, roleLabel: 'Nhân viên kiểm thử', status: 'ACTIVE', storeName: 'Cửa hàng kiểm thử', hub: 'Cửa hàng kiểm thử', hubName: 'Cửa hàng kiểm thử' })
 const expectedMenu = (role, codes) => makeMenu(() => ({ user: user(role), currentRole: roleMapping[role] }), { list: () => [] }).groups.flatMap(group => group.items).filter(item => canAccess(item.to, code => codes.includes(code))).map(({ label, to }) => ({ label, to }))
 
 const { chromium } = await import(process.env.UI_PLAYWRIGHT_MODULE ? pathToFileURL(process.env.UI_PLAYWRIGHT_MODULE).href : 'playwright')

@@ -61,7 +61,7 @@ function useNavConfig() {
           { label: 'Thanh toán', to: '/agent/payments', icon: 'payments' },
           { label: 'Trả hàng', to: '/agent/returns', icon: 'assignment_return' },
           { label: 'Hoàn tiền', to: '/agent/refunds', icon: 'currency_exchange' },
-          // The owner always sees the queue (supervision); deciding a case needs the review right, checked by the API.
+          // Read only since Human Review was removed (AI_DIAGNOSIS.md 2.0): the farmers' cases, to follow up.
           { label: 'Chẩn đoán AI', to: '/agent/ai-recommendations', icon: 'psychology', iconTone: 'primary' as const }
         ]
       },
@@ -114,7 +114,8 @@ function useNavConfig() {
       { label: 'Kho', to: '/sales/inventory', icon: 'inventory_2' },
       { label: 'Kiểm kê', to: '/sales/inventory/stocktake', icon: 'fact_check' },
       { label: 'Bảng giá', to: '/sales/price-lists', icon: 'price_change' },
-      ...(user.canReviewAi ? [{ label: 'Duyệt chẩn đoán AI', to: '/sales/ai-review', icon: 'psychology', iconTone: 'primary' as const }] : []),
+      // Shown by the DIAGNOSIS.READ permission (canAccessRoute below); no review right any more.
+      { label: 'Ca chẩn đoán AI', to: '/sales/ai-review', icon: 'psychology', iconTone: 'primary' as const },
       { label: 'Cài đặt', to: '/sales/settings', icon: 'settings' },
     ]
     items.push(

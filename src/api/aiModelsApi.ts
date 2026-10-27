@@ -37,7 +37,8 @@ export interface AiPolicyRow {
   effectiveFrom: string
   effectiveTo: string | null
 }
-export interface AiPolicyInput { version: string; minimumConfidence: number; topK: number; effectiveFrom: string; requiresHumanReview: true }
+/** A policy only separates CONFIDENT from UNCERTAIN AI results for the Farmer (no Human Review since 2026-10-21). */
+export interface AiPolicyInput { version: string; minimumConfidence: number; topK: number; effectiveFrom: string }
 export const aiModelsApi = {
   list: (page: number, status: string, signal?: AbortSignal) => api<Paged<AiModelRow>>(`/api/ai-models${toQuery({ page, pageSize: LIST_PAGE_SIZE, status: status || undefined })}`, { signal }),
   create: (input: AiModelInput) => api<AiModelRow>('/api/ai-models', { method: 'POST', body: JSON.stringify(input) }),

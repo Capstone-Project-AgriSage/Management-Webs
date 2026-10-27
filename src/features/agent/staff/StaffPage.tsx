@@ -77,19 +77,6 @@ export default function StaffPage() {
     if (!active) actions.push({ label: member.memberStatus === 'LEFT' ? 'Kích hoạt lại nhân viên' : 'Mở khóa / kích hoạt', permissionCodes: ['STAFF.UNLOCK'], onClick: () => setConfirmation({ kind: 'unlock', member }) })
     return actions
   }
-  const [savingAi, setSavingAi] = useState<string | null>(null)
-  const toggleAiReview = async (member: StaffResponse) => {
-    setSavingAi(member.id)
-    try {
-      const updated = await staffApi.setAiReview(member.id, !member.canReviewAi)
-      setStaff(list => list.map(x => (x.id === member.id ? { ...x, canReviewAi: updated.canReviewAi } : x)))
-      showToast(updated.canReviewAi ? `Đã cấp quyền duyệt chẩn đoán AI cho ${member.fullName}` : `Đã thu hồi quyền duyệt chẩn đoán AI của ${member.fullName}`, 'success')
-    } catch (err) {
-      showToast(describeError(err, 'Không đổi được quyền duyệt AI'), 'error')
-    } finally {
-      setSavingAi(null)
-    }
-  }
   useEffect(() => {
     const controller = new AbortController()
     // Skip the discarded StrictMode effect before starting a request.
@@ -127,20 +114,19 @@ export default function StaffPage() {
       <div className="overflow-x-auto">
         <table aria-busy={busy} className="w-full min-w-[760px] text-left text-sm">
           <thead className="bg-surface-container-low text-xs text-on-surface-variant uppercase tracking-wider border-b border-outline-variant">
-            <tr>{['Nhân viên', 'Vai trò', 'Trạng thái', 'Duyệt AI', 'Thao tác'].map(label => <th key={label} scope="col" className="py-3 px-4 font-medium">{label}</th>)}</tr>
+            <tr>{['Nhân viên', 'Vai trò', 'Trạng thái', 'Thao tác'].map(label => <th key={label} scope="col" className="py-3 px-4 font-medium">{label}</th>)}</tr>
           </thead>
           <tbody className="divide-y divide-outline-variant/50">
-            {busy && staff.length === 0 ? <EmptyTableRow colSpan={5} message="Đang tải…" className="text-slate-500 animate-pulse" /> : staff.map(s => {
+            {busy && staff.length === 0 ? <EmptyTableRow colSpan={4} message="Đang tải…" className="text-slate-500 animate-pulse" /> : staff.map(s => {
               const active = s.memberStatus === 'ACTIVE' && s.status === 'ACTIVE'
               return <tr key={s.id} className="hover:bg-surface-container-low transition-colors">
                 <td className="py-3 px-4"><div className="font-semibold text-slate-900">{s.fullName}</div><div className="mt-1 text-xs text-slate-500">{s.email ?? s.phoneNumber}</div></td>
                 <td className="py-3 px-4 whitespace-nowrap">{s.role === 'SALES_STAFF' ? 'Nhân viên bán hàng' : s.role === 'STORE_OWNER' ? 'Chủ cửa hàng' : 'Nhân viên giao hàng'}</td>
                 <td className="py-3 px-4"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap ${active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>{active ? 'Đang làm việc' : 'Ngừng hoạt động'}</span></td>
-                <td className="py-3 px-4 whitespace-nowrap">{(s.role === 'SALES_STAFF' || s.role === 'STORE_OWNER') && (has('STAFF.SET_AI_REVIEW') && active ? <button type="button" disabled={savingAi === s.id} className={`rounded-lg px-2 py-1.5 text-xs font-medium disabled:opacity-50 ${s.canReviewAi ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`} onClick={() => void toggleAiReview(s)} aria-pressed={s.canReviewAi}>{s.canReviewAi ? 'Được duyệt' : 'Chưa được duyệt'}</button> : <span className={s.canReviewAi ? 'text-emerald-700' : 'text-slate-400'}>{s.canReviewAi ? 'Được duyệt' : '—'}</span>)}</td>
                 <td className="py-3 px-4 whitespace-nowrap"><RowActionsMenu triggerLabel={`Thao tác nhân viên ${s.fullName}`} actions={rowActions(s)} /></td>
               </tr>
             })}
-            {!busy && !staff.length && <EmptyTableRow colSpan={5} message="Không có nhân viên." />}
+            {!busy && !staff.length && <EmptyTableRow colSpan={4} message="Không có nhân viên." />}
           </tbody>
         </table>
       </div>
