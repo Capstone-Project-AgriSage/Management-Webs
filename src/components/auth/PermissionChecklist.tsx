@@ -1,20 +1,49 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { CheckCheck, ChevronRight, LayoutGrid, LockKeyhole, Search, ShieldCheck, X } from 'lucide-react'
 import type { Permission } from '@/api/permissionsApi'
-const modules: Record<string, string> = { ORDERS: 'Đơn hàng', PRODUCTS: 'Sản phẩm gốc', STORE_PRODUCTS: 'Sản phẩm đại lý', CUSTOMERS: 'Khách hàng', INVENTORY: 'Kho', CREDIT: 'Tín dụng', DEBT: 'Công nợ', REPORTS: 'Báo cáo', PAYMENTS: 'Thanh toán', RETURNS: 'Trả hàng', REFUNDS: 'Hoàn tiền', STAFF: 'Nhân viên', PERMISSIONS: 'Phân quyền', PRICING: 'Bảng giá', STOCKTAKES: 'Kiểm kê', STOCK_ADJUSTMENTS: 'Điều chỉnh kho', GOODS_RECEIPTS: 'Nhập hàng', SUPPLIERS: 'Nhà cung cấp', DELIVERIES: 'Giao hàng', COUNTER_SALES: 'Bán tại quầy', AUDIT: 'Nhật ký', CUSTOMER_GROUPS: 'Nhóm khách hàng', CREDIT_TIERS: 'Hạng tín dụng', CATEGORIES: 'Danh mục', BRANDS: 'Thương hiệu', INGREDIENTS: 'Hoạt chất', UNITS: 'Đơn vị' }
-export default function PermissionChecklist({ catalog, selected, editable, onToggle }: { catalog: Permission[]; selected: string[]; editable: (permission: Permission) => boolean; onToggle: (code: string, checked: boolean) => void }) {
-  const [search, setSearch] = useState('')
-  const visible = catalog.filter(p => `${p.name} ${p.code} ${modules[p.module] ?? p.module}`.toLocaleLowerCase().includes(search.toLocaleLowerCase()))
-  const groups = [...new Set(visible.map(p => p.module))]
-  return <div>
-    <input aria-label="Tìm quyền" placeholder="Tìm quyền hoặc module…" value={search} onChange={e => setSearch(e.target.value)} className="w-full border rounded-lg p-2 mb-4" />
-    <div className="max-h-[55vh] overflow-auto space-y-4">
-      {groups.map(module => <fieldset key={module} className="border rounded-lg p-3"><legend className="font-semibold px-2">{modules[module] ?? module}</legend><div className="grid sm:grid-cols-2 gap-3">
-        {visible.filter(p => p.module === module).map(p => <label key={p.code} className={`flex items-start gap-2 text-sm ${editable(p) ? '' : 'text-slate-500'}`}>
-          <input type="checkbox" className="mt-1 accent-emerald-600" checked={selected.includes(p.code)} disabled={!editable(p)} onChange={e => onToggle(p.code, e.target.checked)} />
-          <span>{p.name}<span className="block text-xs text-slate-500">{p.code}</span></span>
-        </label>)}
-      </div></fieldset>)}
-      {!visible.length && <p>Không tìm thấy quyền.</p>}
+import type { OverrideState, PermissionDraft } from './permissionDraft'
+
+// Display labels only; modules, permission codes and grants are loaded from the API.
+const labels: Record<string, string> = { ORDERS: 'Đơn hàng', PRODUCTS: 'Sản phẩm gốc', STORE_PRODUCTS: 'Sản phẩm cửa hàng', CUSTOMERS: 'Khách hàng', INVENTORY: 'Tồn kho', CREDIT: 'Tín dụng', DEBT: 'Công nợ', REPORTS: 'Báo cáo', PAYMENTS: 'Thanh toán', RETURNS: 'Trả hàng', REFUNDS: 'Hoàn tiền', STAFF: 'Nhân viên', PERMISSIONS: 'Phân quyền', PRICING: 'Bảng giá', STOCKTAKES: 'Kiểm kê', STOCK_ADJUSTMENTS: 'Điều chỉnh kho', GOODS_RECEIPTS: 'Nhập hàng', SUPPLIERS: 'Nhà cung cấp', DELIVERIES: 'Giao hàng', COUNTER_SALES: 'Bán tại quầy', AUDIT: 'Nhật ký hoạt động', CUSTOMER_GROUPS: 'Nhóm khách hàng', CREDIT_TIERS: 'Hạng tín dụng', CATEGORIES: 'Danh mục', BRANDS: 'Thương hiệu', INGREDIENTS: 'Hoạt chất', UNITS: 'Đơn vị', BANK_PAYMENTS: 'Chuyển khoản', DIAGNOSIS: 'Chẩn đoán AI' }
+const permissionModuleLabel = (module: string) => labels[module] ?? module.replaceAll('_', ' ')
+const normalize = (value: string) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replaceAll('đ', 'd')
+const stateLabels: Record<OverrideState, string> = { inherit: 'Kế thừa', allow: 'Allow', deny: 'Deny' }
+interface Props {
+  catalog: Permission[]; selected: string[]; editable: (permission: Permission) => boolean
+  onToggle: (code: string, checked: boolean) => void
+  overrides?: PermissionDraft; defaultPermissions?: string[]; ceiling?: string[]
+  onOverride?: (code: string, state: OverrideState) => void; allowInheritanceReset?: boolean
+}
+export default function PermissionChecklist({ catalog, selected, editable, onToggle, overrides, defaultPermissions = [], ceiling, onOverride, allowInheritanceReset = true }: Props) {
+  const [search, setSearch] = useState(''), [module, setModule] = useState('all'), [filter, setFilter] = useState('all')
+  const modules = useMemo(() => [...new Set(catalog.map(p => p.module))].sort((a, b) => permissionModuleLabel(a).localeCompare(permissionModuleLabel(b), 'vi')), [catalog])
+  const matched = catalog.filter(p => normalize(`${p.name} ${p.code} ${permissionModuleLabel(p.module)}`).includes(normalize(search.trim())))
+  const active = module === 'all' || modules.includes(module) ? module : 'all'
+  const visible = matched.filter(p => (active === 'all' || p.module === active) && (filter === 'all' || (overrides ? (overrides[p.code] ?? 'inherit') === filter : filter === 'selected' ? selected.includes(p.code) : !selected.includes(p.code))))
+  const groups = modules.filter(m => visible.some(p => p.module === m)), actionable = visible.filter(editable)
+  return <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+    <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+      <label className="relative block min-w-0 flex-1 sm:max-w-md"><Search size={17} className="pointer-events-none absolute left-3 top-3 text-slate-400" /><span className="sr-only">Tìm quyền</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Tìm tên quyền, mã hoặc module…" className="min-h-10 w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-10 pr-9 text-sm outline-none focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100" />{search && <button type="button" aria-label="Xóa tìm kiếm quyền" onClick={() => setSearch('')} className="absolute right-2 top-2 p-1 text-slate-500"><X size={16} /></button>}</label>
+      <label className="flex items-center gap-2 text-xs text-slate-500">Hiển thị<select aria-label="Lọc trạng thái quyền" value={filter} onChange={e => setFilter(e.target.value)} className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"><option value="all">Tất cả trạng thái</option>{overrides ? <><option value="inherit">Kế thừa Role</option><option value="allow">Allow riêng</option><option value="deny">Deny riêng</option></> : <><option value="selected">Đã cấp quyền</option><option value="unselected">Chưa cấp quyền</option></>}</select></label>
+    </div>
+    <div className="grid min-w-0 grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)]">
+      <aside aria-label="Danh sách module" className="min-w-0 border-b border-slate-100 bg-slate-50/70 p-3 md:border-b-0 md:border-r"><p className="mb-3 hidden px-3 text-[10px] font-bold uppercase tracking-widest text-slate-400 md:block">Module hệ thống</p><div className="flex gap-1.5 overflow-x-auto md:max-h-[620px] md:flex-col md:overflow-y-auto md:overflow-x-hidden">
+        {[{ id: 'all', label: 'Tất cả module', count: matched.length }, ...modules.map(id => ({ id, label: permissionModuleLabel(id), count: matched.filter(p => p.module === id).length }))].map(item => <button type="button" key={item.id} aria-pressed={active === item.id} onClick={() => setModule(item.id)} className={`flex min-h-10 shrink-0 items-center gap-2 rounded-lg px-3 py-2.5 text-left text-xs font-medium transition md:w-full ${active === item.id ? 'bg-emerald-100/80 text-emerald-900' : 'text-slate-600 hover:bg-slate-100'}`}><LayoutGrid size={15} className="shrink-0 opacity-60" /><span className="flex-1 whitespace-nowrap">{item.label}</span><span className="rounded bg-white/70 px-1.5 text-[10px] tabular-nums">{item.count}</span>{active === item.id && <ChevronRight size={13} className="hidden md:block" />}</button>)}
+      </div></aside>
+      <div className="min-w-0"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4"><div><h3 className="text-sm font-semibold text-slate-900">{active === 'all' ? 'Tất cả quyền truy cập' : permissionModuleLabel(active)}</h3><p className="mt-1 text-xs text-slate-500">{visible.filter(p => selected.includes(p.code)).length}/{visible.length} quyền {overrides ? 'hiệu lực trong bản nháp' : 'được chọn'}</p></div><div className="flex flex-wrap items-center gap-1.5"><button type="button" disabled={!actionable.length} onClick={() => actionable.forEach(p => onToggle(p.code, true))} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40"><CheckCheck size={14} />Chọn tất cả</button><button type="button" disabled={!actionable.length} onClick={() => actionable.forEach(p => onToggle(p.code, false))} className="min-h-9 rounded-lg px-3 text-xs font-medium text-slate-500 hover:bg-slate-100 disabled:opacity-40">Bỏ chọn tất cả</button></div></div>
+      <div className="max-h-[620px] min-h-[280px] overflow-y-auto p-4 sm:p-5">
+        {groups.map(group => <fieldset key={group} className="mb-6 min-w-0 last:mb-0"><legend className="mb-3 flex w-full items-center justify-between text-xs font-semibold text-slate-700"><span>{permissionModuleLabel(group)}</span><span className="font-normal text-slate-400">{visible.filter(p => p.module === group).length} quyền</span></legend><div className={`grid gap-2.5 ${overrides ? '' : 'xl:grid-cols-2'}`}>
+          {visible.filter(p => p.module === group).map(p => {
+            const canEdit = editable(p), checked = selected.includes(p.code), state = overrides?.[p.code] ?? 'inherit'
+            const capped = overrides && state !== 'deny' && (state === 'allow' || defaultPermissions.includes(p.code)) && ceiling && !ceiling.includes(p.code)
+            return <div key={p.code} className={`min-w-0 rounded-xl border p-3.5 transition ${checked ? 'border-emerald-200 bg-emerald-50/35' : 'border-slate-200 bg-white'} ${!canEdit ? 'opacity-65' : 'hover:border-emerald-300'}`}>
+              <div className="flex items-start gap-3"><input id={`permission-${p.code}`} type="checkbox" aria-label={`${p.name} ${p.code}`} checked={checked} disabled={!canEdit} onChange={e => onToggle(p.code, e.target.checked)} className="mt-0.5 size-4 shrink-0 rounded accent-emerald-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600" /><label htmlFor={`permission-${p.code}`} className={`min-w-0 flex-1 ${canEdit ? 'cursor-pointer' : ''}`}><span className="block text-sm font-medium text-slate-800">{p.name}</span><span className="mt-1 block break-all font-mono text-[10px] text-slate-400">{p.code}</span></label>{!canEdit ? <LockKeyhole size={13} className="mt-1 shrink-0 text-slate-400" aria-label="Không được phép thay đổi" /> : checked && <ShieldCheck size={15} className="mt-0.5 shrink-0 text-emerald-600" />}</div>
+              {overrides && onOverride && <div className="mt-3 border-t border-slate-200/60 pt-3"><div className="flex flex-wrap items-center justify-between gap-2"><span className={`rounded-md px-2 py-1 text-[10px] font-medium ${state === 'allow' ? 'bg-emerald-100 text-emerald-800' : state === 'deny' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'}`}>{state === 'inherit' ? `Kế thừa Role · ${defaultPermissions.includes(p.code) ? 'Có quyền' : 'Không có quyền'}` : state === 'allow' ? 'Allow · Cấp riêng' : 'Deny · Từ chối riêng'}</span><div role="group" aria-label={`Nguồn quyền ${p.code}`} className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5">{(['inherit', 'allow', 'deny'] as const).map(value => <button type="button" key={value} aria-label={`${stateLabels[value]} ${p.code}`} aria-pressed={state === value} disabled={!canEdit || (value === 'inherit' && !allowInheritanceReset)} onClick={() => onOverride(p.code, value)} className={`min-h-8 rounded-md px-2.5 text-[11px] font-medium transition disabled:cursor-not-allowed ${state === value ? value === 'allow' ? 'bg-emerald-600 text-white' : value === 'deny' ? 'bg-rose-600 text-white' : 'bg-slate-700 text-white' : 'text-slate-500 hover:bg-slate-50'}`}>{stateLabels[value]}</button>)}</div></div>{capped && <p className="mt-2 text-xs text-amber-700">Chưa có hiệu lực: nằm ngoài quyền hiện tại của vai trò cửa hàng.</p>}</div>}
+            </div>
+          })}
+        </div></fieldset>)}
+        {!visible.length && <div role="status" className="flex min-h-56 flex-col items-center justify-center px-6 text-center"><Search size={30} className="mb-3 text-slate-300" /><p className="text-sm font-medium text-slate-700">Không tìm thấy quyền phù hợp</p><p className="mt-1 text-xs text-slate-500">Thử từ khóa hoặc module khác.</p></div>}
+      </div><div className="border-t border-slate-100 px-5 py-3 text-[11px] text-slate-400">Thao tác hàng loạt chỉ áp dụng cho quyền đang hiển thị và được phép chỉnh sửa.</div></div>
     </div>
   </div>
 }

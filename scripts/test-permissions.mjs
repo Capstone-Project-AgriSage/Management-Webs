@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
 import { pathToFileURL } from 'node:url'
+import { readFile } from 'node:fs/promises'
+import nodePath from 'node:path'
 
 // Browser contract tests use intercepted responses and never change a live account's permissions.
 const { chromium } = await import(process.env.PERMISSION_PLAYWRIGHT_MODULE ? pathToFileURL(process.env.PERMISSION_PLAYWRIGHT_MODULE).href : 'playwright')
@@ -26,15 +28,22 @@ async function fixture(role, path, initialCodes, responses = {}) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } })
   await context.addInitScript(() => localStorage.setItem('agrisage_token','browser-contract-test'))
   const state = { codes: initialCodes ?? catalog.filter(p=>p.defaultRoles.includes(role)).map(p=>p.code), writes: [], requests: [], conflict: false, error: false }
-  const member = { userId: staffId, fullName: 'Sale kiểm thử', role: 'SALES_STAFF', storeId: 'store-test', version: 7, roleVersion: 3, defaultPermissions: ['ORDERS.READ'], effectivePermissions: ['ORDERS.READ'], overrides: [], grantablePermissions: ['PRODUCTS.CREATE','ORDERS.READ'] }
+  const member = { userId: staffId, fullName: 'Sale kiểm thử', role: 'SALES_STAFF', storeId: 'store-test', version: 7, roleVersion: 3, defaultPermissions: ['ORDERS.READ'], effectivePermissions: ['ORDERS.READ'], overrides: [], grantablePermissions: ['PRODUCTS.CREATE','ORDERS.READ'], permissionCeiling: ['PRODUCTS.CREATE','ORDERS.READ','ORDERS.CANCEL'] }
   const errors = []
+  // Optional offline production build: fulfills application assets without opening a network socket.
+  if (process.env.PERMISSION_TEST_DIST) await context.route(`${base}/**`, async route => {
+    const pathname = new URL(route.request().url()).pathname
+    const file = pathname.startsWith('/assets/') ? pathname.slice(1) : 'index.html'
+    const contentType = file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'text/html'
+    await route.fulfill({ contentType, body: await readFile(nodePath.join(process.env.PERMISSION_TEST_DIST, file)) })
+  })
   await context.route('**/api/**', async route => {
     const url = new URL(route.request().url())
     if (!url.pathname.startsWith('/api/')) return route.continue()
     const json = (data,status=200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(data) })
     const request = route.request()
     state.requests.push({ path: url.pathname, method: request.method(), body: request.postData() })
-    if (url.pathname === '/api/auth/me') return json({ id: role === 'STORE_OWNER' ? ownerId : staffId, fullName: 'Người kiểm thử', role, status: 'ACTIVE' })
+    if (url.pathname === '/api/auth/me') return json({ id: role === 'STORE_OWNER' ? ownerId : role === 'ADMIN' ? '00000000-0000-4000-8000-000000000125' : staffId, fullName: 'Người kiểm thử', role, status: 'ACTIVE' })
     if (url.pathname === '/api/me/permissions') return state.error ? json({ title: 'Unavailable' },503) : json({ role, storeId: 'store-test', roleVersion: 3, memberVersion: 0, permissions: state.codes })
     if (url.pathname === '/api/permissions') return json(catalog)
     if (url.pathname === '/api/roles') return json(roleRows)
@@ -48,12 +57,18 @@ async function fixture(role, path, initialCodes, responses = {}) {
       { id: ownerId, fullName: 'Owner kiểm thử', role: 'STORE_OWNER', status: 'ACTIVE', memberStatus: 'ACTIVE', email: 'owner@example.test' },
     ], page: 1, pageSize: 15, totalCount: 2, totalPages: 1 })
     if (url.pathname === `/api/staff/${staffId}/permissions`) {
-      if (request.method() === 'GET') return json(member)
+      if (request.method() === 'GET') return json(state.legacy ? { ...member, permissionCeiling: undefined } : member)
       const body = request.postDataJSON(); state.writes.push(body)
       if (state.conflict) return json({ title: 'Conflict', detail: 'Quyền đã thay đổi. Tải lại cấu hình.' },409)
-      for (const item of body.overrides) { member.effectivePermissions = member.effectivePermissions.filter(c=>c!==item.code); if(item.granted)member.effectivePermissions.push(item.code) }
-      member.version++; member.overrides = body.overrides
-      return json(member)
+      for (const item of body.overrides) {
+        member.overrides = member.overrides.filter(p=>p.code!==item.code)
+        if (item.granted !== null) member.overrides.push(item)
+      }
+      const effective = new Set(member.defaultPermissions)
+      for (const item of member.overrides) { if(item.granted)effective.add(item.code); else effective.delete(item.code) }
+      member.effectivePermissions = [...effective].filter(code=>member.permissionCeiling.includes(code))
+      member.version++
+      return json(state.legacy ? { ...member, permissionCeiling: undefined } : member)
     }
     if (url.pathname.endsWith('/unread-count')) return json({ count: 0 })
     if (Object.hasOwn(responses,url.pathname)) return json(typeof responses[url.pathname] === 'function' ? responses[url.pathname](request) : responses[url.pathname])
@@ -83,9 +98,64 @@ try {
   assert.deepEqual(admin.errors,[])
   await admin.context.close()
 
+  const workbench = await fixture('ADMIN','/admin/roles')
+  await workbench.page.getByRole('combobox',{name:'Vai trò',exact:true}).selectOption('role-2')
+  await workbench.page.getByRole('textbox',{name:'Tìm quyền',exact:true}).fill('PRODUCTS.CREATE')
+  await workbench.page.getByRole('button',{name:'Chọn tất cả',exact:true}).click()
+  assert.equal(await checked(workbench.page,'PRODUCTS.CREATE').isChecked(),true)
+  await workbench.page.getByRole('tab',{name:'User Permissions',exact:true}).click()
+  await workbench.page.getByRole('button',{name:'Tiếp tục chỉnh sửa',exact:true}).click()
+  assert.equal(await workbench.page.getByRole('tab',{name:'Role Permissions',exact:true}).getAttribute('aria-selected'),'true')
+  await workbench.page.getByRole('button',{name:'Hoàn tác',exact:true}).click()
+  await workbench.page.getByRole('tab',{name:'User Permissions',exact:true}).click()
+  await checked(workbench.page,'PRODUCTS.CREATE').waitFor()
+  await workbench.page.getByRole('button',{name:'Allow PRODUCTS.CREATE',exact:true}).click()
+  await workbench.page.getByRole('button',{name:'Deny ORDERS.READ',exact:true}).click()
+  await workbench.page.getByRole('textbox',{name:'Lý do thay đổi',exact:true}).fill('Phân công trách nhiệm')
+  await workbench.page.getByRole('button',{name:'Lưu quyền (2)',exact:true}).click()
+  await workbench.page.getByRole('button',{name:'Lưu quyền (0)',exact:true}).waitFor()
+  assert.deepEqual(workbench.state.writes[0].overrides,[{code:'PRODUCTS.CREATE',granted:true},{code:'ORDERS.READ',granted:false}])
+  await workbench.page.getByRole('button',{name:'Reset về Role',exact:true}).click()
+  await workbench.page.getByRole('button',{name:'Đặt về kế thừa',exact:true}).click()
+  await workbench.page.getByRole('textbox',{name:'Lý do thay đổi',exact:true}).fill('Khôi phục kế thừa')
+  await workbench.page.getByRole('button',{name:'Lưu quyền (2)',exact:true}).click()
+  await workbench.page.getByRole('button',{name:'Lưu quyền (0)',exact:true}).waitFor()
+  assert(workbench.state.writes[1].overrides.every(item=>item.granted===null))
+  assert.equal(await checked(workbench.page,'ORDERS.READ').isChecked(),true)
+  assert.equal(await checked(workbench.page,'PRODUCTS.CREATE').isChecked(),false)
+  await workbench.page.setViewportSize({width:390,height:844})
+  assert.equal(await workbench.page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false)
+  const allowBounds = await workbench.page.getByRole('button',{name:'Allow ORDERS.READ',exact:true}).boundingBox()
+  assert(allowBounds && allowBounds.x >= 0 && allowBounds.x + allowBounds.width <= 390, 'Override controls must fit the mobile viewport')
+  if (process.env.PERMISSION_SCREENSHOT_DIR) {
+    await workbench.page.getByText('Đã lưu quyền riêng của người dùng',{exact:true}).first().waitFor({state:'hidden'})
+    await workbench.page.evaluate(()=>window.scrollTo(0,0))
+    await workbench.page.screenshot({path:nodePath.join(process.env.PERMISSION_SCREENSHOT_DIR,'permissions-mobile.png'),fullPage:true})
+    await workbench.page.setViewportSize({width:1536,height:1080})
+    await workbench.page.evaluate(()=>window.scrollTo(0,0))
+    await workbench.page.screenshot({path:nodePath.join(process.env.PERMISSION_SCREENSHOT_DIR,'permissions-desktop.png'),fullPage:true})
+  }
+  pass('Two tabs, search bulk selection, unsaved draft guard, Allow/Deny, true inheritance reset and responsive user editor')
+  assert.deepEqual(workbench.errors,[])
+  await workbench.context.close()
+
+  const legacy = await fixture('ADMIN','/admin/roles')
+  legacy.state.legacy = true
+  await legacy.page.getByRole('tab',{name:'User Permissions',exact:true}).click()
+  await checked(legacy.page,'PRODUCTS.CREATE').waitFor()
+  await checked(legacy.page,'PRODUCTS.CREATE').check()
+  await legacy.page.getByRole('textbox',{name:'Lý do thay đổi',exact:true}).fill('Tương thích phiên bản trước')
+  await legacy.page.getByRole('button',{name:'Lưu quyền (1)',exact:true}).click()
+  await legacy.page.getByRole('button',{name:'Lưu quyền (0)',exact:true}).waitFor()
+  assert.equal(await legacy.page.getByRole('button',{name:'Reset về Role',exact:true}).isDisabled(),true)
+  assert.equal(await legacy.page.getByRole('button',{name:'Kế thừa PRODUCTS.CREATE',exact:true}).isDisabled(),true)
+  assert.deepEqual(legacy.state.writes[0].overrides,[{code:'PRODUCTS.CREATE',granted:true}])
+  pass('Previous API keeps boolean grant/deny working and does not offer unsupported reset writes')
+  assert.deepEqual(legacy.errors,[])
+  await legacy.context.close()
+
   const owner = await fixture('STORE_OWNER','/agent/staff')
-  await owner.page.getByRole('button',{ name: 'Phân quyền', exact:true }).waitFor()
-  assert.equal(await owner.page.getByRole('button',{ name:'Phân quyền',exact:true }).count(),1)
+  await owner.page.getByRole('button',{name:'Thao tác nhân viên Sale kiểm thử',exact:true}).click()
   await owner.page.getByRole('button',{ name:'Phân quyền',exact:true }).click()
   await checked(owner.page,'PRODUCTS.CREATE').waitFor()
   assert.equal(await checked(owner.page,'ORDERS.CANCEL').isDisabled(),true)
