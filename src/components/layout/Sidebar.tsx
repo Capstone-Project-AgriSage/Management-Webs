@@ -82,6 +82,7 @@ function useNavConfig() {
           { label: 'Nhà cung cấp', to: '/agent/purchases/suppliers', icon: 'storefront' },
           { label: 'Phiếu nhập hàng', to: '/agent/purchases/receipts', icon: 'shopping_cart' },
           { label: 'Công nợ', to: '/agent/debts', icon: 'pending_actions' },
+          { label: 'Vụ mùa', to: '/agent/crop-seasons', icon: 'agriculture' },
           { label: 'Nhóm khách & tín dụng', to: '/agent/credit-config', icon: 'credit_score' },
           { label: 'Bảng giá', to: '/agent/price-lists', icon: 'price_change' },
         ]
