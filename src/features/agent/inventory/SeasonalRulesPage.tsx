@@ -4,6 +4,7 @@ import { replenishmentApi, type SeasonalRule } from '@/api/replenishmentApi'
 import { describeError } from '@/api/client'
 import ListToolbar from '@/components/ui/ListToolbar'
 import FilterSelect from '@/components/ui/FilterSelect'
+import DateFilter from '@/components/ui/DateFilter'
 import ServerPagination from '@/components/ui/ServerPagination'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import KpiCard from '@/components/ui/KpiCard'
@@ -63,8 +64,8 @@ export default function SeasonalRulesPage() {
     <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: 'Tìm tên quy tắc, cây trồng, khu vực...' }}
       onClear={() => { setSearch(''); setStatus(''); setFrom(''); setTo(''); setPage(1) }} actions={canManage ? <button disabled={busy} className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm" onClick={() => setEditing('new')}>Thêm quy tắc</button> : undefined}>
       <FilterSelect label="Trạng thái" value={status} onChange={value => { setStatus(value); setPage(1) }} options={[{ value: '', label: 'Tất cả trạng thái' }, { value: 'true', label: 'Đang bật' }, { value: 'false', label: 'Ngừng áp dụng' }]} />
-      <label className="text-sm">Từ ngày<input type="date" className="block border rounded-lg h-10 px-3" value={from} onChange={e => { setFrom(e.target.value); setPage(1) }} /></label>
-      <label className="text-sm">Đến ngày<input type="date" className="block border rounded-lg h-10 px-3" value={to} onChange={e => { setTo(e.target.value); setPage(1) }} /></label>
+      <DateFilter label="Từ ngày" value={from} onChange={e => { setFrom(e.target.value); setPage(1) }} />
+      <DateFilter label="Đến ngày" value={to} onChange={e => { setTo(e.target.value); setPage(1) }} />
     </ListToolbar>
     {(problem || error) && <p role="alert" className="text-rose-700">{problem || error} {!problem && <button className="underline" onClick={refresh}>Thử lại</button>}</p>}
     {busy && !deactivate && <p role="status" className="text-sm text-slate-500">Đang tải chi tiết...</p>}

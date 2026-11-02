@@ -15,6 +15,7 @@ import { catalogApi } from '@/api/catalogApi';
 import type { CatalogCategory } from '@/api/types'
 import { inventoryReportsApi, type InventoryMovementAmount, type InventoryMovementReport, type InventoryValuationReport } from '@/api/inventoryReportsApi';
 import FilterSelect from '@/components/ui/FilterSelect'
+import DateFilter from '@/components/ui/DateFilter'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 
 import { formatVnd } from '@/utils/money';
@@ -24,9 +25,6 @@ type Tab = 'movement' | 'valuation'
 
 const MAX_DAYS = 366
 const flattenCategories = (rows: CatalogCategory[]): CatalogCategory[] => rows.flatMap(row => [row, ...flattenCategories(row.children ?? [])])
-
-const dateInputClassName =
-  'h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 shadow-sm'
 
 /** Quantity over value, signed the way the report returns them (sales and write-offs are negative). */
 function Amount({ amount }: { amount: InventoryMovementAmount }) {
@@ -146,18 +144,8 @@ export default function InventoryReportsPage() {
       <ListToolbar search={{ value: search, onChange: setSearch, placeholder: 'Tìm mã hoặc tên sản phẩm...' }} onClear={() => { setSearch(''); setCategoryId(''); setFrom(monthStartInput()); setTo(todayInput()) }}>
 {tab === 'movement' ? (
           <>
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1" htmlFor="rp-from">
-                Từ ngày
-              </label>
-              <input id="rp-from" type="date" className={dateInputClassName} value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1" htmlFor="rp-to">
-                Đến ngày
-              </label>
-              <input id="rp-to" type="date" className={dateInputClassName} value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} />
-            </div>
+            <DateFilter id="rp-from" label="Từ ngày" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} />
+            <DateFilter id="rp-to" label="Đến ngày" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} />
           </>
         ) : null}
 <div>

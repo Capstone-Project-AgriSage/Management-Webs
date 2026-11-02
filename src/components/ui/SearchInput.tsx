@@ -5,11 +5,13 @@ interface SearchInputProps {
   onChange: (value: string) => void
   placeholder: string
   className?: string
+  label?: string
 }
 
-export default function SearchInput({ value, onChange, placeholder, className = 'relative flex-1 min-w-0 sm:min-w-[220px]' }: SearchInputProps) {
+export default function SearchInput({ value, onChange, placeholder, label, className = 'relative flex-1 min-w-0 sm:min-w-[220px]' }: SearchInputProps) {
   return (
-    <div className={`agrisage-search ${className}`}>
+    <div className={`agrisage-search ${label ? 'agrisage-filter agrisage-captioned-search' : ''} ${className}`}>
+      {label && <span className="agrisage-filter-caption" aria-hidden="true">{label}</span>}
       <Search
         size={16}
         aria-hidden="true"
@@ -17,7 +19,7 @@ export default function SearchInput({ value, onChange, placeholder, className = 
       />
       <input
         className="w-full min-h-[42px] pl-10 pr-3 py-2 bg-white border border-slate-200 rounded-[10px] text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-primary transition-colors"
-        aria-label={placeholder}
+        aria-label={label ?? placeholder}
         placeholder={placeholder}
         type="text"
         value={value}

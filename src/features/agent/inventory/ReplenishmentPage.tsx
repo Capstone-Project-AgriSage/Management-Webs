@@ -88,7 +88,7 @@ export default function ReplenishmentPage() {
         <button onClick={refresh}>Tải lại</button>
       </div>
     </div>
-    <ListToolbar search={{ value: search, onChange: filter(setSearch), placeholder: 'Tìm theo SKU hoặc tên sản phẩm...' }}
+    <ListToolbar layout="grid" search={{ value: search, onChange: filter(setSearch), label: 'Tìm kiếm sản phẩm', placeholder: 'Tìm theo SKU hoặc tên sản phẩm...' }}
       onClear={() => { setSearch(''); setCategory(''); setPriority(''); setReason(''); setDataStatus(''); setHistory('90'); setHorizon('30'); setSortBy('priority'); setPage(1) }}>
       <FilterSelect label="Nhóm hàng" value={category} onChange={filter(setCategory)} options={[{ value: '', label: 'Tất cả nhóm hàng' }, ...categories]} />
       <FilterSelect label="Ưu tiên" value={priority} onChange={filter(setPriority)} options={[{ value: '', label: 'Tất cả mức ưu tiên' }, ...Object.entries(priorityLabels).map(([value, label]) => ({ value, label }))]} />

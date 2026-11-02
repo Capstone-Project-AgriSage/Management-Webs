@@ -37,7 +37,8 @@ function useNavConfig() {
       { label: 'Cấu hình Tín dụng', to: '/admin/credit-config', icon: 'credit_score' },
       { label: 'Quản lý tài khoản', to: '/admin/accounts', icon: 'group' },
       { label: 'Phân quyền', to: '/admin/roles', icon: 'admin_panel_settings' },
-      { label: 'Danh mục', to: '/admin/products/categories', icon: 'category' },
+      { label: 'Danh mục sản phẩm', to: '/admin/products/categories', icon: 'category' },
+      { label: 'Thương hiệu', to: '/admin/products/brands', icon: 'branding_watermark' },
       { label: 'Sản phẩm gốc', to: '/admin/products/master', icon: 'inventory_2' },
       { label: 'Tồn kho đại lý', to: '/agent/inventory', icon: 'warehouse' },
       { label: 'Kế hoạch nhập hàng', to: '/agent/inventory/replenishment', icon: 'shopping_cart' },
@@ -74,6 +75,8 @@ function useNavConfig() {
         title: 'Quản lý kho & Sản phẩm',
         items: [
           { label: 'Sản phẩm', to: '/agent/products', icon: 'category' },
+          { label: 'Danh mục sản phẩm', to: '/agent/products/categories', icon: 'account_tree' },
+          { label: 'Thương hiệu', to: '/agent/products/brands', icon: 'branding_watermark' },
           { label: 'Tồn kho', to: '/agent/inventory', icon: 'inventory_2' },
           { label: 'Kế hoạch nhập hàng', to: '/agent/inventory/replenishment', icon: 'shopping_cart' },
           { label: 'Quy tắc mùa vụ nhập hàng', to: '/agent/inventory/seasonal-rules', icon: 'event' },

@@ -11,6 +11,7 @@ import { describeError } from '@/api/client';
 import { stockApi, type StockCard, type StockLot } from '@/api/stockApi';
 import KpiCard from '@/components/ui/KpiCard'
 import FilterSelect from '@/components/ui/FilterSelect'
+import DateFilter from '@/components/ui/DateFilter'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 
 import { formatVnd } from '@/utils/money';
@@ -19,9 +20,6 @@ import ProductPicker, { type PickedProduct } from './ProductPicker';
 import { MOVEMENT_TYPE_BADGE_CLASS, MOVEMENT_TYPE_LABEL, REFERENCE_TYPE_LABEL } from './stockLabels';
 
 const MAX_DAYS = 366
-
-const dateInputClassName =
-  'h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 shadow-sm'
 
 export default function StockCardPage() {
   usePageHeader({ title: 'Thẻ kho', subtitle: 'Mọi lần nhập, bán, trả, điều chỉnh của một sản phẩm: tồn đầu + phát sinh = tồn cuối' })
@@ -105,22 +103,9 @@ export default function StockCardPage() {
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
       <ListToolbar onClear={() => { pick(null); setFrom(monthStartInput()); setTo(todayInput()) }}>
-<div className="flex-1 min-w-[260px]">
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Sản phẩm</label>
-          <ProductPicker value={product} onChange={pick} pendingLabel={productId && !product ? 'Đang tải sản phẩm...' : null} />
-        </div>
-<div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1" htmlFor="sc-from">
-            Từ ngày
-          </label>
-          <input id="sc-from" type="date" className={dateInputClassName} value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} />
-        </div>
-<div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1" htmlFor="sc-to">
-            Đến ngày
-          </label>
-          <input id="sc-to" type="date" className={dateInputClassName} value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} />
-        </div>
+        <ProductPicker label="Sản phẩm" value={product} onChange={pick} pendingLabel={productId && !product ? 'Đang tải sản phẩm...' : null} />
+        <DateFilter id="sc-from" label="Từ ngày" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} />
+        <DateFilter id="sc-to" label="Đến ngày" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} />
 <div>
           <FilterSelect
             label="Lô hàng"

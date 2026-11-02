@@ -17,6 +17,7 @@ import ResetPasswordPage from '@/features/auth/ResetPasswordPage'
 import AdminDashboardPage from '@/features/admin/dashboard/DashboardPage'
 import RolesPage from '@/features/admin/roles/RolesPage'
 import CategoriesPage from '@/features/admin/products/CategoriesPage'
+import BrandsPage from '@/features/admin/products/BrandsPage'
 import ProductManagementPage from '@/features/products/ProductManagementPage'
 import ActiveIngredientsPage from '@/features/admin/products/ActiveIngredientsPage'
 import AiModelsPage from '@/features/admin/ai-models/AiModelsPage'
@@ -117,7 +118,11 @@ export const router = createBrowserRouter([
           },
           {
             path: 'admin/products/categories',
-            element: <RequireRole role="admin"><RequirePermission module="products"><CategoriesPage /></RequirePermission></RequireRole>,
+            element: <RequireRole role="admin"><CategoriesPage /></RequireRole>,
+          },
+          {
+            path: 'admin/products/brands',
+            element: <RequireRole role="admin"><BrandsPage /></RequireRole>,
           },
           {
             path: 'admin/products/master',
@@ -183,6 +188,14 @@ export const router = createBrowserRouter([
           {
             path: 'agent/advisory-sessions',
             element: <RequireRole role="agent"><AdvisorySessionsPage /></RequireRole>,
+          },
+          {
+            path: 'agent/products/categories',
+            element: <RequireRole role="agent"><CategoriesPage /></RequireRole>,
+          },
+          {
+            path: 'agent/products/brands',
+            element: <RequireRole role="agent"><BrandsPage /></RequireRole>,
           },
           {
             path: 'agent/products',

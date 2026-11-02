@@ -35,6 +35,7 @@ interface FormModalProps {
   cancelLabel?: string
   children?: ReactNode
   widthClassName?: string
+  busy?: boolean
 }
 
 /** Pair adjacent fields by default; explicit groups and notes keep their own boundaries. */
@@ -69,15 +70,17 @@ export default function FormModal({
   cancelLabel = 'Hủy',
   children,
   widthClassName = 'max-w-2xl',
+  busy = false,
 }: FormModalProps) {
   const formId = useId()
   return (
-    <DetailModal open={open} onClose={onClose} widthClassName={widthClassName}>
+    <DetailModal open={open} onClose={onClose} widthClassName={widthClassName} busy={busy}>
       <ModalLayout footer={!children ? (<div className="flex flex-wrap items-center justify-end gap-3">
         <button
           className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors font-medium text-sm shadow-sm"
           type="button"
           onClick={onClose}
+          disabled={busy}
         >
           {cancelLabel}
         </button>
@@ -86,6 +89,7 @@ export default function FormModal({
             className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors text-sm shadow-sm"
             type="button"
             onClick={onSubmit}
+            disabled={busy}
           >
             {submitLabel}
           </button>
@@ -108,7 +112,7 @@ export default function FormModal({
                       </label>
                     ) : null}
                     {field.type === 'select' ? (
-                      <Select id={`${formId}-${field.key}`} className={inputClassName} value={values[field.key] ?? ''} onChange={(e) => onChange(field.key, e.target.value)}>
+                      <Select id={`${formId}-${field.key}`} disabled={busy} className={inputClassName} value={values[field.key] ?? ''} onChange={(e) => onChange(field.key, e.target.value)}>
                         {(field.options ?? []).map((option) => {
                           const optValue = typeof option === 'string' ? option : option.value
                           const optLabel = typeof option === 'string' ? (field.renderOption?.(option) ?? option) : option.label
@@ -125,6 +129,7 @@ export default function FormModal({
                         className={inputClassName}
                         type={field.type === 'number' ? 'number' : 'text'}
                         min={field.min}
+                        disabled={busy}
                         placeholder={field.placeholder}
                         value={values[field.key] ?? ''}
                         onChange={(e) => onChange(field.key, e.target.value)}

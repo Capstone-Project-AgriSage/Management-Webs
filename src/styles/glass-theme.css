@@ -56,7 +56,7 @@ body { background: #ffffff; }
   box-shadow: var(--glass-shadow);
 }
 .agrisage-glass-app .agrisage-list-filters { gap: 20px; }
-:is(.agrisage-filter[data-label-placement=inside], .agrisage-date-filter) > .agrisage-filter-caption { top: 7px; left: 14px; max-width: calc(100% - 48px); padding: 0; background: transparent; color: #52655d; font-size: 11px; line-height: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:is(.agrisage-filter[data-label-placement=inside], .agrisage-date-filter, .agrisage-captioned-search, .agrisage-product-filter) > .agrisage-filter-caption { top: 7px; left: 14px; max-width: calc(100% - 48px); padding: 0; background: transparent; color: #52655d; font-size: 11px; line-height: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .agrisage-select-label { display: block; margin-bottom: 7px; color: #61746c; font-size: 13px; font-weight: 500; line-height: 18px; }
 .agrisage-glass-app .agrisage-date-filter input[type=date] { padding-top: 22px; padding-bottom: 7px; min-height: 54px; }
 .agrisage-glass-app .agrisage-search input { min-height: 54px; }
@@ -64,6 +64,20 @@ body { background: #ffffff; }
 .agrisage-glass-app .agrisage-list-filters:has(.agrisage-select-label) .agrisage-date-filter { margin-top: 25px; }
 .agrisage-glass-app .agrisage-search input { padding-left: 42px; }
 .agrisage-glass-app .agrisage-search > svg { left: 15px; width: 18px; height: 18px; }
+.agrisage-glass-app :is(.agrisage-captioned-search, .agrisage-product-filter) input { height: 54px; min-height: 54px; padding-top: 22px; padding-bottom: 7px; }
+.agrisage-glass-app :is(.agrisage-captioned-search, .agrisage-product-filter) > svg { top: 34px; }
+.agrisage-glass-app .management-content .agrisage-product-filter-value { height: 54px; min-height: 54px; padding-top: 22px; padding-bottom: 7px; border-radius: 12px; }
+.agrisage-glass-app .agrisage-product-filter-value > button { width: 24px; height: 24px; }
+.agrisage-glass-app .agrisage-list-toolbar[data-layout=grid] { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: none; align-items: start; }
+.agrisage-glass-app .agrisage-list-toolbar[data-layout=grid] > .agrisage-search { grid-area: auto; align-self: stretch; }
+.agrisage-glass-app .agrisage-list-toolbar[data-layout=grid] > .agrisage-list-filters { display: contents; }
+.agrisage-glass-app .agrisage-list-toolbar[data-layout=grid] > .agrisage-list-actions { grid-area: auto; grid-column: 1 / -1; justify-content: flex-end; }
+@media (min-width: 1280px) {
+  .agrisage-glass-app .agrisage-list-toolbar[data-layout=grid] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 639px) {
+  .agrisage-glass-app .agrisage-list-toolbar[data-layout=grid] { grid-template-columns: minmax(0, 1fr); }
+}
 .agrisage-glass-app .agrisage-list-toolbar input[type=date] { min-height: 54px; padding-inline: 14px; }
 .agrisage-glass-app .agrisage-list-actions :is(button, a) { min-height: 46px; padding-inline: 16px; border-radius: 12px; }
 .agrisage-glass-app .agrisage-clear-filters { color: #29493a; border-color: #e2e8f0; background: #ffffff; box-shadow: var(--glass-shadow); }

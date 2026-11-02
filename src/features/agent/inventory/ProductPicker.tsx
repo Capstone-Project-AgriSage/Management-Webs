@@ -17,10 +17,11 @@ interface ProductPickerProps {
   /** Shown instead of the chip while only the id is known (e.g. coming from a link). */
   pendingLabel?: string | null
   className?: string
+  label?: string
 }
 
 /** Search-as-you-type picker over the store's products (stock summary: SKU, name, base unit). */
-export default function ProductPicker({ value, onChange, placeholder = 'Gõ mã hoặc tên sản phẩm...', pendingLabel = null, className = '' }: ProductPickerProps) {
+export default function ProductPicker({ value, onChange, placeholder = 'Gõ mã hoặc tên sản phẩm...', pendingLabel = null, className = '', label }: ProductPickerProps) {
   const [text, setText] = useState('')
   const [open, setOpen] = useState(false)
   const [results, setResults] = useState<StockSummaryItem[]>([])
@@ -56,10 +57,11 @@ export default function ProductPicker({ value, onChange, placeholder = 'Gõ mã 
 
   if (value || pendingLabel) {
     return (
-      <div className={`flex items-center justify-between gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg shadow-sm ${className}`}>
+      <div role={label ? 'group' : undefined} aria-label={label} className={`relative flex items-center justify-between gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg shadow-sm ${label ? 'agrisage-filter agrisage-product-filter agrisage-product-filter-value' : ''} ${className}`}>
+        {label && <span className="agrisage-filter-caption" aria-hidden="true">{label}</span>}
         <div className="min-w-0">
-          <div className="text-sm font-medium text-slate-900 truncate">{value ? value.productName : pendingLabel}</div>
-          {value ? <div className="font-mono text-xs text-slate-500">{value.sku}</div> : null}
+          <div className="text-sm font-medium text-slate-900 truncate">{value ? value.productName : pendingLabel}{label && value && <span className="text-xs text-slate-500"> · {value.sku}</span>}</div>
+          {value && !label ? <div className="font-mono text-xs text-slate-500">{value.sku}</div> : null}
         </div>
         <button
           type="button"
@@ -78,11 +80,13 @@ export default function ProductPicker({ value, onChange, placeholder = 'Gõ mã 
   }
 
   return (
-    <div ref={box} className={`relative ${className}`}>
+    <div ref={box} className={`relative ${label ? 'agrisage-filter agrisage-product-filter' : ''} ${className}`}>
+      {label && <span className="agrisage-filter-caption" aria-hidden="true">{label}</span>}
       <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
       <input
         className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-colors shadow-sm"
         placeholder={placeholder}
+        aria-label={label}
         value={text}
         onFocus={() => setOpen(true)}
         onChange={(e) => {

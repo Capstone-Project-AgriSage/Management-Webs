@@ -12,10 +12,11 @@ interface ImageUploaderProps {
   /** "Xóa ảnh" was pressed. */
   onRemove: () => void
   disabled?: boolean
+  alt?: string
 }
 
 /** Pick, drop, preview, replace or remove one product image (JPEG, PNG or WebP, up to 3 MB). The file is uploaded at once. */
-export default function ImageUploader({ url, onUploaded, onRemove, disabled = false }: ImageUploaderProps) {
+export default function ImageUploader({ url, onUploaded, onRemove, disabled = false, alt = 'Ảnh sản phẩm' }: ImageUploaderProps) {
   const input = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -61,7 +62,7 @@ export default function ImageUploader({ url, onUploaded, onRemove, disabled = fa
         }}
       >
         <div className="relative">
-          <ProductThumb src={url} alt="Ảnh sản phẩm" className="w-28 h-28 rounded-xl border border-slate-200" iconSize={36} showError />
+          <ProductThumb src={url} alt={alt} className="w-28 h-28 rounded-xl border border-slate-200" iconSize={36} showError />
           {uploading && (
             <div className="absolute inset-0 rounded-xl bg-white/70 flex items-center justify-center" aria-label="Đang tải ảnh lên">
               <Loader2 className="animate-spin text-emerald-600" size={26} />
@@ -92,7 +93,7 @@ export default function ImageUploader({ url, onUploaded, onRemove, disabled = fa
           </div>
         </div>
       </div>
-      <input ref={input} type="file" accept={IMAGE_TYPES.join(',')} className="hidden" aria-label="Chọn ảnh sản phẩm" onChange={(e) => void take(e.target.files?.[0])} />
+      <input ref={input} type="file" accept={IMAGE_TYPES.join(',')} className="hidden" aria-label={`Chọn ${alt.toLocaleLowerCase('vi')}`} onChange={(e) => void take(e.target.files?.[0])} />
       {error && (
         <p className="text-xs text-rose-600" role="alert">
           {error}
