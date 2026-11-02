@@ -255,7 +255,7 @@ function FarmerView({ result, status }: { result: FarmerResult | null; status: D
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Cách xử lý ({result.treatments.length})</h3>
             {result.treatments.length === 0 ? (
-              <p className="text-sm text-slate-600">Chưa có nội dung. Chủ cửa hàng nhập ở mục "Bệnh & cách xử lý".</p>
+              <p className="text-sm text-slate-600">Chưa có nội dung. Chủ cửa hàng nhập ở mục "Vấn đề & cách xử lý".</p>
             ) : (
               <ul className="mt-1 space-y-1 text-sm">
                 {result.treatments.map((t) => (

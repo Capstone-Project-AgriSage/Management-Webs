@@ -1,5 +1,6 @@
 import { useLocation } from 'react-router-dom'
-import type { DiagnosisCertainty, DiagnosisStatus, ReviewDecision, TreatmentKind } from '@/api/diagnosisApi'
+import type { DiagnosisCertainty, DiagnosisStatus, ProblemType, ReviewDecision, TreatmentKind } from '@/api/diagnosisApi'
+import type { GrowthStage, LinkStatus, RecommendationGroup } from '@/api/advisoryApi'
 
 /** UNDER_REVIEW, VERIFIED and INCONCLUSIVE only exist on cases from before Human Review was removed (2026-10-21). */
 export const DIAGNOSIS_STATUS_LABEL: Record<DiagnosisStatus, string> = {
@@ -48,6 +49,41 @@ export const TREATMENT_KIND_LABEL: Record<TreatmentKind, string> = {
   PREVENTIVE: 'Phòng ngừa',
   OTHER: 'Khác',
 }
+
+export const PROBLEM_TYPE_LABEL: Record<ProblemType, string> = {
+  DISEASE: 'Bệnh',
+  PEST: 'Sâu rầy',
+  WEED: 'Cỏ dại',
+  NUTRITION: 'Dinh dưỡng',
+  GROWTH: 'Sinh trưởng, đất',
+}
+
+export const GROUP_LABEL: Record<RecommendationGroup, string> = {
+  PROTECTION: 'Thuốc bảo vệ thực vật',
+  NUTRITION: 'Phân bón',
+}
+
+export const LINK_STATUS_LABEL: Record<LinkStatus, string> = {
+  DRAFT: 'Nháp, chưa duyệt',
+  APPROVED: 'Đã duyệt',
+  INACTIVE: 'Đã ngừng',
+}
+
+export const LINK_STATUS_BADGE_CLASS: Record<LinkStatus, string> = {
+  DRAFT: 'bg-amber-100 text-amber-800',
+  APPROVED: 'bg-emerald-100 text-emerald-800',
+  INACTIVE: 'bg-slate-200 text-slate-600',
+}
+
+export const GROWTH_STAGE_LABEL: Record<GrowthStage, string> = {
+  SEEDLING: 'Mạ, sau sạ',
+  TILLERING: 'Đẻ nhánh',
+  BOOTING: 'Làm đòng',
+  HEADING: 'Trổ bông',
+  RIPENING: 'Chín',
+}
+
+export const GROWTH_STAGES = Object.keys(GROWTH_STAGE_LABEL) as GrowthStage[]
 
 /** Names shown to staff for the five seeded classes (the database holds the English names until content is edited). */
 const DISEASE_VI: Record<string, string> = {

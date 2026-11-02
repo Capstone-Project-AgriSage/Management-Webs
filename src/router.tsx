@@ -33,6 +33,7 @@ import PaymentsPage from '@/features/payments/PaymentsPage'
 import DiagnosisQueuePage from '@/features/diagnosis/DiagnosisQueuePage'
 import DiagnosisCasePage from '@/features/diagnosis/DiagnosisCasePage'
 import DiseaseContentPage from '@/features/diagnosis/DiseaseContentPage'
+import AdvisorySessionsPage from '@/features/diagnosis/AdvisorySessionsPage'
 import NotFoundPage from '@/features/not-found/NotFoundPage'
 import AgentInventoryPage from '@/features/agent/inventory/StockOverviewPage'
 import AgentInventoryMovementsPage from '@/features/agent/inventory/StockMovementsPage'
@@ -175,6 +176,10 @@ export const router = createBrowserRouter([
           {
             path: 'agent/diseases',
             element: <RequireRole role="agent"><DiseaseContentPage /></RequireRole>,
+          },
+          {
+            path: 'agent/advisory-sessions',
+            element: <RequireRole role="agent"><AdvisorySessionsPage /></RequireRole>,
           },
           {
             path: 'agent/products',
@@ -332,6 +337,10 @@ export const router = createBrowserRouter([
           {
             path: 'sales/price-lists',
             element: <RequireRole role="sales_staff"><PriceListsPage /></RequireRole>,
+          },
+          {
+            path: 'sales/advisory-sessions',
+            element: <RequireRole role="sales_staff"><AdvisorySessionsPage /></RequireRole>,
           },
           {
             path: 'sales/ai-review',

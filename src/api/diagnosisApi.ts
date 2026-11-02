@@ -24,6 +24,8 @@ export type RecommendationKind = 'TREATMENT' | 'PRODUCT'
 
 export type TreatmentKind = 'CULTURAL' | 'CHEMICAL' | 'PREVENTIVE' | 'OTHER'
 
+export type ProblemType = 'DISEASE' | 'PEST' | 'WEED' | 'NUTRITION' | 'GROWTH'
+
 /** CONFIDENT: the AI passed the policy. UNCERTAIN: it did not (no chemical treatment, no product). VERIFIED: a review before 2.0. */
 export type DiagnosisCertainty = 'CONFIDENT' | 'UNCERTAIN' | 'VERIFIED'
 
@@ -185,6 +187,10 @@ export interface Disease {
   isHealthyClass: boolean
   isActive: boolean
   treatments: Treatment[]
+  /** What the problem is (ADVISORY.md); absent on a backend from before the advisory flow, read as DISEASE. */
+  problemType?: ProblemType
+  /** Folk names and symptoms, comma separated: what the Farmer's search also matches. */
+  searchKeywords?: string | null
 }
 
 export const diagnosisApi = {
@@ -210,6 +216,14 @@ export interface DiseaseContentInput {
   symptoms?: string | null
   causes?: string | null
   prevention?: string | null
+  /** Omitted keeps the saved keywords; an empty string clears them. */
+  searchKeywords?: string | null
+}
+
+/** A new problem the store advises on. The code is UPPER_SNAKE_CASE and cannot change afterwards. */
+export interface DiseaseCreateInput extends DiseaseContentInput {
+  code: string
+  problemType: ProblemType
 }
 
 /**
@@ -232,6 +246,12 @@ export const diseasesApi = {
   /** Admin and store owner. Returns the disease with its treatments. */
   update: (id: Uuid, data: DiseaseContentInput) =>
     api<Disease>(`/api/diseases/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  create: (data: DiseaseCreateInput) => api<Disease>('/api/diseases', { method: 'POST', body: JSON.stringify(data) }),
+
+  /** The five AI classes cannot be switched off (the AI needs them). */
+  setActive: (id: Uuid, active: boolean) =>
+    api<Disease>(`/api/diseases/${id}/${active ? 'activate' : 'deactivate'}`, { method: 'POST' }),
 
   createTreatment: (diseaseId: Uuid, data: TreatmentInput) =>
     api<Treatment>(`/api/diseases/${diseaseId}/treatments`, { method: 'POST', body: JSON.stringify(data) }),

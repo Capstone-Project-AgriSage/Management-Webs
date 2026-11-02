@@ -7,6 +7,8 @@ const routes: [RegExp, string[]][] = [
   [/\/(ai-review|ai-recommendations)(?:\/|$)/, ['DIAGNOSIS.READ']],
   // Disease content and treatments (reading; editing is checked per button, and by the API).
   [/\/diseases(?:\/|$)/, ['DISEASES.READ']],
+  // What the Farmers were advised (input consultation log).
+  [/\/advisory-sessions(?:\/|$)/, ['ADVISORY_SESSIONS.READ']],
   [/^\/admin\/roles/, ['PERMISSIONS.MANAGE_ROLES']],
   [/^\/admin\/accounts/, ['STAFF.READ']],
   [/^\/admin\/products\/categories/, ['CATEGORIES.READ']],
