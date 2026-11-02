@@ -8,6 +8,8 @@ import {
   diseasesApi,
   type Disease,
   type DiseaseContentInput,
+  type DiseaseCreateInput,
+  type ProblemType,
   type Treatment,
   type TreatmentInput,
   type TreatmentKind,
@@ -15,12 +17,14 @@ import {
 import { adminCatalogApi, type AdminCatalogRow } from '@/api/adminCatalogApi'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import Select from '@/components/ui/Select'
-import { TREATMENT_KIND_LABEL, diseaseLabel } from './diagnosisLabels'
+import DiseaseProductsPanel from './DiseaseProductsPanel'
+import { PROBLEM_TYPE_LABEL, TREATMENT_KIND_LABEL, diseaseLabel } from './diagnosisLabels'
 
 const field =
   'w-full px-3 py-2 rounded-md border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500'
 
 const KINDS = Object.keys(TREATMENT_KIND_LABEL) as TreatmentKind[]
+const PROBLEM_TYPES = Object.keys(PROBLEM_TYPE_LABEL) as ProblemType[]
 
 interface ContentForm {
   name: string
@@ -29,6 +33,26 @@ interface ContentForm {
   symptoms: string
   causes: string
   prevention: string
+  searchKeywords: string
+}
+
+interface CreateForm extends ContentForm {
+  code: string
+  problemType: ProblemType
+}
+
+const CODE_PATTERN = /^[A-Z][A-Z0-9_]{1,48}$/
+
+const emptyCreate: CreateForm = {
+  code: '',
+  problemType: 'DISEASE',
+  name: '',
+  scientificName: '',
+  description: '',
+  symptoms: '',
+  causes: '',
+  prevention: '',
+  searchKeywords: '',
 }
 
 interface TreatmentForm {
@@ -51,8 +75,12 @@ function contentFormOf(d: Disease): ContentForm {
     symptoms: d.symptoms ?? '',
     causes: d.causes ?? '',
     prevention: d.prevention ?? '',
+    searchKeywords: d.searchKeywords ?? '',
   }
 }
+
+// The five AI classes cannot be switched off (the AI needs them).
+const SEEDED_CODES = new Set(['LEAF_BLAST', 'BACTERIAL_LEAF_BLIGHT', 'BROWN_SPOT', 'SHEATH_BLIGHT', 'HEALTHY'])
 
 const emptyTreatment: TreatmentForm = { treatmentType: 'CHEMICAL', title: '', instructions: '', activeIngredientId: '', precautions: '', priority: '0' }
 
@@ -83,12 +111,13 @@ function Fact({ label, value }: { label: string; value: string | null }) {
 
 export default function DiseaseContentPage() {
   usePageHeader({
-    title: 'Bệnh lúa và cách xử lý',
-    subtitle: 'Nội dung nông dân đọc ngay khi AI nhận ra bệnh: mô tả bệnh, cách xử lý và hoạt chất để gợi ý sản phẩm',
+    title: 'Vấn đề trên lúa và cách xử lý',
+    subtitle: 'Bệnh, sâu rầy, cỏ dại, dinh dưỡng: nội dung nông dân đọc và các sản phẩm đã duyệt được gợi ý cho từng vấn đề',
   })
   const { has } = usePermission()
   const { showToast } = useToast()
   const canEditDisease = has('DISEASES.UPDATE')
+  const canCreateProblem = has('DISEASES.CREATE')
   const canCreate = has('DISEASE_TREATMENTS.CREATE')
   const canUpdate = has('DISEASE_TREATMENTS.UPDATE')
   const canActivate = has('DISEASE_TREATMENTS.ACTIVATE')
@@ -105,6 +134,8 @@ export default function DiseaseContentPage() {
   const [treatmentForm, setTreatmentForm] = useState<TreatmentForm>(emptyTreatment)
   const [stopping, setStopping] = useState<Treatment | null>(null)
   const [ingredients, setIngredients] = useState<AdminCatalogRow[]>([])
+  const [creating, setCreating] = useState<CreateForm | null>(null)
+  const [switching, setSwitching] = useState<Disease | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -157,9 +188,37 @@ export default function DiseaseContentPage() {
       symptoms: orNull(contentForm.symptoms),
       causes: orNull(contentForm.causes),
       prevention: orNull(contentForm.prevention),
+      // '' clears the keywords; leaving the field out would keep them.
+      searchKeywords: contentForm.searchKeywords.trim(),
     }
     if (await run(() => diseasesApi.update(editing.id, body), 'Đã lưu nội dung bệnh', 'Không lưu được nội dung bệnh')) {
       setEditing(null)
+    }
+  }
+
+  const saveNewProblem = async () => {
+    if (!creating) return
+    const body: DiseaseCreateInput = {
+      code: creating.code.trim(),
+      problemType: creating.problemType,
+      name: creating.name.trim(),
+      scientificName: orNull(creating.scientificName),
+      description: orNull(creating.description),
+      symptoms: orNull(creating.symptoms),
+      causes: orNull(creating.causes),
+      prevention: orNull(creating.prevention),
+      searchKeywords: orNull(creating.searchKeywords),
+    }
+    if (await run(() => diseasesApi.create(body), 'Đã thêm vấn đề', 'Không thêm được vấn đề')) {
+      setCreating(null)
+    }
+  }
+
+  const switchActive = async () => {
+    if (!switching) return
+    const next = !switching.isActive
+    if (await run(() => diseasesApi.setActive(switching.id, next), next ? 'Đã dùng lại vấn đề' : 'Đã ngừng vấn đề', 'Không đổi được trạng thái vấn đề')) {
+      setSwitching(null)
     }
   }
 
@@ -196,15 +255,27 @@ export default function DiseaseContentPage() {
   }
 
   const contentInvalid = !contentForm || !contentForm.name.trim()
+  const createInvalid = !creating || !CODE_PATTERN.test(creating.code.trim()) || !creating.name.trim()
   const treatmentInvalid = !treatmentForm.title.trim() || !treatmentForm.instructions.trim() || priorityOf(treatmentForm.priority) === null
 
   return (
     <div className="max-w-[1100px] mx-auto space-y-5">
-      <p className="text-sm text-slate-600">
-        Mỗi bệnh có phần mô tả và nhiều cách xử lý. Nông dân đọc nội dung này ngay khi AI nhận ra bệnh, không còn bước duyệt,
-        nên chỉ nhập nội dung đã được người hiểu bệnh lúa kiểm tra. Cách xử lý loại Hóa học chỉ hiện khi AI chắc chắn, và sản phẩm
-        của cửa hàng chứa hoạt chất của cách xử lý được gợi ý kèm. Cách xử lý đã ngừng không còn hiện cho nông dân.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <p className="text-sm text-slate-600 flex-1 min-w-[260px]">
+          Mỗi vấn đề (bệnh, sâu rầy, cỏ dại, dinh dưỡng) có phần mô tả, cách xử lý và danh sách sản phẩm gợi ý. Nông dân đọc nội dung này
+          ngay, không có bước duyệt nội dung, nên chỉ nhập điều đã được người hiểu cây lúa kiểm tra. Sản phẩm chỉ hiện cho nông dân khi
+          liên kết với vấn đề đã được duyệt; hoạt chất của cách xử lý chỉ để hiển thị. Cách xử lý loại Hóa học chỉ hiện khi AI chắc chắn.
+        </p>
+        {canCreateProblem && (
+          <button
+            type="button"
+            onClick={() => setCreating(emptyCreate)}
+            className="inline-flex items-center gap-1 h-9 px-3 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-green-800"
+          >
+            <Plus size={14} /> Thêm vấn đề
+          </button>
+        )}
+      </div>
 
       {loadError && (
         <div role="alert" className="text-rose-700 text-sm">
@@ -228,20 +299,33 @@ export default function DiseaseContentPage() {
                 <p className="text-xs text-slate-500">
                   <span className="font-mono">{d.code}</span>
                   {d.name !== diseaseLabel(d.code, d.name) && <> · {d.name}</>}
+                  <span className="ml-2 px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold">{PROBLEM_TYPE_LABEL[d.problemType ?? 'DISEASE']}</span>
                   {d.isHealthyClass && <span className="ml-2 px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-semibold">Lá khỏe</span>}
                   {!d.isActive && <span className="ml-2 px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold">Đã ngừng</span>}
                 </p>
               </div>
-              {canEditDisease && (
-                <button
-                  type="button"
-                  onClick={() => openContent(d)}
-                  className="inline-flex items-center gap-1 h-9 px-3 rounded-lg border border-slate-300 bg-white text-sm font-medium hover:bg-slate-50"
-                  aria-label={`Sửa nội dung ${diseaseLabel(d.code, d.name)}`}
-                >
-                  <Pencil size={14} /> Sửa nội dung
-                </button>
-              )}
+              <div className="flex flex-wrap gap-2">
+                {canEditDisease && (
+                  <button
+                    type="button"
+                    onClick={() => openContent(d)}
+                    className="inline-flex items-center gap-1 h-9 px-3 rounded-lg border border-slate-300 bg-white text-sm font-medium hover:bg-slate-50"
+                    aria-label={`Sửa nội dung ${diseaseLabel(d.code, d.name)}`}
+                  >
+                    <Pencil size={14} /> Sửa nội dung
+                  </button>
+                )}
+                {canEditDisease && !d.isHealthyClass && !SEEDED_CODES.has(d.code) && (
+                  <button
+                    type="button"
+                    onClick={() => setSwitching(d)}
+                    className="inline-flex items-center gap-1 h-9 px-3 rounded-lg border border-slate-300 bg-white text-sm font-medium hover:bg-slate-50"
+                    aria-label={`${d.isActive ? 'Ngừng' : 'Dùng lại'} ${diseaseLabel(d.code, d.name)}`}
+                  >
+                    {d.isActive ? 'Ngừng' : 'Dùng lại'}
+                  </button>
+                )}
+              </div>
             </div>
 
             {empty && (
@@ -256,6 +340,7 @@ export default function DiseaseContentPage() {
               <Fact label="Triệu chứng" value={d.symptoms} />
               <Fact label="Nguyên nhân" value={d.causes} />
               <Fact label="Phòng ngừa" value={d.prevention} />
+              <Fact label="Từ khóa tìm kiếm của nông dân" value={d.searchKeywords ?? null} />
             </dl>
 
             <div className="border-t border-outline-variant/60 pt-4 space-y-3">
@@ -324,6 +409,8 @@ export default function DiseaseContentPage() {
                 </ul>
               )}
             </div>
+
+            {!d.isHealthyClass && has('DISEASE_PRODUCTS.READ') && <DiseaseProductsPanel disease={d} />}
           </section>
         )
       })}
@@ -361,9 +448,90 @@ export default function DiseaseContentPage() {
                 <textarea className={`${field} mt-1 font-normal min-h-[84px]`} maxLength={4000} value={contentForm[key]} onChange={(e) => setContentForm({ ...contentForm, [key]: e.target.value })} />
               </label>
             ))}
+            <label className="block text-sm font-semibold text-slate-700">
+              Từ khóa tìm kiếm của nông dân
+              <textarea className={`${field} mt-1 font-normal min-h-[60px]`} maxLength={1000} value={contentForm.searchKeywords} onChange={(e) => setContentForm({ ...contentForm, searchKeywords: e.target.value })} />
+              <span className="mt-1 block text-xs font-normal text-slate-500">Tên dân gian, triệu chứng nông dân hay gõ, cách nhau dấu phẩy. Gõ không dấu vẫn tìm được.</span>
+            </label>
           </div>
         )}
       </ConfirmModal>
+
+      <ConfirmModal
+        open={creating !== null}
+        title="Thêm vấn đề"
+        message="Mã không đổi được sau khi tạo. Vấn đề mới hiện cho nông dân tìm kiếm ngay, nhưng chưa có sản phẩm nào cho đến khi bạn thêm và duyệt liên kết."
+        confirmLabel="Thêm vấn đề"
+        busy={busy}
+        confirmDisabled={createInvalid}
+        onConfirm={() => void saveNewProblem()}
+        onClose={() => setCreating(null)}
+      >
+        {creating && (
+          <div className="space-y-3" data-testid="problem-form">
+            <label className="block text-sm font-semibold text-slate-700">
+              Mã (chữ hoa, số, gạch dưới)
+              <input
+                className={`${field} mt-1 font-normal font-mono`}
+                maxLength={49}
+                value={creating.code}
+                onChange={(e) => setCreating({ ...creating, code: e.target.value.toUpperCase() })}
+                aria-label="Mã vấn đề"
+                aria-invalid={creating.code !== '' && !CODE_PATTERN.test(creating.code.trim())}
+                placeholder="BROWN_PLANTHOPPER"
+              />
+            </label>
+            <label className="block text-sm font-semibold text-slate-700">
+              Tên
+              <input className={`${field} mt-1 font-normal`} maxLength={200} value={creating.name} onChange={(e) => setCreating({ ...creating, name: e.target.value })} aria-label="Tên vấn đề" />
+            </label>
+            <label className="block text-sm font-semibold text-slate-700">
+              Loại
+              <Select className={`${field} mt-1 font-normal`} value={creating.problemType} onChange={(e) => setCreating({ ...creating, problemType: e.target.value as ProblemType })} aria-label="Loại vấn đề">
+                {PROBLEM_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {PROBLEM_TYPE_LABEL[t]}
+                  </option>
+                ))}
+              </Select>
+            </label>
+            <label className="block text-sm font-semibold text-slate-700">
+              Từ khóa tìm kiếm của nông dân
+              <textarea className={`${field} mt-1 font-normal min-h-[60px]`} maxLength={1000} value={creating.searchKeywords} onChange={(e) => setCreating({ ...creating, searchKeywords: e.target.value })} />
+            </label>
+            {(
+              [
+                ['description', 'Mô tả'],
+                ['symptoms', 'Triệu chứng'],
+                ['causes', 'Nguyên nhân'],
+                ['prevention', 'Phòng ngừa'],
+              ] as const
+            ).map(([key, label]) => (
+              <label key={key} className="block text-sm font-semibold text-slate-700">
+                {label}
+                <textarea className={`${field} mt-1 font-normal min-h-[70px]`} maxLength={4000} value={creating[key]} onChange={(e) => setCreating({ ...creating, [key]: e.target.value })} />
+              </label>
+            ))}
+          </div>
+        )}
+      </ConfirmModal>
+
+      <ConfirmModal
+        open={switching !== null}
+        title={switching?.isActive ? 'Ngừng vấn đề' : 'Dùng lại vấn đề'}
+        message={
+          switching
+            ? switching.isActive
+              ? `"${switching.name}" sẽ không còn hiện trong danh sách nông dân tìm kiếm. Các liên kết sản phẩm được giữ lại.`
+              : `"${switching.name}" sẽ hiện lại cho nông dân tìm kiếm.`
+            : undefined
+        }
+        confirmLabel={switching?.isActive ? 'Ngừng vấn đề' : 'Dùng lại'}
+        tone={switching?.isActive ? 'danger' : 'primary'}
+        busy={busy}
+        onConfirm={() => void switchActive()}
+        onClose={() => setSwitching(null)}
+      />
 
       <ConfirmModal
         open={treating !== null}
@@ -417,8 +585,8 @@ export default function DiseaseContentPage() {
             </Select>
             <span className="mt-1 block text-xs font-normal text-slate-500">
               {treatmentForm.treatmentType === 'CHEMICAL' && !treatmentForm.activeIngredientId
-                ? 'Nên gắn hoạt chất: nếu không, nông dân sẽ không được gợi ý sản phẩm nào cho cách xử lý này.'
-                : 'Sản phẩm của cửa hàng chứa hoạt chất này được gợi ý khi AI chắc chắn về bệnh.'}
+                ? 'Nên ghi hoạt chất để nông dân biết thuốc dùng hoạt chất nào.'
+                : 'Hoạt chất chỉ để hiển thị. Sản phẩm được gợi ý lấy từ mục "Sản phẩm gợi ý" của vấn đề, không tự ghép theo hoạt chất.'}
             </span>
           </label>
           <label className="block text-sm font-semibold text-slate-700">
@@ -435,7 +603,7 @@ export default function DiseaseContentPage() {
       <ConfirmModal
         open={stopping !== null}
         title="Ngừng cách xử lý"
-        message={stopping ? `"${stopping.title}" sẽ không còn hiện cho nông dân và không còn dùng để gợi ý sản phẩm. Bạn có thể kích hoạt lại sau.` : undefined}
+        message={stopping ? `"${stopping.title}" sẽ không còn hiện cho nông dân. Bạn có thể kích hoạt lại sau.` : undefined}
         confirmLabel="Ngừng cách xử lý"
         tone="danger"
         busy={busy}

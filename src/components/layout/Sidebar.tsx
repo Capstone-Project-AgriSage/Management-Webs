@@ -42,7 +42,7 @@ function useNavConfig() {
       { label: 'Hoạt chất', to: '/admin/products/ingredients', icon: 'science' },
       { label: 'AI Models', to: '/admin/ai/models', icon: 'model_training' },
       { label: 'AI Policy', to: '/admin/ai/policies', icon: 'settings_suggest' },
-      { label: 'Bệnh & cách xử lý', to: '/admin/diseases', icon: 'healing' },
+      { label: 'Vấn đề & cách xử lý', to: '/admin/diseases', icon: 'healing' },
       { label: 'Thông báo', to: '/admin/notifications', icon: 'notifications' },
       { label: 'Nhật ký', to: '/admin/audit-logs', icon: 'manage_search' },
     ]
@@ -62,7 +62,8 @@ function useNavConfig() {
           { label: 'Trả hàng', to: '/agent/returns', icon: 'assignment_return' },
           { label: 'Hoàn tiền', to: '/agent/refunds', icon: 'currency_exchange' },
           // Read only since Human Review was removed (AI_DIAGNOSIS.md 2.0): the farmers' cases, to follow up.
-          { label: 'Chẩn đoán AI', to: '/agent/ai-recommendations', icon: 'psychology', iconTone: 'primary' as const }
+          { label: 'Chẩn đoán AI', to: '/agent/ai-recommendations', icon: 'psychology', iconTone: 'primary' as const },
+          { label: 'Ca tư vấn vật tư', to: '/agent/advisory-sessions', icon: 'forum' }
         ]
       },
       {
@@ -91,7 +92,7 @@ function useNavConfig() {
         title: 'Cộng đồng & Quản trị',
         items: [
           { label: 'Khách hàng', to: '/agent/farmers', icon: 'groups' },
-          { label: 'Bệnh & cách xử lý', to: '/agent/diseases', icon: 'healing' },
+          { label: 'Vấn đề & cách xử lý', to: '/agent/diseases', icon: 'healing' },
           { label: 'Nhân sự', to: '/agent/staff', icon: 'manage_accounts' },
           { label: 'Nhật ký kiểm toán', to: '/agent/activity-log', icon: 'history_toggle_off' },
           { label: 'Cài đặt', to: '/agent/settings', icon: 'settings' },
@@ -117,6 +118,7 @@ function useNavConfig() {
       { label: 'Bảng giá', to: '/sales/price-lists', icon: 'price_change' },
       // Shown by the DIAGNOSIS.READ permission (canAccessRoute below); no review right any more.
       { label: 'Ca chẩn đoán AI', to: '/sales/ai-review', icon: 'psychology', iconTone: 'primary' as const },
+      { label: 'Ca tư vấn vật tư', to: '/sales/advisory-sessions', icon: 'forum' },
       { label: 'Cài đặt', to: '/sales/settings', icon: 'settings' },
     ]
     items.push(
