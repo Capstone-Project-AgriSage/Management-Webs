@@ -70,6 +70,8 @@ async function session(role, permissions) {
     state.requests.push({ path, method, body })
     const json = (value, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(value) }).catch(() => {})
     if (REMOVED.test(path)) { failures.push(`removed route called: ${method} ${path}`); return json({ title: 'Not found' }, 404) }
+    // The SignalR client negotiates a connection on every page; the test has no realtime server, so it just gets a 404.
+    if (path.startsWith('/api/realtime/')) return json({ title: 'Not available in the test' }, 404)
     if (path === '/api/auth/me') return json({ id: 'me', fullName: 'Người kiểm thử', role, status: 'ACTIVE' })
     if (path === '/api/me/permissions') return json({ role, storeId: 's1', roleVersion: 1, memberVersion: 1, permissions })
     if (path.endsWith('/unread-count')) return json({ count: 0 })
