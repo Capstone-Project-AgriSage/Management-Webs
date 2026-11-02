@@ -266,6 +266,17 @@ input:-webkit-autofill {
 .management-content :where(th), .modal-body :where(th) { padding-block: 14px; color: #475569; font-size: 12px; font-weight: 600; letter-spacing: .025em; white-space: nowrap; }
 .management-content :where(tbody > tr) { border-color: #edf2f7; }
 .management-content :where(tbody > tr:hover) { background-color: #f8fafc; }
+
+/* Management record actions always occupy the final right-aligned column. */
+.management-content table:has(td > .agrisage-row-menu-trigger) > thead > tr > th:last-child,
+.modal-body table:has(td > .agrisage-row-menu-trigger) > thead > tr > th:last-child {
+  width: 64px;
+  text-align: right;
+  white-space: nowrap;
+}
+.management-content td:has(> .agrisage-row-menu-trigger),
+.modal-body td:has(> .agrisage-row-menu-trigger) { width: 64px; text-align: right; white-space: nowrap; }
+@media (pointer: coarse) { .agrisage-row-menu-trigger { min-width: 44px; min-height: 44px; } }
 .management-content :where(td) { padding-block: 14px; line-height: 1.5; }
 .management-content td.agrisage-empty-row { padding-block: 48px; }
 

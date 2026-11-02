@@ -1,3 +1,4 @@
+import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import { useBusinessDataRefresh } from '@/hooks/useBusinessDataRefresh'
 import ListToolbar from '@/components/ui/ListToolbar'
 import FilterSelect from '@/components/ui/FilterSelect'
@@ -258,28 +259,10 @@ export default function DebtsPage() {
                       <td className="py-3 px-3">{p.payerName ?? '--'}</td>
                       <td className="py-3 px-3 text-right tabular-nums font-semibold">{formatVnd(p.amount)}</td>
                       <td className="py-3 px-3">{formatDayTime(p.initiatedAt)}</td>
-                      <td className="py-3 px-4 text-right">
-                        {canManage && p.paymentMethod === 'BANK_TRANSFER' && (
-                          <div className="flex justify-end gap-2">
-                            <PermissionAction codes={["BANK_PAYMENTS.REJECT"]}><button
-                              type="button"
-                              disabled={busyId === p.id}
-                              className="px-3 py-1.5 rounded-lg border border-rose-300 text-rose-700 text-xs font-medium hover:bg-rose-50 disabled:opacity-50"
-                              onClick={() => setRejecting(p)}
-                            >
-                              Từ chối
-                            </button></PermissionAction>
-                            <PermissionAction codes={["BANK_PAYMENTS.CONFIRM"]}><button
-                              type="button"
-                              disabled={busyId === p.id}
-                              className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-700 disabled:opacity-50"
-                              onClick={() => confirmTransfer(p)}
-                            >
-                              Xác nhận đã nhận
-                            </button></PermissionAction>
-                          </div>
-                        )}
-                      </td>
+                      <td className="py-3 px-4 text-right"><RowActionsMenu disabled={busyId === p.id} triggerLabel={`Thao tác thanh toán ${p.paymentNumber}`} actions={!canManage || p.paymentMethod !== 'BANK_TRANSFER' ? [] : [
+                          { label: 'Xác nhận đã nhận', icon: 'check_circle', permissionCodes: ['BANK_PAYMENTS.CONFIRM'], onClick: () => { void confirmTransfer(p) } },
+                          { label: 'Từ chối', icon: 'cancel', tone: 'danger', permissionCodes: ['BANK_PAYMENTS.REJECT'], onClick: () => setRejecting(p) },
+                        ]} /></td>
                     </tr>
                   ))
                 )}

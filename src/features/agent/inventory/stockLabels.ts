@@ -10,12 +10,14 @@ export const ADJUSTMENT_REASONS: { value: AdjustmentReason; label: string }[] = 
 ]
 
 export const ALERT_LABEL: Record<AlertType, string> = {
+  OUT_OF_STOCK: 'Hết hàng để bán',
   EXPIRING: 'Sắp hết hạn',
   EXPIRED: 'Đã hết hạn',
   LOW_STOCK: 'Sắp hết hàng',
 }
 
 export const ALERT_BADGE_CLASS: Record<AlertType, string> = {
+  OUT_OF_STOCK: 'bg-rose-100 text-rose-800',
   EXPIRING: 'bg-amber-100 text-amber-800',
   EXPIRED: 'bg-rose-100 text-rose-700',
   LOW_STOCK: 'bg-orange-100 text-orange-800',

@@ -1,9 +1,10 @@
+import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import ListToolbar from '@/components/ui/ListToolbar'
 import FilterSelect from '@/components/ui/FilterSelect'
 import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import PermissionAction from '@/components/auth/PermissionAction'
 import { useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Pencil, Plus, Power, PowerOff, Trash2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Plus } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
 import { priceListsApi, type PriceList, type PriceListStatus } from '@/api/priceListsApi';
@@ -27,7 +28,6 @@ const STATUS: Record<PriceListStatus, { label: string; className: string }> = {
 }
 
 
-const iconButton = 'w-8 h-8 inline-flex items-center justify-center rounded-lg transition-colors'
 
 type FormState = { list: PriceList | null } | null
 
@@ -187,14 +187,14 @@ export default function PriceListsPage() {
                 <th className="py-3 px-3" scope="col">Áp dụng cho</th>
                 <th className="py-3 px-3 text-right" scope="col">Số giá</th>
                 <th className="py-3 px-3 text-center" scope="col">Trạng thái</th>
-                {canManage && <th className="py-3 px-4 text-right" scope="col">Thao tác</th>}
+                <th className="py-3 px-4 text-right" scope="col">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 text-sm text-slate-900">
               {loading && !data ? (
-                <EmptyTableRow colSpan={canManage ? 6 : 5} message="Đang tải dữ liệu..." />
+                <EmptyTableRow colSpan={6} message="Đang tải dữ liệu..." />
               ) : items.length === 0 ? (
-                <EmptyTableRow colSpan={canManage ? 6 : 5} message="Không tìm thấy bảng giá nào." />
+                <EmptyTableRow colSpan={6} message="Không tìm thấy bảng giá nào." />
               ) : (
                 items.map((list) => (
                   <tr key={list.id} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => setItemsOf(list)}>
@@ -223,53 +223,20 @@ export default function PriceListsPage() {
                     <td className="py-3.5 px-3 text-center">
                       <StatusBadge label={STATUS[list.status]?.label ?? list.status} className={STATUS[list.status]?.className} />
                     </td>
-                    {canManage && (
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                        <PermissionAction codes={["PRICING.UPDATE"]}><button type="button" title="Sửa thông tin" aria-label="Sửa thông tin" className={`${iconButton} text-slate-500 hover:bg-slate-100 hover:text-slate-900`} onClick={() => setForm({ list })}>
-                          <Pencil size={15} />
-                        </button></PermissionAction>
-                        {list.status === 'ACTIVE' ? (
-                          <PermissionAction codes={["PRICING.DEACTIVATE"]}><button
-                            type="button"
-                            title="Ngưng áp dụng"
-                            aria-label="Ngưng áp dụng"
-                            className={`${iconButton} text-rose-600 hover:bg-rose-50`}
-                            onClick={() => {
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap"><RowActionsMenu triggerLabel={`Thao tác bảng giá ${list.code}`} actions={[
+                          { label: 'Xem bảng giá', icon: 'visibility', onClick: () => setItemsOf(list) },
+                          { label: 'Sửa thông tin', icon: 'edit', permissionCodes: ['PRICING.UPDATE'], onClick: () => setForm({ list }) },
+                          { label: list.status === 'ACTIVE' ? 'Ngưng áp dụng' : 'Kích hoạt', icon: list.status === 'ACTIVE' ? 'pause_circle' : 'play_circle', permissionCodes: [list.status === 'ACTIVE' ? 'PRICING.DEACTIVATE' : 'PRICING.ACTIVATE'], onClick: () => {
+                            if (list.status === 'ACTIVE') {
                               const warn = list.isWalkInDefault ? '\nĐây là bảng giá khách lẻ: bán tại quầy sẽ bị từ chối cho tới khi kích hoạt bảng khác.' : ''
                               if (window.confirm(`Ngưng áp dụng bảng giá ${list.code}?${warn}`)) run(() => priceListsApi.deactivate(list.id), 'Đã ngưng áp dụng bảng giá')
-                            }}
-                          >
-                            <PowerOff size={15} />
-                          </button></PermissionAction>
-                        ) : (
-                          <PermissionAction codes={["PRICING.ACTIVATE"]}><button
-                            type="button"
-                            title="Kích hoạt"
-                            aria-label="Kích hoạt"
-                            className={`${iconButton} text-emerald-600 hover:bg-emerald-50`}
-                            onClick={() => {
+                            } else {
                               if (list.itemCount === 0 && !window.confirm('Bảng giá chưa có giá nào. Vẫn kích hoạt?')) return
                               run(() => priceListsApi.activate(list.id), 'Đã kích hoạt bảng giá')
-                            }}
-                          >
-                            <Power size={15} />
-                          </button></PermissionAction>
-                        )}
-                        {list.status === 'DRAFT' && (
-                          <PermissionAction codes={["PRICING.DELETE"]}><button
-                            type="button"
-                            title="Xóa bảng giá nháp"
-                            aria-label="Xóa bảng giá nháp"
-                            className={`${iconButton} text-rose-500 hover:bg-rose-50`}
-                            onClick={() => {
-                              if (window.confirm(`Xóa bảng giá nháp ${list.code}?`)) run(() => priceListsApi.delete(list.id), 'Đã xóa bảng giá')
-                            }}
-                          >
-                            <Trash2 size={15} />
-                          </button></PermissionAction>
-                        )}
-                      </td>
-                    )}
+                            }
+                          } },
+                          ...(list.status === 'DRAFT' ? [{ label: 'Xóa bảng giá nháp', icon: 'delete', tone: 'danger' as const, permissionCodes: ['PRICING.DELETE'], onClick: () => { if (window.confirm(`Xóa bảng giá nháp ${list.code}?`)) run(() => priceListsApi.delete(list.id), 'Đã xóa bảng giá') } }] : []),
+                        ]} /></td>
                   </tr>
                 ))
               )}

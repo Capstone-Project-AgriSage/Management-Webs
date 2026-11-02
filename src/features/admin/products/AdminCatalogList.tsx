@@ -1,3 +1,4 @@
+import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import { useCallback, useState } from 'react'
 import { adminCatalogApi, type AdminCatalogRow, type CatalogKind, type CatalogInput } from '@/api/adminCatalogApi'
 import { usePageHeader } from '@/context/PageHeaderContext'
@@ -74,11 +75,11 @@ export default function AdminCatalogList({ kind }: { kind: CatalogKind }) {
         <tbody className="divide-y divide-slate-100">
           {list.items.map(row => <tr key={row.id} className="hover:bg-slate-50">
             <td className="p-4 font-mono text-xs">{row.code || '—'}</td><td className="p-4 font-semibold">{row.name}</td><td className="p-4 max-w-sm">{row.description || '—'}</td><td className="p-4">{row.isActive ? 'Hoạt động' : 'Ngừng hoạt động'}</td>
-            <td className="p-4"><div className="flex gap-3 whitespace-nowrap">
-              {has(`${permission}.UPDATE`) && <button disabled={busy} onClick={() => open(row)} className="text-primary font-semibold">Sửa</button>}
-              {has(`${permission}.${row.isActive ? 'DEACTIVATE' : 'ACTIVATE'}`) && <button disabled={busy} onClick={() => void run(() => adminCatalogApi.setActive(kind, row.id, !row.isActive), 'Đã đổi trạng thái')}>{row.isActive ? 'Ngừng hoạt động' : 'Kích hoạt'}</button>}
-              {has(`${permission}.DELETE`) && <button disabled={busy} onClick={() => setDeleting(row)} className="text-rose-700">Xóa</button>}
-            </div></td>
+            <td className="p-4 text-right"><RowActionsMenu disabled={busy} triggerLabel={`Thao tác ${row.name}`} actions={[
+              { label: 'Sửa thông tin', icon: 'edit', permissionCodes: [`${permission}.UPDATE`], onClick: () => open(row) },
+              { label: row.isActive ? 'Ngừng hoạt động' : 'Kích hoạt', icon: row.isActive ? 'pause_circle' : 'play_circle', permissionCodes: [`${permission}.${row.isActive ? 'DEACTIVATE' : 'ACTIVATE'}`], onClick: () => { void run(() => adminCatalogApi.setActive(kind, row.id, !row.isActive), 'Đã đổi trạng thái') } },
+              { label: 'Xóa', icon: 'delete', tone: 'danger', permissionCodes: [`${permission}.DELETE`], onClick: () => setDeleting(row) },
+            ]} /></td>
           </tr>)}
           {!list.items.length && <EmptyTableRow colSpan={5} message={list.loading ? 'Đang tải...' : list.error ? 'Không tải được dữ liệu.' : `Không có ${unit} phù hợp.`} />}
         </tbody>

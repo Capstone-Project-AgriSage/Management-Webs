@@ -2,6 +2,9 @@ import { usePagination } from '@/hooks/usePagination'
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh'
 import Pagination from '@/components/ui/Pagination'
 import ListToolbar from '@/components/ui/ListToolbar'
+import { Link } from 'react-router-dom'
+import { replenishmentApi } from '@/api/replenishmentApi'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useEffect, useRef, useState } from 'react';
 
 import KpiCard from '@/components/ui/KpiCard'
@@ -46,6 +49,8 @@ export default function InventoryReportsPage() {
   const [tab, setTab] = useState<Tab>('movement')
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
   const [categoryId, setCategoryId] = useState('')
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search)
   const [from, setFrom] = useState(monthStartInput())
   const [to, setTo] = useState(todayInput())
 
@@ -53,6 +58,7 @@ export default function InventoryReportsPage() {
   const [valuation, setValuation] = useState<InventoryValuationReport | null>(null)
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const request = useRef(0)
   const [revision, setRevision] = useState(0)
   useRealtimeRefresh(['inventory'], () => setRevision(value => value + 1))
@@ -75,10 +81,10 @@ export default function InventoryReportsPage() {
     setLoadError(false)
     const run =
       tab === 'movement'
-        ? inventoryReportsApi.getMovement({ fromDate: from, toDate: to, categoryId: categoryId || undefined }).then((r) => {
+        ? inventoryReportsApi.getMovement({ fromDate: from, toDate: to, categoryId: categoryId || undefined, search: debouncedSearch.trim() || undefined }).then((r) => {
             if (id === request.current) setMovement(r)
           })
-        : inventoryReportsApi.getValuation({ categoryId: categoryId || undefined }).then((r) => {
+        : inventoryReportsApi.getValuation({ categoryId: categoryId || undefined, search: debouncedSearch.trim() || undefined }).then((r) => {
             if (id === request.current) setValuation(r)
           })
     run
@@ -88,10 +94,10 @@ export default function InventoryReportsPage() {
       .finally(() => {
         if (id === request.current) setLoading(false)
       })
-  }, [tab, from, to, categoryId, rangeProblem, showToast, revision])
+  }, [tab, from, to, categoryId, debouncedSearch, rangeProblem, showToast, revision])
 
-  const movementPages = usePagination(movement?.rows ?? [], 10, [from, to, categoryId].join('|'))
-  const valuationPages = usePagination(valuation?.rows ?? [], 10, [categoryId].join('|'))
+  const movementPages = usePagination(movement?.rows ?? [], 10, [from, to, categoryId, debouncedSearch].join('|'))
+  const valuationPages = usePagination(valuation?.rows ?? [], 10, [categoryId, debouncedSearch].join('|'))
   const summaryMetrics = tab === 'movement' ? [
     { title: 'Tồn đầu kỳ', value: movement?.totals.openingValue, money: true },
     { title: 'Nhập kho trong kỳ', value: movement?.totals.stockIn, money: true },
@@ -106,6 +112,14 @@ export default function InventoryReportsPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
+      <div className="flex flex-wrap justify-end gap-3 text-sm"><Link className="px-3 py-2 border rounded-lg text-emerald-700" to="/agent/inventory/reports/planning">Phân tích tốc độ bán / rủi ro hạn dùng</Link>
+        {tab === 'movement' && <button disabled={exporting || !!rangeProblem} className="px-3 py-2 rounded-lg bg-emerald-600 text-white disabled:opacity-50" onClick={async () => {
+          setExporting(true)
+          try { await replenishmentApi.exportMovement({ fromDate: from, toDate: to, categoryId: categoryId || undefined, search: search.trim() || undefined }); showToast('Đã tải báo cáo Excel.', 'success') }
+          catch (err) { showToast(describeError(err, 'Không xuất được Excel.'), 'error') }
+          finally { setExporting(false) }
+        }}>{exporting ? 'Đang xuất...' : 'Xuất Excel'}</button>}
+      </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1 shadow-sm" role="tablist">
           {(
@@ -129,7 +143,7 @@ export default function InventoryReportsPage() {
 
       </div>
 
-      <ListToolbar  onClear={() => { setCategoryId(''); setFrom(monthStartInput()); setTo(todayInput()) }}>
+      <ListToolbar search={{ value: search, onChange: setSearch, placeholder: 'Tìm mã hoặc tên sản phẩm...' }} onClear={() => { setSearch(''); setCategoryId(''); setFrom(monthStartInput()); setTo(todayInput()) }}>
 {tab === 'movement' ? (
           <>
             <div>

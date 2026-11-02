@@ -60,9 +60,9 @@ export interface InventoryMovementReport {
 }
 
 export const inventoryReportsApi = {
-  getValuation: (params: { categoryId?: Uuid } = {}, signal?: AbortSignal) =>
+  getValuation: (params: { categoryId?: Uuid; search?: string } = {}, signal?: AbortSignal) =>
     api<InventoryValuationReport>(`/api/reports/inventory-valuation${buildQuery(params)}`, { signal }),
 
-  getMovement: (params: { fromDate: string; toDate: string; categoryId?: Uuid }, signal?: AbortSignal) =>
+  getMovement: (params: { fromDate: string; toDate: string; categoryId?: Uuid; search?: string }, signal?: AbortSignal) =>
     api<InventoryMovementReport>(`/api/reports/inventory-movement${buildQuery(params)}`, { signal }),
 }

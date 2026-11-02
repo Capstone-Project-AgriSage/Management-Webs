@@ -1,3 +1,4 @@
+import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import ListToolbar from '@/components/ui/ListToolbar'
 import FilterSelect from '@/components/ui/FilterSelect'
 import { LIST_PAGE_SIZE } from '@/utils/pagination';
@@ -231,7 +232,9 @@ export default function AuditLogsPage() {
                     <td className="py-3 px-4 border-r border-outline-variant/40 text-on-surface break-all">{resourceLabel(log)}</td>
                     <td className="py-3 px-4 border-r border-outline-variant/40"><StatusBadge log={log} /></td>
                     <td className="py-3 px-4 border-r border-outline-variant/40 text-on-surface-variant"><div className="whitespace-nowrap font-mono">{log.ipAddress ?? '—'}</div><div className="mt-1 text-xs whitespace-nowrap">{browserLabel(log.userAgent)}</div></td>
-                    <td className="py-3 px-2 text-center"><button type="button" aria-label={'Chi tiết nhật ký ' + log.id} onClick={() => { setDetail(null); setDetailError(''); setDetailLoading(true); setDetailId(log.id) }} className="p-1.5 rounded text-on-surface-variant hover:text-primary hover:bg-surface-container"><span className="material-symbols-outlined text-[18px]" aria-hidden="true">data_object</span></button></td>
+                    <td className="py-3 px-4 text-right"><RowActionsMenu triggerLabel={`Thao tác nhật ký ${log.id}`} actions={[
+                      { label: 'Xem chi tiết', icon: 'data_object', onClick: () => { setDetail(null); setDetailError(''); setDetailLoading(true); setDetailId(log.id) } },
+                    ]} /></td>
                   </tr>
                 ))}
             </tbody>

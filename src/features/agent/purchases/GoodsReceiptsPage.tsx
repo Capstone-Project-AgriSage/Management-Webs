@@ -1,3 +1,4 @@
+import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import { useBusinessDataRefresh } from '@/hooks/useBusinessDataRefresh'
 import ListToolbar from '@/components/ui/ListToolbar'
 import PermissionAction from '@/components/auth/PermissionAction'
@@ -125,13 +126,14 @@ export default function GoodsReceiptsPage() {
                 <th className="py-3 px-3 font-medium text-center">Số dòng</th>
                 <th className="py-3 px-3 font-medium text-right">Tổng tiền</th>
                 <th className="py-3 px-4 font-medium text-center">Trạng thái</th>
-              </tr>
+              <th scope="col" className="py-3 px-4 w-16 text-right font-medium">Thao tác</th>
+                </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant/50 text-sm">
               {loading && items.length === 0 ? (
-                <EmptyTableRow colSpan={7} message="Đang tải..." className="text-slate-500 animate-pulse" />
+                <EmptyTableRow colSpan={8} message="Đang tải..." className="text-slate-500 animate-pulse" />
               ) : items.length === 0 ? (
-                <EmptyTableRow colSpan={7} message="Chưa có phiếu nhập nào." />
+                <EmptyTableRow colSpan={8} message="Chưa có phiếu nhập nào." />
               ) : (
                 items.map((r) => (
                   <tr key={r.id} className="hover:bg-surface-container-low transition-colors cursor-pointer" onClick={() => navigate(`${RECEIPTS_BASE}/${r.id}`)}>
@@ -146,7 +148,8 @@ export default function GoodsReceiptsPage() {
                         {RECEIPT_STATUS_LABEL[r.status]}
                       </span>
                     </td>
-                  </tr>
+                  <td className="py-3 px-4 text-right whitespace-nowrap"><RowActionsMenu triggerLabel={`Thao tác phiếu ${r.receiptNumber}`} actions={[{ label: 'Xem chi tiết', icon: 'visibility', onClick: () => navigate(`${RECEIPTS_BASE}/${r.id}`) }]} /></td>
+                </tr>
                 ))
               )}
             </tbody>

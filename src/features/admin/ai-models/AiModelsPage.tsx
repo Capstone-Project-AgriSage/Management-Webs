@@ -1,3 +1,4 @@
+import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import { useCallback, useState } from 'react'
 import { aiModelsApi, searchAiModels, type AiModelInput, type AiModelRow } from '@/api/aiModelsApi'
 import { usePageHeader } from '@/context/PageHeaderContext'
@@ -64,11 +65,11 @@ export default function AiModelsPage() {
       <div className="overflow-x-auto"><table className="w-full text-sm text-left min-w-[700px]">
         <thead className="bg-slate-50"><tr><th className="p-4">Mô hình</th><th className="p-4">Phiên bản</th><th className="p-4">Framework</th><th className="p-4">Trạng thái</th><th className="p-4">Thao tác</th></tr></thead>
         <tbody className="divide-y divide-slate-100">
-          {list.items.map(model => <tr key={model.id} className="hover:bg-slate-50"><td className="p-4 font-semibold">{model.name}</td><td className="p-4">{model.version}</td><td className="p-4">{model.framework}</td><td className="p-4">{labels[model.status] ?? model.status}</td><td className="p-4"><div className="flex gap-3 whitespace-nowrap">
-            <button onClick={() => setDetail(model)} className="text-primary font-semibold">Chi tiết</button>
-            {model.status === 'DRAFT' && has('AI_MODELS.ACTIVATE') && <button disabled={busy} onClick={() => void run(() => aiModelsApi.activate(model.id))}>Kích hoạt</button>}
-            {model.status === 'ACTIVE' && has('AI_MODELS.RETIRE') && <button disabled={busy} onClick={() => setRetiring(model)}>Ngừng mô hình</button>}
-          </div></td></tr>)}
+          {list.items.map(model => <tr key={model.id} className="hover:bg-slate-50"><td className="p-4 font-semibold">{model.name}</td><td className="p-4">{model.version}</td><td className="p-4">{model.framework}</td><td className="p-4">{labels[model.status] ?? model.status}</td><td className="p-4 text-right"><RowActionsMenu disabled={busy} triggerLabel={`Thao tác mô hình ${model.name}`} actions={[
+            { label: 'Xem chi tiết', icon: 'visibility', onClick: () => setDetail(model) },
+            ...(model.status === 'DRAFT' ? [{ label: 'Kích hoạt', icon: 'play_circle', permissionCodes: ['AI_MODELS.ACTIVATE'], onClick: () => { void run(() => aiModelsApi.activate(model.id)) } }] : []),
+            ...(model.status === 'ACTIVE' ? [{ label: 'Ngừng mô hình', icon: 'pause_circle', permissionCodes: ['AI_MODELS.RETIRE'], onClick: () => setRetiring(model) }] : []),
+          ]} /></td></tr>)}
           {!list.items.length && <EmptyTableRow colSpan={5} message={list.loading ? 'Đang tải...' : list.error ? 'Không tải được dữ liệu.' : 'Không có mô hình phù hợp.'} />}
         </tbody>
       </table></div>

@@ -1,3 +1,4 @@
+import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import ListToolbar from '@/components/ui/ListToolbar'
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh'
 import { LIST_PAGE_SIZE } from '@/utils/pagination';
@@ -148,13 +149,14 @@ export default function StockMovementsPage() {
                 <th className="py-3 px-3 font-medium">Thời điểm</th>
                 <th className="py-3 px-3 font-medium text-center">Số dòng</th>
                 <th className="py-3 px-4 font-medium text-center">Trạng thái</th>
-              </tr>
+              <th scope="col" className="py-3 px-4 w-16 text-right font-medium">Thao tác</th>
+                </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant/50 text-sm">
               {loading && items.length === 0 ? (
-                <EmptyTableRow colSpan={5} message="Đang tải phiếu kho..." className="text-slate-500 animate-pulse" />
+                <EmptyTableRow colSpan={6} message="Đang tải phiếu kho..." className="text-slate-500 animate-pulse" />
               ) : items.length === 0 ? (
-                <EmptyTableRow colSpan={5} message={keyword ? 'Không có phiếu phù hợp trong trang hiện tại.' : 'Không có phiếu kho nào.'} />
+                <EmptyTableRow colSpan={6} message={keyword ? 'Không có phiếu phù hợp trong trang hiện tại.' : 'Không có phiếu kho nào.'} />
               ) : (
                 items.map((m) => (
                   <tr
@@ -173,7 +175,8 @@ export default function StockMovementsPage() {
                     <td className="py-3 px-4 text-center">
                       <span className="text-xs text-slate-600">{STATUS_LABEL[m.status] ?? m.status}</span>
                     </td>
-                  </tr>
+                  <td className="py-3 px-4 text-right whitespace-nowrap"><RowActionsMenu disabled={detailLoading === m.id} triggerLabel={`Thao tác phiếu kho ${m.movementNumber}`} actions={[{ label: 'Xem chi tiết', icon: 'visibility', onClick: () => { void openDetail(m) } }]} /></td>
+                </tr>
                 ))
               )}
             </tbody>

@@ -1,8 +1,9 @@
+import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import DetailModal from '@/components/ui/DetailModal'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
-import { Eye, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
 import { describeError } from '@/api/client';
@@ -220,13 +221,14 @@ export default function RefundsPage() {
             <table className="w-full text-left">
               <thead className="bg-surface-container-low text-xs text-on-surface-variant uppercase tracking-wider border-b border-outline-variant">
                 <tr>
-                  <th className="py-3 pl-4 pr-2 w-8" />
+
                   <th className="py-3 px-3 font-medium">Đơn hàng</th>
                   <th className="py-3 px-3 font-medium">Khách hàng</th>
                   <th className="py-3 px-3 font-medium">Trạng thái đơn</th>
                   <th className="py-3 px-3 font-medium text-right">Chờ hoàn</th>
                   <th className="py-3 px-3 font-medium text-right">Đã hoàn</th>
                   <th className="py-3 px-4 font-medium">Hủy lúc</th>
+                <th scope="col" className="py-3 px-4 w-16 text-right font-medium">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/50 text-sm">
@@ -241,7 +243,7 @@ export default function RefundsPage() {
                     return (
 
                         <tr key={order.id} className="hover:bg-surface-container-low transition-colors cursor-pointer" onClick={() => setOpenOrder(order.id)}>
-                          <td className="py-3 pl-4 pr-2 text-slate-400"><button type="button" aria-label={`Xem hoàn tiền đơn ${order.orderNumber}`} className="p-1 rounded hover:bg-emerald-50 hover:text-emerald-700" onClick={event => { event.stopPropagation(); setOpenOrder(order.id) }}><Eye size={16} aria-hidden="true" /></button></td>
+
                           <td className="py-3 px-3 font-mono text-xs font-semibold">{order.orderNumber}</td>
                           <td className="py-3 px-3">{order.customerName}</td>
                           <td className="py-3 px-3 text-xs">{order.status === 'CANCELLED' ? 'Đã hủy' : 'Hủy một phần'}</td>
@@ -250,7 +252,8 @@ export default function RefundsPage() {
                           </td>
                           <td className="py-3 px-3 text-right tabular-nums whitespace-nowrap">{sum(refunds, 'COMPLETED') > 0 ? formatVnd(sum(refunds, 'COMPLETED')) : <span className="text-slate-400">-</span>}</td>
                           <td className="py-3 px-4 whitespace-nowrap">{formatDateTime(order.createdAt)}</td>
-                        </tr>
+                        <td className="py-3 px-4 text-right whitespace-nowrap"><RowActionsMenu triggerLabel={`Thao tác hoàn tiền đơn ${order.orderNumber}`} actions={[{ label: 'Xem chi tiết', icon: 'visibility', onClick: () => setOpenOrder(order.id) }]} /></td>
+                </tr>
 
                     )
                   })
@@ -266,13 +269,14 @@ export default function RefundsPage() {
             <table className="w-full text-left">
               <thead className="bg-surface-container-low text-xs text-on-surface-variant uppercase tracking-wider border-b border-outline-variant">
                 <tr>
-                  <th className="py-3 pl-4 pr-2 w-8" />
+
                   <th className="py-3 px-3 font-medium">Mã trả hàng</th>
                   <th className="py-3 px-3 font-medium">Đơn hàng</th>
                   <th className="py-3 px-3 font-medium">Khách hàng</th>
                   <th className="py-3 px-3 font-medium text-center">Trạng thái</th>
                   <th className="py-3 px-3 font-medium text-right">Cần hoàn</th>
                   <th className="py-3 px-4 font-medium">Yêu cầu lúc</th>
+                <th scope="col" className="py-3 px-4 w-16 text-right font-medium">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/50 text-sm">
@@ -288,7 +292,7 @@ export default function RefundsPage() {
                     return (
 
                         <tr key={r.id} className="hover:bg-surface-container-low transition-colors cursor-pointer" onClick={() => toggleReturn(r)}>
-                          <td className="py-3 pl-4 pr-2 text-slate-400"><button type="button" aria-label={`Xem hoàn tiền phiếu ${r.returnNumber}`} className="p-1 rounded hover:bg-emerald-50 hover:text-emerald-700" onClick={event => { event.stopPropagation(); toggleReturn(r) }}><Eye size={16} aria-hidden="true" /></button></td>
+
                           <td className="py-3 px-3 font-mono text-xs font-semibold">{r.returnNumber}</td>
                           <td className="py-3 px-3 font-mono text-xs">{r.orderNumber}</td>
                           <td className="py-3 px-3">{r.customerName}</td>
@@ -297,7 +301,8 @@ export default function RefundsPage() {
                           </td>
                           <td className="py-3 px-3 text-right tabular-nums font-semibold whitespace-nowrap">{formatVnd(r.totalRefundAmount)}</td>
                           <td className="py-3 px-4 whitespace-nowrap">{formatDateTime(r.requestedAt)}</td>
-                        </tr>
+                        <td className="py-3 px-4 text-right whitespace-nowrap"><RowActionsMenu triggerLabel={`Thao tác hoàn tiền phiếu ${r.returnNumber}`} actions={[{ label: 'Xem chi tiết', icon: 'visibility', onClick: () => { void toggleReturn(r) } }]} /></td>
+                </tr>
 
                     )
                   })

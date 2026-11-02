@@ -77,6 +77,9 @@ import DeliveryDetailPage from '@/features/delivery/deliveries/DeliveryDetailPag
 
 // Load chart libraries only when a detailed report is opened.
 const AgentDeliveryReportsPage = lazy(() => import('@/features/agent/deliveries/DeliveryReportsPage'))
+const ReplenishmentPage = lazy(() => import('@/features/agent/inventory/ReplenishmentPage'))
+const SeasonalRulesPage = lazy(() => import('@/features/agent/inventory/SeasonalRulesPage'))
+const InventoryPlanningReportsPage = lazy(() => import('@/features/agent/inventory/InventoryPlanningReportsPage'))
 const DebtReportsPage = lazy(() => import('@/features/agent/debts/DebtReportsPage'))
 const reportFallback = <p role="status" className="p-5 text-sm text-slate-500">Đang tải báo cáo...</p>
 
@@ -187,11 +190,23 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/inventory',
-            element: <RequireRole role={["agent", "sales_staff"]}><AgentInventoryPage /></RequireRole>,
+            element: <RequireRole role={["admin", "agent", "sales_staff"]}><AgentInventoryPage /></RequireRole>,
+          },
+          {
+            path: 'agent/inventory/replenishment',
+            element: <RequireRole role={["admin", "agent", "sales_staff"]}><Suspense fallback={reportFallback}><ReplenishmentPage /></Suspense></RequireRole>,
+          },
+          {
+            path: 'agent/inventory/seasonal-rules',
+            element: <RequireRole role={["admin", "agent", "sales_staff"]}><Suspense fallback={reportFallback}><SeasonalRulesPage /></Suspense></RequireRole>,
+          },
+          {
+            path: 'agent/inventory/reports/planning',
+            element: <RequireRole role={["admin", "agent", "sales_staff"]}><Suspense fallback={reportFallback}><InventoryPlanningReportsPage /></Suspense></RequireRole>,
           },
           {
             path: 'agent/inventory/stock-card',
-            element: <RequireRole role={["agent", "sales_staff"]}><AgentStockCardPage /></RequireRole>,
+            element: <RequireRole role={["admin", "agent", "sales_staff"]}><AgentStockCardPage /></RequireRole>,
           },
           {
             path: 'agent/farmers',
@@ -208,7 +223,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/inventory/movements',
-            element: <RequireRole role={["agent", "sales_staff"]}><AgentInventoryMovementsPage /></RequireRole>,
+            element: <RequireRole role={["admin", "agent", "sales_staff"]}><AgentInventoryMovementsPage /></RequireRole>,
           },
           {
             path: 'agent/refunds',

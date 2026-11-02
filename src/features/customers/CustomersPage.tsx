@@ -1,3 +1,4 @@
+import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import ListToolbar from '@/components/ui/ListToolbar'
 import FilterSelect from '@/components/ui/FilterSelect'
 import { LIST_PAGE_SIZE } from '@/utils/pagination';
@@ -133,13 +134,14 @@ export default function CustomersPage() {
                 <th className="py-3 px-3 text-right" scope="col">Dư nợ</th>
                 <th className="py-3 px-3 text-right" scope="col">Còn được mua chịu</th>
                 <th className="py-3 px-3 text-center" scope="col">Trạng thái</th>
-              </tr>
+              <th scope="col" className="py-3 px-4 w-16 text-right font-medium">Thao tác</th>
+                </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 text-sm text-slate-900">
               {loading && !data ? (
-                <EmptyTableRow colSpan={6} message="Đang tải dữ liệu..." />
+                <EmptyTableRow colSpan={7} message="Đang tải dữ liệu..." />
               ) : items.length === 0 ? (
-                <EmptyTableRow colSpan={6} message="Không tìm thấy khách hàng nào." />
+                <EmptyTableRow colSpan={7} message="Không tìm thấy khách hàng nào." />
               ) : (
                 items.map((c) => {
                   const overdue = c.debtSummary?.overdueDebt ?? 0
@@ -171,7 +173,8 @@ export default function CustomersPage() {
                       <td className="py-3.5 px-3 text-center">
                         <StatusBadge label={label(CUSTOMER_STATUS_LABEL, c.status)} />
                       </td>
-                    </tr>
+                    <td className="py-3 px-4 text-right whitespace-nowrap"><RowActionsMenu triggerLabel={`Thao tác khách hàng ${c.fullName}`} actions={[{ label: 'Xem chi tiết', icon: 'visibility', onClick: () => setSelectedId(c.id) }]} /></td>
+                </tr>
                   )
                 })
               )}

@@ -23,7 +23,7 @@ export interface StockSummaryItem {
   lotCount: number
 }
 
-export type AlertType = 'EXPIRING' | 'EXPIRED' | 'LOW_STOCK'
+export type AlertType = 'EXPIRING' | 'EXPIRED' | 'LOW_STOCK' | 'OUT_OF_STOCK'
 
 export interface InventoryAlertItem {
   type: AlertType
@@ -155,10 +155,10 @@ function query(params: Record<string, string | number | boolean | undefined | nu
 }
 
 export const stockApi = {
-  getSummary: (params: { search?: string; categoryId?: string; lowStockOnly?: boolean; hasStock?: boolean; page?: number; pageSize?: number }) =>
+  getSummary: (params: { search?: string; categoryId?: string; lowStockOnly?: boolean; hasStock?: boolean; hasSellableStock?: boolean; page?: number; pageSize?: number }) =>
     api<Paged<StockSummaryItem>>(`/api/inventory/stock-summary${query(params)}`),
 
-  getAlerts: (params: { type?: AlertType; withinDays?: number; page?: number; pageSize?: number }) =>
+  getAlerts: (params: { search?: string; categoryId?: string; type?: AlertType; withinDays?: number; page?: number; pageSize?: number }) =>
     api<Paged<InventoryAlertItem>>(`/api/inventory/alerts${query(params)}`),
 
   getLots: (params: { storeProductId?: Uuid; status?: LotStatus; hasStock?: boolean; search?: string; page?: number; pageSize?: number }) =>

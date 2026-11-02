@@ -1,3 +1,4 @@
+import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import { useBusinessDataRefresh } from '@/hooks/useBusinessDataRefresh'
 import ListToolbar from '@/components/ui/ListToolbar'
 import ListReportCards from '@/features/agent/reports/ListReportCards'
@@ -126,13 +127,14 @@ export default function DiagnosisQueuePage() {
                 <th className="py-3 px-3 font-medium text-center">Mức chắc chắn</th>
                 <th className="py-3 px-3 font-medium">Kết luận cũ</th>
                 <th className="py-3 px-4 font-medium">Gửi lúc</th>
-              </tr>
+              <th scope="col" className="py-3 px-4 w-16 text-right font-medium">Thao tác</th>
+                </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant/50 text-sm">
               {loading && items.length === 0 ? (
-                <EmptyTableRow colSpan={8} message="Đang tải..." className="text-slate-500 animate-pulse" />
+                <EmptyTableRow colSpan={9} message="Đang tải..." className="text-slate-500 animate-pulse" />
               ) : items.length === 0 ? (
-                <EmptyTableRow colSpan={8} message="Không có ca chẩn đoán nào." />
+                <EmptyTableRow colSpan={9} message="Không có ca chẩn đoán nào." />
               ) : (
                 items.map((c) => (
                   <tr
@@ -178,7 +180,8 @@ export default function DiagnosisQueuePage() {
                       {c.finalDiseaseCode ? diseaseLabel(c.finalDiseaseCode) : <span className="text-slate-400">—</span>}
                     </td>
                     <td className="py-3 px-4 whitespace-nowrap">{formatDateTime(c.submittedAt)}</td>
-                  </tr>
+                  <td className="py-3 px-4 text-right whitespace-nowrap"><RowActionsMenu triggerLabel={`Thao tác ca ${c.caseNumber}`} actions={[{ label: 'Xem chi tiết', icon: 'visibility', onClick: () => navigate(`${base}/${c.id}`) }]} /></td>
+                </tr>
                 ))
               )}
             </tbody>

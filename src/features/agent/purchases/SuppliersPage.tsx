@@ -1,4 +1,5 @@
 import ListToolbar from '@/components/ui/ListToolbar'
+import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -184,15 +185,11 @@ export default function SuppliersPage() {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right whitespace-nowrap">
-                      <PermissionAction codes={["SUPPLIERS.UPDATE"]}><button type="button" className="text-sm font-medium text-emerald-700 hover:text-emerald-800 mr-3" onClick={() => setEditing(s)}>
-                        Sửa
-                      </button></PermissionAction>
-                      <PermissionAction codes={[s.isActive ? 'SUPPLIERS.DEACTIVATE' : 'SUPPLIERS.ACTIVATE']}><button type="button" className="text-sm font-medium text-slate-700 hover:text-slate-900 mr-3" onClick={() => toggleActive(s)}>
-                        {s.isActive ? 'Ngừng hợp tác' : 'Kích hoạt lại'}
-                      </button></PermissionAction>
-                      <PermissionAction codes={["SUPPLIERS.DELETE"]}><button type="button" className="text-sm font-medium text-rose-700 hover:text-rose-800" onClick={() => setToDelete(s)}>
-                        Xóa
-                      </button></PermissionAction>
+                      <RowActionsMenu triggerLabel={`Thao tác nhà cung cấp ${s.name}`} actions={[
+                        { label: 'Sửa thông tin', icon: 'edit', permissionCodes: ['SUPPLIERS.UPDATE'], onClick: () => setEditing(s) },
+                        { label: s.isActive ? 'Ngừng hợp tác' : 'Kích hoạt lại', icon: s.isActive ? 'pause_circle' : 'play_circle', permissionCodes: [s.isActive ? 'SUPPLIERS.DEACTIVATE' : 'SUPPLIERS.ACTIVATE'], onClick: () => { void toggleActive(s) } },
+                        { label: 'Xóa', icon: 'delete', tone: 'danger', permissionCodes: ['SUPPLIERS.DELETE'], onClick: () => setToDelete(s) },
+                      ]} />
                     </td>
                   </tr>
                 ))

@@ -1,3 +1,4 @@
+import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import Select from '@/components/ui/Select'
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
@@ -139,21 +140,11 @@ export default function RefundsPanel({ scope, refunds, refundable, canManage, on
                     ) : null}
                   </td>
                   {canManage ? (
-                    <td className="py-2.5 px-4 text-right whitespace-nowrap">
-                      {r.status === 'PENDING' ? (
-                        <>
-                          <PermissionAction codes={[scope.kind === 'return' ? 'REFUNDS.COMPLETE_RETURN' : 'REFUNDS.COMPLETE_ORDER']}><button type="button" className="text-sm font-medium text-emerald-700 hover:text-emerald-800 mr-3" onClick={() => setAction({ kind: 'complete', refund: r })}>
-                            Đã hoàn tiền
-                          </button></PermissionAction>
-                          <PermissionAction codes={[scope.kind === 'return' ? 'REFUNDS.FAIL_RETURN' : 'REFUNDS.FAIL_ORDER']}><button type="button" className="text-sm font-medium text-amber-700 hover:text-amber-800 mr-3" onClick={() => setAction({ kind: 'fail', refund: r })}>
-                            Thất bại
-                          </button></PermissionAction>
-                          <PermissionAction codes={[scope.kind === 'return' ? 'REFUNDS.CANCEL_RETURN' : 'REFUNDS.CANCEL_ORDER']}><button type="button" className="text-sm font-medium text-rose-700 hover:text-rose-800" onClick={() => setAction({ kind: 'cancel', refund: r })}>
-                            Hủy
-                          </button></PermissionAction>
-                        </>
-                      ) : null}
-                    </td>
+                    <td className="py-2.5 px-4 text-right whitespace-nowrap"><RowActionsMenu disabled={busy} triggerLabel={`Thao tác khoản hoàn ${r.id}`} actions={r.status !== 'PENDING' ? [] : [
+                        { label: 'Đã hoàn tiền', icon: 'check_circle', permissionCodes: [scope.kind === 'return' ? 'REFUNDS.COMPLETE_RETURN' : 'REFUNDS.COMPLETE_ORDER'], onClick: () => setAction({ kind: 'complete', refund: r }) },
+                        { label: 'Đánh dấu thất bại', icon: 'error', permissionCodes: [scope.kind === 'return' ? 'REFUNDS.FAIL_RETURN' : 'REFUNDS.FAIL_ORDER'], onClick: () => setAction({ kind: 'fail', refund: r }) },
+                        { label: 'Hủy khoản hoàn', icon: 'cancel', tone: 'danger', permissionCodes: [scope.kind === 'return' ? 'REFUNDS.CANCEL_RETURN' : 'REFUNDS.CANCEL_ORDER'], onClick: () => setAction({ kind: 'cancel', refund: r }) },
+                      ]} /></td>
                   ) : null}
                 </tr>
               ))}

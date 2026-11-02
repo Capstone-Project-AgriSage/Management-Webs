@@ -1,5 +1,6 @@
+import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Lock, Pencil, Plus } from 'lucide-react'
+import { AlertTriangle, Plus } from 'lucide-react'
 import ListToolbar from '@/components/ui/ListToolbar'
 import FilterSelect from '@/components/ui/FilterSelect'
 import PermissionAction from '@/components/auth/PermissionAction'
@@ -18,7 +19,6 @@ import { SEASON_STATUS, findWindowIssues, suggestedWindowStart } from './seasonR
 // Seasons are few (about three a year), so the page loads them all: the gap/overlap check needs every season anyway.
 const ALL = 200
 
-const iconButton = 'w-8 h-8 inline-flex items-center justify-center rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
 
 type FormState = { season: CropSeason | null } | null
 
@@ -198,29 +198,10 @@ export default function CropSeasonsPage() {
                         <StatusBadge label={SEASON_STATUS[season.status]?.label ?? season.status} className={SEASON_STATUS[season.status]?.className} />
                       </td>
                       {canManage && (
-                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                          {!closed && (
-                            <PermissionAction codes={['CROP_SEASONS.MANAGE']}>
-                              <button type="button" title="Sửa vụ" aria-label={`Sửa vụ ${season.name}`} className={`${iconButton} text-slate-500 hover:bg-slate-100 hover:text-slate-900`} onClick={() => setForm({ season })}>
-                                <Pencil size={15} />
-                              </button>
-                            </PermissionAction>
-                          )}
-                          {!closed && (season.status === 'COLLECTING' || season.status === 'HARVESTING') && (
-                            <PermissionAction codes={['CROP_SEASONS.MANAGE']}>
-                              <button
-                                type="button"
-                                title={season.openEntryCount > 0 ? `Còn ${season.openEntryCount} khoản nợ: thu, gia hạn hoặc xử lý hết rồi mới đóng vụ` : 'Đóng vụ'}
-                                aria-label={`Đóng vụ ${season.name}`}
-                                disabled={season.openEntryCount > 0}
-                                className={`${iconButton} text-slate-600 hover:bg-slate-100`}
-                                onClick={() => close(season)}
-                              >
-                                <Lock size={15} />
-                              </button>
-                            </PermissionAction>
-                          )}
-                        </td>
+                        <td className="py-3.5 px-4 text-right whitespace-nowrap"><RowActionsMenu disabled={saving} triggerLabel={`Thao tác vụ ${season.name}`} actions={closed ? [] : [
+                            { label: 'Sửa vụ', icon: 'edit', permissionCodes: ['CROP_SEASONS.MANAGE'], onClick: () => setForm({ season }) },
+                            ...(['COLLECTING', 'HARVESTING'].includes(season.status) ? [{ label: 'Đóng vụ', icon: 'lock', permissionCodes: ['CROP_SEASONS.MANAGE'], disabled: season.openEntryCount > 0, title: season.openEntryCount > 0 ? `Còn ${season.openEntryCount} khoản nợ: thu, gia hạn hoặc xử lý hết rồi mới đóng vụ` : 'Đóng vụ', onClick: () => { void close(season) } }] : []),
+                          ]} /></td>
                       )}
                     </tr>
                   )

@@ -28,6 +28,8 @@ const routes: [RegExp, string[]][] = [
   [/\/products\/reviews/, ['STORE_PRODUCTS.READ']],
   [/\/products/, ['STORE_PRODUCTS.READ']],
   [/\/inventory\/stocktake/, ['STOCKTAKES.READ']],
+  [/\/inventory\/replenishment/, ['REPLENISHMENT.READ']],
+  [/\/inventory\/seasonal-rules/, ['SEASONAL_RULES.READ']],
   [/\/inventory/, ['INVENTORY.READ']],
   [/\/deliveries/, ['DELIVERIES.READ']],
   [/\/purchases\/suppliers/, ['SUPPLIERS.READ']],
