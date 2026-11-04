@@ -17,6 +17,8 @@ const storeId = id(901);
 const rows = (page) => page.locator('[data-audit-log-id]');
 const row = (page, n) => page.locator('[data-audit-log-id="' + id(n) + '"]');
 const button = (page, name) => page.getByRole('button', { name, exact: true });
+// Row actions live in the shared ⋮ menu; the detail view is its "Xem chi tiết" item.
+const openDetail = async (page, n) => { await row(page, n).getByRole('button', { name: 'Thao tác nhật ký ' + id(n), exact: true }).click(); await page.getByRole('menuitem', { name: 'Xem chi tiết', exact: true }).click(); };
 const passed = (name) => { checks++; console.log('PASS ' + name); };
 const queryOf = (url) => Object.fromEntries([...url.searchParams].map(([key, value]) => [key.toLowerCase(), value]));
 const record = (n) => ({
@@ -117,6 +119,8 @@ async function fixture({ count = 31, viewport = { width: 1440, height: 1000 }, r
   await page.goto(baseUrl + (role === 'STORE_OWNER' ? '/agent/activity-log' : '/admin/audit-logs'));
   if (count) await row(page, 0).waitFor();
   else await page.getByText('Không tìm thấy nhật ký phù hợp.', { exact: true }).waitFor();
+  // The exact-match filters sit in a collapsed "Bộ lọc nâng cao" panel; open it once so the tests can reach them.
+  await page.locator('details.agrisage-advanced-filters').evaluate((details) => { details.open = true; });
   return { context, page, state, errors };
 }
 
@@ -129,30 +133,6 @@ async function submit(page, state) {
   await page.getByText('Đang tải nhật ký...', { exact: true }).waitFor({ state: 'hidden' });
   return lastList(state);
 }
-async function downloadCsv(page) {
-  const pending = page.waitForEvent('download');
-  await button(page, 'Xuất CSV').click();
-  const download = await pending;
-  assert.equal(await download.failure(), null);
-  return fs.readFileSync(await download.path());
-}
-function parseCsv(text) {
-  const result = [];
-  let row = [], value = '', quoted = false;
-  for (let i = 0; i < text.length; i++) {
-    const character = text[i];
-    if (character === '"') {
-      if (quoted && text[i + 1] === '"') { value += '"'; i++; }
-      else quoted = !quoted;
-    } else if (character === ',' && !quoted) { row.push(value); value = ''; }
-    else if (character === '\n' && !quoted) { row.push(value.replace(/\r$/, '')); result.push(row); row = []; value = ''; }
-    else value += character;
-  }
-  if (row.length || value.length) { row.push(value.replace(/\r$/, '')); result.push(row); }
-  assert.equal(quoted, false, 'CSV quotes must balance');
-  return result;
-}
-
 try {
   const basic = await fixture();
   const { context, page, state, errors } = basic;
@@ -207,7 +187,7 @@ try {
   await button(page, 'Lọc').click();
   assert.equal(await page.getByLabel('ID người thực hiện', { exact: true }).evaluate((input) => input.checkValidity()), false);
   assert.equal(listRequests(state).length, requestsBeforeInvalid);
-  await button(page, 'Xóa bộ lọc').click();
+  await button(page, 'Xóa lọc').click();
   await row(page, 0).waitFor();
   assert.equal(await page.getByLabel('Hành động', { exact: true }).inputValue(), '');
   assert.equal(await page.getByLabel('ID người thực hiện', { exact: true }).inputValue(), '');
@@ -218,7 +198,7 @@ try {
   assert(all.to, 'all-time retains an upper snapshot for stable paging');
   passed('invalid UUID stays client-side, reset clears filters, all-time omits lower date');
 
-  await row(page, 0).getByRole('button', { name: 'Chi tiết nhật ký ' + id(0), exact: true }).click();
+  await openDetail(page, 0);
   await page.getByRole('heading', { name: 'Chi tiết Audit Log', exact: true }).waitFor();
   await page.getByRole('columnheader', { name: 'Trước thay đổi', exact: true }).waitFor();
   await page.getByRole('columnheader', { name: 'Sau thay đổi', exact: true }).waitFor();
@@ -237,7 +217,7 @@ try {
   state.records[1].oldValues = null;
   state.records[1].newValues = null;
   state.detailError = { status: 404, body: { title: 'Not Found', detail: 'Nhật ký kiểm thử đã không còn truy cập được.' } };
-  await row(page, 1).getByRole('button', { name: 'Chi tiết nhật ký ' + id(1), exact: true }).click();
+  await openDetail(page, 1);
   await page.getByText(state.detailError.body.detail, { exact: true }).waitFor();
   assert.equal(await page.locator('pre').count(), 0);
   state.detailError = null;
@@ -282,51 +262,8 @@ try {
   await context.close();
   passed('filter submission wins over a delayed reload response');
 
-  const csv = await fixture({ count: 107 });
-  csv.state.records[0].reason = '=HYPERLINK("https://example.test", "x")\nDòng hai';
-  csv.state.records[0].userAgent = '+formula-agent';
-  csv.state.records[0].correlationId = '@formula-request';
-  // A record outside the exact active filter must never enter the download.
-  csv.state.records.push({ ...record(200), action: 'USER_UPDATED' });
-  await csv.page.getByLabel('Hành động', { exact: true }).fill('ORDER_CONFIRMED');
-  await submit(csv.page, csv.state);
-  const activeQuery = lastList(csv.state);
-  await csv.page.getByLabel('Hành động', { exact: true }).fill('USER_UPDATED');
-  const exportHold = { started: deferred(), release: deferred() };
-  csv.state.holdExport = exportHold;
-  const csvDownload = downloadCsv(csv.page);
-  await waitForDeferred(exportHold.started, 'held export request');
-  assert.equal(await button(csv.page, 'Lọc').isDisabled(), true);
-  assert.equal(await button(csv.page, 'Tải lại').isDisabled(), true);
-  assert.equal(await csv.page.getByLabel('Hành động', { exact: true }).isDisabled(), true);
-  csv.state.holdExport = null;
-  exportHold.release.resolve();
-  const bytes = await csvDownload;
-  assert.deepEqual([...bytes.subarray(0, 3)], [0xef, 0xbb, 0xbf]);
-  const parsed = parseCsv(bytes.toString('utf8').replace(/^\uFEFF/, ''));
-  assert.equal(parsed.length, 108, 'CSV contains header plus all 107 matching logs');
-  assert(parsed.every((entry) => entry.length === parsed[0].length), 'embedded quotes/newlines must preserve columns');
-  assert(parsed[1].includes("'" + csv.state.records[0].reason), 'spreadsheet formulas are neutralized while preserving quoted newlines');
-  assert(parsed[1].includes("'" + csv.state.records[0].userAgent));
-  assert(parsed[1].includes("'" + csv.state.records[0].correlationId));
-  assert(parsed.at(-1).includes(id(106)));
-  assert.equal(parsed.some((entry) => entry.includes(id(200))), false);
-  const exportQueries = listRequests(csv.state, 100).map((entry) => entry.query);
-  assert.deepEqual(exportQueries.map((query) => query.page), ['1', '2']);
-  assert(exportQueries.every((query) => query.action === activeQuery.action && query.from === activeQuery.from && query.to === activeQuery.to));
-  passed('CSV exports all filtered pages, applied filters, UTF-8 BOM and safe escaped fields');
+  // The CSV export was removed from the page (commit 818fd5e), so its tests were dropped with it.
 
-  const downloads = [];
-  csv.page.on('download', (download) => downloads.push(download));
-  csv.state.exportErrorPage = 2;
-  await button(csv.page, 'Xuất CSV').click();
-  await csv.page.getByText('Lỗi trang xuất CSV kiểm thử.', { exact: true }).waitFor();
-  assert.equal(downloads.length, 0, 'a failed page must not create a partial CSV');
-  assert.equal(await rows(csv.page).count(), 10);
-  assert.equal(await button(csv.page, 'Xuất CSV').isDisabled(), false);
-  assert.deepEqual(csv.errors, []);
-  await csv.context.close();
-  passed('later CSV page failure creates no partial download and restores controls');
 
   const empty = await fixture({ count: 0 });
   assert.equal(await rows(empty.page).count(), 0);
@@ -381,10 +318,10 @@ try {
   await row(enriched.page, 1).getByText('Xác nhận đơn hàng', { exact: true }).waitFor();
   const pagination = enriched.page.getByRole('navigation', { name: 'Phân trang', exact: true });
   assert.equal(await pagination.locator(':scope > *').count() <= 9, true);
-  await pagination.getByRole('button', { name: 'Trang 48', exact: true }).click();
-  await row(enriched.page, 705).waitFor();
+  await pagination.getByRole('button', { name: 'Trang 72', exact: true }).click();
+  await row(enriched.page, 710).waitFor();
   assert.equal(await button(enriched.page, 'Sau').isDisabled(), true);
-  await enriched.page.getByLabel('Tìm kiếm', { exact: true }).fill(' SALE@AGRISAGE.TEST ');
+  await enriched.page.getByLabel('Tìm tên, email người thực hiện, mã hành động hoặc đối tượng...', { exact: true }).fill(' SALE@AGRISAGE.TEST ');
   await enriched.page.getByLabel('Vai trò người thực hiện', { exact: true }).selectOption('SALES_STAFF');
   await enriched.page.getByLabel('Trạng thái hành động', { exact: true }).selectOption('SUCCESS');
   const search = await submit(enriched.page, enriched.state);
@@ -393,10 +330,6 @@ try {
   assert.equal(search.status, 'SUCCESS');
   assert.equal(search.page, '1');
   assert.equal(await row(enriched.page, 0).count(), 0);
-  const filteredCsv = parseCsv((await downloadCsv(enriched.page)).toString('utf8').replace(/^\uFEFF/, ''));
-  assert(filteredCsv[0].includes('Email') && filteredCsv[0].includes('Vai trò') && filteredCsv[0].includes('Trạng thái'));
-  assert(filteredCsv[1].includes('sale@agrisage.test') && filteredCsv[1].includes('Nguyễn Văn Sale'));
-  assert(listRequests(enriched.state, 100).every(request => request.query.actorrole === 'SALES_STAFF' && request.query.status === 'SUCCESS'));
   enriched.state.records[1].action = 'PAYMENT_FAILED';
   enriched.state.records[1].status = 'FAILURE';
   enriched.state.records[1].userAgent = 'Mozilla/5.0 (Windows NT 10.0) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0';
@@ -405,7 +338,7 @@ try {
   assert.equal(await rows(enriched.page).count(), 1);
   await row(enriched.page, 1).getByText('Thất bại', { exact: true }).waitFor();
   await row(enriched.page, 1).getByText('Edge 130.0.0.0 · Windows', { exact: true }).waitFor();
-  await row(enriched.page, 1).getByRole('button', { name: 'Chi tiết nhật ký ' + id(1), exact: true }).click();
+  await openDetail(enriched.page, 1);
   const changeTable = enriched.page.getByRole('region', { name: 'Lịch sử thay đổi', exact: true });
   assert((await changeTable.innerText()).includes('DRAFT') && (await changeTable.innerText()).includes('CONFIRMED'));
   assert((await changeTable.innerText()).includes('Đã thay đổi'));
@@ -421,7 +354,7 @@ try {
   assert.equal(dates.to, new Date(vnDate + 'T23:59:59.999+07:00').toISOString());
   assert.deepEqual(enriched.errors, []);
   await enriched.context.close();
-  passed('actor names/email/role, readable actions, before/after, failure/browser, filtered CSV, custom Vietnam dates and 48 pages');
+  passed('actor names/email/role, readable actions, before/after, failure/browser, filters, custom Vietnam dates and 72 pages');
 
   const owner = await fixture({ role: 'STORE_OWNER' });
   owner.state.records.push({ ...record(800), storeId: id(999), reason: 'Foreign store marker' },

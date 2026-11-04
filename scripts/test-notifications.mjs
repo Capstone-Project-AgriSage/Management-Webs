@@ -30,7 +30,8 @@ async function fixture({ role = management ? 'SALES_STAFF' : 'FARMER', count = P
     if (!pathname.startsWith('/api/')) return route.continue()
     const json = (body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
     if (pathname.startsWith('/api/me/notifications')) {
-      assert.equal(request.headers().authorization, 'Bearer notification.test.jwt');
+      // After the 401 the app clears the token on purpose, so a late request (badge refresh) legitimately has no header.
+      if (!state.unauthorized) assert.equal(request.headers().authorization, 'Bearer notification.test.jwt');
       assert.equal(url.searchParams.has('userId'), false);
       state.requests.push({ method: request.method(), path: pathname, status: url.searchParams.get('status'), page: url.searchParams.get('page') });
       if (state.unauthorized) return json({ title: 'Unauthorized' }, 401);
