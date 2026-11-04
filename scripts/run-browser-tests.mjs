@@ -1,4 +1,6 @@
 import { spawn } from 'node:child_process'
+// Vite colours its output when attached to a terminal; strip it before looking for the 'Local:' line.
+const ANSI_COLOR = new RegExp(String.fromCharCode(27) + '\\[[0-9;]*m', 'g')
 
 // One local Vite process for API-intercepted browser tests. No store backend is required.
 const base = process.env.UI_TEST_URL || 'http://127.0.0.1:5175'
@@ -6,7 +8,7 @@ const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host
 try {
   await new Promise((resolve, reject) => {
     const timeout = setTimeout(() => reject(new Error('Vite startup timed out')), 15000)
-    server.stdout.on('data', data => { if (data.toString().replace(/\u001b\[[0-9;]*m/g, '').includes('Local:')) { clearTimeout(timeout); resolve() } })
+    server.stdout.on('data', data => { if (data.toString().replace(ANSI_COLOR, '').includes('Local:')) { clearTimeout(timeout); resolve() } })
     server.stderr.on('data', data => process.stderr.write(data))
     server.on('exit', code => { clearTimeout(timeout); reject(new Error(`Vite exited with ${code}`)) })
   })
