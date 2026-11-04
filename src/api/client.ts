@@ -1,4 +1,5 @@
 import { invalidateLookupWrite, lookupCache, lookupKey } from './lookupCache'
+import { translateServerMessage } from '@/utils/serverMessages'
 
 export class ApiError extends Error {
   status: number
@@ -8,10 +9,11 @@ export class ApiError extends Error {
   traceId?: string
 
   constructor(status: number, title: string, detail?: string, errors?: Record<string, string[]>, traceId?: string) {
-    super(detail ?? title)
+    const shown = translateServerMessage(detail)
+    super(shown ?? title)
     this.status = status
     this.title = title
-    this.detail = detail
+    this.detail = shown
     this.errors = errors
     this.traceId = traceId
   }

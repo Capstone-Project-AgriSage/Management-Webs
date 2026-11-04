@@ -59,7 +59,7 @@ export default function DebtEntriesTable({ entries, loading, showCustomer = true
                   <div>{formatDay(e.dueDate)}</div>
                   <OriginalDue originalDueDate={e.originalDueDate} dueDate={e.dueDate} />
                   <div className="mt-1"><DueStateBadge state={e.dueState} /></div>
-                  {e.isOverdue && <div className="text-xs font-semibold text-rose-600">Quá hạn {e.overdueDays} ngày</div>}
+                  {e.isOverdue && <div className="text-xs font-semibold text-rose-600">{e.dueState === 'OVERDUE' ? `Trễ ${e.overdueDays} ngày` : `Quá hạn ${e.overdueDays} ngày`}</div>}
                   <EntryFlags entry={e} />
                 </td>
                 <td className="py-3 px-3 text-center">
