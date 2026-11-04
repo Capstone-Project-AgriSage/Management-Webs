@@ -22,6 +22,8 @@ async function session(permissions) {
     const url = new URL(request.url())
     const path = url.pathname
     if (!path.startsWith('/api/')) return route.continue()
+    // SignalR negotiation is a POST the app shell makes on every page; it is not a store write.
+    if (path === '/api/realtime/negotiate') return route.abort()
     const method = request.method()
     const body = request.postData() ? JSON.parse(request.postData()) : null
     const query = Object.fromEntries([...url.searchParams].map(([key, value]) => [key.toLowerCase(), value]))
@@ -85,14 +87,15 @@ async function staffAction(page, name, action) {
   const trigger = staffRow(page, name).getByRole('button', { name: `Thao tác nhân viên ${name}`, exact: true })
   await trigger.scrollIntoViewIfNeeded()
   await trigger.click()
-  const menu = page.locator('body > .fixed').filter({ has: page.getByRole('button', { name: action, exact: true }) })
+  const menu = page.getByRole('menu', { name: `Thao tác nhân viên ${name}`, exact: true })
   const bounds = await menu.boundingBox()
   const viewport = page.viewportSize()
   assert.ok(bounds && viewport && bounds.x >= 7 && bounds.y >= 7 && bounds.x + bounds.width <= viewport.width - 7 && bounds.y + bounds.height <= viewport.height - 7, 'Row menu stays inside the viewport using its measured height')
-  await page.getByRole('button', { name: action, exact: true }).click()
+  await menu.getByRole('menuitem', { name: action, exact: true }).click()
 }
 async function openPayment(page, id) {
-  await page.getByRole('row').filter({ hasText: 'PAY-' + id }).getByRole('button', { name: 'Xem chi tiết', exact: true }).click()
+  await page.getByRole('row').filter({ hasText: 'PAY-' + id }).getByRole('button', { name: `Thao tác phiếu PAY-${id}`, exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Xem chi tiết', exact: true }).click()
   await page.getByRole('dialog').getByText('Khách kiểm thử', { exact: true }).waitFor()
 }
 
@@ -181,7 +184,7 @@ try {
   await staffRow(readStaff.page, 'Nhân viên kiểm thử').waitFor()
   assert.equal(await readStaff.page.getByRole('button', { name: 'Thêm nhân viên', exact: true }).count(), 0)
   await staffRow(readStaff.page, 'Nhân viên kiểm thử').getByRole('button', { name: 'Thao tác nhân viên Nhân viên kiểm thử', exact: true }).click()
-  for (const name of ['Cập nhật thông tin', 'Đặt lại mật khẩu', 'Khóa tài khoản', 'Cho nhân viên nghỉ việc']) assert.equal(await readStaff.page.getByRole('button', { name, exact: true }).count(), 0)
+  for (const name of ['Cập nhật thông tin', 'Đặt lại mật khẩu', 'Khóa tài khoản', 'Cho nhân viên nghỉ việc']) assert.equal(await readStaff.page.getByRole('menuitem', { name, exact: true }).count(), 0)
   assert.equal(writeCount(readStaff.state), 0)
   await readStaff.context.close()
   console.log('PASS Staff read-only permission hides all write actions')

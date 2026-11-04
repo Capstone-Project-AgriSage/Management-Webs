@@ -57,7 +57,7 @@ async function fixture(test, mode = 'normal', viewport = { width: 1440, height: 
 try {
   for (const test of cases) {
     const f = await fixture(test)
-    await f.region.getByText(new RegExp(`31\\s*${test.unit}`)).waitFor()
+    await f.region.getByText(new RegExp(`31\\s*${test.unit}`)).waitFor({ timeout: 30_000 }) // the first page after a cold Vite start compiles slowly
     for (const [label, value] of test.metrics) assert.equal((await metricValue(f.region, label).innerText()).trim(), value)
     assert.equal(await f.region.getByText('Trên trang đang hiển thị', { exact: true }).count(), 3)
     assert.equal(f.state.requests.filter(r => r.path.startsWith('/api/reports/')).length, 0)
