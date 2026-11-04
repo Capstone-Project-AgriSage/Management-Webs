@@ -24,6 +24,7 @@ import { formatVnd } from '@/utils/money';
 import { DUE_STATE_OPTIONS, DEBT_ENTRY_STATUS_LABEL, PAYMENT_METHOD_LABEL, formatDay, formatDayTime, label, useCanManage, useRoleBase } from '@/utils/creditLabels';
 import DebtEntriesTable from './DebtEntriesTable'
 import DebtEntryModal from './DebtEntryModal'
+import DebtSeasonPanels from './DebtSeasonPanels'
 import { cropSeasonsApi, type CropSeason } from '@/api/cropSeasonsApi'
 import type { DueState } from '@/api/debtApi'
 
@@ -178,6 +179,7 @@ export default function DebtsPage() {
           <KpiCard title="Thu nợ tháng này" value={dashboard ? formatVnd(dashboard.collectedThisMonth) : '—'} subtitle="Khoản thu đã xác nhận trong tháng" />
         </div>
       ) : <BusinessReportCards kind="debt" />}
+      {canReadDashboard && dashboard && <DebtSeasonPanels dashboard={dashboard} onOpenEntry={setSelectedEntryId} onShowAllDecisions={() => { setTab('entries'); setNeedsDecision(true) }} />}
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col">
         <div className="px-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 max-w-full flex-wrap gap-1" role="tablist">

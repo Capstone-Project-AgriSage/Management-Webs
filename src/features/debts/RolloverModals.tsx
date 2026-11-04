@@ -159,10 +159,12 @@ export function SeasonRolloverModal({ season, onClose, onDone }: { season: CropS
 
   const confirm = async () => {
     if (busy || chosen.length === 0) return
+    if (chosen.length > 500 && excluded.size > 0) { setError('Chỉ chọn riêng từng khoản được khi dưới 500 khoản. Hãy bỏ chọn bớt để còn tối đa 500, hoặc gia hạn toàn bộ.'); return }
     setBusy(true); setError('')
     try {
-      const everything = chosen.length === preview?.rolledOver.length
-      const result = await request(false, everything ? undefined : chosen.map(e => e.entryId))
+      // Always name the entries that were shown: without entryIds the server would also move any entry that became
+      // eligible after the preview. The server accepts at most 500 ids; beyond that only "everything" can be sent.
+      const result = await request(false, chosen.length <= 500 ? chosen.map(e => e.entryId) : undefined)
       const moved = result.rolledOver.length, left = result.skipped.length
       showToast(left > 0 ? `Đã gia hạn ${moved} khoản sang ${result.targetSeason.name}; ${left} khoản bị bỏ qua` : `Đã gia hạn ${moved} khoản sang ${result.targetSeason.name}`, left > 0 ? 'info' : 'success')
       onDone()

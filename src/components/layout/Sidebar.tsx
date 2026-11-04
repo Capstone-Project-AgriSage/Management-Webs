@@ -139,6 +139,8 @@ function useNavConfig() {
       { label: 'Hoàn tiền', to: '/agent/refunds', icon: 'currency_exchange' },
       { label: 'Nhà cung cấp', to: '/agent/purchases/suppliers', icon: 'storefront' },
       { label: 'Phiếu nhập hàng', to: '/agent/purchases/receipts', icon: 'shopping_cart' },
+      { label: 'Vụ mùa', to: '/agent/crop-seasons', icon: 'agriculture' },
+      { label: 'Chính sách công nợ', to: '/agent/debt-policy', icon: 'rule' },
       { label: 'Nhóm khách & tín dụng', to: '/agent/credit-config', icon: 'credit_score' },
     )
     return { groups: [{ title: '', items }], brandIcon: 'eco', brandLabel: 'Sales', hubLabel: user.storeName }

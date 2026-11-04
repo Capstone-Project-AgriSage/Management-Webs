@@ -292,7 +292,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/crop-seasons',
-            element: <RequireRole role="agent"><CropSeasonsPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><CropSeasonsPage /></RequireRole>,
           },
           {
             path: 'agent/debt-policy',
