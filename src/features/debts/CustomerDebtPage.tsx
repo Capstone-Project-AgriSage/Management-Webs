@@ -18,6 +18,7 @@ import ServerPagination from '@/components/ui/ServerPagination'
 import { formatVnd } from '@/utils/money';
 import { DEBT_TRANSACTION_LABEL, formatDay, formatDayTime, label, todayVn, useRoleBase } from '@/utils/creditLabels';
 import DebtEntriesTable from './DebtEntriesTable'
+import { DebtGroupCards } from './DebtSeasonBits'
 import DebtEntryModal from './DebtEntryModal'
 import CollectCashModal from './CollectCashModal'
 
@@ -210,6 +211,8 @@ export default function CustomerDebtPage() {
           <Kpi title="Còn được mua chịu" value={customer ? formatVnd(customer.availableCredit) : '--'} />
         </div>
       )}
+
+      {!noAccount && account?.groups && <DebtGroupCards groups={account.groups} />}
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col">
         <div className="px-4 border-b border-slate-100 flex gap-1" role="tablist">
