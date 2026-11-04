@@ -1,4 +1,5 @@
 import PermissionAction from '@/components/auth/PermissionAction'
+import { DueStateBadge, EntryFlags, OriginalDue } from './DebtSeasonBits'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
 import DetailModal from '@/components/ui/DetailModal'
@@ -9,6 +10,8 @@ import { useToast } from '@/context/ToastContext'
 import { formatVnd } from '@/utils/money'
 import {
   DEBT_ACTION_LABEL,
+  DEBT_REASON_CODE_LABEL,
+  roleLabel,
   DEBT_ENTRY_STATUS_LABEL,
   DEBT_SOURCE_LABEL,
   DEBT_TRANSACTION_LABEL,
@@ -155,6 +158,13 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
               </div>
             ))}
           </div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
+            <span><span className="text-slate-500">Vụ phát sinh: </span><strong className="text-slate-800">{entry.originSeason?.name ?? 'Theo hạng tín dụng'}</strong></span>
+            <span><span className="text-slate-500">Vụ đang thu: </span><strong className="text-slate-800">{entry.collectionSeason?.name ?? 'Theo hạng tín dụng'}</strong></span>
+            <DueStateBadge state={entry.dueState} />
+          </div>
+          <OriginalDue originalDueDate={entry.originalDueDate} dueDate={entry.dueDate} />
+          <EntryFlags entry={entry} />
           {entry.prepaymentAppliedAmount > 0 && (
             <p className="text-xs text-slate-500">
               Giá trị giao {formatVnd(entry.fulfillmentValue)}, đã trừ tiền trả trước {formatVnd(entry.prepaymentAppliedAmount)}.
@@ -206,7 +216,7 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
 
             {entry.actions.length > 0 && (
               <section>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Xử lý</h4>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Lịch sử xử lý và hạn trả</h4>
                 <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 text-sm">
                   {entry.actions.map((a) => (
                     <li key={a.id} className="px-3 py-2">
@@ -218,6 +228,12 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
                         </span>
                         <span className="text-xs text-slate-500 shrink-0">{formatDayTime(a.createdAt)}</span>
                       </div>
+                      {(a.reasonCode || a.isPrePolicy) && (
+                        <div className="mt-0.5 text-xs text-slate-600">
+                          {a.reasonCode ? <>Lý do: <strong>{label(DEBT_REASON_CODE_LABEL, a.reasonCode)}</strong></> : <span className="italic text-slate-500">Trước khi áp dụng chính sách</span>}
+                        </div>
+                      )}
+                      {a.actorName && <div className="text-xs text-slate-500 mt-0.5">{a.actorName}{a.actorRole ? ` · ${roleLabel(a.actorRole)}` : ''}</div>}
                       {a.reason && <div className="text-xs text-slate-500 mt-0.5">{a.reason}</div>}
                     </li>
                   ))}

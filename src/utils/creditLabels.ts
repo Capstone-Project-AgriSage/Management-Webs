@@ -46,6 +46,23 @@ export const DEBT_ACTION_LABEL: Record<string, string> = {
   CANCEL: 'Hủy khoản nợ',
 }
 
+/** Reason codes of debt actions (FE_GUIDE_FLOW_3 §5); the server sends the code, the label is ours. */
+export const DEBT_REASON_CODE_LABEL: Record<string, string> = {
+  MAT_MUA: 'Mất mùa',
+  THIEN_TAI: 'Thiên tai',
+  KHO_KHAN: 'Khó khăn gia đình',
+  TRI_AN: 'Tri ân',
+  SAI_SOT: 'Cửa hàng ghi sai',
+  KHONG_THU_HOI: 'Không thu hồi được',
+  KHAC: 'Khác',
+}
+
+export const DUE_STATE_LABEL: Record<string, string> = { NOT_DUE: 'Chưa đến hạn', DUE_SOON: 'Sắp đến hạn', OVERDUE: 'Quá hạn' }
+export const DUE_STATE_OPTIONS = Object.entries(DUE_STATE_LABEL).map(([value, text]) => ({ value, label: text }))
+
+const ROLE_LABEL: Record<string, string> = { STORE_OWNER: 'Chủ cửa hàng', SALES_STAFF: 'Nhân viên bán hàng', DELIVERY_STAFF: 'Nhân viên giao hàng', ADMIN: 'Quản trị viên', FARMER: 'Nông dân' }
+export const roleLabel = (role: string | null | undefined) => (role ? ROLE_LABEL[role] ?? role : '')
+
 export const PAYMENT_STATUS_LABEL: Record<string, string> = {
   PENDING: 'Chờ xác nhận',
   PAID: 'Đã xác nhận',
