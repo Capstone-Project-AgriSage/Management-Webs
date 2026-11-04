@@ -70,6 +70,15 @@ export const ROLLOVER_SKIP_LABEL: Record<string, string> = {
   EXCEEDS_TOTAL_EXTENSION: 'Vượt tổng thời gian gia hạn tối đa',
 }
 
+/** How a credit order's due date is worked out (FE_GUIDE_FLOW_3 §1, dueRule). */
+export const DUE_RULE_LABEL: Record<string, string> = {
+  SEASON: 'Theo hạn trả của vụ',
+  CAPPED: 'Theo hạn trả của vụ, đã áp trần kỳ hạn của cửa hàng',
+  TERM_DAYS: 'Theo số ngày kỳ hạn của hạng tín dụng (chưa có vụ phù hợp)',
+  MANUAL: 'Chủ cửa hàng tự chọn ngày',
+  NONE: 'Khách chưa có tín dụng',
+}
+
 export const DUE_STATE_LABEL: Record<string, string> = { NOT_DUE: 'Chưa đến hạn', DUE_SOON: 'Sắp đến hạn', OVERDUE: 'Quá hạn' }
 export const DUE_STATE_OPTIONS = Object.entries(DUE_STATE_LABEL).map(([value, text]) => ({ value, label: text }))
 

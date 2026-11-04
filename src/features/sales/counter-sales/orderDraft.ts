@@ -131,7 +131,6 @@ const CREDIT_REASON: Record<string, string> = {
   CREDIT_DISABLED: 'Khách chưa được mở mua chịu, hoặc tín dụng đang tạm dừng / bị khoá.',
   NO_CREDIT_LIMIT: 'Hạn mức mua chịu của khách đang là 0.',
   NO_CREDIT_TERM: 'Khách chưa có hạng tín dụng (kỳ hạn trả).',
-  OVERDUE_DEBT: 'Khách đang có nợ quá hạn nên chưa được mua chịu thêm.',
 }
 
 /** A readable reason for a refused credit order ("Credit refused: INSUFFICIENT_CREDIT"), or null for other errors. */

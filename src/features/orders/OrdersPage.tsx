@@ -31,6 +31,7 @@ import { useRoleBase } from '@/utils/creditLabels';
 import OrderEditModal from './OrderEditModal'
 import ConfirmOrderModal from './ConfirmOrderModal'
 import PickupModal from './PickupModal'
+import { formatDay } from '@/utils/creditLabels'
 import './order-detail.css'
 /**
  * Made by staff at the counter. Orders from the farmer web or mobile app are paid through payOS or put on credit, so
@@ -692,6 +693,12 @@ export default function OrdersPage() {
                 )}
                 {selectedOrder.status === 'PENDING_CONFIRMATION' && selectedOrder.settlementType === 'CREDIT' && (
                   <p className="text-xs leading-relaxed text-on-surface-variant">Đơn mua chịu có thể xác nhận mà không cần thu tiền trước.</p>
+                )}
+                {selectedOrder.settlementType === 'CREDIT' && (selectedOrder.originSeason || selectedOrder.expectedDueDate) && (
+                  <p className="text-xs leading-relaxed text-on-surface-variant">
+                    {selectedOrder.originSeason && <>Vụ phát sinh: <strong className="text-on-surface">{selectedOrder.originSeason.name}</strong>. </>}
+                    {selectedOrder.expectedDueDate && <>Dự kiến trả ngày <strong className="text-on-surface">{formatDay(selectedOrder.expectedDueDate)}</strong> (hạn thật tính khi giao hàng).</>}
+                  </p>
                 )}
               </div>
             {selectedOrder.fulfillmentType === 'DELIVERY' && orderDeliveries.length > 0 && (

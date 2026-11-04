@@ -210,7 +210,7 @@ export default function DebtPolicyPage() {
           </div>
           <div className="flex gap-3">
             <button type="button" disabled={!dirty || saving} onClick={() => { setValues(toValues(policy)); setTouched(false) }} className="h-10 rounded-lg border border-slate-200 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">Hoàn tác</button>
-            <button type="button" disabled={!dirty || saving} onClick={() => void save()} className="h-10 rounded-lg bg-emerald-600 px-5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50">{saving ? 'Đang lưu…' : 'Lưu chính sách'}</button>
+            <button type="button" disabled={(!dirty && !policy.isDefault) || saving} onClick={() => void save()} className="h-10 rounded-lg bg-emerald-600 px-5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50">{saving ? 'Đang lưu…' : policy.isDefault && !dirty ? 'Lưu giá trị mặc định' : 'Lưu chính sách'}</button>
           </div>
         </div>
       )}
