@@ -185,6 +185,7 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
                 </button></PermissionAction>
               </>
             )}
+            {!canManage && <p className="basis-full text-xs text-slate-500">Giảm hoặc hủy khoản nợ do Chủ cửa hàng thực hiện.</p>}
           </div>
         )}<div className="p-5 space-y-5">
             {entry.order?.items && entry.order.items.length > 0 && (
