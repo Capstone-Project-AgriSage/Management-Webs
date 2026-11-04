@@ -3,6 +3,35 @@ import type { PagedResult } from './types'
 import type { CustomerReference, PaymentListItem } from './customersApi'
 
 // FLOW_3 §6–§7 — debt ledger and actions. Money only enters through payments (paymentsApi), decision B-D6.
+// Debt by crop season (FE_GUIDE_FLOW_3 §4.3, §10): every entry has an origin season (never changes) and a collection
+// season (changes when the entry is rolled over). Reports read the origin season, collecting screens the other one.
+
+export type DueState = 'NOT_DUE' | 'DUE_SOON' | 'OVERDUE'
+export type DueRule = 'SEASON' | 'CAPPED' | 'TERM_DAYS' | 'MANUAL' | 'NONE'
+export interface SeasonRef { id: string; code: string; name: string }
+
+/** Season, due date and state of a group of entries collected together (customer debt page, farmer debt). */
+export interface DebtCollectionGroup {
+  collectionSeason: SeasonRef | null
+  dueDate: string
+  outstandingAmount: number
+  entryCount: number
+  dueState: DueState
+}
+
+/** Season fields every staff-facing entry now carries. */
+export interface DebtEntrySeasonFields {
+  originSeason: SeasonRef | null
+  collectionSeason: SeasonRef | null
+  /** The due date when the entry was created; total extension time counts from it. */
+  originalDueDate: string
+  rolloverCount: number
+  isRolledOver: boolean
+  /** null once the entry is fully paid. */
+  dueState: DueState | null
+  /** Owner decides: still owed, not disputed, and past the N5 milestone or rolled over often enough. */
+  needsDecision: boolean
+}
 
 export interface DebtAccountListItem {
   id: string
@@ -25,11 +54,13 @@ export interface DebtAccount {
   oldestDueDate: string | null
   lastTransactionAt: string | null
   version: number
+  /** Open debt grouped by (collection season, due date). A null season means the due date follows the credit tier. */
+  groups?: DebtCollectionGroup[]
 }
 
 export type DebtEntryStatus = 'OPEN' | 'PARTIALLY_PAID' | 'PAID' | 'DISPUTED' | 'ADJUSTED' | 'CANCELLED' | string
 
-export interface DebtEntryListItem {
+export interface DebtEntryListItem extends DebtEntrySeasonFields {
   id: string
   entryNumber: string
   farmerProfileId: string
@@ -47,6 +78,21 @@ export interface DebtEntryListItem {
   createdAt: string
 }
 
+export type DebtReasonCode = 'MAT_MUA' | 'THIEN_TAI' | 'KHO_KHAN' | 'TRI_AN' | 'SAI_SOT' | 'KHONG_THU_HOI' | 'KHAC'
+
+/** Rollover accepts only the four hardship codes; the other three are for reduce, write-off and due-date changes. */
+export type RolloverReasonCode = 'MAT_MUA' | 'THIEN_TAI' | 'KHO_KHAN' | 'KHAC'
+
+export interface RolloverRequest {
+  reasonCode: RolloverReasonCode
+  /** Required. */
+  note: string
+  /** Omit to let the server pick the next open season whose due date is later than the entry's. */
+  targetCropSeasonId?: string
+  /** Owner only: go past the policy's total extension limit. */
+  overrideExtensionLimit?: boolean
+}
+
 export interface DebtAction {
   id: string
   actionType: 'DISPUTE' | 'KEEP' | 'CHANGE_DUE_DATE' | 'ADJUST' | 'CANCEL' | string
@@ -56,6 +102,13 @@ export interface DebtAction {
   newDueDate: string | null
   createdBy: string
   createdAt: string
+  /** null on actions taken before the policy existed (isPrePolicy). */
+  reasonCode?: DebtReasonCode | null
+  isPrePolicy?: boolean
+  oldCropSeasonId?: string | null
+  newCropSeasonId?: string | null
+  actorName?: string | null
+  actorRole?: string | null
 }
 
 export interface DebtTransaction {
@@ -74,7 +127,7 @@ export interface DebtTransaction {
   createdBy: string | null
 }
 
-export interface DebtEntry {
+export interface DebtEntry extends DebtEntrySeasonFields {
   id: string
   entryNumber: string
   sourceType: string
@@ -114,6 +167,24 @@ export interface DebtDashboard {
   topDebtors: DebtAccountListItem[]
   recentDebtPayments: PaymentListItem[]
   overdueDebts: DebtEntryListItem[]
+  /** Season dashboard additions; absent on a server that predates them. */
+  currentSeason?: SeasonRef | null
+  currentSeasonOutstanding?: number
+  dueSoonAmount?: number
+  needsDecisionCount?: number
+  needsDecision?: DebtEntryListItem[]
+  creditLimitAlertCount?: number
+  creditLimitAlerts?: CreditLimitAlert[]
+}
+
+export interface CreditLimitAlert {
+  farmerProfileId: string
+  fullName: string
+  phoneNumber: string | null
+  creditLimit: number
+  usedCredit: number
+  availableCredit: number
+  state: 'NEAR_LIMIT' | 'AT_LIMIT'
 }
 
 export type DebtEntrySortBy = 'CreatedAt' | 'DueDate' | 'OutstandingAmount' | 'DaysOverdue'
@@ -124,6 +195,11 @@ export interface DebtEntryQuery {
   status?: string
   search?: string
   overdueOnly?: boolean
+  originSeasonId?: string
+  collectionSeasonId?: string
+  dueState?: DueState
+  rolledOverOnly?: boolean
+  needsDecision?: boolean
   dueFrom?: string
   dueTo?: string
   sortBy?: DebtEntrySortBy
@@ -156,6 +232,11 @@ export const debtApi = {
         Status: q.status,
         Search: q.search,
         OverdueOnly: q.overdueOnly,
+        OriginSeasonId: q.originSeasonId,
+        CollectionSeasonId: q.collectionSeasonId,
+        DueState: q.dueState,
+        RolledOverOnly: q.rolledOverOnly,
+        NeedsDecision: q.needsDecision,
         DueFrom: q.dueFrom,
         DueTo: q.dueTo,
         SortBy: q.sortBy,
@@ -177,13 +258,19 @@ export const debtApi = {
   dispute: (id: string, reason: string) => post<DebtEntry>(`${entry(id)}/dispute`, { reason }),
   keep: (id: string, reason: string) => post<DebtEntry>(`${entry(id)}/keep`, { reason }),
   /** The new date cannot be in the past. */
-  changeDueDate: (id: string, newDueDate: string, reason: string) => post<DebtEntry>(`${entry(id)}/change-due-date`, { newDueDate, reason }),
+  changeDueDate: (id: string, newDueDate: string, reason: string, reasonCode?: DebtReasonCode) =>
+    post<DebtEntry>(`${entry(id)}/change-due-date`, { newDueDate, reason, ...(reasonCode ? { reasonCode } : {}) }),
+  /** Staff once (DEBT.ROLLOVER), the owner without limit. 403 = staff out of rollovers, 422 = rule broken (e.g. total extension). */
+  rollover: (id: string, data: RolloverRequest) => post<DebtEntry>(`${entry(id)}/rollover`, data),
+
   /** Manage: amount > 0 is the amount to REDUCE (≤ outstanding). */
-  adjust: (id: string, amount: number, reason: string) => post<DebtEntry>(`${entry(id)}/adjust`, { amount, reason }),
+  adjust: (id: string, amount: number, reason: string, reasonCode?: DebtReasonCode) =>
+    post<DebtEntry>(`${entry(id)}/adjust`, { amount, reason, ...(reasonCode ? { reasonCode } : {}) }),
   /** Manage: writes off the full outstanding. */
-  cancel: (id: string, reason: string) => post<DebtEntry>(`${entry(id)}/cancel`, { reason }),
+  cancel: (id: string, reason: string, reasonCode?: DebtReasonCode) => post<DebtEntry>(`${entry(id)}/cancel`, { reason, ...(reasonCode ? { reasonCode } : {}) }),
   /** Manage: the only way to increase receivable by hand. */
-  createManualEntry: (farmerProfileId: string, data: { amount: number; dueDate: string; reason: string }) =>
+  /** With cropSeasonId the debt belongs to that season and dueDate may be left out (it takes the season's due date); without a season dueDate is required. */
+  createManualEntry: (farmerProfileId: string, data: { amount: number; dueDate?: string; reason: string; cropSeasonId?: string }) =>
     post<DebtEntry>(`/api/customers/${farmerProfileId}/debt/manual-entries`, data),
 
   /** Manage. */

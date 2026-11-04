@@ -37,6 +37,8 @@ export interface OrderResponse {
   pickupCompletedBy: Uuid | null; pickupCompletedAt: string | null; completedAt: string | null
   cancelledBy: Uuid | null; cancelledAt: string | null; cancelReason: string | null
   version: number; items: OrderItemResponse[]
+  /** Credit order: the season it belongs to (by confirmation day) and the due date it would get. Only an estimate until delivery. */
+  originSeason?: { id: Uuid; code: string; name: string } | null; expectedDueDate?: string | null
 }
 
 export interface OrderItemRequest {

@@ -1,5 +1,6 @@
 import { api, toQuery } from './client'
 import type { CustomerReference } from './customersApi'
+import type { DueRule, SeasonRef } from './debtApi'
 
 // FLOW_3 §4.3 — a farmer's credit profile. Customer id = farmerProfileId.
 
@@ -65,6 +66,10 @@ export interface CreditEligibility {
   eligible: boolean
   reasonCode: string | null
   message: string | null
+  /** The season a credit order placed today would belong to and its due date. Only an estimate: debt is created on delivery. */
+  expectedCropSeason?: SeasonRef | null
+  expectedDueDate?: string | null
+  dueRule?: DueRule | null
 }
 
 const base = (id: string) => `/api/customers/${id}/credit`

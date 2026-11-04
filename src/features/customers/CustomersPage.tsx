@@ -4,6 +4,7 @@ import FilterSelect from '@/components/ui/FilterSelect'
 import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import PermissionAction from '@/components/auth/PermissionAction'
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
@@ -50,7 +51,9 @@ export default function CustomersPage() {
 
   const [groups, setGroups] = useState<CustomerGroupResponse[]>([])
   const [tiers, setTiers] = useState<CreditTierResponse[]>([])
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  // ?customer=<id> opens that customer's detail (linked from the debt dashboard's credit-limit alerts).
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [selectedId, setSelectedId] = useState<string | null>(() => searchParams.get('customer'))
   const [form, setForm] = useState<{ customer: CustomerResponse | null } | null>(null)
 
   useEffect(() => {
@@ -190,7 +193,7 @@ export default function CustomersPage() {
         customerId={selectedId}
         groups={groups}
         tiers={tiers}
-        onClose={() => setSelectedId(null)}
+        onClose={() => { setSelectedId(null); if (searchParams.has('customer')) setSearchParams({}, { replace: true }) }}
         onEdit={(customer) => setForm({ customer })}
         onChanged={load}
       />

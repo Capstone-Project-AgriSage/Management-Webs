@@ -3,6 +3,8 @@ import Pagination from '@/components/ui/Pagination'
 import ListToolbar from '@/components/ui/ListToolbar'
 import FilterSelect from '@/components/ui/FilterSelect'
 import { useState, useEffect } from 'react';
+import PermissionAction from '@/components/auth/PermissionAction'
+import DebtBySeasonSection from './DebtBySeasonSection'
 import { RefreshCw } from 'lucide-react';
 import KpiCard from '@/components/ui/KpiCard'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
@@ -279,6 +281,7 @@ export default function DebtReportsPage() {
         </div>
           <Pagination {...groupPages} unitLabel="nhóm khách" />
       </section>
+      <PermissionAction codes={['DEBT.READ_DASHBOARD']}><DebtBySeasonSection /></PermissionAction>
     </div>
   )
 }

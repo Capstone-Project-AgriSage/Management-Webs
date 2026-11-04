@@ -21,9 +21,12 @@ import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import ServerPagination from '@/components/ui/ServerPagination'
 import PromptModal from '@/components/ui/PromptModal'
 import { formatVnd } from '@/utils/money';
-import { DEBT_ENTRY_STATUS_LABEL, PAYMENT_METHOD_LABEL, formatDay, formatDayTime, label, useCanManage, useRoleBase } from '@/utils/creditLabels';
+import { DUE_STATE_OPTIONS, DEBT_ENTRY_STATUS_LABEL, PAYMENT_METHOD_LABEL, formatDay, formatDayTime, label, useCanManage, useRoleBase } from '@/utils/creditLabels';
 import DebtEntriesTable from './DebtEntriesTable'
 import DebtEntryModal from './DebtEntryModal'
+import DebtSeasonPanels from './DebtSeasonPanels'
+import { cropSeasonsApi, type CropSeason } from '@/api/cropSeasonsApi'
+import type { DueState } from '@/api/debtApi'
 
 type Tab = 'accounts' | 'entries' | 'transfers'
 const PAGE_SIZE = LIST_PAGE_SIZE
@@ -54,6 +57,12 @@ export default function DebtsPage() {
   const [overdueOnly, setOverdueOnly] = useState(false)
   const [entryStatus, setEntryStatus] = useState('')
   const [entrySort, setEntrySort] = useState('due')
+  const [originSeason, setOriginSeason] = useState('')
+  const [collectionSeason, setCollectionSeason] = useState('')
+  const [dueState, setDueState] = useState('')
+  const [rolledOverOnly, setRolledOverOnly] = useState(false)
+  const [needsDecision, setNeedsDecision] = useState(false)
+  const [seasons, setSeasons] = useState<CropSeason[]>([])
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
 
@@ -68,6 +77,12 @@ export default function DebtsPage() {
     const t = setTimeout(() => setDebounced(search.trim()), 350)
     return () => clearTimeout(t)
   }, [search])
+
+  useEffect(() => {
+    let active = true
+    cropSeasonsApi.getSeasons({ pageSize: 100 }).then(result => { if (active) setSeasons(result.items) }).catch(() => { if (active) setSeasons([]) })
+    return () => { active = false }
+  }, [])
 
   const loadDashboard = () => {
     if (canReadDashboard) debtApi.getDashboard().then(setDashboard).catch(() => setDashboard(null))
@@ -86,6 +101,11 @@ export default function DebtsPage() {
             search: debounced || undefined,
             status: entryStatus || undefined,
             overdueOnly: overdueOnly || undefined,
+            originSeasonId: originSeason || undefined,
+            collectionSeasonId: collectionSeason || undefined,
+            dueState: (dueState || undefined) as DueState | undefined,
+            rolledOverOnly: rolledOverOnly || undefined,
+            needsDecision: needsDecision || undefined,
             sortBy: s.sortBy,
             descending: s.descending,
             page,
@@ -107,9 +127,9 @@ export default function DebtsPage() {
   useEffect(() => {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, debounced, overdueOnly, entryStatus, entrySort, page])
+  }, [tab, debounced, overdueOnly, entryStatus, entrySort, originSeason, collectionSeason, dueState, rolledOverOnly, needsDecision, page])
 
-  useEffect(() => setPage(1), [tab, debounced, overdueOnly, entryStatus, entrySort])
+  useEffect(() => setPage(1), [tab, debounced, overdueOnly, entryStatus, entrySort, originSeason, collectionSeason, dueState, rolledOverOnly, needsDecision])
 
   const refresh = () => {
     loadDashboard()
@@ -159,6 +179,7 @@ export default function DebtsPage() {
           <KpiCard title="Thu nợ tháng này" value={dashboard ? formatVnd(dashboard.collectedThisMonth) : '—'} subtitle="Khoản thu đã xác nhận trong tháng" />
         </div>
       ) : <BusinessReportCards kind="debt" />}
+      {canReadDashboard && dashboard && <DebtSeasonPanels dashboard={dashboard} onOpenEntry={setSelectedEntryId} onShowAllDecisions={() => { setTab('entries'); setNeedsDecision(true) }} />}
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col">
         <div className="px-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 max-w-full flex-wrap gap-1" role="tablist">
@@ -180,7 +201,7 @@ export default function DebtsPage() {
           </div>
         </div>
 
-        <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: tab === 'entries' ? 'Tìm tên, SĐT, mã khoản nợ, mã đơn...' : 'Tìm tên hoặc số điện thoại...' }} onClear={() => { setSearch(''); setOverdueOnly(false); setEntryStatus(''); setEntrySort('due'); setPage(1) }} actions={<><button type="button" className="h-9 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-1.5" onClick={refresh}>
+        <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: tab === 'entries' ? 'Tìm tên, SĐT, mã khoản nợ, mã đơn...' : 'Tìm tên hoặc số điện thoại...' }} onClear={() => { setSearch(''); setOverdueOnly(false); setEntryStatus(''); setEntrySort('due'); setOriginSeason(''); setCollectionSeason(''); setDueState(''); setRolledOverOnly(false); setNeedsDecision(false); setPage(1) }} actions={<><button type="button" className="h-9 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-1.5" onClick={refresh}>
               <RefreshCw size={14} /> Làm mới
             </button></>}>
 {tab !== 'transfers' && (
@@ -189,6 +210,11 @@ export default function DebtsPage() {
 {tab === 'entries' && (
               <>
                 <FilterSelect label="Trạng thái khoản nợ" value={entryStatus} onChange={value => { setEntryStatus(value); setPage(1) }} options={[{ value: '', label: 'Mọi trạng thái' }, ...Object.entries(DEBT_ENTRY_STATUS_LABEL).map(([value, text]) => ({ value, label: text }))]} />
+                <FilterSelect label="Vụ phát sinh" value={originSeason} onChange={setOriginSeason} options={[{ value: '', label: 'Mọi vụ' }, ...seasons.map(season => ({ value: season.id, label: season.name }))]} />
+                <FilterSelect label="Vụ đang thu" value={collectionSeason} onChange={setCollectionSeason} options={[{ value: '', label: 'Mọi vụ' }, ...seasons.map(season => ({ value: season.id, label: season.name }))]} />
+                <FilterSelect label="Hạn trả" value={dueState} onChange={setDueState} options={[{ value: '', label: 'Mọi tình trạng' }, ...DUE_STATE_OPTIONS]} />
+                <FilterSelect label="Gia hạn" value={rolledOverOnly ? 'rolled' : 'all'} onChange={value => setRolledOverOnly(value === 'rolled')} options={[{ value: 'all', label: 'Tất cả khoản nợ' }, { value: 'rolled', label: 'Chỉ khoản đã gia hạn' }]} />
+                <FilterSelect label="Cần quyết định" value={needsDecision ? 'yes' : 'all'} onChange={value => setNeedsDecision(value === 'yes')} options={[{ value: 'all', label: 'Tất cả khoản nợ' }, { value: 'yes', label: 'Chỉ khoản cần quyết định' }]} />
                 <FilterSelect label="Sắp xếp" value={entrySort} onChange={value => { setEntrySort(value); setPage(1) }} options={ENTRY_SORTS} />
               </>
             )}

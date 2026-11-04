@@ -67,6 +67,7 @@ import CustomerDebtPage from '@/features/debts/CustomerDebtPage'
 import SalesInventoryPage from '@/features/sales/inventory/InventoryPage'
 import PriceListsPage from '@/features/price-lists/PriceListsPage'
 import CropSeasonsPage from '@/features/crop-seasons/CropSeasonsPage'
+import DebtPolicyPage from '@/features/debts/DebtPolicyPage'
 import SalesSettingsPage from '@/features/sales/settings/SettingsPage'
 
 // =======================
@@ -291,7 +292,11 @@ export const router = createBrowserRouter([
           },
           {
             path: 'agent/crop-seasons',
-            element: <RequireRole role="agent"><CropSeasonsPage /></RequireRole>,
+            element: <RequireRole role={["agent", "sales_staff"]}><CropSeasonsPage /></RequireRole>,
+          },
+          {
+            path: 'agent/debt-policy',
+            element: <RequireRole role={["agent", "sales_staff"]}><DebtPolicyPage /></RequireRole>,
           },
           {
             path: 'agent/credit-config',

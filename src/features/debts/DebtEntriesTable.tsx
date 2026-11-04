@@ -3,6 +3,7 @@ import StatusBadge from '@/components/ui/StatusBadge'
 import type { DebtEntryListItem } from '@/api/debtApi'
 import { formatVnd } from '@/utils/money'
 import { DEBT_ENTRY_STATUS_LABEL, DEBT_SOURCE_LABEL, formatDay, label } from '@/utils/creditLabels'
+import { DueStateBadge, EntryFlags, OriginalDue, SeasonPair } from './DebtSeasonBits'
 
 interface DebtEntriesTableProps {
   entries: DebtEntryListItem[]
@@ -13,14 +14,15 @@ interface DebtEntriesTableProps {
 }
 
 export default function DebtEntriesTable({ entries, loading, showCustomer = true, onOpen }: DebtEntriesTableProps) {
-  const cols = showCustomer ? 7 : 6
+  const cols = showCustomer ? 8 : 7
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left border-collapse min-w-[860px]">
+      <table className="w-full text-left border-collapse min-w-[1040px]">
         <thead>
           <tr className="border-b border-slate-100 text-slate-900 text-[13px] font-bold">
             <th className="py-3 px-4" scope="col">Khoản nợ</th>
             {showCustomer && <th className="py-3 px-3" scope="col">Khách hàng</th>}
+            <th className="py-3 px-3" scope="col">Vụ</th>
             <th className="py-3 px-3 text-right" scope="col">Nợ gốc</th>
             <th className="py-3 px-3 text-right" scope="col">Đã trả</th>
             <th className="py-3 px-3 text-right" scope="col">Còn nợ</th>
@@ -49,12 +51,16 @@ export default function DebtEntriesTable({ entries, loading, showCustomer = true
                     <div className="text-xs text-slate-500">{e.phoneNumber ?? ''}</div>
                   </td>
                 )}
+                <td className="py-3 px-3"><SeasonPair entry={e} /></td>
                 <td className="py-3 px-3 text-right tabular-nums">{formatVnd(e.originalAmount)}</td>
                 <td className="py-3 px-3 text-right tabular-nums text-slate-600">{formatVnd(e.totalPaid)}</td>
                 <td className="py-3 px-3 text-right tabular-nums font-semibold">{formatVnd(e.outstandingAmount)}</td>
                 <td className="py-3 px-3">
                   <div>{formatDay(e.dueDate)}</div>
+                  <OriginalDue originalDueDate={e.originalDueDate} dueDate={e.dueDate} />
+                  <div className="mt-1"><DueStateBadge state={e.dueState} /></div>
                   {e.isOverdue && <div className="text-xs font-semibold text-rose-600">Quá hạn {e.overdueDays} ngày</div>}
+                  <EntryFlags entry={e} />
                 </td>
                 <td className="py-3 px-3 text-center">
                   <StatusBadge label={label(DEBT_ENTRY_STATUS_LABEL, e.status)} />

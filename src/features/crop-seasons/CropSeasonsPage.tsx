@@ -14,10 +14,14 @@ import { describeApiError } from '@/utils/apiError'
 import { formatDay, useCanManage } from '@/utils/creditLabels'
 import { formatVnd } from '@/utils/money'
 import CropSeasonFormModal, { type SeasonFormResult } from './CropSeasonFormModal'
+import { SeasonRolloverModal } from '@/features/debts/RolloverModals'
+import SeasonCloseModal from './SeasonCloseModal'
+import LimitSuggestionsModal from './LimitSuggestionsModal'
+import { usePermission } from '@/context/PermissionContext'
 import { SEASON_STATUS, findWindowIssues, suggestedWindowStart } from './seasonRules'
 
 // Seasons are few (about three a year), so the page loads them all: the gap/overlap check needs every season anyway.
-const ALL = 200
+const ALL = 100
 
 
 type FormState = { season: CropSeason | null } | null
@@ -31,6 +35,12 @@ export default function CropSeasonsPage() {
     subtitle: canManage ? 'Lịch vụ của cửa hàng: khoảng nhận đơn mua chịu, ngày thu hoạch và hạn trả nợ' : 'Lịch vụ và hạn trả nợ của cửa hàng',
   })
   const { showToast } = useToast()
+  const canRollover = usePermission().has('DEBT.ROLLOVER')
+  const canReadDebtDashboard = usePermission().has('DEBT.READ_DASHBOARD')
+  const showActions = canManage || canRollover || canReadDebtDashboard
+  const [closing, setClosing] = useState<CropSeason | null>(null)
+  const [suggesting, setSuggesting] = useState<CropSeason | null>(null)
+  const [rolling, setRolling] = useState<CropSeason | null>(null)
 
   const [seasons, setSeasons] = useState<CropSeason[] | null>(null)
   const [loading, setLoading] = useState(true)
@@ -64,6 +74,7 @@ export default function CropSeasonsPage() {
   const term = search.trim().toLowerCase()
   const visible = all.filter((s) => (!status || s.status === status) && (!term || s.code.toLowerCase().includes(term) || s.name.toLowerCase().includes(term)))
   const current = all.find((s) => s.status === 'OPEN')
+  const nextOf = (season: CropSeason | null) => (season ? all.slice().reverse().find((s) => s.orderWindowStart > season.orderWindowStart) ?? null : null)
   const collecting = all.filter((s) => s.status === 'HARVESTING' || s.status === 'COLLECTING')
 
   const submit = async (result: SeasonFormResult) => {
@@ -74,8 +85,10 @@ export default function CropSeasonsPage() {
         await cropSeasonsApi.create(result.body)
         showToast(`Đã tạo vụ ${result.body.name}`, 'success')
       } else if (form.season) {
-        await cropSeasonsApi.update(form.season.id, result.body)
-        showToast(result.body.applyNewDueDateToDebts ? 'Đã lưu vụ và áp hạn trả mới cho các khoản nợ của vụ' : 'Đã lưu vụ mùa', 'success')
+        const saved = await cropSeasonsApi.update(form.season.id, result.body)
+        const ext = saved.debtExtension
+        if (ext) showToast(ext.skippedDisputed > 0 ? `Đã dời ${ext.moved} khoản sang hạn mới; ${ext.skippedDisputed} khoản đang khiếu nại giữ hạn cũ, cần Chủ quyết riêng` : `Đã lưu vụ và dời ${ext.moved} khoản sang hạn mới`, 'success')
+        else showToast('Đã lưu vụ mùa', 'success')
       }
       setForm(null)
       await load()
@@ -86,24 +99,13 @@ export default function CropSeasonsPage() {
     }
   }
 
-  const close = async (season: CropSeason) => {
-    if (!window.confirm(`Đóng vụ ${season.name}?\nSố liệu của vụ sẽ được chốt để báo cáo và không sửa ngày được nữa.`)) return
-    try {
-      await cropSeasonsApi.close(season.id)
-      showToast(`Đã đóng vụ ${season.name}`, 'success')
-      await load()
-    } catch (err) {
-      showToast(describeApiError(err), 'error')
-    }
-  }
-
-  const columns = canManage ? 8 : 7
+  const columns = showActions ? 8 : 7
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
       <ListReportCards title="Tổng hợp vụ mùa" totalCount={seasons ? seasons.length : null} totalLabel="Số vụ" totalNote="Tất cả vụ của cửa hàng" unit="vụ" loading={loading} error={listError} metrics={[
         { label: 'Đang thu hoạch, thu nợ', value: collecting.length, note: 'Tất cả vụ của cửa hàng' },
-        { label: 'Nợ chưa thu của các vụ', value: seasons ? all.filter((s) => s.status !== 'CLOSED').reduce((sum, s) => sum + s.outstandingAmount, 0) : null, kind: 'money', note: 'Các vụ chưa đóng' },
+        { label: 'Nợ đang thu của các vụ', value: seasons ? all.filter((s) => s.status !== 'CLOSED').reduce((sum, s) => sum + s.collecting.outstandingAmount, 0) : null, kind: 'money', note: 'Các vụ chưa đóng' },
         { label: 'Đã đóng', value: all.filter((s) => s.status === 'CLOSED').length, note: 'Tất cả vụ của cửa hàng' },
       ]} />
 
@@ -165,7 +167,7 @@ export default function CropSeasonsPage() {
                 <th className="py-3 px-3" scope="col">Hạn trả</th>
                 <th className="py-3 px-3 text-right" scope="col">Còn nợ</th>
                 <th className="py-3 px-3 text-center" scope="col">Trạng thái</th>
-                {canManage && <th className="py-3 px-4 text-right" scope="col">Thao tác</th>}
+                {showActions && <th className="py-3 px-4 text-right" scope="col">Thao tác</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 text-sm text-slate-900">
@@ -187,20 +189,22 @@ export default function CropSeasonsPage() {
                       <td className="py-3.5 px-3 text-right tabular-nums whitespace-nowrap">{season.graceDays} ngày</td>
                       <td className="py-3.5 px-3 whitespace-nowrap font-semibold tabular-nums">{formatDay(season.paymentDueDate)}</td>
                       <td className="py-3.5 px-3 text-right tabular-nums whitespace-nowrap">
-                        {season.openEntryCount > 0 ? (
+                        {season.originated.openEntryCount > 0 || season.collecting.openEntryCount > 0 ? (
                           <>
-                            <div>{formatVnd(season.outstandingAmount)}</div>
-                            <div className="text-xs text-slate-500">{season.openEntryCount} khoản</div>
+                            <div title="Nợ đang thu trong vụ này (gồm cả nợ chuyển từ vụ trước)">{formatVnd(season.collecting.outstandingAmount)}</div>
+                            <div className="text-xs text-slate-500">{season.collecting.openEntryCount} khoản đang thu</div>
+                            <div className="text-xs text-slate-400" title="Nợ phát sinh trong vụ này, tính cả phần đã chuyển sang vụ sau">{formatVnd(season.originated.outstandingAmount)} phát sinh ({season.originated.openEntryCount})</div>
                           </>
                         ) : <span className="text-slate-400">—</span>}
                       </td>
                       <td className="py-3.5 px-3 text-center">
                         <StatusBadge label={SEASON_STATUS[season.status]?.label ?? season.status} className={SEASON_STATUS[season.status]?.className} />
                       </td>
-                      {canManage && (
-                        <td className="py-3.5 px-4 text-right whitespace-nowrap"><RowActionsMenu disabled={saving} triggerLabel={`Thao tác vụ ${season.name}`} actions={closed ? [] : [
+                      {showActions && (
+                        <td className="py-3.5 px-4 text-right whitespace-nowrap"><RowActionsMenu disabled={saving} triggerLabel={`Thao tác vụ ${season.name}`} actions={closed ? [{ label: 'Gợi ý tăng hạn mức', icon: 'trending_up', permissionCodes: ['DEBT.READ_DASHBOARD'], onClick: () => setSuggesting(season) }] : [
+                            ...(season.collecting.openEntryCount > 0 ? [{ label: 'Gia hạn nợ cả vụ', icon: 'event_repeat', permissionCodes: ['DEBT.ROLLOVER'], onClick: () => setRolling(season) }] : []),
                             { label: 'Sửa vụ', icon: 'edit', permissionCodes: ['CROP_SEASONS.MANAGE'], onClick: () => setForm({ season }) },
-                            ...(['COLLECTING', 'HARVESTING'].includes(season.status) ? [{ label: 'Đóng vụ', icon: 'lock', permissionCodes: ['CROP_SEASONS.MANAGE'], disabled: season.openEntryCount > 0, title: season.openEntryCount > 0 ? `Còn ${season.openEntryCount} khoản nợ: thu, gia hạn hoặc xử lý hết rồi mới đóng vụ` : 'Đóng vụ', onClick: () => { void close(season) } }] : []),
+                            ...(['COLLECTING', 'HARVESTING'].includes(season.status) ? [{ label: 'Đóng vụ', icon: 'lock', permissionCodes: ['CROP_SEASONS.MANAGE'], title: 'Kiểm tra điều kiện rồi đóng vụ', onClick: () => setClosing(season) }] : []),
                           ]} /></td>
                       )}
                     </tr>
@@ -212,10 +216,15 @@ export default function CropSeasonsPage() {
         </div>
       </div>
 
+      {closing && <SeasonCloseModal season={closing} onClose={() => setClosing(null)} onDone={() => { setClosing(null); void load() }} />}
+      {suggesting && <LimitSuggestionsModal season={suggesting} onClose={() => setSuggesting(null)} />}
+      {rolling && <SeasonRolloverModal season={rolling} onClose={() => setRolling(null)} onDone={() => { setRolling(null); void load() }} />}
+
       <CropSeasonFormModal
         open={form !== null}
         season={form?.season ?? null}
         suggestedStart={suggestedWindowStart(all)}
+        nextSeason={nextOf(form?.season ?? null)}
         saving={saving}
         onClose={() => setForm(null)}
         onSubmit={submit}

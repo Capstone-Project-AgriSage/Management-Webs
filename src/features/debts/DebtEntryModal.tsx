@@ -1,14 +1,19 @@
 import PermissionAction from '@/components/auth/PermissionAction'
+import { DueStateBadge, EntryFlags, OriginalDue } from './DebtSeasonBits'
+import { RolloverEntryModal } from './RolloverModals'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
 import DetailModal from '@/components/ui/DetailModal'
 import StatusBadge from '@/components/ui/StatusBadge'
 import PromptModal, { type PromptField } from '@/components/ui/PromptModal'
-import { debtApi, type DebtEntry } from '@/api/debtApi'
+import { debtApi, type DebtEntry, type DebtReasonCode } from '@/api/debtApi'
 import { useToast } from '@/context/ToastContext'
 import { formatVnd } from '@/utils/money'
 import {
   DEBT_ACTION_LABEL,
+  DEBT_REASON_CODE_LABEL,
+  DEBT_REASON_CODES,
+  roleLabel,
   DEBT_ENTRY_STATUS_LABEL,
   DEBT_SOURCE_LABEL,
   DEBT_TRANSACTION_LABEL,
@@ -29,6 +34,16 @@ interface DebtEntryModalProps {
   onChanged: () => void
 }
 
+/** Optional for now: the proposed code list and whether the code becomes mandatory are still open with the backend. */
+const REASON_CODE_FIELD: PromptField = {
+  key: 'reasonCode',
+  label: 'Mã lý do (không bắt buộc)',
+  type: 'select',
+  options: DEBT_REASON_CODES.map((code) => ({ value: code, label: DEBT_REASON_CODE_LABEL[code] })),
+  hint: 'Chọn nếu có để báo cáo và lịch sử dễ đọc. Ghi chú bên dưới vẫn cần nhập.',
+}
+const codeOf = (v: Record<string, string>) => (DEBT_REASON_CODES as readonly string[]).includes(v.reasonCode) ? (v.reasonCode as DebtReasonCode) : undefined
+
 const errorText = (err: unknown, fallback: string) => (err instanceof Error && err.message ? err.message : fallback)
 
 // FLOW_3 §6: DISPUTE / KEEP / CHANGE_DUE_DATE (Operate), ADJUST / CANCEL (Manage). Posted rows are never edited.
@@ -38,6 +53,7 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
   const [entry, setEntry] = useState<DebtEntry | null>(null)
   const [action, setAction] = useState<Action | null>(null)
   const [busy, setBusy] = useState(false)
+  const [rollingOver, setRollingOver] = useState(false)
 
   const load = async (id: string) => {
     try {
@@ -78,16 +94,18 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
       changeDueDate: {
         title: 'Đổi hạn trả',
         fields: [
+          REASON_CODE_FIELD,
           { key: 'newDueDate', label: 'Hạn trả mới', type: 'date', required: true, min: todayVn(), hint: 'Không được là ngày trong quá khứ.' },
           { key: 'reason', label: 'Lý do', type: 'textarea', required: true },
         ],
         submitLabel: 'Đổi hạn',
-        run: (v) => debtApi.changeDueDate(entry.id, v.newDueDate, v.reason.trim()),
+        run: (v) => debtApi.changeDueDate(entry.id, v.newDueDate, v.reason.trim(), codeOf(v)),
       },
       adjust: {
         title: 'Điều chỉnh giảm nợ',
         description: `Nhập số tiền cần GIẢM (tối đa ${formatVnd(entry.outstandingAmount)}). Muốn tăng nợ thì tạo khoản nợ thủ công.`,
         fields: [
+          REASON_CODE_FIELD,
           { key: 'amount', label: 'Số tiền giảm (đ)', type: 'number', required: true, min: '1' },
           { key: 'reason', label: 'Lý do', type: 'textarea', required: true },
         ],
@@ -95,16 +113,16 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
         run: (v) => {
           const amount = Number(v.amount)
           if (!(amount > 0) || amount > entry.outstandingAmount) return Promise.reject(new Error(`Số tiền phải trong khoảng 1 – ${formatVnd(entry.outstandingAmount)}`))
-          return debtApi.adjust(entry.id, amount, v.reason.trim())
+          return debtApi.adjust(entry.id, amount, v.reason.trim(), codeOf(v))
         },
       },
       cancel: {
         title: 'Hủy khoản nợ',
         description: `Ghi giảm toàn bộ ${formatVnd(entry.outstandingAmount)} còn lại và đóng khoản nợ. Không hoàn tác được.`,
-        fields: [{ key: 'reason', label: 'Lý do', type: 'textarea', required: true }],
+        fields: [REASON_CODE_FIELD, { key: 'reason', label: 'Lý do', type: 'textarea', required: true }],
         submitLabel: 'Hủy khoản nợ',
         danger: true,
-        run: (v) => debtApi.cancel(entry.id, v.reason.trim()),
+        run: (v) => debtApi.cancel(entry.id, v.reason.trim(), codeOf(v)),
       },
     }
     : null
@@ -155,6 +173,13 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
               </div>
             ))}
           </div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
+            <span><span className="text-slate-500">Vụ phát sinh: </span><strong className="text-slate-800">{entry.originSeason?.name ?? 'Theo hạng tín dụng'}</strong></span>
+            <span><span className="text-slate-500">Vụ đang thu: </span><strong className="text-slate-800">{entry.collectionSeason?.name ?? 'Theo hạng tín dụng'}</strong></span>
+            <DueStateBadge state={entry.dueState} />
+          </div>
+          <OriginalDue originalDueDate={entry.originalDueDate} dueDate={entry.dueDate} />
+          <EntryFlags entry={entry} />
           {entry.prepaymentAppliedAmount > 0 && (
             <p className="text-xs text-slate-500">
               Giá trị giao {formatVnd(entry.fulfillmentValue)}, đã trừ tiền trả trước {formatVnd(entry.prepaymentAppliedAmount)}.
@@ -172,6 +197,11 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
                 Giữ nguyên
               </button></PermissionAction>
             )}
+            {!disputed && entry.outstandingAmount > 0 && (
+              <PermissionAction codes={["DEBT.ROLLOVER"]}><button type="button" className={`${btn} border-sky-300 text-sky-800 hover:bg-sky-50`} onClick={() => setRollingOver(true)}>
+                Gia hạn
+              </button></PermissionAction>
+            )}
             <PermissionAction codes={["DEBT.DUE_DATE"]}><button type="button" className={`${btn} border-slate-200 hover:bg-slate-50`} onClick={() => setAction('changeDueDate')}>
               Đổi hạn trả
             </button></PermissionAction>
@@ -185,6 +215,7 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
                 </button></PermissionAction>
               </>
             )}
+            {!canManage && <p className="basis-full text-xs text-slate-500">Giảm hoặc hủy khoản nợ do Chủ cửa hàng thực hiện.</p>}
           </div>
         )}<div className="p-5 space-y-5">
             {entry.order?.items && entry.order.items.length > 0 && (
@@ -205,7 +236,7 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
 
             {entry.actions.length > 0 && (
               <section>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Xử lý</h4>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Lịch sử xử lý và hạn trả</h4>
                 <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 text-sm">
                   {entry.actions.map((a) => (
                     <li key={a.id} className="px-3 py-2">
@@ -217,6 +248,12 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
                         </span>
                         <span className="text-xs text-slate-500 shrink-0">{formatDayTime(a.createdAt)}</span>
                       </div>
+                      {(a.reasonCode || a.isPrePolicy) && (
+                        <div className="mt-0.5 text-xs text-slate-600">
+                          {a.reasonCode ? <>Lý do: <strong>{label(DEBT_REASON_CODE_LABEL, a.reasonCode)}</strong></> : <span className="italic text-slate-500">Trước khi áp dụng chính sách</span>}
+                        </div>
+                      )}
+                      {a.actorName && <div className="text-xs text-slate-500 mt-0.5">{a.actorName}{a.actorRole ? ` · ${roleLabel(a.actorRole)}` : ''}</div>}
                       {a.reason && <div className="text-xs text-slate-500 mt-0.5">{a.reason}</div>}
                     </li>
                   ))}
@@ -269,6 +306,10 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
             )}
           </div>
         </ModalLayout>
+      )}
+
+      {rollingOver && entry && (
+        <PermissionAction codes={["DEBT.ROLLOVER"]}><RolloverEntryModal entry={entry} onClose={() => setRollingOver(false)} onDone={updated => { setEntry(updated); setRollingOver(false); onChanged() }} /></PermissionAction>
       )}
 
       {action && specs && (

@@ -7,7 +7,7 @@ import { useToast } from '@/context/ToastContext'
 import PromptModal, { type PromptField } from '@/components/ui/PromptModal'
 import StatusBadge from '@/components/ui/StatusBadge'
 import { formatVnd } from '@/utils/money'
-import { CREDIT_STATUS_LABEL, formatDay, formatDayTime, label, useCanManage } from '@/utils/creditLabels'
+import { CREDIT_STATUS_LABEL, DUE_RULE_LABEL, formatDay, formatDayTime, label, useCanManage } from '@/utils/creditLabels'
 
 interface CreditPanelProps {
   farmerProfileId: string
@@ -32,7 +32,7 @@ function Figure({ title, value, tone }: { title: string; value: string; tone?: '
 // FLOW_3 §4.3 — open the profile, change limit/tier (Operate, reason required), activate/suspend/block (Manage).
 export default function CreditPanel({ farmerProfileId, tiers, onChanged }: CreditPanelProps) {
   const { showToast } = useToast()
-  const canManage = useCanManage(["CREDIT.CREATE", "CREDIT.UPDATE", "CREDIT.ACTIVATE", "CREDIT.SUSPEND", "CREDIT.BLOCK"])
+  const canManage = useCanManage(["CREDIT.ACTIVATE", "CREDIT.SUSPEND", "CREDIT.BLOCK"])
   const [credit, setCredit] = useState<CreditSummary | null>(null)
   const [noProfile, setNoProfile] = useState(false)
   const [history, setHistory] = useState<CreditLimitHistory[]>([])
@@ -217,6 +217,7 @@ export default function CreditPanel({ farmerProfileId, tiers, onChanged }: Credi
               </button></PermissionAction>
             )}
           </div>
+          {!canManage && <p className="text-xs text-slate-500">Kích hoạt, tạm dừng hoặc khóa tín dụng do Chủ cửa hàng thực hiện.</p>}
 
           {eligibility && (
             <div className={`rounded-lg border p-3 text-sm ${eligibility.eligible ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-rose-200 bg-rose-50 text-rose-900'}`}>
@@ -224,7 +225,14 @@ export default function CreditPanel({ farmerProfileId, tiers, onChanged }: Credi
                 Đơn {formatVnd(eligibility.orderAmount)}: {eligibility.eligible ? 'được mua chịu' : 'không được mua chịu'}
               </div>
               {eligibility.message && <div className="mt-0.5">{eligibility.message}</div>}
-              <div className="mt-1 text-xs">Còn lại sau đơn: {formatVnd(eligibility.availableCreditAfterOrder)}{eligibility.hasOverdueDebt ? ` · đang quá hạn ${formatVnd(eligibility.overdueAmount)}` : ''}</div>
+              {eligibility.expectedDueDate && (
+                <div className="mt-1 text-xs">
+                  Dự kiến trả ngày <strong>{formatDay(eligibility.expectedDueDate)}</strong>
+                  {eligibility.expectedCropSeason ? ` (vụ ${eligibility.expectedCropSeason.name})` : ''}
+                  {eligibility.dueRule ? ` · ${label(DUE_RULE_LABEL, eligibility.dueRule)}` : ''}. Đây chỉ là dự kiến; hạn thật được tính khi giao hàng.
+                </div>
+              )}
+              <div className="mt-1 text-xs">Còn lại sau đơn: {formatVnd(eligibility.availableCreditAfterOrder)}{eligibility.hasOverdueDebt ? ` · khách có nợ quá hạn ${formatVnd(eligibility.overdueAmount)} (không chặn mua chịu, vẫn chiếm hạn mức)` : ''}</div>
             </div>
           )}
 

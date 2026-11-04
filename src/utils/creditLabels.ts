@@ -46,6 +46,48 @@ export const DEBT_ACTION_LABEL: Record<string, string> = {
   CANCEL: 'Hủy khoản nợ',
 }
 
+/** Reason codes of debt actions (FE_GUIDE_FLOW_3 §5); the server sends the code, the label is ours. */
+export const DEBT_REASON_CODE_LABEL: Record<string, string> = {
+  MAT_MUA: 'Mất mùa',
+  THIEN_TAI: 'Thiên tai',
+  KHO_KHAN: 'Khó khăn gia đình',
+  TRI_AN: 'Tri ân',
+  SAI_SOT: 'Cửa hàng ghi sai',
+  KHONG_THU_HOI: 'Không thu hồi được',
+  KHAC: 'Khác',
+}
+
+/** The seven reason codes, in display order, for reduce / write-off / due-date change. The server sends the code; the label is ours. */
+export const DEBT_REASON_CODES = ['MAT_MUA', 'THIEN_TAI', 'KHO_KHAN', 'TRI_AN', 'SAI_SOT', 'KHONG_THU_HOI', 'KHAC'] as const
+
+/** The four hardship codes rollover accepts, in display order. One list so the proposed contract can change in one place. */
+export const ROLLOVER_REASON_CODES = ['MAT_MUA', 'THIEN_TAI', 'KHO_KHAN', 'KHAC'] as const
+
+export const ROLLOVER_SKIP_LABEL: Record<string, string> = {
+  NOT_FOUND: 'Không tìm thấy khoản nợ',
+  NOT_IN_SEASON: 'Không còn thu trong vụ này (đã chuyển)',
+  NOTHING_OWED: 'Đã trả hết',
+  DISPUTED: 'Đang khiếu nại, cần Chủ quyết riêng',
+  NOT_LATER: 'Hạn hiện tại không sớm hơn hạn vụ đích',
+  NEEDS_OWNER: 'Nhân viên hết lượt gia hạn, cần Chủ',
+  EXCEEDS_TOTAL_EXTENSION: 'Vượt tổng thời gian gia hạn tối đa',
+}
+
+/** How a credit order's due date is worked out (FE_GUIDE_FLOW_3 §1, dueRule). */
+export const DUE_RULE_LABEL: Record<string, string> = {
+  SEASON: 'Theo hạn trả của vụ',
+  CAPPED: 'Theo hạn trả của vụ, đã áp trần kỳ hạn của cửa hàng',
+  TERM_DAYS: 'Theo số ngày kỳ hạn của hạng tín dụng (chưa có vụ phù hợp)',
+  MANUAL: 'Chủ cửa hàng tự chọn ngày',
+  NONE: 'Khách chưa có tín dụng',
+}
+
+export const DUE_STATE_LABEL: Record<string, string> = { NOT_DUE: 'Chưa đến hạn', DUE_SOON: 'Sắp đến hạn', OVERDUE: 'Quá hạn' }
+export const DUE_STATE_OPTIONS = Object.entries(DUE_STATE_LABEL).map(([value, text]) => ({ value, label: text }))
+
+const ROLE_LABEL: Record<string, string> = { STORE_OWNER: 'Chủ cửa hàng', SALES_STAFF: 'Nhân viên bán hàng', DELIVERY_STAFF: 'Nhân viên giao hàng', ADMIN: 'Quản trị viên', FARMER: 'Nông dân' }
+export const roleLabel = (role: string | null | undefined) => (role ? ROLE_LABEL[role] ?? role : '')
+
 export const PAYMENT_STATUS_LABEL: Record<string, string> = {
   PENDING: 'Chờ xác nhận',
   PAID: 'Đã xác nhận',
