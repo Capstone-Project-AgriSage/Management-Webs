@@ -80,6 +80,19 @@ export interface DebtEntryListItem extends DebtEntrySeasonFields {
 
 export type DebtReasonCode = 'MAT_MUA' | 'THIEN_TAI' | 'KHO_KHAN' | 'TRI_AN' | 'SAI_SOT' | 'KHONG_THU_HOI' | 'KHAC'
 
+/** Rollover accepts only the four hardship codes; the other three are for reduce, write-off and due-date changes. */
+export type RolloverReasonCode = 'MAT_MUA' | 'THIEN_TAI' | 'KHO_KHAN' | 'KHAC'
+
+export interface RolloverRequest {
+  reasonCode: RolloverReasonCode
+  /** Required. */
+  note: string
+  /** Omit to let the server pick the next open season whose due date is later than the entry's. */
+  targetCropSeasonId?: string
+  /** Owner only: go past the policy's total extension limit. */
+  overrideExtensionLimit?: boolean
+}
+
 export interface DebtAction {
   id: string
   actionType: 'DISPUTE' | 'KEEP' | 'CHANGE_DUE_DATE' | 'ADJUST' | 'CANCEL' | string
@@ -246,6 +259,9 @@ export const debtApi = {
   keep: (id: string, reason: string) => post<DebtEntry>(`${entry(id)}/keep`, { reason }),
   /** The new date cannot be in the past. */
   changeDueDate: (id: string, newDueDate: string, reason: string) => post<DebtEntry>(`${entry(id)}/change-due-date`, { newDueDate, reason }),
+  /** Staff once (DEBT.ROLLOVER), the owner without limit. 403 = staff out of rollovers, 422 = rule broken (e.g. total extension). */
+  rollover: (id: string, data: RolloverRequest) => post<DebtEntry>(`${entry(id)}/rollover`, data),
+
   /** Manage: amount > 0 is the amount to REDUCE (≤ outstanding). */
   adjust: (id: string, amount: number, reason: string) => post<DebtEntry>(`${entry(id)}/adjust`, { amount, reason }),
   /** Manage: writes off the full outstanding. */

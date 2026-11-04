@@ -15,6 +15,8 @@ import { describeApiError } from '@/utils/apiError'
 import { formatDay, useCanManage } from '@/utils/creditLabels'
 import { formatVnd } from '@/utils/money'
 import CropSeasonFormModal, { type SeasonFormResult } from './CropSeasonFormModal'
+import { SeasonRolloverModal } from '@/features/debts/RolloverModals'
+import { usePermission } from '@/context/PermissionContext'
 import { SEASON_STATUS, findWindowIssues, suggestedWindowStart } from './seasonRules'
 
 // Seasons are few (about three a year), so the page loads them all: the gap/overlap check needs every season anyway.
@@ -39,6 +41,9 @@ export default function CropSeasonsPage() {
     subtitle: canManage ? 'Lịch vụ của cửa hàng: khoảng nhận đơn mua chịu, ngày thu hoạch và hạn trả nợ' : 'Lịch vụ và hạn trả nợ của cửa hàng',
   })
   const { showToast } = useToast()
+  const canRollover = usePermission().has('DEBT.ROLLOVER')
+  const showActions = canManage || canRollover
+  const [rolling, setRolling] = useState<CropSeason | null>(null)
 
   const [seasons, setSeasons] = useState<CropSeason[] | null>(null)
   const [loading, setLoading] = useState(true)
@@ -118,7 +123,7 @@ Số liệu của vụ sẽ được chốt để báo cáo, không sửa và kh
     }
   }
 
-  const columns = canManage ? 8 : 7
+  const columns = showActions ? 8 : 7
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
@@ -186,7 +191,7 @@ Số liệu của vụ sẽ được chốt để báo cáo, không sửa và kh
                 <th className="py-3 px-3" scope="col">Hạn trả</th>
                 <th className="py-3 px-3 text-right" scope="col">Còn nợ</th>
                 <th className="py-3 px-3 text-center" scope="col">Trạng thái</th>
-                {canManage && <th className="py-3 px-4 text-right" scope="col">Thao tác</th>}
+                {showActions && <th className="py-3 px-4 text-right" scope="col">Thao tác</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 text-sm text-slate-900">
@@ -219,8 +224,9 @@ Số liệu của vụ sẽ được chốt để báo cáo, không sửa và kh
                       <td className="py-3.5 px-3 text-center">
                         <StatusBadge label={SEASON_STATUS[season.status]?.label ?? season.status} className={SEASON_STATUS[season.status]?.className} />
                       </td>
-                      {canManage && (
+                      {showActions && (
                         <td className="py-3.5 px-4 text-right whitespace-nowrap"><RowActionsMenu disabled={saving} triggerLabel={`Thao tác vụ ${season.name}`} actions={closed ? [] : [
+                            ...(season.collecting.openEntryCount > 0 ? [{ label: 'Gia hạn nợ cả vụ', icon: 'event_repeat', permissionCodes: ['DEBT.ROLLOVER'], onClick: () => setRolling(season) }] : []),
                             { label: 'Sửa vụ', icon: 'edit', permissionCodes: ['CROP_SEASONS.MANAGE'], onClick: () => setForm({ season }) },
                             ...(['COLLECTING', 'HARVESTING'].includes(season.status) ? [{ label: 'Đóng vụ', icon: 'lock', permissionCodes: ['CROP_SEASONS.MANAGE'], title: 'Kiểm tra điều kiện rồi đóng vụ', onClick: () => { void close(season) } }] : []),
                           ]} /></td>
@@ -233,6 +239,8 @@ Số liệu của vụ sẽ được chốt để báo cáo, không sửa và kh
           </table>
         </div>
       </div>
+
+      {rolling && <SeasonRolloverModal season={rolling} onClose={() => setRolling(null)} onDone={() => { setRolling(null); void load() }} />}
 
       <CropSeasonFormModal
         open={form !== null}

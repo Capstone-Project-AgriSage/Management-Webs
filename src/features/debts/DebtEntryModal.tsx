@@ -1,5 +1,6 @@
 import PermissionAction from '@/components/auth/PermissionAction'
 import { DueStateBadge, EntryFlags, OriginalDue } from './DebtSeasonBits'
+import { RolloverEntryModal } from './RolloverModals'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useEffect, useState } from 'react'
 import DetailModal from '@/components/ui/DetailModal'
@@ -41,6 +42,7 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
   const [entry, setEntry] = useState<DebtEntry | null>(null)
   const [action, setAction] = useState<Action | null>(null)
   const [busy, setBusy] = useState(false)
+  const [rollingOver, setRollingOver] = useState(false)
 
   const load = async (id: string) => {
     try {
@@ -182,6 +184,11 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
                 Giữ nguyên
               </button></PermissionAction>
             )}
+            {!disputed && entry.outstandingAmount > 0 && (
+              <PermissionAction codes={["DEBT.ROLLOVER"]}><button type="button" className={`${btn} border-sky-300 text-sky-800 hover:bg-sky-50`} onClick={() => setRollingOver(true)}>
+                Gia hạn
+              </button></PermissionAction>
+            )}
             <PermissionAction codes={["DEBT.DUE_DATE"]}><button type="button" className={`${btn} border-slate-200 hover:bg-slate-50`} onClick={() => setAction('changeDueDate')}>
               Đổi hạn trả
             </button></PermissionAction>
@@ -286,6 +293,10 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
             )}
           </div>
         </ModalLayout>
+      )}
+
+      {rollingOver && entry && (
+        <PermissionAction codes={["DEBT.ROLLOVER"]}><RolloverEntryModal entry={entry} onClose={() => setRollingOver(false)} onDone={updated => { setEntry(updated); setRollingOver(false); onChanged() }} /></PermissionAction>
       )}
 
       {action && specs && (

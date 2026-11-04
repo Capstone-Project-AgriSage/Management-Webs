@@ -1,5 +1,6 @@
 import { api, toQuery } from './client'
 import type { Uuid, Paged } from './types'
+import type { RolloverReasonCode } from './debtApi'
 
 // Debt by crop season (FE_GUIDE_FLOW_3 §4.1, §10). Dates are Vietnam days (yyyy-MM-dd); instants are UTC.
 
@@ -75,6 +76,28 @@ export interface ClosingCheck {
   openCreditOrders: { orderId: Uuid; orderNumber: string; status: string }[]
 }
 
+export type RolloverSkipReason = 'NOT_FOUND' | 'NOT_IN_SEASON' | 'NOTHING_OWED' | 'DISPUTED' | 'NOT_LATER' | 'NEEDS_OWNER' | 'EXCEEDS_TOTAL_EXTENSION'
+
+export interface SeasonRolloverRequest {
+  reasonCode: RolloverReasonCode
+  note: string
+  targetCropSeasonId?: string
+  /** At most 500; omit for every open entry collected in the season. */
+  entryIds?: Uuid[]
+  /** true reports the result and writes nothing; the real run is checked again and can differ. */
+  dryRun?: boolean
+  overrideExtensionLimit?: boolean
+}
+
+export interface SeasonRolloverResponse {
+  sourceSeasonId: Uuid
+  targetSeason: { id: Uuid; code: string; name: string }
+  newDueDate: string
+  dryRun: boolean
+  rolledOver: { entryId: Uuid; entryNumber: string; farmerProfileId: Uuid; oldDueDate: string; newDueDate: string; outstandingAmount: number }[]
+  skipped: { entryId: Uuid; entryNumber: string | null; reason: RolloverSkipReason }[]
+}
+
 export const cropSeasonsApi = {
   // The server caps pageSize at 100; a store has a handful of seasons a year.
   getSeasons: (params: { status?: string; year?: number; page?: number; pageSize?: number } = {}) =>
@@ -87,6 +110,10 @@ export const cropSeasonsApi = {
 
   update: (id: Uuid, data: CropSeasonUpdateRequest) =>
     api<CropSeason>(`/api/crop-seasons/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  /** `id` is the season the debt is being collected in. */
+  rolloverDebt: (id: Uuid, data: SeasonRolloverRequest) =>
+    api<SeasonRolloverResponse>(`/api/crop-seasons/${id}/debt/rollover`, { method: 'POST', body: JSON.stringify(data) }),
 
   getClosingCheck: (id: Uuid) => api<ClosingCheck>(`/api/crop-seasons/${id}/closing-check`),
 

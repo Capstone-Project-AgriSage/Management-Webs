@@ -57,6 +57,19 @@ export const DEBT_REASON_CODE_LABEL: Record<string, string> = {
   KHAC: 'Khác',
 }
 
+/** The four hardship codes rollover accepts, in display order. One list so the proposed contract can change in one place. */
+export const ROLLOVER_REASON_CODES = ['MAT_MUA', 'THIEN_TAI', 'KHO_KHAN', 'KHAC'] as const
+
+export const ROLLOVER_SKIP_LABEL: Record<string, string> = {
+  NOT_FOUND: 'Không tìm thấy khoản nợ',
+  NOT_IN_SEASON: 'Không còn thu trong vụ này (đã chuyển)',
+  NOTHING_OWED: 'Đã trả hết',
+  DISPUTED: 'Đang khiếu nại, cần Chủ quyết riêng',
+  NOT_LATER: 'Hạn hiện tại không sớm hơn hạn vụ đích',
+  NEEDS_OWNER: 'Nhân viên hết lượt gia hạn, cần Chủ',
+  EXCEEDS_TOTAL_EXTENSION: 'Vượt tổng thời gian gia hạn tối đa',
+}
+
 export const DUE_STATE_LABEL: Record<string, string> = { NOT_DUE: 'Chưa đến hạn', DUE_SOON: 'Sắp đến hạn', OVERDUE: 'Quá hạn' }
 export const DUE_STATE_OPTIONS = Object.entries(DUE_STATE_LABEL).map(([value, text]) => ({ value, label: text }))
 
