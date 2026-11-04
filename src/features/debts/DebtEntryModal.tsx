@@ -173,6 +173,13 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
               </div>
             ))}
           </div>
+          {/* Returns, reductions and write-offs lower the balance without being payments; say so, or the three figures above do not add up. */}
+          {entry.originalAmount - entry.totalPaid - entry.outstandingAmount > 0 && (
+            <p className="text-xs text-slate-600">
+              Đã giảm trừ không qua thanh toán (trả hàng, điều chỉnh, xóa nợ):{' '}
+              <strong className="text-slate-800 tabular-nums">{formatVnd(entry.originalAmount - entry.totalPaid - entry.outstandingAmount)}</strong>
+            </p>
+          )}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
             <span><span className="text-slate-500">Vụ phát sinh: </span><strong className="text-slate-800">{entry.originSeason?.name ?? 'Theo hạng tín dụng'}</strong></span>
             <span><span className="text-slate-500">Vụ đang thu: </span><strong className="text-slate-800">{entry.collectionSeason?.name ?? 'Theo hạng tín dụng'}</strong></span>
