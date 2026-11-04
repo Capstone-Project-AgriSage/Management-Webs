@@ -57,6 +57,9 @@ export const DEBT_REASON_CODE_LABEL: Record<string, string> = {
   KHAC: 'Khác',
 }
 
+/** The seven reason codes, in display order, for reduce / write-off / due-date change. The server sends the code; the label is ours. */
+export const DEBT_REASON_CODES = ['MAT_MUA', 'THIEN_TAI', 'KHO_KHAN', 'TRI_AN', 'SAI_SOT', 'KHONG_THU_HOI', 'KHAC'] as const
+
 /** The four hardship codes rollover accepts, in display order. One list so the proposed contract can change in one place. */
 export const ROLLOVER_REASON_CODES = ['MAT_MUA', 'THIEN_TAI', 'KHO_KHAN', 'KHAC'] as const
 

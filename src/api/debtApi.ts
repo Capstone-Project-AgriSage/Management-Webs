@@ -258,16 +258,19 @@ export const debtApi = {
   dispute: (id: string, reason: string) => post<DebtEntry>(`${entry(id)}/dispute`, { reason }),
   keep: (id: string, reason: string) => post<DebtEntry>(`${entry(id)}/keep`, { reason }),
   /** The new date cannot be in the past. */
-  changeDueDate: (id: string, newDueDate: string, reason: string) => post<DebtEntry>(`${entry(id)}/change-due-date`, { newDueDate, reason }),
+  changeDueDate: (id: string, newDueDate: string, reason: string, reasonCode?: DebtReasonCode) =>
+    post<DebtEntry>(`${entry(id)}/change-due-date`, { newDueDate, reason, ...(reasonCode ? { reasonCode } : {}) }),
   /** Staff once (DEBT.ROLLOVER), the owner without limit. 403 = staff out of rollovers, 422 = rule broken (e.g. total extension). */
   rollover: (id: string, data: RolloverRequest) => post<DebtEntry>(`${entry(id)}/rollover`, data),
 
   /** Manage: amount > 0 is the amount to REDUCE (≤ outstanding). */
-  adjust: (id: string, amount: number, reason: string) => post<DebtEntry>(`${entry(id)}/adjust`, { amount, reason }),
+  adjust: (id: string, amount: number, reason: string, reasonCode?: DebtReasonCode) =>
+    post<DebtEntry>(`${entry(id)}/adjust`, { amount, reason, ...(reasonCode ? { reasonCode } : {}) }),
   /** Manage: writes off the full outstanding. */
-  cancel: (id: string, reason: string) => post<DebtEntry>(`${entry(id)}/cancel`, { reason }),
+  cancel: (id: string, reason: string, reasonCode?: DebtReasonCode) => post<DebtEntry>(`${entry(id)}/cancel`, { reason, ...(reasonCode ? { reasonCode } : {}) }),
   /** Manage: the only way to increase receivable by hand. */
-  createManualEntry: (farmerProfileId: string, data: { amount: number; dueDate: string; reason: string }) =>
+  /** With cropSeasonId the debt belongs to that season and dueDate may be left out (it takes the season's due date); without a season dueDate is required. */
+  createManualEntry: (farmerProfileId: string, data: { amount: number; dueDate?: string; reason: string; cropSeasonId?: string }) =>
     post<DebtEntry>(`/api/customers/${farmerProfileId}/debt/manual-entries`, data),
 
   /** Manage. */

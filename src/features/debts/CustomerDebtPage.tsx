@@ -2,6 +2,7 @@ import { useDetailBusy } from '@/hooks/useDetailBusy'
 import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import PermissionAction from '@/components/auth/PermissionAction'
 import { useEffect, useState } from 'react';
+import { cropSeasonsApi, type CropSeason } from '@/api/cropSeasonsApi';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Banknote, Landmark, FilePlus2 } from 'lucide-react';
 import { usePageHeader } from '@/context/PageHeaderContext';
@@ -45,6 +46,8 @@ export default function CustomerDebtPage() {
   const [account, setAccount] = useState<DebtAccount | null>(null)
   const [noAccount, setNoAccount] = useState(false)
   const [tab, setTab] = useState<Tab>('entries')
+  // Seasons a manual debt can be put in (not closed); only loaded when the owner opens the manual-entry dialog.
+  const [seasons, setSeasons] = useState<CropSeason[]>([])
   const [entries, setEntries] = useState<PagedResult<DebtEntryListItem> | null>(null)
   const [openEntries, setOpenEntries] = useState<DebtEntryListItem[]>([])
   const [ledger, setLedger] = useState<PagedResult<DebtTransaction> | null>(null)
@@ -60,6 +63,13 @@ export default function CustomerDebtPage() {
     const permission = modal === 'cash' ? 'PAYMENTS.RECEIVE_CASH' : modal === 'bank' ? 'BANK_PAYMENTS.RECORD' : 'DEBT.MANUAL'
     if (modal && !has(permission)) setModal(null)
   }, [has, modal])
+
+  useEffect(() => {
+    if (modal !== 'manual') return
+    let active = true
+    cropSeasonsApi.getSeasons({ pageSize: 100 }).then((r) => { if (active) setSeasons(r.items.filter((s) => s.status !== 'CLOSED')) }).catch(() => { if (active) setSeasons([]) })
+    return () => { active = false }
+  }, [modal])
 
   usePageHeader({ title: customer ? `Công nợ — ${customer.fullName}` : 'Công nợ khách hàng', subtitle: 'Khoản nợ, sổ cái và thu nợ' })
 
@@ -319,12 +329,16 @@ export default function CustomerDebtPage() {
           description="Cách duy nhất để tăng nợ bằng tay (ví dụ nợ cũ chuyển sang hệ thống). Được ghi vào nhật ký."
           fields={[
             { key: 'amount', label: 'Số tiền (đ)', type: 'number', required: true, min: '1' },
-            { key: 'dueDate', label: 'Hạn trả', type: 'date', required: true, min: todayVn() },
+            { key: 'cropSeasonId', label: 'Vụ mùa (không bắt buộc)', type: 'select', options: seasons.map((s) => ({ value: s.id, label: `${s.name} — hạn trả ${formatDay(s.paymentDueDate)}` })), hint: 'Chọn vụ thì khoản nợ thuộc vụ đó và có thể bỏ trống hạn trả (lấy hạn của vụ).' },
+            { key: 'dueDate', label: 'Hạn trả', type: 'date', min: todayVn(), hint: 'Bắt buộc nếu không chọn vụ.' },
             { key: 'reason', label: 'Lý do', type: 'textarea', required: true },
           ]}
           submitLabel="Ghi nợ"
           onClose={() => setModal(null)}
-          onSubmit={(v) => run(() => debtApi.createManualEntry(id, { amount: Number(v.amount), dueDate: v.dueDate, reason: v.reason.trim() }), 'Đã ghi khoản nợ thủ công')}
+          onSubmit={(v) => {
+            if (!v.cropSeasonId && !v.dueDate) return showToast('Chọn vụ mùa hoặc nhập hạn trả.', 'error')
+            return run(() => debtApi.createManualEntry(id, { amount: Number(v.amount), reason: v.reason.trim(), ...(v.cropSeasonId ? { cropSeasonId: v.cropSeasonId } : {}), ...(v.dueDate ? { dueDate: v.dueDate } : {}) }), 'Đã ghi khoản nợ thủ công')
+          }}
         /></PermissionAction>
       )}
     </div>
