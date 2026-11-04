@@ -39,6 +39,20 @@ export interface DeliveryReportResponse {
   }
 }
 
+/** Debt by season (FE_GUIDE_FLOW_3 §4.7). origin = debt born in the season; collection = debt collected in it now. */
+export interface DebtBySeasonItem {
+  season: { id: string; code: string; name: string }
+  harvestStart: string
+  paymentDueDate: string
+  status: 'PLANNED' | 'OPEN' | 'HARVESTING' | 'COLLECTING' | 'CLOSED'
+  closedAt: string | null
+  /** A closed season shows the figures recorded when it closed. */
+  isFrozen: boolean
+  /** originated - collected - returned - reduced - cancelled = outstanding; carriedOver is the part now collected in a later season. */
+  origin: { originatedAmount: number; collectedAmount: number; returnedAmount: number; reducedAmount: number; cancelledAmount: number; carriedOverAmount: number; outstandingAmount: number; entryCount: number; customerCount: number }
+  collection: { carriedInAmount: number; toCollectAmount: number; openEntryCount: number }
+}
+
 export const reportsApi = {
   getDeliveryReports: (params: { fromDate: string; toDate: string; groupBy?: 'STAFF' | 'DAY' }, signal?: AbortSignal) => {
     const searchParams = new URLSearchParams()
@@ -50,6 +64,8 @@ export const reportsApi = {
   },
 
   /** FLOW_3 §8 (Manage): asOf = Vietnam day, default today. */
+  getDebtBySeason: (params: { year?: number; page?: number; pageSize?: number } = {}, signal?: AbortSignal) =>
+    api<{ items: DebtBySeasonItem[]; page: number; pageSize: number; totalCount: number; totalPages: number }>(`/api/reports/debt-by-season${toQuery(params)}`, { signal }),
   getDebtAging: (params: { asOf?: string; customerGroupId?: string } = {}, signal?: AbortSignal) =>
     api<DebtAgingReport>(`/api/reports/debt-aging${toQuery({ asOf: params.asOf, customerGroupId: params.customerGroupId })}`, { signal }),
 

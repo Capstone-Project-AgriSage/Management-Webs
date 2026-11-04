@@ -9,26 +9,20 @@ import StatusBadge from '@/components/ui/StatusBadge'
 import ListReportCards from '@/features/agent/reports/ListReportCards'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { useToast } from '@/context/ToastContext'
-import { cropSeasonsApi, type ClosingBlocker, type CropSeason } from '@/api/cropSeasonsApi'
-import { ApiError } from '@/api/client'
+import { cropSeasonsApi, type CropSeason } from '@/api/cropSeasonsApi'
 import { describeApiError } from '@/utils/apiError'
 import { formatDay, useCanManage } from '@/utils/creditLabels'
 import { formatVnd } from '@/utils/money'
 import CropSeasonFormModal, { type SeasonFormResult } from './CropSeasonFormModal'
 import { SeasonRolloverModal } from '@/features/debts/RolloverModals'
+import SeasonCloseModal from './SeasonCloseModal'
+import LimitSuggestionsModal from './LimitSuggestionsModal'
 import { usePermission } from '@/context/PermissionContext'
 import { SEASON_STATUS, findWindowIssues, suggestedWindowStart } from './seasonRules'
 
 // Seasons are few (about three a year), so the page loads them all: the gap/overlap check needs every season anyway.
 const ALL = 100
 
-
-const CLOSING_BLOCKER: Record<ClosingBlocker, (n: { entries: number; orders: number }) => string> = {
-  ALREADY_CLOSED: () => 'vụ đã đóng',
-  HARVEST_NOT_ENDED: () => 'vụ chưa hết thu hoạch',
-  OPEN_ENTRIES: (n) => `còn ${n.entries} khoản nợ đang thu`,
-  OPEN_CREDIT_ORDERS: (n) => `còn ${n.orders} đơn chịu chưa xong`,
-}
 
 type FormState = { season: CropSeason | null } | null
 
@@ -42,7 +36,10 @@ export default function CropSeasonsPage() {
   })
   const { showToast } = useToast()
   const canRollover = usePermission().has('DEBT.ROLLOVER')
-  const showActions = canManage || canRollover
+  const canReadDebtDashboard = usePermission().has('DEBT.READ_DASHBOARD')
+  const showActions = canManage || canRollover || canReadDebtDashboard
+  const [closing, setClosing] = useState<CropSeason | null>(null)
+  const [suggesting, setSuggesting] = useState<CropSeason | null>(null)
   const [rolling, setRolling] = useState<CropSeason | null>(null)
 
   const [seasons, setSeasons] = useState<CropSeason[] | null>(null)
@@ -97,27 +94,6 @@ export default function CropSeasonsPage() {
       await load()
     } catch (err) {
       showToast(describeApiError(err), 'error')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const close = async (season: CropSeason) => {
-    setSaving(true)
-    try {
-      const check = await cropSeasonsApi.getClosingCheck(season.id)
-      if (!check.canClose) {
-        showToast(`Chưa đóng được vụ ${season.name}: ${check.reasons.map((r) => CLOSING_BLOCKER[r]({ entries: check.openEntryCount, orders: check.openCreditOrderCount })).join('; ')}`, 'error')
-        return
-      }
-      if (!window.confirm(`Đóng vụ ${season.name}?
-Số liệu của vụ sẽ được chốt để báo cáo, không sửa và không mở lại được.`)) return
-      await cropSeasonsApi.close(season.id, season.version)
-      showToast(`Đã đóng vụ ${season.name}`, 'success')
-      await load()
-    } catch (err) {
-      showToast(describeApiError(err), 'error')
-      if (err instanceof ApiError && err.status === 409) await load()
     } finally {
       setSaving(false)
     }
@@ -225,10 +201,10 @@ Số liệu của vụ sẽ được chốt để báo cáo, không sửa và kh
                         <StatusBadge label={SEASON_STATUS[season.status]?.label ?? season.status} className={SEASON_STATUS[season.status]?.className} />
                       </td>
                       {showActions && (
-                        <td className="py-3.5 px-4 text-right whitespace-nowrap"><RowActionsMenu disabled={saving} triggerLabel={`Thao tác vụ ${season.name}`} actions={closed ? [] : [
+                        <td className="py-3.5 px-4 text-right whitespace-nowrap"><RowActionsMenu disabled={saving} triggerLabel={`Thao tác vụ ${season.name}`} actions={closed ? [{ label: 'Gợi ý tăng hạn mức', icon: 'trending_up', permissionCodes: ['DEBT.READ_DASHBOARD'], onClick: () => setSuggesting(season) }] : [
                             ...(season.collecting.openEntryCount > 0 ? [{ label: 'Gia hạn nợ cả vụ', icon: 'event_repeat', permissionCodes: ['DEBT.ROLLOVER'], onClick: () => setRolling(season) }] : []),
                             { label: 'Sửa vụ', icon: 'edit', permissionCodes: ['CROP_SEASONS.MANAGE'], onClick: () => setForm({ season }) },
-                            ...(['COLLECTING', 'HARVESTING'].includes(season.status) ? [{ label: 'Đóng vụ', icon: 'lock', permissionCodes: ['CROP_SEASONS.MANAGE'], title: 'Kiểm tra điều kiện rồi đóng vụ', onClick: () => { void close(season) } }] : []),
+                            ...(['COLLECTING', 'HARVESTING'].includes(season.status) ? [{ label: 'Đóng vụ', icon: 'lock', permissionCodes: ['CROP_SEASONS.MANAGE'], title: 'Kiểm tra điều kiện rồi đóng vụ', onClick: () => setClosing(season) }] : []),
                           ]} /></td>
                       )}
                     </tr>
@@ -240,6 +216,8 @@ Số liệu của vụ sẽ được chốt để báo cáo, không sửa và kh
         </div>
       </div>
 
+      {closing && <SeasonCloseModal season={closing} onClose={() => setClosing(null)} onDone={() => { setClosing(null); void load() }} />}
+      {suggesting && <LimitSuggestionsModal season={suggesting} onClose={() => setSuggesting(null)} />}
       {rolling && <SeasonRolloverModal season={rolling} onClose={() => setRolling(null)} onDone={() => { setRolling(null); void load() }} />}
 
       <CropSeasonFormModal

@@ -76,6 +76,15 @@ export interface ClosingCheck {
   openCreditOrders: { orderId: Uuid; orderNumber: string; status: string }[]
 }
 
+export interface LimitSuggestions {
+  seasonId: Uuid
+  /** How many closed seasons in a row a customer must have paid on time (policy: onTimeSeasonsForLimitRaise). */
+  requiredSeasons: number
+  /** The seasons that were checked; empty when there are not enough closed seasons in a row. */
+  seasons: { id: Uuid; code: string; name: string }[]
+  items: { farmerProfileId: Uuid; fullName: string; phoneNumber: string | null; creditLimit: number; creditStatus: string; paidAmount: number; lastPaidOn: string }[]
+}
+
 export type RolloverSkipReason = 'NOT_FOUND' | 'NOT_IN_SEASON' | 'NOTHING_OWED' | 'DISPUTED' | 'NOT_LATER' | 'NEEDS_OWNER' | 'EXCEEDS_TOTAL_EXTENSION'
 
 export interface SeasonRolloverRequest {
@@ -114,6 +123,9 @@ export const cropSeasonsApi = {
   /** `id` is the season the debt is being collected in. */
   rolloverDebt: (id: Uuid, data: SeasonRolloverRequest) =>
     api<SeasonRolloverResponse>(`/api/crop-seasons/${id}/debt/rollover`, { method: 'POST', body: JSON.stringify(data) }),
+
+  /** 422 unless the season is closed. Read only: nothing is changed by the server. */
+  getLimitSuggestions: (id: Uuid) => api<LimitSuggestions>(`/api/crop-seasons/${id}/limit-suggestions`),
 
   getClosingCheck: (id: Uuid) => api<ClosingCheck>(`/api/crop-seasons/${id}/closing-check`),
 
