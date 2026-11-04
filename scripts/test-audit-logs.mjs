@@ -75,7 +75,7 @@ async function fixture({ count = 31, viewport = { width: 1440, height: 1000 }, r
       const page = Number(query.page);
       const pageSize = Number(query.pagesize);
       assert(Number.isInteger(page) && page >= 1);
-      assert([15, 100].includes(pageSize), 'viewer and export use bounded server pagination');
+      assert([10, 100].includes(pageSize), 'viewer and export use bounded server pagination');
       const matching = state.records.filter((entry) =>
         (role !== 'STORE_OWNER' || entry.storeId === storeId) &&
         (!query.actorrole || entry.actorRole === query.actorrole) &&
@@ -120,7 +120,7 @@ async function fixture({ count = 31, viewport = { width: 1440, height: 1000 }, r
   return { context, page, state, errors };
 }
 
-const listRequests = (state, pageSize = 15) => state.requests.filter((entry) => entry.path === '/api/audit-logs' && entry.query.pagesize === String(pageSize));
+const listRequests = (state, pageSize = 10) => state.requests.filter((entry) => entry.path === '/api/audit-logs' && entry.query.pagesize === String(pageSize));
 const lastList = (state) => listRequests(state).at(-1).query;
 async function submit(page, state) {
   const response = page.waitForResponse((res) => new URL(res.url()).pathname === '/api/audit-logs');
@@ -160,9 +160,9 @@ try {
     fs.mkdirSync(process.env.AUDIT_SCREENSHOT_DIR, { recursive: true });
     await page.screenshot({ path: path.join(process.env.AUDIT_SCREENSHOT_DIR, 'audit-logs-desktop.png') });
   }
-  assert.equal(await rows(page).count(), 15);
+  assert.equal(await rows(page).count(), 10);
   assert.equal(lastList(state).page, '1');
-  assert.equal(lastList(state).pagesize, '15');
+  assert.equal(lastList(state).pagesize, '10');
   const defaultQuery = lastList(state);
   assert(defaultQuery.from && defaultQuery.to);
   assert(Math.abs(Date.parse(defaultQuery.to) - Date.parse(defaultQuery.from) - 7 * 86_400_000) < 1000);
@@ -174,7 +174,7 @@ try {
   passed('authenticated real API fields, seven-day snapshot, and server page size');
 
   await button(page, 'Sau').click();
-  await row(page, 15).waitFor();
+  await row(page, 10).waitFor();
   assert.equal(lastList(state).page, '2');
   assert.equal(lastList(state).from, defaultQuery.from);
   assert.equal(lastList(state).to, defaultQuery.to);
@@ -185,7 +185,7 @@ try {
   passed('next and previous pages are requested from the server with stable dates');
 
   await button(page, 'Sau').click();
-  await row(page, 15).waitFor();
+  await row(page, 10).waitFor();
   await page.getByLabel('Hành động', { exact: true }).fill('  ORDER_CONFIRMED  ');
   await page.getByLabel('Loại tài nguyên', { exact: true }).fill(' ORDER ');
   await page.getByLabel('ID người thực hiện', { exact: true }).fill(actorId);
@@ -322,7 +322,7 @@ try {
   await button(csv.page, 'Xuất CSV').click();
   await csv.page.getByText('Lỗi trang xuất CSV kiểm thử.', { exact: true }).waitFor();
   assert.equal(downloads.length, 0, 'a failed page must not create a partial CSV');
-  assert.equal(await rows(csv.page).count(), 15);
+  assert.equal(await rows(csv.page).count(), 10);
   assert.equal(await button(csv.page, 'Xuất CSV').isDisabled(), false);
   assert.deepEqual(csv.errors, []);
   await csv.context.close();

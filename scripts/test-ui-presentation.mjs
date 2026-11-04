@@ -145,11 +145,11 @@ try {
   for (const width of [1440, 1024, 768, 375]) {
     const f = await fixture({ width, height: width < 768 ? 812 : 900, pathname: '/agent/farmers', codes: ['CUSTOMERS.READ', 'CUSTOMERS.CREATE'] })
     const { page } = f
-    await page.getByRole('cell', { name: /Khách hàng kiểm thử Nguyễn Văn An/ }).waitFor()
+    await page.getByRole('cell', { name: /^Khách hàng kiểm thử Nguyễn Văn An/ }).waitFor()
     await noOverflow(page, 'customer list at ' + width)
     await screenshot(page, 'customers-list-' + width)
     const table = page.getByRole('table')
-    assert.equal(await table.getByRole('columnheader').count(), 6)
+    assert.equal(await table.getByRole('columnheader').count(), 7) // six data columns plus the right-aligned "Thao tác" menu column
     const scroller = table.locator('..')
     const scroll = await scroller.evaluate(element => ({ width: element.clientWidth, scroll: element.scrollWidth, overflow: getComputedStyle(element).overflowX }))
     if (width < 1024) assert(scroll.scroll > scroll.width && ['auto', 'scroll'].includes(scroll.overflow), 'wide table must scroll inside its container')

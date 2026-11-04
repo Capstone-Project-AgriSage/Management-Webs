@@ -22,7 +22,7 @@ const cases = [
 ]
 let checks = 0
 const pass = name => { checks++; console.log('PASS ' + name) }
-const metricValue = (region, label) => region.getByRole('heading', { name: label, exact: true }).locator('..').locator('p').first()
+const metricValue = (region, label) => region.getByRole('heading', { name: label, exact: true }).locator('..').locator('.agrisage-kpi-value span').first()
 async function fixture(test, mode = 'normal', viewport = { width: 1440, height: 950 }) {
   const context = await browser.newContext({ viewport })
   await context.addInitScript(() => localStorage.setItem('agrisage_token', 'list-report-test'))

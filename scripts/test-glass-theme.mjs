@@ -30,6 +30,8 @@ async function session(width = 1440, authenticated = true) {
     if (!path.startsWith('/api/')) return route.continue()
     state.requests.push({ path, method: request.method(), query: Object.fromEntries(url.searchParams) })
     const json = body => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) }).catch(() => {})
+    // SignalR negotiation is a POST made by the app shell on every page; it is not a store write, so refuse it quietly.
+    if (path === '/api/realtime/negotiate') return route.abort()
     if (request.method() !== 'GET') { state.unknown.push(`${request.method()} ${path}`); return route.abort() }
     if (path === '/api/auth/me') return json({ id: 'owner', fullName: 'Triệu Phú Thịnh', role: 'STORE_OWNER', status: 'ACTIVE' })
     if (path === '/api/me/permissions') return json({ permissions })
