@@ -1,4 +1,5 @@
 import { api, toQuery } from './client'
+import { lookupCache } from './lookupCache'
 import type { Paged, CatalogProduct, CatalogProductDetail, CatalogCategory } from './types'
 
 /** Store product as the owner manages it (any sellable state), with the catalog product id needed for its packagings. */
@@ -32,7 +33,8 @@ export const catalogApi = {
     api<Paged<StoreProductRef>>(`/api/store-products${toQuery({ isActive: true, ...params })}`),
 
   getProductPackagings: (productId: string) =>
-    api<{ id: string; packagings: ProductPackagingRef[] }>(`/api/products/${productId}`).then((p) => p.packagings ?? []),
+    lookupCache.get(`packagings:${productId}`, () =>
+      api<{ id: string; packagings: ProductPackagingRef[] }>(`/api/products/${productId}`).then((p) => p.packagings ?? [])),
 
   getCategories: () => {
     return api<CatalogCategory[]>('/api/catalog/categories')

@@ -5,7 +5,7 @@ import {
   ArrowDownRight, ArrowUpRight, Banknote, CircleDollarSign, Clock, Coins, Globe, Landmark, Minus, PackageCheck, QrCode, Receipt,
   ShieldCheck, Smartphone, Store, TriangleAlert, Undo2, Wallet, type LucideIcon,
 } from 'lucide-react'
-import { businessReportsApi, type OrderMetrics, type PaymentMetrics, type PaymentTotals, type PeriodReport, type RevenueReport, type RevenueSummary } from '@/api/businessReportsApi'
+import { businessReportsApi, type OrderMetrics, type PaymentMetrics, type PaymentTotals, type PeriodReport, type RevenueReport, type RevenueSummary, type SalesMetrics } from '@/api/businessReportsApi'
 import { reportsApi, type DebtAgingReport, type DebtByGroupReport } from '@/api/reportsApi'
 import { useReportData } from '@/features/agent/reports/useReportData'
 import { periodProblem } from '@/features/agent/reports/reportFilters'
@@ -110,13 +110,18 @@ function Body<T>({ state, empty, emptyText = 'Chưa có dữ liệu trong kỳ n
 
 // ---- Overview: the period's figures next to the revenue curve ------------------------------------------------------------
 
-function StatGrid({ summary, payments }: { summary: Report<RevenueSummary>; payments: Report<PeriodReport<PaymentMetrics, PaymentTotals>> }) {
+function StatGrid({ summary, sales, payments }: { summary: Report<RevenueSummary>; sales: Report<PeriodReport<SalesMetrics>>; payments: Report<PeriodReport<PaymentMetrics, PaymentTotals>> }) {
   const s = summary.data
   const cur = s?.current
   const prev = s?.previous
+  const sale = sales.data?.totals
   const stats: { label: string; icon: LucideIcon; value: ReactNode; foot: ReactNode }[] = [
     { label: 'Doanh thu thuần', icon: CircleDollarSign, value: cur && formatVnd(cur.netSales), foot: cur && prev && <Versus current={cur.netSales} previous={prev.netSales} /> },
-    { label: 'Lãi gộp', icon: Coins, value: cur && formatVnd(cur.grossProfit), foot: cur && prev && <Versus current={cur.grossProfit} previous={prev.grossProfit} extra={cur.grossMarginPercent != null ? `Biên lãi gộp ${percent(cur.grossMarginPercent)}` : undefined} /> },
+    { label: 'Lãi gộp', icon: Coins, value: sale ? formatVnd(sale.grossProfit) : placeholder(sales, 'w-28'), foot: sale ? <div className="space-y-1">
+      <p className="text-xs text-slate-500">Giá vốn {formatVnd(sale.costOfGoods)}</p>
+      {prev && <Versus current={sale.grossProfit} previous={prev.grossProfit} />}
+      <p className="text-xs text-slate-500">Trước trả hàng, chưa trừ chi phí vận hành.</p>
+    </div> : sales.error ? <p role="alert" className="text-xs text-rose-700">{friendly(sales.error)}</p> : null },
     { label: 'Đơn giao thành công', icon: PackageCheck, value: cur && `${num(cur.orderCount)} đơn`, foot: cur && prev && <Versus current={cur.orderCount} previous={prev.orderCount} /> },
     { label: 'Giá trị đơn trung bình', icon: Receipt, value: cur && formatVnd(cur.averageOrderValue), foot: cur && prev && <Versus current={cur.averageOrderValue} previous={prev.averageOrderValue} /> },
     { label: 'Tiền thực thu', icon: Wallet, value: payments.data && formatVnd(payments.data.totals.netReceivedAmount), foot: payments.data && <p className="text-xs text-slate-500">Gồm thu nợ {formatVnd(payments.data.totals.debtRepaymentAmount)}</p> },
@@ -126,7 +131,7 @@ function StatGrid({ summary, payments }: { summary: Report<RevenueSummary>; paym
   return <section aria-label="Chỉ số kinh doanh trong kỳ" title={s?.previousFromDate && s.previousToDate ? `So với kỳ trước: ${dayMonthYear(s.previousFromDate)} → ${dayMonthYear(s.previousToDate)}` : undefined} className={`grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 shadow-sm transition-opacity ${summary.stale ? 'opacity-60' : ''}`}>
     {stats.map(stat => {
       const Icon = stat.icon
-      return <div key={stat.label} className="flex min-w-0 flex-col gap-2 bg-[#fff] p-4 sm:p-5">
+      return <div key={stat.label} aria-busy={stat.label === 'Lãi gộp' ? sales.loading : undefined} className={`flex min-w-0 flex-col gap-2 bg-[#fff] p-4 sm:p-5 ${stat.label === 'Lãi gộp' && sales.stale ? 'opacity-60' : ''}`}>
         <div className="flex items-start justify-between gap-2">
           <span className="text-sm text-slate-500">{stat.label}</span>
           <span className="hidden h-8 w-8 shrink-0 place-items-center rounded-lg bg-green-50 text-green-700 sm:grid"><Icon size={16} aria-hidden="true" /></span>
@@ -415,6 +420,7 @@ export default function DashboardCharts({ fromDate, toDate, links = {} }: { from
 
   // Declared in reading order, so the queue fetches what is on screen first.
   const summary = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenueSummary({ fromDate, toDate }, signal), [fromDate, toDate]), problem)
+  const sales = useReport(useCallback((signal: AbortSignal) => businessReportsApi.sales({ fromDate, toDate, groupBy: 'DAY' }, signal), [fromDate, toDate]), problem)
   const trend = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenue({ fromDate, toDate, groupBy: granularity, page: 1, pageSize: 100 }, signal), [fromDate, toDate, granularity]), problem)
   const payments = useReport(useCallback((signal: AbortSignal) => businessReportsApi.payments({ fromDate, toDate, groupBy: 'METHOD' }, signal), [fromDate, toDate]), problem)
   const categories = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenue({ fromDate, toDate, groupBy: 'CATEGORY', page: 1, pageSize: 5 }, signal), [fromDate, toDate]), problem)
@@ -425,7 +431,7 @@ export default function DashboardCharts({ fromDate, toDate, links = {} }: { from
 
   return <div className="flex flex-col gap-5">
     <div className="grid gap-5 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-      <StatGrid summary={summary} payments={payments} />
+      <StatGrid summary={summary} sales={sales} payments={payments} />
       <TrendPanel trend={trend} requested={granularity} />
     </div>
     <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">

@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { AppRole } from '@/types'
 import { authApi } from '@/api/authApi'
 import { ApiError } from '@/api/client'
+import { lookupCache } from '@/api/lookupCache'
 
 const TOKEN_KEY = 'agrisage_token'
 
@@ -70,12 +71,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new ApiError(403, 'Forbidden', 'Tài khoản này không có quyền truy cập trang quản lý. Nông dân vui lòng dùng ứng dụng dành cho nông dân.')
     }
     localStorage.setItem(TOKEN_KEY, res.accessToken)
+    lookupCache.clear()
     setUser(res.user)
     setCurrentRole(roleMapping[res.user.role] || null)
     setIsAuthenticated(true)
   }
 
   const clearSession = () => {
+    lookupCache.clear()
     localStorage.removeItem(TOKEN_KEY)
     setIsAuthenticated(false)
     setCurrentRole(null)

@@ -15,6 +15,7 @@ Kết quả rà soát toàn bộ HTTP action nằm trong [API_INTEGRATION_AUDIT.
 
 ## API được nối bổ sung
 
+- Báo cáo bán hàng (03/11/2026): dashboard Admin/Chủ cửa hàng gọi thêm `/api/reports/sales` cho lãi gộp và giá vốn theo khoảng ngày, với trạng thái tải/lỗi độc lập. Bộ kiểm tra báo cáo xác nhận đủ 18 endpoint `/api/reports/*` và API rủi ro hạn dùng, gồm phân quyền, đổi kỳ, làm mới và dữ liệu trống.
 - Nhân viên: xem, thêm, sửa, khóa, mở khóa, đặt lại mật khẩu và ghi nhận nghỉ việc; nút thao tác theo đúng permission.
 - Thanh toán: sổ phiếu thực với tìm kiếm/lọc/phân trang; tạo liên kết payOS và đồng bộ trạng thái; hủy phiếu chờ hợp lệ; xác nhận/từ chối chuyển khoản trả công nợ. Tạo liên kết không đồng nghĩa đã thu tiền.
 - Tài khoản: yêu cầu khôi phục, đặt lại/đổi mật khẩu, danh sách phiên, thu hồi phiên, đăng xuất toàn bộ và đăng xuất server. Sai mật khẩu hiện tại 401 được hiển thị tại form; response 202/204 rỗng được xử lý đúng.
@@ -45,3 +46,11 @@ node scripts/run-browser-tests.mjs scripts/test-summary-consistency.mjs scripts/
 ```
 
 Runner tự khởi động/dừng Vite ở cổng 5175; đổi bằng `UI_TEST_URL`. Ảnh kiểm tra nằm trong `artifacts/summary-consistency/` khi đặt `UI_SCREENSHOT_DIR`.
+
+## Vấn đề trên lúa và cách xử lý — 03/11/2026
+
+- Danh sách dùng bốn ô tổng hợp, `ListToolbar`, `FilterSelect`, `StatusBadge`, menu thao tác `RowActionsMenu` và phân trang 10 dòng theo các màn hình quản lý hiện tại. Các số tổng hợp lấy từ toàn bộ mảng API, không chỉ trang đang xem.
+- API vấn đề trả về toàn bộ danh sách: tìm kiếm không dấu theo mã, tên, triệu chứng và từ khóa, lọc loại/trạng thái và phân trang được thực hiện cục bộ. Đổi tìm kiếm hoặc bộ lọc về trang 1; không thêm tham số API hay request cho mỗi lần lọc.
+- Chọn tên hoặc “Xem chi tiết” để mở popup `DetailModal` / `ModalLayout` dùng chung. Danh sách giữ nguyên phía sau; đóng bằng nút Đóng, Escape hoặc vùng nền trả focus về nút đã mở, giữ bộ lọc và trang. Popup có tiêu đề/chân cố định, nội dung cuộn riêng; các form chỉnh sửa mở phía trên popup chi tiết. Chỉ tải sản phẩm gợi ý khi mở phần tương ứng.
+- Cách xử lý và sản phẩm gợi ý dùng bảng, trạng thái chung và menu ⋮ ở cột cuối. Giữ quyền, điều kiện trạng thái, xác nhận ngừng, kiểm tra nguồn/liều khi duyệt và cảnh báo đưa liên kết về Nháp khi sửa. Bảng cuộn trong khung trên điện thoại.
+- `test-advisory-admin.mjs` kiểm tra thêm tìm kiếm không dấu, lọc, 12 bản ghi qua hai trang, khôi phục trang/focus, menu theo quyền, lỗi/thử lại và chiều rộng 390 px. `test-diagnosis-readonly.mjs` giữ kiểm tra gửi hoạt chất qua luồng thêm cách xử lý. Toàn bộ API được giả lập; không thay đổi backend hay database.

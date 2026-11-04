@@ -1,3 +1,5 @@
+import { invalidateLookupWrite, lookupCache, lookupKey } from './lookupCache'
+
 export class ApiError extends Error {
   status: number
   title: string
@@ -28,6 +30,7 @@ function apiUrl(path: string): string {
 let redirectingToLogin = false
 
 function handleUnauthorized(): never {
+  lookupCache.clear()
   localStorage.removeItem('agrisage_token')
   if (!redirectingToLogin) {
     redirectingToLogin = true
@@ -42,6 +45,11 @@ async function toApiError(res: Response): Promise<ApiError> {
 }
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const key = (init.method ?? 'GET').toUpperCase() === 'GET' && !init.headers && !init.cache ? lookupKey(path) : null
+  return key ? lookupCache.get(key, () => request<T>(path, { ...init, signal: undefined }), 120_000, init.signal) : request<T>(path, init)
+}
+
+async function request<T>(path: string, init: RequestInit): Promise<T> {
   // A FormData body (file upload) needs the browser to set the multipart Content-Type with its boundary.
   const isForm = typeof FormData !== 'undefined' && init.body instanceof FormData
   const res = await fetch(apiUrl(path), {
@@ -58,6 +66,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 
   if (res.ok) {
+    if (init.method && !['GET', 'HEAD', 'OPTIONS'].includes(init.method.toUpperCase())) invalidateLookupWrite(path)
     const body = res.status === 204 ? '' : await res.text()
     const result = (body ? JSON.parse(body) : undefined) as T
     // Summaries refresh after a successful business write, never after a list GET.

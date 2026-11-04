@@ -19,7 +19,7 @@ const pages = [
   ['/agent/credit-config', 'Mức sử dụng tín dụng', ['credit-exposure']],
   ['/agent/products', 'Giá trị tồn kho', ['inventory-valuation']],
   ['/agent/inventory/movements', 'Tổng hợp xuất nhập tồn', ['inventory-movement']],
-  ['/agent', 'Doanh thu và bán hàng', ['sales', 'revenue', 'revenue-summary']],
+  ['/agent', 'Kết quả kinh doanh', ['sales', 'revenue', 'revenue-summary']],
 ]
 const businessCodes = ['ORDERS.READ', 'PAYMENTS.READ', 'GOODS_RECEIPTS.READ', 'SUPPLIERS.READ', 'RETURNS.READ', 'REFUNDS.READ', 'DELIVERIES.READ', 'DEBT.READ', 'CUSTOMER_GROUPS.READ', 'CREDIT_TIERS.READ', 'INVENTORY.READ', 'STAFF.READ', 'STORE_PRODUCTS.READ', 'PRODUCTS.READ']
 const metrics = { orderCount: 3, fulfilledValue: 3000000, costOfGoods: 2000000, grossProfit: 1000000, returnValue: 100000, netSales: 2900000, averageOrderValue: 1000000, grossMarginPercent: 33.33 }
@@ -39,7 +39,7 @@ const pass = name => { checks++; console.log('PASS ' + name) }
 async function fixture(role = 'STORE_OWNER', withReports = true, path = '/agent/orders', viewport = { width: 1440, height: 950 }) {
   const context = await browser.newContext({ viewport })
   await context.addInitScript(() => localStorage.setItem('agrisage_token', 'inline-report-browser-test'))
-  const state = { codes: [...businessCodes, ...(withReports ? ['REPORTS.READ'] : [])], requests: [], mode: 'normal', delayFrom: '' }
+  const state = { codes: [...businessCodes, 'COUNTER_SALES.SELL', ...(withReports ? ['REPORTS.READ'] : [])], requests: [], mode: 'normal', salesMode: 'normal', delayFrom: '', salesDelayFrom: '' }
   await context.route('**/api/**', async route => {
     const request = route.request()
     const url = new URL(request.url())
@@ -50,14 +50,26 @@ async function fixture(role = 'STORE_OWNER', withReports = true, path = '/agent/
     if (url.pathname === '/api/auth/me') return json({ id: 'test-user', fullName: 'Người kiểm thử', name: 'Người kiểm thử', initials: 'KT', role, status: 'ACTIVE' })
     if (url.pathname === '/api/me/permissions') return json({ role, storeId: 'test-store', roleVersion: 1, memberVersion: 1, permissions: state.codes })
     if (url.pathname.endsWith('/unread-count')) return json({ count: 0 })
+    if (url.pathname.startsWith('/api/realtime/')) return json({ title: 'Not available in the test' }, 404)
+    if (url.pathname === '/api/catalog/categories') return json([])
     if (url.pathname === '/api/store-products') return json({ ...list, totalPages: 1 })
     if (url.pathname === '/api/products' && url.searchParams.get('Search')) return json({ ...list, totalCount: 4, totalPages: 1 })
     if (url.pathname === '/api/inventory/stock-movements' && url.searchParams.get('type')) return json({ ...list, totalCount: 9, totalPages: 1 })
     if (url.pathname === '/api/orders' && url.searchParams.get('status') === 'CANCELLED') return json({ ...list, totalCount: 0, totalPages: 0 })
+    if (url.pathname === '/api/inventory/expiry-risk') return json({ ...list, items: [], summary: { lots: 0, knownRiskLots: 0, unknownRiskLots: 0, knownRiskValue: 0 }, withinDays: 30 })
     if (!url.pathname.startsWith('/api/reports/')) return json(list)
+    if (url.pathname === '/api/reports/counter-sales-today') return json({ date: '2026-11-03', asOf: '2026-11-03T00:00:00Z', paidSalesRevenue: 0, completedOrderCount: 0, receivedAmount: 0, creditSalesAmount: 0 })
+    if (url.pathname === '/api/reports/inventory-turnover') return json({ ...list, items: [], summary: { products: 0, fast: 0, slow: 0, noSales: 0 }, fromDate: '2026-08-03', toDate: '2026-11-03' })
+    if (url.pathname === '/api/reports/inventory-movement/export') return route.fulfill({ status: 200, contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers: { 'Content-Disposition': 'attachment; filename="test-report.xlsx"' }, body: 'export-request-fixture' })
     const report = url.pathname.split('/').at(-1)
     if (state.mode === 'error') return json({ title: 'Unavailable', detail: 'Không tải được số liệu kiểm thử' }, 503)
     const period = { fromDate: url.searchParams.get('fromDate'), toDate: url.searchParams.get('toDate'), groupBy: url.searchParams.get('groupBy') || 'DAY' }
+    if (report === 'sales') {
+      if (period.fromDate === state.salesDelayFrom) await new Promise(resolve => setTimeout(resolve, 650))
+      if (state.salesMode === 'error') return json({ title: 'Unavailable', detail: 'Không tải được lãi gộp kiểm thử' }, 503)
+      const totals = state.salesMode === 'empty' ? Object.fromEntries(Object.keys(metrics).map(key => [key, 0])) : { ...metrics, costOfGoods: 1800000, grossProfit: period.fromDate === '2026-10-02' ? 1500000 : 1200000 }
+      return json({ ...period, rows: [], totals })
+    }
     if (report === 'orders' && period.fromDate === state.delayFrom) await new Promise(resolve => setTimeout(resolve, 650))
     if (operational[report]) {
       const totals = state.mode === 'empty' ? Object.fromEntries(Object.keys(operational[report]).map(key => [key, 0])) : { ...operational[report] }
@@ -84,6 +96,13 @@ async function fixture(role = 'STORE_OWNER', withReports = true, path = '/agent/
 async function ready(page, title) {
   const section = page.getByRole('region', { name: title, exact: true })
   await section.waitFor()
+  if (title === 'Kết quả kinh doanh') {
+    await page.waitForFunction(() => {
+      const stats = document.querySelector('section[aria-label="Chỉ số kinh doanh trong kỳ"]')
+      return stats && !stats.querySelector('.animate-pulse')
+    })
+    return section
+  }
   await section.getByRole('button', { name: `Làm mới ${title.toLowerCase()}`, exact: true }).waitFor()
   await page.waitForFunction(title => {
     const section = document.querySelector(`section[aria-label="${title}"]`)
@@ -92,7 +111,8 @@ async function ready(page, title) {
   return section
 }
 async function noReportMenu(page) {
-  assert.equal(await page.locator('aside a[href*="/reports"]').count(), 0)
+  // Inventory planning has its own valid report route; only the retired catch-all menu stays absent.
+  assert.equal(await page.locator('aside a[href="/agent/reports"]').count(), 0)
   assert.equal(await page.locator('aside').getByText('Báo cáo', { exact: true }).count(), 0)
 }
 
@@ -110,14 +130,79 @@ try {
   for (const [path, title, endpoints] of pages) {
     await owner.page.goto(base + path)
     await ready(owner.page, title)
-    assert.equal(await owner.page.locator('main .agrisage-kpi-card').count(), 4, path + ': one row of four cards')
+    if (path !== '/agent') assert.equal(await owner.page.locator('main .agrisage-kpi-card').count(), 4, path + ': one row of four cards')
     for (const endpoint of endpoints) assert(owner.state.requests.some(request => request.path === '/api/reports/' + endpoint), endpoint)
     await noReportMenu(owner.page)
   }
   assert.equal(new Set(owner.state.requests.filter(request => request.path.startsWith('/api/reports/')).map(request => request.path)).size, 15)
-  assert(owner.state.requests.every(request => request.method === 'GET'))
+  assert(owner.state.requests.filter(request => request.path.startsWith('/api/reports/')).every(request => request.method === 'GET'))
   assert.deepEqual(owner.errors, [])
-  pass('All 15 reporting APIs are integrated into their business pages, with no report sidebar items')
+  pass('All 15 core reporting APIs are requested, including sales on the current dashboard')
+
+  const profit = owner.page.getByRole('region', { name: 'Chỉ số kinh doanh trong kỳ', exact: true }).getByText('Lãi gộp', { exact: true }).locator('../..')
+  assert.match(await profit.innerText(), /1\.200\.000 đ/)
+  assert.match(await profit.innerText(), /Giá vốn 1\.800\.000 đ/)
+  assert.match(await profit.innerText(), /Trước trả hàng/)
+  assert.equal(owner.state.requests.filter(r => r.path === '/api/reports/sales').at(-1).query.groupBy, 'DAY')
+  if (process.env.REPORT_SCREENSHOT_DIR) {
+    await owner.page.screenshot({ path: join(process.env.REPORT_SCREENSHOT_DIR, 'dashboard-sales-desktop.png'), animations: 'disabled' })
+    await owner.page.setViewportSize({ width: 390, height: 844 })
+    assert.equal(await owner.page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
+    await owner.page.screenshot({ path: join(process.env.REPORT_SCREENSHOT_DIR, 'dashboard-sales-mobile.png'), animations: 'disabled' })
+    await owner.page.setViewportSize({ width: 1440, height: 950 })
+  }
+  pass('Dashboard profit and cost come from sales totals rather than the revenue-summary fixture')
+
+  await owner.page.getByLabel('Từ ngày', { exact: true }).fill('2026-10-02')
+  await profit.getByText('1.500.000 đ', { exact: true }).waitFor()
+  assert.equal(owner.state.requests.filter(r => r.path === '/api/reports/sales').at(-1).query.fromDate, '2026-10-02')
+  owner.state.salesDelayFrom = '2026-10-03'
+  const slowSalesRequest = owner.page.waitForRequest(r => new URL(r.url()).pathname === '/api/reports/sales' && new URL(r.url()).searchParams.get('fromDate') === '2026-10-03')
+  await owner.page.getByLabel('Từ ngày', { exact: true }).fill('2026-10-03')
+  await slowSalesRequest
+  await owner.page.getByLabel('Từ ngày', { exact: true }).fill('2026-10-02')
+  await ready(owner.page, 'Kết quả kinh doanh')
+  await owner.page.waitForTimeout(750)
+  assert.match(await profit.innerText(), /1\.500\.000 đ/)
+  pass('Sales follows the selected period and ignores a late response from the previous period')
+
+  owner.state.salesMode = 'error'
+  await owner.page.getByRole('button', { name: 'Làm mới số liệu', exact: true }).click()
+  await profit.getByRole('alert').filter({ hasText: 'Không tải được lãi gộp kiểm thử' }).waitFor()
+  assert.equal(await profit.getByText('1.500.000 đ', { exact: true }).count(), 0)
+  assert.equal(await profit.getByText('—', { exact: true }).count(), 1)
+  await owner.page.getByText('2.900.000 đ', { exact: true }).first().waitFor()
+  owner.state.salesMode = 'empty'
+  await owner.page.getByRole('button', { name: 'Làm mới số liệu', exact: true }).click()
+  await profit.getByText('Giá vốn 0 đ', { exact: true }).waitFor()
+  assert.equal(await profit.getByText('0 đ', { exact: true }).count(), 1)
+  owner.state.salesMode = 'normal'
+  pass('Sales refresh handles errors independently and renders a genuine zero without falling back to summary profit')
+
+  const salesBeforeInvalidRange = owner.state.requests.filter(r => r.path === '/api/reports/sales').length
+  await owner.page.getByLabel('Từ ngày', { exact: true }).fill('2020-01-01')
+  await owner.page.getByRole('alert').filter({ hasText: 'Khoảng thời gian tối đa 366 ngày.' }).waitFor()
+  assert.equal(owner.state.requests.filter(r => r.path === '/api/reports/sales').length, salesBeforeInvalidRange)
+  assert.equal(await profit.getByText('Giá vốn 0 đ', { exact: true }).count(), 0)
+  pass('An invalid dashboard period blocks the sales endpoint and clears the previous figures')
+
+  let response = owner.page.waitForResponse(r => new URL(r.url()).pathname === '/api/reports/counter-sales-today')
+  await owner.page.goto(base + '/agent/counter-sales')
+  await response
+  response = owner.page.waitForResponse(r => new URL(r.url()).pathname === '/api/reports/inventory-turnover')
+  await owner.page.goto(base + '/agent/inventory/reports/planning')
+  await response
+  response = owner.page.waitForResponse(r => new URL(r.url()).pathname === '/api/inventory/expiry-risk')
+  await owner.page.getByRole('tab', { name: 'Rủi ro hạn dùng' }).click()
+  await response
+  await owner.page.goto(base + '/agent/inventory/reports')
+  const download = owner.page.waitForEvent('download')
+  response = owner.page.waitForResponse(r => new URL(r.url()).pathname === '/api/reports/inventory-movement/export')
+  await owner.page.getByRole('button', { name: 'Xuất Excel', exact: true }).click()
+  await response
+  await download
+  assert.equal(new Set(owner.state.requests.filter(r => r.path.startsWith('/api/reports/')).map(r => r.path)).size, 18)
+  pass('All 18 report endpoints are connected, including counter sales, inventory turnover and export; expiry risk is also requested')
 
   await owner.page.goto(base + '/agent/products')
   const products = await ready(owner.page, 'Giá trị tồn kho')
@@ -210,6 +295,12 @@ try {
   await denied.context.close()
   pass('Staff without REPORTS.READ retain business pages/search results and never request report data')
 
+  const dashboardDenied = await fixture('STORE_OWNER', false, '/agent')
+  await dashboardDenied.page.getByText('Cần quyền xem báo cáo').first().waitFor()
+  assert.equal(dashboardDenied.state.requests.filter(r => r.path.startsWith('/api/reports/')).length, 0)
+  await dashboardDenied.context.close()
+  pass('A dashboard without REPORTS.READ never requests sales or any other report')
+
   const delegated = await fixture('SALES_STAFF', true, '/sales/orders')
   await ready(delegated.page, 'Tổng hợp đơn hàng')
   await noReportMenu(delegated.page)
@@ -220,9 +311,13 @@ try {
   const creditSection = await ready(admin.page, 'Mức sử dụng tín dụng')
   assert.equal(await creditSection.getByText('3.500.000 đ', { exact: true }).count(), 1)
   await noReportMenu(admin.page)
+  await admin.page.goto(base + '/')
+  await ready(admin.page, 'Kết quả kinh doanh')
+  await admin.page.getByText('Giá vốn 1.800.000 đ', { exact: true }).waitFor()
+  assert(admin.state.requests.some(r => r.path === '/api/reports/sales'))
   assert.deepEqual(admin.errors, [])
   await admin.context.close()
-  pass('Admin credit metrics are embedded in the existing credit-configuration page')
+  pass('Admin credit metrics and dashboard sales report use their authorized endpoints')
 
   const mobile = await fixture('STORE_OWNER', true, '/agent/orders', { width: 390, height: 844 })
   await ready(mobile.page, 'Tổng hợp đơn hàng')
@@ -233,4 +328,10 @@ try {
   await mobile.context.close()
   pass('Embedded cards remain readable on mobile without horizontal page overflow')
   console.log(`${checks} embedded-report browser checks passed`)
+} catch (error) {
+  for (const context of browser.contexts()) for (const page of context.pages()) {
+    console.error('Report test failed at ' + page.url())
+    console.error((await page.locator('body').innerText().catch(() => '')).slice(0, 1600))
+  }
+  throw error
 } finally { await browser.close() }

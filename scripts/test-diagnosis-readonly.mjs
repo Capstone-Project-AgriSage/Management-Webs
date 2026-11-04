@@ -69,6 +69,7 @@ async function session(role, permissions) {
     const body = request.postData() ? JSON.parse(request.postData()) : null
     state.requests.push({ path, method, body })
     const json = (value, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(value) }).catch(() => {})
+    if (path.startsWith('/api/realtime/')) return json({ title: 'Not available in the test' }, 404)
     if (REMOVED.test(path)) { failures.push(`removed route called: ${method} ${path}`); return json({ title: 'Not found' }, 404) }
     if (path === '/api/auth/me') return json({ id: 'me', fullName: 'Người kiểm thử', role, status: 'ACTIVE' })
     if (path === '/api/me/permissions') return json({ role, storeId: 's1', roleVersion: 1, memberVersion: 1, permissions })
@@ -149,7 +150,8 @@ async function check(name, fn) {
   })
   await check('a new treatment sends its active ingredient', async () => {
     await page.goto(`${base}/agent/diseases`)
-    await page.getByRole('button', { name: /Thêm cách xử lý cho/ }).first().click()
+    await page.getByRole('button', { name: 'Thao tác Đạo ôn', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Thêm cách xử lý', exact: true }).click()
     const dialog = page.getByRole('dialog')
     await dialog.getByLabel('Hoạt chất').selectOption('ing-1')
     await dialog.locator('input[maxlength="255"]').fill('Phun thuốc đặc trị')

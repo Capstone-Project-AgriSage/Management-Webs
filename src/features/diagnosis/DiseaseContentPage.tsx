@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Pencil, Plus } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Plus } from 'lucide-react'
 import { usePageHeader } from '@/context/PageHeaderContext'
 import { useToast } from '@/context/ToastContext'
 import { usePermission } from '@/context/PermissionContext'
@@ -16,7 +16,17 @@ import {
 } from '@/api/diagnosisApi'
 import { adminCatalogApi, type AdminCatalogRow } from '@/api/adminCatalogApi'
 import ConfirmModal from '@/components/ui/ConfirmModal'
+import DetailModal from '@/components/ui/DetailModal'
+import ModalLayout from '@/components/ui/ModalLayout'
 import Select from '@/components/ui/Select'
+import ListToolbar from '@/components/ui/ListToolbar'
+import FilterSelect from '@/components/ui/FilterSelect'
+import KpiCard from '@/components/ui/KpiCard'
+import StatusBadge from '@/components/ui/StatusBadge'
+import RowActionsMenu from '@/components/ui/RowActionsMenu'
+import EmptyTableRow from '@/components/ui/EmptyTableRow'
+import Pagination from '@/components/ui/Pagination'
+import { usePagination } from '@/hooks/usePagination'
 import DiseaseProductsPanel from './DiseaseProductsPanel'
 import { PROBLEM_TYPE_LABEL, TREATMENT_KIND_LABEL, diseaseLabel } from './diagnosisLabels'
 
@@ -100,11 +110,13 @@ function priorityOf(value: string): number | null {
   return value.trim() !== '' && Number.isInteger(n) && n >= 0 && n <= 1000 ? n : null
 }
 
+const searchText = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase()
+
 function Fact({ label, value }: { label: string; value: string | null }) {
   return (
     <div>
       <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</dt>
-      <dd className={`mt-0.5 text-sm whitespace-pre-line ${value ? 'text-slate-800' : 'text-slate-400'}`}>{value || 'Chưa nhập'}</dd>
+      <dd className={`mt-1 text-sm leading-6 whitespace-pre-line break-words ${value ? 'text-slate-800' : 'text-slate-500'}`}>{value || 'Chưa nhập'}</dd>
     </div>
   )
 }
@@ -126,6 +138,19 @@ export default function DiseaseContentPage() {
   const [diseases, setDiseases] = useState<Disease[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [problemType, setProblemType] = useState('')
+  const [status, setStatus] = useState('')
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const selected = diseases?.find(d => d.id === selectedId)
+  const filtered = useMemo(() => {
+    const keyword = searchText(search.trim())
+    return (diseases ?? []).filter(d => (!problemType || (d.problemType ?? 'DISEASE') === problemType)
+      && (!status || d.isActive === (status === 'active'))
+      && (!keyword || searchText([d.code, d.name, diseaseLabel(d.code, d.name), d.searchKeywords, d.symptoms].filter(Boolean).join(' ')).includes(keyword)))
+  }, [diseases, search, problemType, status])
+  const pagination = usePagination(filtered, undefined, JSON.stringify([search, problemType, status]))
 
   const [editing, setEditing] = useState<Disease | null>(null)
   const [contentForm, setContentForm] = useState<ContentForm | null>(null)
@@ -147,11 +172,14 @@ export default function DiseaseContentPage() {
   }, [])
 
   const load = useCallback(async () => {
+    setLoading(true)
     try {
       setDiseases(await diseasesApi.list())
       setLoadError(null)
     } catch (err) {
       setLoadError(describeError(err, 'Không tải được nội dung bệnh'))
+    } finally {
+      setLoading(false)
     }
   }, [])
 
@@ -259,23 +287,21 @@ export default function DiseaseContentPage() {
   const treatmentInvalid = !treatmentForm.title.trim() || !treatmentForm.instructions.trim() || priorityOf(treatmentForm.priority) === null
 
   return (
-    <div className="max-w-[1100px] mx-auto space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <p className="text-sm text-slate-600 flex-1 min-w-[260px]">
-          Mỗi vấn đề (bệnh, sâu rầy, cỏ dại, dinh dưỡng) có phần mô tả, cách xử lý và danh sách sản phẩm gợi ý. Nông dân đọc nội dung này
-          ngay, không có bước duyệt nội dung, nên chỉ nhập điều đã được người hiểu cây lúa kiểm tra. Sản phẩm chỉ hiện cho nông dân khi
-          liên kết với vấn đề đã được duyệt; hoạt chất của cách xử lý chỉ để hiển thị. Cách xử lý loại Hóa học chỉ hiện khi AI chắc chắn.
-        </p>
-        {canCreateProblem && (
-          <button
-            type="button"
-            onClick={() => setCreating(emptyCreate)}
-            className="inline-flex items-center gap-1 h-9 px-3 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-green-800"
-          >
-            <Plus size={14} /> Thêm vấn đề
-          </button>
-        )}
-      </div>
+    <div className="max-w-[1600px] mx-auto space-y-5">
+        <div className="agrisage-summary-grid grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-5" aria-label="Tổng hợp vấn đề trên lúa">
+          <KpiCard title="Tổng số vấn đề" value={diseases ? diseases.length : loadError ? 'Lỗi tải' : '—'} subtitle="Toàn bộ danh sách" />
+          <KpiCard title="Đang hoạt động" value={diseases ? diseases.filter(d => d.isActive).length : '—'} subtitle="Được hiển thị cho nông dân" />
+          <KpiCard title="Cần bổ sung nội dung" value={diseases ? diseases.filter(d => !d.symptoms?.trim() && !d.prevention?.trim()).length : '—'} subtitle="Chưa có triệu chứng và phòng ngừa" />
+          <KpiCard title="Cách xử lý đang dùng" value={diseases ? diseases.reduce((sum, d) => sum + d.treatments.filter(t => t.isActive).length, 0) : '—'} subtitle="Trên toàn bộ vấn đề" />
+        </div>
+        <ListToolbar
+          search={{ value: search, onChange: value => setSearch(value.slice(0, 200)), placeholder: 'Tìm mã, tên, triệu chứng, từ khóa...', label: 'Tìm vấn đề trên lúa' }}
+          onClear={() => { setSearch(''); setProblemType(''); setStatus('') }}
+          actions={canCreateProblem && <button type="button" disabled={busy} onClick={() => setCreating(emptyCreate)} className="inline-flex items-center justify-center gap-2 rounded-[10px] bg-primary-dark px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"><Plus size={16} aria-hidden="true" />Thêm vấn đề</button>}
+        >
+          <FilterSelect label="Loại vấn đề" value={problemType} onChange={setProblemType} options={[{ value: '', label: 'Tất cả loại' }, ...PROBLEM_TYPES.map(value => ({ value, label: PROBLEM_TYPE_LABEL[value] }))]} />
+          <FilterSelect label="Trạng thái" value={status} onChange={setStatus} options={[{ value: '', label: 'Tất cả trạng thái' }, { value: 'active', label: 'Đang hoạt động' }, { value: 'inactive', label: 'Đã ngừng' }]} />
+        </ListToolbar>
 
       {loadError && (
         <div role="alert" className="text-rose-700 text-sm">
@@ -285,56 +311,70 @@ export default function DiseaseContentPage() {
           </button>
         </div>
       )}
-      {!diseases && !loadError && <p role="status" className="text-sm text-slate-500">Đang tải...</p>}
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden" aria-busy={loading}>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-5 py-4">
+          <h2 className="text-base font-semibold text-slate-900">Danh sách vấn đề</h2>
+          <p className="text-xs text-slate-500" role="status">{loading ? 'Đang tải...' : diseases ? `${filtered.length ? pagination.startIndex + 1 : 0}–${pagination.endIndex} / ${filtered.length} vấn đề${search || problemType || status ? ' phù hợp' : ''}` : 'Chưa tải được dữ liệu'}</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[820px] text-left text-sm" aria-label="Danh sách vấn đề trên lúa">
+            <thead><tr><th scope="col" className="px-4 py-3">Vấn đề</th><th scope="col" className="px-4 py-3">Loại</th><th scope="col" className="px-4 py-3">Nội dung</th><th scope="col" className="px-4 py-3 text-right">Cách xử lý</th><th scope="col" className="px-4 py-3">Trạng thái</th><th scope="col" className="px-4 py-3 text-right">Thao tác</th></tr></thead>
+            <tbody>
+              {pagination.paginated.map(d => <tr key={d.id} className="hover:bg-slate-50">
+                <td className="px-4 py-4"><button id={`problem-view-${d.id}`} type="button" className="text-left font-semibold text-primary-dark hover:underline focus-visible:outline-2 focus-visible:outline-primary" aria-label={`Xem chi tiết ${diseaseLabel(d.code, d.name)}`} onClick={() => setSelectedId(d.id)}>{diseaseLabel(d.code, d.name)}</button><p className="mt-1 text-xs text-slate-500 break-all">{d.code}</p>{d.name !== diseaseLabel(d.code, d.name) && <p className="mt-1 text-xs text-slate-500">{d.name}</p>}</td>
+                <td className="px-4 py-4 text-slate-700">{d.isHealthyClass ? 'Lá khỏe' : PROBLEM_TYPE_LABEL[d.problemType ?? 'DISEASE']}</td>
+                <td className="px-4 py-4"><StatusBadge label={!d.symptoms?.trim() && !d.prevention?.trim() ? 'Cần bổ sung' : 'Đã có nội dung'} className={!d.symptoms?.trim() && !d.prevention?.trim() ? 'text-amber-700' : 'text-emerald-700'} /></td>
+                <td className="px-4 py-4 text-right tabular-nums"><span className="font-semibold">{d.treatments.filter(t => t.isActive).length}</span><p className="mt-1 text-xs text-slate-500">đang dùng</p></td>
+                <td className="px-4 py-4"><StatusBadge label={d.isActive ? 'Đang hoạt động' : 'Đã ngừng'} /></td>
+                <td className="px-4 py-4 text-right"><RowActionsMenu disabled={busy} triggerLabel={`Thao tác ${diseaseLabel(d.code, d.name)}`} actions={[
+                  { label: 'Xem chi tiết', icon: 'visibility', onClick: () => setSelectedId(d.id) },
+                  ...(canEditDisease ? [{ label: 'Sửa nội dung', icon: 'edit', onClick: () => openContent(d) }] : []),
+                  ...(canCreate ? [{ label: 'Thêm cách xử lý', icon: 'add', onClick: () => openTreatment(d, null) }] : []),
+                  ...(canEditDisease && !d.isHealthyClass && !SEEDED_CODES.has(d.code) ? [{ label: d.isActive ? 'Ngừng hoạt động' : 'Kích hoạt lại', icon: d.isActive ? 'pause_circle' : 'play_circle', tone: d.isActive ? 'danger' as const : 'default' as const, onClick: () => setSwitching(d) }] : []),
+                ]} /></td>
+              </tr>)}
+              {filtered.length === 0 && <EmptyTableRow colSpan={6} message={loading ? 'Đang tải vấn đề trên lúa...' : loadError && !diseases ? 'Không tải được danh sách. Chọn Thử lại để tải lại dữ liệu.' : diseases?.length ? 'Không có vấn đề phù hợp. Hãy đổi từ khóa hoặc xóa bộ lọc.' : 'Chưa có vấn đề nào trong danh sách.'} />}
+            </tbody>
+          </table>
+        </div>
+        {diseases && <Pagination {...pagination} unitLabel="vấn đề" />}
+      </div>
 
-      {diseases?.map((d) => {
-        const empty = !d.symptoms && !d.prevention
+      {selected && [selected].map((d) => {
+        const empty = !d.symptoms?.trim() && !d.prevention?.trim()
         const activeCount = d.treatments.filter((t) => t.isActive).length
         const treatments = [...d.treatments].sort((a, b) => b.priority - a.priority || a.title.localeCompare(b.title, 'vi'))
         return (
-          <section key={d.id} className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-5 space-y-4" aria-label={diseaseLabel(d.code, d.name)}>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">{diseaseLabel(d.code, d.name)}</h2>
-                <p className="text-xs text-slate-500">
-                  <span className="font-mono">{d.code}</span>
+          <DetailModal key={d.id} open title={`Chi tiết vấn đề: ${diseaseLabel(d.code, d.name)}`} widthClassName="max-w-4xl" busy={busy} onClose={() => setSelectedId(null)}>
+            <ModalLayout bodyClassName="space-y-6" header={<div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <h2>{diseaseLabel(d.code, d.name)}</h2>
+                <p className="mt-1 text-xs text-slate-500 break-words">
+                  <span>{d.code}</span>
                   {d.name !== diseaseLabel(d.code, d.name) && <> · {d.name}</>}
                   <span className="ml-2 px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold">{PROBLEM_TYPE_LABEL[d.problemType ?? 'DISEASE']}</span>
                   {d.isHealthyClass && <span className="ml-2 px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-semibold">Lá khỏe</span>}
-                  {!d.isActive && <span className="ml-2 px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold">Đã ngừng</span>}
                 </p>
+                <div className="mt-3"><StatusBadge label={d.isActive ? 'Đang hoạt động' : 'Đã ngừng'} /></div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {canEditDisease && (
-                  <button
-                    type="button"
-                    onClick={() => openContent(d)}
-                    className="inline-flex items-center gap-1 h-9 px-3 rounded-lg border border-slate-300 bg-white text-sm font-medium hover:bg-slate-50"
-                    aria-label={`Sửa nội dung ${diseaseLabel(d.code, d.name)}`}
-                  >
-                    <Pencil size={14} /> Sửa nội dung
-                  </button>
-                )}
-                {canEditDisease && !d.isHealthyClass && !SEEDED_CODES.has(d.code) && (
-                  <button
-                    type="button"
-                    onClick={() => setSwitching(d)}
-                    className="inline-flex items-center gap-1 h-9 px-3 rounded-lg border border-slate-300 bg-white text-sm font-medium hover:bg-slate-50"
-                    aria-label={`${d.isActive ? 'Ngừng' : 'Dùng lại'} ${diseaseLabel(d.code, d.name)}`}
-                  >
-                    {d.isActive ? 'Ngừng' : 'Dùng lại'}
-                  </button>
-                )}
-              </div>
-            </div>
+              <RowActionsMenu disabled={busy} triggerLabel={`Thao tác ${diseaseLabel(d.code, d.name)}`} actions={[
+                ...(canEditDisease ? [{ label: 'Sửa nội dung', icon: 'edit', onClick: () => openContent(d) }] : []),
+                ...(canEditDisease && !d.isHealthyClass && !SEEDED_CODES.has(d.code) ? [{ label: d.isActive ? 'Ngừng hoạt động' : 'Kích hoạt lại', icon: d.isActive ? 'pause_circle' : 'play_circle', tone: d.isActive ? 'danger' as const : 'default' as const, onClick: () => setSwitching(d) }] : []),
+              ]} />
+            </div>} footer={<button type="button" disabled={busy} onClick={() => setSelectedId(null)} className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">Đóng</button>}>
+
+            <p className="max-w-prose text-sm leading-6 text-slate-600">
+              Nông dân đọc nội dung ngay sau khi lưu, không có bước duyệt nội dung. Chỉ nhập thông tin đã được người hiểu cây lúa kiểm tra.
+              Sản phẩm gợi ý phải có liên kết đã duyệt; hoạt chất chỉ để hiển thị. Cách xử lý hóa học chỉ hiện khi AI chắc chắn.
+            </p>
 
             {empty && (
               <p className="rounded-lg bg-amber-50 text-amber-900 text-sm px-3 py-2">
-                Bệnh này chưa có triệu chứng hay cách phòng ngừa, nông dân chỉ thấy tên bệnh.
+                Vấn đề này chưa có triệu chứng hay cách phòng ngừa. Hãy bổ sung nội dung để nông dân có thông tin tra cứu.
               </p>
             )}
 
-            <dl className="grid gap-3 sm:grid-cols-2">
+            <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
               <Fact label="Tên khoa học" value={d.scientificName} />
               <Fact label="Mô tả" value={d.description} />
               <Fact label="Triệu chứng" value={d.symptoms} />
@@ -352,7 +392,8 @@ export default function DiseaseContentPage() {
                   <button
                     type="button"
                     onClick={() => openTreatment(d, null)}
-                    className="inline-flex items-center gap-1 h-9 px-3 rounded-lg border border-slate-300 bg-white text-sm font-medium hover:bg-slate-50"
+                    disabled={busy}
+                    className="inline-flex items-center gap-2 min-h-10 px-3 rounded-[10px] border border-slate-200 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50"
                     aria-label={`Thêm cách xử lý cho ${diseaseLabel(d.code, d.name)}`}
                   >
                     <Plus size={14} /> Thêm cách xử lý
@@ -365,59 +406,43 @@ export default function DiseaseContentPage() {
               {treatments.length === 0 ? (
                 <p className="text-sm text-slate-600">Chưa có cách xử lý nào.</p>
               ) : (
-                <ul className="divide-y divide-outline-variant/60">
+                <div className="overflow-x-auto"><table className="w-full min-w-[600px] text-left text-sm" aria-label={`Cách xử lý cho ${diseaseLabel(d.code, d.name)}`}>
+                  <thead><tr><th scope="col" className="px-3 py-3">Cách xử lý</th><th scope="col" className="px-3 py-3">Loại</th><th scope="col" className="px-3 py-3 text-right">Ưu tiên</th><th scope="col" className="px-3 py-3">Trạng thái</th><th scope="col" className="px-3 py-3 text-right">Thao tác</th></tr></thead>
+                  <tbody>
                   {treatments.map((t) => (
-                    <li key={t.id} className={`py-3 flex flex-wrap items-start gap-3 text-sm ${t.isActive ? '' : 'opacity-60'}`}>
-                      <span className="mt-0.5 text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 whitespace-nowrap">
-                        {TREATMENT_KIND_LABEL[t.treatmentType]}
-                      </span>
-                      <div className="flex-1 min-w-[220px]">
+                    <tr key={t.id}>
+                      <td className="px-3 py-4 align-top max-w-lg">
                         <div className="font-medium text-slate-900">
                           {t.title}
-                          {!t.isActive && <span className="ml-2 text-xs font-semibold text-slate-600">(đã ngừng)</span>}
                         </div>
-                        <div className="text-slate-700 whitespace-pre-line">{t.instructions}</div>
+                        <div className="mt-1 text-slate-700 whitespace-pre-line break-words">{t.instructions}</div>
                         {t.activeIngredientName && <div className="text-xs text-slate-500">Hoạt chất: {t.activeIngredientName}</div>}
                         {t.precautions && <div className="text-xs text-amber-800 whitespace-pre-line">Lưu ý: {t.precautions}</div>}
-                        <div className="text-xs text-slate-400">Ưu tiên {t.priority}</div>
-                      </div>
-                      <div className="flex gap-3 whitespace-nowrap">
-                        {canUpdate && (
-                          <button type="button" className="text-primary font-semibold" onClick={() => openTreatment(d, t)} aria-label={`Sửa cách xử lý ${t.title}`}>
-                            Sửa
-                          </button>
-                        )}
-                        {t.isActive && canDeactivate && (
-                          <button type="button" className="text-rose-700 font-semibold" onClick={() => setStopping(t)} aria-label={`Ngừng cách xử lý ${t.title}`}>
-                            Ngừng
-                          </button>
-                        )}
-                        {!t.isActive && canActivate && (
-                          <button
-                            type="button"
-                            className="text-primary font-semibold"
-                            disabled={busy}
-                            onClick={() => void run(() => diseasesApi.activateTreatment(t.id), 'Đã kích hoạt lại cách xử lý', 'Không kích hoạt được cách xử lý')}
-                            aria-label={`Kích hoạt cách xử lý ${t.title}`}
-                          >
-                            Kích hoạt
-                          </button>
-                        )}
-                      </div>
-                    </li>
+                      </td>
+                      <td className="px-3 py-4 align-top text-slate-600">{TREATMENT_KIND_LABEL[t.treatmentType]}</td>
+                      <td className="px-3 py-4 align-top text-right tabular-nums">{t.priority}</td>
+                      <td className="px-3 py-4 align-top"><StatusBadge label={t.isActive ? 'Đang hoạt động' : 'Đã ngừng'} /></td>
+                      <td className="px-3 py-4 align-top text-right"><RowActionsMenu disabled={busy} triggerLabel={`Thao tác cách xử lý ${t.title}`} actions={[
+                        ...(canUpdate ? [{ label: 'Sửa cách xử lý', icon: 'edit', onClick: () => openTreatment(d, t) }] : []),
+                        ...(!t.isActive && canActivate ? [{ label: 'Kích hoạt lại', icon: 'play_circle', onClick: () => { void run(() => diseasesApi.activateTreatment(t.id), 'Đã kích hoạt lại cách xử lý', 'Không kích hoạt được cách xử lý') } }] : []),
+                        ...(t.isActive && canDeactivate ? [{ label: 'Ngừng cách xử lý', icon: 'pause_circle', tone: 'danger' as const, onClick: () => setStopping(t) }] : []),
+                      ]} /></td>
+                    </tr>
                   ))}
-                </ul>
+                  </tbody>
+                </table></div>
               )}
             </div>
 
             {!d.isHealthyClass && has('DISEASE_PRODUCTS.READ') && <DiseaseProductsPanel disease={d} />}
-          </section>
+            </ModalLayout>
+          </DetailModal>
         )
       })}
 
       <ConfirmModal
         open={editing !== null && contentForm !== null}
-        title={editing ? `Sửa nội dung: ${diseaseLabel(editing.code, editing.name)}` : 'Sửa nội dung bệnh'}
+        title={editing ? `Sửa nội dung: ${diseaseLabel(editing.code, editing.name)}` : 'Sửa nội dung vấn đề'}
         message="Lưu sẽ thay toàn bộ các ô dưới đây; ô để trống sẽ xóa nội dung cũ. Mã bệnh không đổi."
         confirmLabel="Lưu nội dung"
         busy={busy}
@@ -428,7 +453,7 @@ export default function DiseaseContentPage() {
         {contentForm && (
           <div className="space-y-3">
             <label className="block text-sm font-semibold text-slate-700">
-              Tên bệnh
+              Tên vấn đề
               <input className={`${field} mt-1 font-normal`} maxLength={200} value={contentForm.name} onChange={(e) => setContentForm({ ...contentForm, name: e.target.value })} />
             </label>
             <label className="block text-sm font-semibold text-slate-700">
@@ -563,7 +588,7 @@ export default function DiseaseContentPage() {
             <textarea className={`${field} mt-1 font-normal min-h-[110px]`} maxLength={4000} value={treatmentForm.instructions} onChange={(e) => setTreatmentForm({ ...treatmentForm, instructions: e.target.value })} />
           </label>
           <label className="block text-sm font-semibold text-slate-700">
-            Hoạt chất (để gợi ý sản phẩm)
+            Hoạt chất (thông tin tham khảo)
             <Select
               className={`${field} mt-1 font-normal`}
               value={treatmentForm.activeIngredientId}

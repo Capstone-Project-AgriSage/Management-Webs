@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { CheckCircle2, ChevronDown, ChevronRight, Pencil, Plus } from 'lucide-react'
+import { ChevronDown, ChevronRight, Plus } from 'lucide-react'
 import { usePermission } from '@/context/PermissionContext'
 import { useToast } from '@/context/ToastContext'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
@@ -15,8 +15,10 @@ import {
 import { productsApi, type ProductListItem } from '@/api/productsApi'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import Select from '@/components/ui/Select'
+import RowActionsMenu from '@/components/ui/RowActionsMenu'
+import StatusBadge from '@/components/ui/StatusBadge'
 import { formatDateTime } from '@/utils/units'
-import { GROUP_LABEL, GROWTH_STAGES, GROWTH_STAGE_LABEL, LINK_STATUS_BADGE_CLASS, LINK_STATUS_LABEL } from './diagnosisLabels'
+import { GROUP_LABEL, GROWTH_STAGES, GROWTH_STAGE_LABEL, LINK_STATUS_LABEL } from './diagnosisLabels'
 
 const field =
   'w-full px-3 py-2 rounded-md border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500'
@@ -252,7 +254,7 @@ export default function DiseaseProductsPanel({ disease }: { disease: Disease }) 
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          className="inline-flex items-center gap-1 text-sm font-semibold text-slate-900"
+          className="inline-flex min-h-10 flex-wrap items-center gap-1 rounded-lg text-left text-sm font-semibold text-slate-900 focus-visible:outline-2 focus-visible:outline-primary"
         >
           {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           Sản phẩm gợi ý
@@ -266,7 +268,8 @@ export default function DiseaseProductsPanel({ disease }: { disease: Disease }) 
           <button
             type="button"
             onClick={openAdd}
-            className="inline-flex items-center gap-1 h-9 px-3 rounded-lg border border-slate-300 bg-white text-sm font-medium hover:bg-slate-50"
+            disabled={busy}
+            className="inline-flex items-center gap-2 min-h-10 px-3 rounded-[10px] border border-slate-200 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50"
             aria-label={`Thêm sản phẩm gợi ý cho ${disease.name}`}
           >
             <Plus size={14} /> Thêm sản phẩm
@@ -295,16 +298,17 @@ export default function DiseaseProductsPanel({ disease }: { disease: Disease }) 
             </p>
           )}
           {links && links.length > 0 && (
-            <ul className="divide-y divide-outline-variant/60">
+            <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-sm" aria-label={`Sản phẩm gợi ý cho ${disease.name}`}>
+              <thead><tr><th scope="col" className="px-3 py-3">Sản phẩm</th><th scope="col" className="px-3 py-3">Liều và nguồn tham khảo</th><th scope="col" className="px-3 py-3">Trạng thái</th><th scope="col" className="px-3 py-3 text-right">Thao tác</th></tr></thead>
+              <tbody>
               {links.map((l) => (
-                <li key={l.id} className={`py-3 flex flex-wrap items-start gap-3 text-sm ${l.status === 'INACTIVE' ? 'opacity-60' : ''}`}>
-                  <div className="flex-1 min-w-[260px] space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-slate-900">{l.productName}</span>
-                      <span className="font-mono text-xs text-slate-500">{l.sku}</span>
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">{GROUP_LABEL[l.recommendationGroup]}</span>
-                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${LINK_STATUS_BADGE_CLASS[l.status]}`}>{LINK_STATUS_LABEL[l.status]}</span>
-                    </div>
+                <tr key={l.id}>
+                  <td className="px-3 py-4 align-top">
+                    <p className="font-semibold text-slate-900 break-words">{l.productName}</p>
+                    <p className="mt-1 text-xs text-slate-500 break-all">{l.sku}</p>
+                    <p className="mt-2 text-xs text-slate-600">{GROUP_LABEL[l.recommendationGroup]}</p>
+                  </td>
+                  <td className="px-3 py-4 align-top max-w-lg space-y-1 break-words">
                     {l.recommendationGroup === 'PROTECTION' ? (
                       <div className="text-xs text-slate-600">Đăng ký: {l.registrationSource ?? '—'}</div>
                     ) : (
@@ -323,37 +327,17 @@ export default function DiseaseProductsPanel({ disease }: { disease: Disease }) 
                     </div>
                     {l.doseSource && <div className="text-xs text-slate-500">Nguồn liều: {l.doseSource}</div>}
                     {l.status === 'APPROVED' && l.approvedAt && <div className="text-xs text-emerald-700">Duyệt lúc {formatDateTime(l.approvedAt)}</div>}
-                  </div>
-                  <div className="flex gap-3 whitespace-nowrap">
-                    {canUpdate && l.status !== 'INACTIVE' && (
-                      <button type="button" className="text-primary font-semibold" onClick={() => openEdit(l)} aria-label={`Sửa liên kết ${l.productName}`}>
-                        <Pencil size={13} className="inline mr-1" />
-                        Sửa
-                      </button>
-                    )}
-                    {canApprove && l.status === 'DRAFT' && (
-                      <button
-                        type="button"
-                        className="text-emerald-700 font-semibold"
-                        onClick={() => {
-                          setChecked(false)
-                          setApproving(l)
-                        }}
-                        aria-label={`Duyệt liên kết ${l.productName}`}
-                      >
-                        <CheckCircle2 size={13} className="inline mr-1" />
-                        Duyệt
-                      </button>
-                    )}
-                    {canDeactivate && l.status !== 'INACTIVE' && (
-                      <button type="button" className="text-rose-700 font-semibold" onClick={() => setStopping(l)} aria-label={`Ngừng liên kết ${l.productName}`}>
-                        Ngừng
-                      </button>
-                    )}
-                  </div>
-                </li>
+                  </td>
+                  <td className="px-3 py-4 align-top"><StatusBadge label={LINK_STATUS_LABEL[l.status]} className={l.status === 'DRAFT' ? 'text-amber-700' : undefined} /></td>
+                  <td className="px-3 py-4 align-top text-right"><RowActionsMenu disabled={busy} triggerLabel={`Thao tác sản phẩm ${l.productName}`} actions={[
+                    ...(canUpdate && l.status !== 'INACTIVE' ? [{ label: 'Sửa liên kết', icon: 'edit', onClick: () => openEdit(l) }] : []),
+                    ...(canApprove && l.status === 'DRAFT' ? [{ label: 'Duyệt liên kết', icon: 'check_circle', onClick: () => { setChecked(false); setApproving(l) } }] : []),
+                    ...(canDeactivate && l.status !== 'INACTIVE' ? [{ label: 'Ngừng liên kết', icon: 'pause_circle', tone: 'danger' as const, onClick: () => setStopping(l) }] : []),
+                  ]} /></td>
+                </tr>
               ))}
-            </ul>
+              </tbody>
+            </table></div>
           )}
         </>
       )}
