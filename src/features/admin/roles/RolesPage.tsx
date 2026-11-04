@@ -10,6 +10,12 @@ import { usePermission } from '@/context/PermissionContext'
 import { useToast } from '@/context/ToastContext'
 import { usePermissionDraftGuard } from '@/hooks/usePermissionDraftGuard'
 
+// The server rejects a role save that names a code the role may not hold (for example the owner-only debt codes on a staff role), so the page only ever sends and compares codes the catalog allows for that role.
+const grantableCodes = (catalog: Permission[], roleCode: string, codes: string[]) => {
+  const allowed = new Set(catalog.filter(p => p.allowedRoles.includes(roleCode)).map(p => p.code))
+  return codes.filter(code => allowed.has(code))
+}
+
 export default function RolesPage() {
   usePageHeader({ title: 'Phân quyền', subtitle: 'Quản lý quyền truy cập theo vai trò và người dùng' })
   const [tab, setTab] = useState<'roles' | 'users'>('roles')
@@ -21,7 +27,8 @@ export default function RolesPage() {
   const invalidate = useCallback(() => { ++sequence.current }, [])
   const { refresh } = usePermission(), { showToast } = useToast()
   const role = roles.find(r => r.id === roleId)
-  const changed = role ? new Set([...role.permissionCodes, ...selected].filter(code => role.permissionCodes.includes(code) !== selected.includes(code))).size : 0
+  const baseline = role ? grantableCodes(catalog, role.code, role.permissionCodes) : []
+  const changed = role ? new Set([...baseline, ...selected].filter(code => baseline.includes(code) !== selected.includes(code))).size : 0
   const { guard, dialog } = usePermissionDraftGuard(tab === 'roles' ? changed > 0 : userDirty)
   const load = useCallback(async (selectedRoleId = '') => {
     const request = ++sequence.current
@@ -31,7 +38,7 @@ export default function RolesPage() {
       if (sequence.current !== request) return
       setRoles(rs); setCatalog(cs)
       const current = rs.find(r => r.id === selectedRoleId) ?? rs[0]
-      setRoleId(current?.id ?? ''); setSelected(current?.permissionCodes ?? []); setStale(false); setReason('')
+      setRoleId(current?.id ?? ''); setSelected(current ? grantableCodes(cs, current.code, current.permissionCodes) : []); setStale(false); setReason('')
     } catch (err) { if (sequence.current === request) setError(describeError(err)) }
     finally { if (sequence.current === request) setBusy(false) }
   }, [])
@@ -40,8 +47,8 @@ export default function RolesPage() {
     if (!role || !role.editable || !reason.trim() || !changed || stale || busy) return
     setBusy(true); setError('')
     try {
-      const updated = await permissionsApi.setRole(role, selected, reason.trim())
-      setRoles(prev => prev.map(r => r.id === updated.id ? updated : r)); setSelected(updated.permissionCodes); setReason('')
+      const updated = await permissionsApi.setRole(role, grantableCodes(catalog, role.code, selected), reason.trim())
+      setRoles(prev => prev.map(r => r.id === updated.id ? updated : r)); setSelected(grantableCodes(catalog, updated.code, updated.permissionCodes)); setReason('')
       showToast('Đã lưu cấu hình quyền vai trò', 'success')
       await refresh(); window.dispatchEvent(new Event('agrisage-permissions-changed'))
     } catch (err) { setError(describeError(err)); if (err instanceof ApiError && err.status === 409) setStale(true) }
@@ -49,13 +56,14 @@ export default function RolesPage() {
   }
   function selectRole(id: string) {
     const next = roles.find(r => r.id === id)
-    setRoleId(id); setSelected(next?.permissionCodes ?? []); setReason(''); setStale(false); setError('')
+    setRoleId(id); setSelected(next ? grantableCodes(catalog, next.code, next.permissionCodes) : []); setReason(''); setStale(false); setError('')
   }
   const roleCatalog = catalog.filter(p => role && p.allowedRoles.includes(role.code))
+  const ownerOnlyCount = role && !['ADMIN', 'STORE_OWNER'].includes(role.code) ? catalog.filter(p => !p.allowedRoles.includes(role.code) && p.allowedRoles.every(code => code === 'ADMIN' || code === 'STORE_OWNER')).length : 0
   function changeTab(next: 'roles' | 'users') {
     if (next === tab) return
     guard(() => {
-      if (tab === 'roles' && role) { setSelected(role.permissionCodes); setReason('') }
+      if (tab === 'roles' && role) { setSelected(baseline); setReason('') }
       setTab(next); setUserDirty(false); requestAnimationFrame(() => document.getElementById(`permission-tab-${next}`)?.focus())
     })
   }
@@ -67,6 +75,7 @@ export default function RolesPage() {
     {tab === 'roles' && <section role="tabpanel" id="permission-panel-roles" aria-labelledby="permission-tab-roles" className="space-y-4">
       {role && <><div className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center"><div className="flex min-w-0 flex-wrap items-center gap-4"><span className="hidden size-12 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 sm:flex"><ShieldCheck size={24} /></span><label className="min-w-0 text-xs font-medium text-slate-500">Vai trò<select aria-label="Vai trò" value={roleId} disabled={busy} onChange={e => { const next = e.target.value; guard(() => selectRole(next)) }} className="mt-1.5 block min-h-10 w-full min-w-[200px] rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 outline-none focus:border-emerald-500">{roles.map(current => <option key={current.id} value={current.id}>{current.name}</option>)}</select></label><div className="text-xs text-slate-500"><p className="font-mono text-[10px] text-slate-400">{role.code}</p><p className="mt-1"><strong className="font-semibold text-slate-800">{selected.length}</strong> quyền được cấp <span className="mx-1 text-slate-300">/</span> {roleCatalog.length} quyền khả dụng</p></div></div><button type="button" disabled={busy} onClick={() => guard(() => void load(roleId))} className="inline-flex min-h-10 items-center justify-center gap-2 self-start rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-600 disabled:opacity-50"><RefreshCw size={14} className={busy ? 'animate-spin' : ''} />Tải lại cấu hình</button></div>
       <div className={`flex items-start gap-2.5 rounded-xl border px-4 py-3 text-xs leading-5 ${role.editable ? 'border-slate-200 bg-slate-50 text-slate-500' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>{role.editable ? <Info size={16} className="mt-0.5 shrink-0" /> : <LockKeyhole size={16} className="mt-0.5 shrink-0" />}<span>{role.editable ? role.description || 'Quyền mặc định áp dụng cho người dùng thuộc vai trò này. Quyền riêng của từng người dùng được ưu tiên và vẫn chịu giới hạn truy cập của cửa hàng.' : 'Vai trò Admin có toàn bộ quyền hệ thống. Cấu hình này được bảo vệ và chỉ cho phép xem.'}</span></div>
+      {ownerOnlyCount > 0 && <p className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600"><LockKeyhole size={14} className="shrink-0" />{ownerOnlyCount} quyền chỉ dành cho Chủ cửa hàng (giảm/xóa nợ, ghi nợ thủ công, đổi hạn nợ, xác nhận chuyển khoản, tạm ngưng/khóa tín dụng) nên không thể cấp cho vai trò này.</p>}
       <PermissionChecklist catalog={roleCatalog} selected={selected} editable={p => role.editable && !busy && !stale && p.allowedRoles.includes(role.code)} onToggle={(code, checked) => setSelected(prev => checked ? [...new Set([...prev, code])] : prev.filter(c => c !== code))} />
       {role.editable && <PermissionSaveBar reason={reason} onReason={setReason} dirtyCount={changed} busy={busy} stale={stale} onSave={() => void save()} onDiscard={() => { setSelected(role.permissionCodes); setReason('') }} />}</>}
       {!busy && !error && !roles.length && <p role="status" className="rounded-xl border bg-white p-8 text-center text-sm text-slate-500">Chưa có vai trò hoạt động.</p>}
