@@ -1,48 +1,51 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type ReactNode } from 'react'
 import Modal from '@/components/ui/Modal'
 import ModalLayout from '@/components/ui/ModalLayout'
-import Select from '@/components/ui/Select'
-import type { CropSeason, CropSeasonWriteRequest } from '@/api/cropSeasonsApi'
+import type { CropSeason, CropSeasonCreateRequest, CropSeasonUpdateRequest } from '@/api/cropSeasonsApi'
 import { formatDay } from '@/utils/creditLabels'
-import { CROP_TYPES, DEFAULT_GRACE_DAYS, addDays, seasonDueDate, validateSeasonDates, type SeasonDates } from './seasonRules'
+import { DEFAULT_GRACE_DAYS, addDays, seasonDueDate, validateSeasonDates, type SeasonDates } from './seasonRules'
 
 export type SeasonFormResult =
-  | { mode: 'create'; body: CropSeasonWriteRequest & { code: string } }
-  | { mode: 'edit'; body: CropSeasonWriteRequest & { applyNewDueDateToDebts: boolean } }
+  | { mode: 'create'; body: CropSeasonCreateRequest }
+  | { mode: 'edit'; body: CropSeasonUpdateRequest }
 
 interface Props {
   open: boolean
   /** null creates a season. */
   season: CropSeason | null
-  /** Pre-filled order window start for a new season, so it follows the latest one. */
+  /** Where a new season's order window opens (the latest season's harvest start); null when there is no season yet. */
   suggestedStart: string | null
+  /** The season after this one, if any: moving this season's harvest start moves that season's order window. */
+  nextSeason: CropSeason | null
   saving: boolean
   onClose: () => void
   onSubmit: (result: SeasonFormResult) => void
 }
 
-type Values = SeasonDates & { code: string; name: string; cropType: string; applyNewDueDateToDebts: boolean }
+type Values = SeasonDates & { code: string; name: string; applyNewDueDate: boolean; reason: string }
 
 const input =
-  'w-full h-10 px-3 rounded-lg border text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500'
+  'w-full h-10 px-3 rounded-lg border text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 disabled:bg-slate-50 disabled:text-slate-500'
 
 const initialValues = (season: CropSeason | null, suggestedStart: string | null): Values =>
   season
     ? {
         code: season.code,
         name: season.name,
-        cropType: season.cropType,
         orderWindowStart: season.orderWindowStart.slice(0, 10),
         harvestStart: season.harvestStart.slice(0, 10),
         harvestEnd: season.harvestEnd.slice(0, 10),
         graceDays: String(season.graceDays),
-        applyNewDueDateToDebts: false,
+        applyNewDueDate: false,
+        reason: '',
       }
-    : { code: '', name: '', cropType: 'RICE', orderWindowStart: suggestedStart ?? '', harvestStart: '', harvestEnd: '', graceDays: String(DEFAULT_GRACE_DAYS), applyNewDueDateToDebts: false }
+    : { code: '', name: '', orderWindowStart: suggestedStart ?? '', harvestStart: '', harvestEnd: '', graceDays: String(DEFAULT_GRACE_DAYS), applyNewDueDate: false, reason: '' }
 
-export default function CropSeasonFormModal({ open, season, suggestedStart, saving, onClose, onSubmit }: Props) {
+export default function CropSeasonFormModal({ open, season, suggestedStart, nextSeason, saving, onClose, onSubmit }: Props) {
   const [values, setValues] = useState<Values>(() => initialValues(season, suggestedStart))
   const [touched, setTouched] = useState(false)
+  // Only the very first season has a typed-in order window; every later one follows the previous harvest start.
+  const windowLocked = !!season || suggestedStart !== null
 
   useEffect(() => {
     if (!open) return
@@ -51,30 +54,39 @@ export default function CropSeasonFormModal({ open, season, suggestedStart, savi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
-  const errors = useMemo(() => {
-    const dateErrors: Partial<Record<keyof Values, string>> = validateSeasonDates(values)
-    if (!season && !values.code.trim()) dateErrors.code = 'Nhập mã vụ.'
-    if (!values.name.trim()) dateErrors.name = 'Nhập tên vụ.'
-    return dateErrors
-  }, [values, season])
-
   const dueDate = seasonDueDate(values.harvestEnd, Number(values.graceDays))
+  const previousDue = season ? season.paymentDueDate.slice(0, 10) : null
   const datesChanged = !!season && (values.harvestEnd !== season.harvestEnd.slice(0, 10) || Number(values.graceDays) !== season.graceDays)
-  const hasDebt = !!season && season.openEntryCount > 0
+  const dueMovesLater = !!season && !!dueDate && !!previousDue && dueDate > previousDue
+  const collectingCount = season?.collecting.openEntryCount ?? 0
+  const offerExtension = dueMovesLater && collectingCount > 0
+  const harvestStartMoved = !!season && !!nextSeason && values.harvestStart !== season.harvestStart.slice(0, 10)
+
+  const errors = useMemo(() => {
+    const found: Partial<Record<keyof Values, string>> = validateSeasonDates(values)
+    if (!season && !values.code.trim()) found.code = 'Nhập mã vụ.'
+    if (!values.name.trim()) found.name = 'Nhập tên vụ.'
+    if (offerExtension && values.applyNewDueDate && !values.reason.trim()) found.reason = 'Nhập lý do áp hạn mới.'
+    return found
+  }, [values, season, offerExtension])
+
   const set = (key: keyof Values, value: string | boolean) => setValues((prev) => ({ ...prev, [key]: value }))
 
   const submit = () => {
     setTouched(true)
     if (Object.keys(errors).length > 0 || saving) return
-    const body: CropSeasonWriteRequest = {
+    const common = {
       name: values.name.trim(),
-      cropType: values.cropType,
-      orderWindowStart: values.orderWindowStart,
       harvestStart: values.harvestStart,
       harvestEnd: values.harvestEnd,
       graceDays: Number(values.graceDays),
     }
-    onSubmit(season ? { mode: 'edit', body: { ...body, applyNewDueDateToDebts: hasDebt && datesChanged && values.applyNewDueDateToDebts } } : { mode: 'create', body: { ...body, code: values.code.trim().toUpperCase() } })
+    if (season) {
+      const apply = offerExtension && values.applyNewDueDate
+      onSubmit({ mode: 'edit', body: { ...common, version: season.version, ...(apply ? { applyNewDueDateToCollectingDebts: true, reason: values.reason.trim() } : {}) } })
+    } else {
+      onSubmit({ mode: 'create', body: { ...common, code: values.code.trim().toUpperCase(), orderWindowStart: values.orderWindowStart } })
+    }
   }
 
   const field = (key: keyof Values, label: string, control: ReactNode, hint?: string, wide = false) => {
@@ -116,15 +128,13 @@ export default function CropSeasonFormModal({ open, season, suggestedStart, savi
           {season
             ? field('code', 'Mã vụ', <p className="h-10 flex items-center font-mono text-sm text-slate-700">{season.code}</p>)
             : field('code', 'Mã vụ', <input {...textProps('code')} placeholder="VD: DX-2026" maxLength={30} />, 'Không đổi được sau khi tạo.')}
-          {field('name', 'Tên vụ', <input {...textProps('name')} placeholder="VD: Đông Xuân 2026–2027" maxLength={100} />, 'Nông dân thấy tên này khi mua chịu.')}
-          {field('cropType', 'Cây trồng', (
-            <Select id="season-cropType" value={values.cropType} onChange={(e) => set('cropType', e.target.value)} className={`${input} border-slate-200`}>
-              {CROP_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-            </Select>
-          ))}
+          {field('name', 'Tên vụ', <input {...textProps('name')} placeholder="VD: Đông Xuân 2026–2027" maxLength={150} />, 'Nông dân thấy tên này khi mua chịu.')}
+          {field('orderWindowStart', 'Bắt đầu nhận đơn',
+            <input {...textProps('orderWindowStart', 'date')} disabled={windowLocked} />,
+            windowLocked
+              ? 'Hệ thống tự lấy theo ngày bắt đầu thu hoạch của vụ trước, không nhập tay.'
+              : 'Vụ đầu tiên: nhập ngày bắt đầu nhận đơn. Các vụ sau tự nối tiếp.')}
           {field('graceDays', 'Ân hạn sau thu hoạch (ngày)', <input {...textProps('graceDays', 'number')} min={0} max={365} inputMode="numeric" />, 'Thời gian để nông dân bán lúa trước khi tới hạn.')}
-          {field('orderWindowStart', 'Bắt đầu nhận đơn', <input {...textProps('orderWindowStart', 'date')} />,
-            'Thường là ngày vụ trước bắt đầu thu hoạch.')}
           {field('harvestStart', 'Bắt đầu thu hoạch (dự kiến)', <input {...textProps('harvestStart', 'date')} />,
             values.harvestStart ? `Đơn xác nhận từ ${formatDay(values.harvestStart)} tính cho vụ sau.` : 'Từ ngày này, đơn mới tính cho vụ sau.')}
           {field('harvestEnd', 'Kết thúc thu hoạch (dự kiến)', <input {...textProps('harvestEnd', 'date')} />)}
@@ -139,14 +149,29 @@ export default function CropSeasonFormModal({ open, season, suggestedStart, savi
             </p>
           </div>
 
-          {hasDebt && datesChanged && (
-            <label className="sm:col-span-2 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              <input type="checkbox" className="mt-0.5 h-4 w-4 accent-emerald-600" checked={values.applyNewDueDateToDebts} onChange={(e) => set('applyNewDueDateToDebts', e.target.checked)} />
-              <span>
-                Áp hạn trả mới cho {season?.openEntryCount} khoản nợ đã ghi của vụ này.
-                <span className="block text-xs text-amber-800 mt-0.5">Không chọn thì các khoản đã ghi giữ hạn cũ; chỉ khoản ghi sau mới theo hạn mới.</span>
-              </span>
-            </label>
+          {harvestStartMoved && nextSeason && (
+            <div role="status" className="sm:col-span-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              Đổi ngày bắt đầu thu hoạch sẽ dời ngày bắt đầu nhận đơn của vụ kế tiếp <strong>{nextSeason.name}</strong> sang {formatDay(values.harvestStart)}.
+              Đơn chịu xác nhận quanh khoảng ngày này có thể chuyển sang vụ khác.
+            </div>
+          )}
+
+          {datesChanged && !offerExtension && collectingCount === 0 && season && (
+            <p className="sm:col-span-2 text-xs text-slate-500">Vụ này chưa có khoản nợ đang thu, nên đổi ngày chỉ ảnh hưởng các khoản ghi sau.</p>
+          )}
+
+          {offerExtension && (
+            <div className="sm:col-span-2 space-y-3">
+              <label className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <input type="checkbox" className="mt-0.5 h-4 w-4 accent-emerald-600" checked={values.applyNewDueDate} onChange={(e) => set('applyNewDueDate', e.target.checked)} />
+                <span>
+                  Áp hạn trả mới cho các khoản nợ đang thu của vụ này ({collectingCount} khoản).
+                  <span className="block text-xs text-amber-800 mt-0.5">Khoản đang khiếu nại giữ hạn cũ và cần Chủ quyết riêng. Không chọn thì các khoản đã ghi giữ hạn cũ.</span>
+                </span>
+              </label>
+              {values.applyNewDueDate && field('reason', 'Lý do áp hạn mới',
+                <input {...textProps('reason')} placeholder="VD: Thu hoạch chậm do mưa kéo dài" maxLength={1000} />, undefined, true)}
+            </div>
           )}
         </ModalLayout>
       </form>

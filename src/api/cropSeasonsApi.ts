@@ -1,18 +1,28 @@
 import { api, toQuery } from './client'
 import type { Uuid, Paged } from './types'
 
-// Debt by crop season (tài liệu "Luồng công nợ theo vụ mùa", mục 6, 12, 13).
-// PROPOSED CONTRACT: the backend has no crop season API yet. Field names follow the doc's crop_seasons table in
-// camelCase; confirm them with the backend before merging.
+// Debt by crop season (FE_GUIDE_FLOW_3 §4.1, §10). Dates are Vietnam days (yyyy-MM-dd); instants are UTC.
 
 export type CropSeasonStatus = 'PLANNED' | 'OPEN' | 'HARVESTING' | 'COLLECTING' | 'CLOSED'
+
+/** Debt figures of a season: `originated` = entries born in it (never changes), `collecting` = entries being collected in it. */
+export interface DebtFigures {
+  outstandingAmount: number
+  openEntryCount: number
+}
+
+/** Present only on the PUT response that asked for applyNewDueDateToCollectingDebts; null or absent everywhere else. */
+export interface DebtExtensionResult {
+  moved: number
+  skippedDisputed: number
+}
 
 export interface CropSeason {
   id: Uuid
   code: string
   name: string
   cropType: string
-  /** Vietnam day (yyyy-MM-dd): credit orders confirmed from this day belong to the season. */
+  /** Opens the order window; the server fills it from the previous season's harvestStart (only the first season is typed in). */
   orderWindowStart: string
   /** From this day new orders go to the next season. */
   harvestStart: string
@@ -21,33 +31,65 @@ export interface CropSeason {
   /** harvestEnd + graceDays, computed by the server. */
   paymentDueDate: string
   status: CropSeasonStatus
-  /** Debt still owed on entries of this season; lets the page warn before closing. */
-  outstandingAmount: number
-  openEntryCount: number
+  seasonalRuleId: Uuid | null
   closedAt: string | null
-  createdAt: string
+  /** Required when updating or closing; 409 means someone else saved first. */
+  version: number
+  originated: DebtFigures
+  collecting: DebtFigures
+  debtExtension?: DebtExtensionResult | null
 }
 
-export interface CropSeasonWriteRequest {
+export interface CropSeasonCreateRequest {
+  code: string
   name: string
-  cropType: string
-  orderWindowStart: string
+  harvestStart: string
+  harvestEnd: string
+  graceDays?: number
+  /** Only the first season; for later seasons the server derives it and rejects a different value. */
+  orderWindowStart?: string
+  cropType?: string
+}
+
+export interface CropSeasonUpdateRequest {
+  name: string
   harvestStart: string
   harvestEnd: string
   graceDays: number
+  version: number
+  /** Owner only. Moves collecting entries that still follow the old due date; `reason` is then required. */
+  applyNewDueDateToCollectingDebts?: boolean
+  reason?: string
+}
+
+export type ClosingBlocker = 'ALREADY_CLOSED' | 'HARVEST_NOT_ENDED' | 'OPEN_ENTRIES' | 'OPEN_CREDIT_ORDERS'
+
+export interface ClosingCheck {
+  seasonId: Uuid
+  status: CropSeasonStatus
+  canClose: boolean
+  reasons: ClosingBlocker[]
+  openEntryCount: number
+  openEntries: { entryId: Uuid; entryNumber: string; farmerProfileId: Uuid; fullName: string; outstandingAmount: number; status: string }[]
+  openCreditOrderCount: number
+  openCreditOrders: { orderId: Uuid; orderNumber: string; status: string }[]
 }
 
 export const cropSeasonsApi = {
+  // The server caps pageSize at 100; a store has a handful of seasons a year.
   getSeasons: (params: { status?: string; year?: number; page?: number; pageSize?: number } = {}) =>
     api<Paged<CropSeason>>(`/api/crop-seasons${toQuery(params)}`),
 
-  create: (data: CropSeasonWriteRequest & { code: string }) =>
+  getSeason: (id: Uuid) => api<CropSeason>(`/api/crop-seasons/${id}`),
+
+  create: (data: CropSeasonCreateRequest) =>
     api<CropSeason>('/api/crop-seasons', { method: 'POST', body: JSON.stringify(data) }),
 
-  // BR-D16: changing dates never moves the due date of debt already recorded unless the owner asks for it.
-  update: (id: Uuid, data: CropSeasonWriteRequest & { applyNewDueDateToDebts: boolean }) =>
+  update: (id: Uuid, data: CropSeasonUpdateRequest) =>
     api<CropSeason>(`/api/crop-seasons/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 
-  // BR-D15: the server refuses while the season still has open debt entries.
-  close: (id: Uuid) => api<CropSeason>(`/api/crop-seasons/${id}/close`, { method: 'POST' }),
+  getClosingCheck: (id: Uuid) => api<ClosingCheck>(`/api/crop-seasons/${id}/closing-check`),
+
+  close: (id: Uuid, version: number, note?: string) =>
+    api<CropSeason>(`/api/crop-seasons/${id}/close`, { method: 'POST', body: JSON.stringify({ version, note: note || null }) }),
 }
