@@ -94,6 +94,7 @@ function useNavConfig() {
           { label: 'Phiếu nhập hàng', to: '/agent/purchases/receipts', icon: 'shopping_cart' },
           { label: 'Công nợ', to: '/agent/debts', icon: 'pending_actions' },
           { label: 'Vụ mùa', to: '/agent/crop-seasons', icon: 'agriculture' },
+          { label: 'Chính sách công nợ', to: '/agent/debt-policy', icon: 'rule' },
           { label: 'Nhóm khách & tín dụng', to: '/agent/credit-config', icon: 'credit_score' },
           { label: 'Bảng giá', to: '/agent/price-lists', icon: 'price_change' },
         ]

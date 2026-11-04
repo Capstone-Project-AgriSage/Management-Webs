@@ -40,6 +40,7 @@ const routes: [RegExp, string[]][] = [
   [/\/price-lists/, ['PRICING.READ']],
   // Proposed permission of the crop season API (debt by season); the backend does not grant it yet.
   [/\/crop-seasons/, ['CROP_SEASONS.READ']],
+  [/\/debt-policy/, ['DEBT_POLICY.READ']],
   [/\/credit-config/, ['CUSTOMER_GROUPS.READ', 'CREDIT_TIERS.READ']],
   [/^\/admin\/notifications/, []],
 ]
