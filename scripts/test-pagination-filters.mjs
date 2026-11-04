@@ -205,7 +205,7 @@ try {
     await f.page.getByRole('button', { name: 'Lưu', exact: true }).click()
     await f.page.waitForTimeout(300)
     assert.deepEqual(f.state.requests.find(r => r.path === '/api/categories' && r.method === 'POST').body, { name: 'Danh mục API', code: 'DM-API', description: null, displayOrder: null, parentId: null })
-    await f.page.getByRole('button', { name: 'Thao tác Danh mục API', exact: true }).click()
+    await f.page.getByRole('button', { name: 'Thao tác Bản ghi 0', exact: true }).click()
     await f.page.getByRole('menuitem', { name: 'Sửa thông tin', exact: true }).click()
     await f.page.getByLabel(/^Tên/).fill('Danh mục sửa')
     const updating = f.page.waitForRequest(r => r.method() === 'PUT')

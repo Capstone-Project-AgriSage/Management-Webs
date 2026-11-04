@@ -133,7 +133,7 @@ try {
   console.log('PASS Failed refund reads are visible, never cached as an empty successful list, and can be retried')
 
   const source = fs.readFileSync('src/utils/requestCache.ts', 'utf8').replace('export class', 'class')
-  const compiled = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText
+  const compiled = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText.replace(/^export {};s*$/m, '')
   const RequestCache = new Function(compiled + '\nreturn RequestCache')()
   const cache = new RequestCache(0)
   let reads = 0
@@ -156,7 +156,7 @@ try {
   console.log('PASS Cache expires, stays bounded, and never reuses aborted results')
 
   const mergeSource = fs.readFileSync('src/utils/mergePagedLists.ts', 'utf8').replace(/^import .*\n/gm, '').replace('export async function', 'async function')
-  const mergeCompiled = ts.transpileModule('const LIST_PAGE_SIZE = 10;\n' + mergeSource, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText
+  const mergeCompiled = ts.transpileModule('const LIST_PAGE_SIZE = 10;\n' + mergeSource, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText.replace(/^export {};s*$/m, '')
   const merge = new Function(mergeCompiled + '\nreturn mergePagedLists')()
   const pages = []
   const result = await merge([async page => {

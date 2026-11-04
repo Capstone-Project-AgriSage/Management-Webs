@@ -8,8 +8,9 @@ const moduleUrl = source => `data:text/javascript;base64,${Buffer.from(ts.transp
 }).outputText).toString('base64')}`
 const cacheUrl = moduleUrl(fs.readFileSync(new URL('../src/api/lookupCache.ts', import.meta.url), 'utf8'))
 const { LookupCache, lookupCache, lookupKey, installLookupCacheInvalidation } = await import(cacheUrl)
+const messagesUrl = moduleUrl(fs.readFileSync(new URL('../src/utils/serverMessages.ts', import.meta.url), 'utf8'))
 const clientSource = fs.readFileSync(new URL('../src/api/client.ts', import.meta.url), 'utf8')
-  .replace("'./lookupCache'", JSON.stringify(cacheUrl)).replaceAll('import.meta.env', '({})')
+  .replace("'@/utils/serverMessages'", JSON.stringify(messagesUrl)).replace("'./lookupCache'", JSON.stringify(cacheUrl)).replaceAll('import.meta.env', '({})')
 const clientUrl = moduleUrl(clientSource)
 const { api } = await import(clientUrl)
 const storage = new Map()

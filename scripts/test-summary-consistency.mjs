@@ -69,7 +69,7 @@ async function makeSession(role = 'STORE_OWNER', permissions = READ_PERMISSIONS,
     if (path === '/api/ai-models/model-1/policies') return json([{ id: 'policy-1', aiModelId: aiModel.id, version: '1.0', minimumConfidence: 0.8, minimumMargin: null, topK: 3, requiresHumanReview: true, status: 'ACTIVE', effectiveFrom: '2026-10-01T00:00:00Z', effectiveTo: null }])
     if (path === '/api/catalog/products') return json(paged([{ id: 'store-product', sku: 'SP-API', name: 'Sản phẩm danh mục API', imageUrl: null, categoryId: 'category-child', categoryName: 'Danh mục con', brandName: null, fromPrice: 25000 }], 73, query))
     if (path === '/api/diagnosis-cases') return json(paged([], 0, query))
-    if (['/api/returns', '/api/goods-receipts', '/api/suppliers', '/api/customers', '/api/price-lists', '/api/staff', '/api/brands', '/api/units', '/api/products', '/api/store-products', '/api/customer-groups', '/api/credit-tiers', '/api/audit-logs'].includes(path)) return json(paged([], 0, query))
+    if (['/api/crop-seasons', '/api/returns', '/api/goods-receipts', '/api/suppliers', '/api/customers', '/api/price-lists', '/api/staff', '/api/brands', '/api/units', '/api/products', '/api/store-products', '/api/customer-groups', '/api/credit-tiers', '/api/audit-logs'].includes(path)) return json(paged([], 0, query))
     unknown.push(path)
     return json({ detail: `Unexpected fixture route: ${path}` }, 404)
   })
@@ -86,8 +86,9 @@ async function makeSession(role = 'STORE_OWNER', permissions = READ_PERMISSIONS,
         assert.equal(await page.locator('.agrisage-kpi-card').count(), 0, `${path} is a dashboard: a strip and report panels, not list summary cards`)
       } else {
         await page.locator('.agrisage-kpi-card').first().waitFor()
-        await page.waitForFunction(() => document.querySelectorAll('.agrisage-kpi-card').length === 4 && [...document.querySelectorAll('[aria-busy]')].every(element => element.getAttribute('aria-busy') !== 'true') && !document.querySelector('.agrisage-kpi-card .animate-pulse'))
-        assert.equal(await page.locator('.agrisage-kpi-card').count(), 4, `${path} must render exactly four summary cards`)
+        const expectedCards = path.endsWith('/inventory') ? 5 : 4 // inventory shows five stock cards
+        await page.waitForFunction(count => document.querySelectorAll('.agrisage-kpi-card').length === count && [...document.querySelectorAll('[aria-busy]')].every(element => element.getAttribute('aria-busy') !== 'true') && !document.querySelector('.agrisage-kpi-card .animate-pulse'), expectedCards)
+        assert.equal(await page.locator('.agrisage-kpi-card').count(), expectedCards, `${path} must render exactly ${expectedCards} summary cards`)
         assert.equal(await page.locator('.agrisage-kpi-card svg.lucide').count(), 0, `${path} summary cards must not render decorative icons`)
       }
       assert.deepEqual(errors, [], `${path} must not throw in the browser`)
@@ -441,7 +442,7 @@ try {
   try {
     await unavailable.check('/agent/inventory')
     await unavailable.page.getByText('Chưa có số liệu cảnh báo', { exact: true }).waitFor()
-    assert.equal(await unavailable.page.locator('.agrisage-kpi-card').getByText('—', { exact: true }).count(), 3, 'Failed alerts must not show fabricated zeros or endless loading dots')
+    assert.equal(await unavailable.page.locator('.agrisage-kpi-card').getByText('—', { exact: true }).count(), 4, 'Failed alerts must not show fabricated zeros or endless loading dots')
     console.log('PASS Unavailable inventory alerts remain unknown instead of reporting zero')
   } finally { await unavailable.context.close() }
   console.log('PASS Summary consistency suite: all API traffic mocked, no browser errors')

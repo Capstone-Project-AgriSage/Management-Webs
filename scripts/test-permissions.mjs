@@ -156,7 +156,7 @@ try {
 
   const owner = await fixture('STORE_OWNER','/agent/staff')
   await owner.page.getByRole('button',{name:'Thao tác nhân viên Sale kiểm thử',exact:true}).click()
-  await owner.page.getByRole('button',{ name:'Phân quyền',exact:true }).click()
+  await owner.page.getByRole('menuitem',{ name:'Phân quyền',exact:true }).click()
   await checked(owner.page,'PRODUCTS.CREATE').waitFor()
   assert.equal(await checked(owner.page,'ORDERS.CANCEL').isDisabled(),true)
   await checked(owner.page,'PRODUCTS.CREATE').check()

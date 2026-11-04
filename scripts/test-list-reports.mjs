@@ -22,7 +22,7 @@ const cases = [
 ]
 let checks = 0
 const pass = name => { checks++; console.log('PASS ' + name) }
-const metricValue = (region, label) => region.getByRole('heading', { name: label, exact: true }).locator('..').locator('p').first()
+const metricValue = (region, label) => region.getByRole('heading', { name: label, exact: true }).locator('..').locator('.agrisage-kpi-value span').first()
 async function fixture(test, mode = 'normal', viewport = { width: 1440, height: 950 }) {
   const context = await browser.newContext({ viewport })
   await context.addInitScript(() => localStorage.setItem('agrisage_token', 'list-report-test'))
@@ -30,6 +30,8 @@ async function fixture(test, mode = 'normal', viewport = { width: 1440, height: 
   await context.route('**/api/**', async route => {
     const request = route.request(), url = new URL(request.url())
     if (!url.pathname.startsWith('/api/')) return route.continue()
+    // SignalR negotiation is a POST the app shell makes on every page; it is not a store write.
+    if (url.pathname === '/api/realtime/negotiate') return route.abort()
     state.requests.push({ path: url.pathname, method: request.method(), query: Object.fromEntries(url.searchParams) })
     const json = (data, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(data) }).catch(() => {})
     if (url.pathname === '/api/auth/me') return json({ id: 'owner-test', fullName: 'Owner Test', role: 'STORE_OWNER', status: 'ACTIVE' })
@@ -55,7 +57,7 @@ async function fixture(test, mode = 'normal', viewport = { width: 1440, height: 
 try {
   for (const test of cases) {
     const f = await fixture(test)
-    await f.region.getByText(new RegExp(`31\\s*${test.unit}`)).waitFor()
+    await f.region.getByText(new RegExp(`31\\s*${test.unit}`)).waitFor({ timeout: 30_000 }) // the first page after a cold Vite start compiles slowly
     for (const [label, value] of test.metrics) assert.equal((await metricValue(f.region, label).innerText()).trim(), value)
     assert.equal(await f.region.getByText('Trên trang đang hiển thị', { exact: true }).count(), 3)
     assert.equal(f.state.requests.filter(r => r.path.startsWith('/api/reports/')).length, 0)
@@ -84,7 +86,7 @@ try {
   assert.equal((await metricValue(incomplete.region, 'Nợ quá hạn').innerText()).trim(), '—')
   assert.equal((await metricValue(incomplete.region, 'Dư nợ khách hàng').innerText()).trim(), '1.200.000 đ')
   incomplete.state.mode = 'error'
-  await incomplete.page.getByLabel('Lọc trạng thái', { exact: true }).selectOption('INACTIVE')
+  await incomplete.page.getByLabel('Trạng thái', { exact: true }).selectOption('INACTIVE')
   await incomplete.page.getByRole('alert').filter({ hasText: 'Lỗi danh sách kiểm thử' }).waitFor()
   assert.equal(await incomplete.region.getByText('—', { exact: true }).count(), 4)
   await incomplete.context.close()
