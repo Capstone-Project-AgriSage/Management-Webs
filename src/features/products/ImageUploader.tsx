@@ -13,17 +13,20 @@ interface ImageUploaderProps {
   onRemove: () => void
   disabled?: boolean
   alt?: string
+  upload?: (file: File) => Promise<UploadedImage>
+  onUploadingChange?: (uploading: boolean) => void
+  hint?: string
 }
 
 /** Pick, drop, preview, replace or remove one product image (JPEG, PNG or WebP, up to 3 MB). The file is uploaded at once. */
-export default function ImageUploader({ url, onUploaded, onRemove, disabled = false, alt = 'Ảnh sản phẩm' }: ImageUploaderProps) {
+export default function ImageUploader({ url, onUploaded, onRemove, disabled = false, alt = 'Ảnh sản phẩm', upload = productsApi.uploadImage, onUploadingChange, hint }: ImageUploaderProps) {
   const input = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const [dragging, setDragging] = useState(false)
 
   const take = async (file: File | undefined) => {
-    if (!file || disabled) return
+    if (!file || disabled || uploading) return
     if (!IMAGE_TYPES.includes(file.type)) {
       setError('Chỉ nhận ảnh JPG, PNG hoặc WebP.')
       return
@@ -34,12 +37,14 @@ export default function ImageUploader({ url, onUploaded, onRemove, disabled = fa
     }
     setError('')
     setUploading(true)
+    onUploadingChange?.(true)
     try {
-      onUploaded(await productsApi.uploadImage(file))
+      onUploaded(await upload(file))
     } catch (err) {
       setError(describeError(err, 'Không tải được ảnh lên. Bạn thử lại nhé.'))
     } finally {
       setUploading(false)
+      onUploadingChange?.(false)
       if (input.current) input.current.value = '' // lets the same file be picked again after a failure
     }
   }
@@ -70,7 +75,7 @@ export default function ImageUploader({ url, onUploaded, onRemove, disabled = fa
           )}
         </div>
         <div className="min-w-0 space-y-2">
-          <p className="text-xs text-slate-500">Kéo ảnh vào đây hoặc chọn từ máy. JPG, PNG, WebP, tối đa 3 MB. Nên dùng ảnh vuông, nền sáng.</p>
+          <p className="text-xs text-slate-500">{hint ?? 'Kéo ảnh vào đây hoặc chọn từ máy. JPG, PNG, WebP, tối đa 3 MB. Nên dùng ảnh vuông, nền sáng.'}</p>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -93,7 +98,7 @@ export default function ImageUploader({ url, onUploaded, onRemove, disabled = fa
           </div>
         </div>
       </div>
-      <input ref={input} type="file" accept={IMAGE_TYPES.join(',')} className="hidden" aria-label={`Chọn ${alt.toLocaleLowerCase('vi')}`} onChange={(e) => void take(e.target.files?.[0])} />
+      <input ref={input} type="file" disabled={disabled || uploading} accept={IMAGE_TYPES.join(',')} className="hidden" aria-label={`Chọn ${alt.toLocaleLowerCase('vi')}`} onChange={(e) => void take(e.target.files?.[0])} />
       {error && (
         <p className="text-xs text-rose-600" role="alert">
           {error}

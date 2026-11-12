@@ -8,7 +8,7 @@ interface PermissionContextValue {
   error: string | null
   refresh: () => Promise<void>
 }
-const aliases: Record<string, string> = { accounts: 'STAFF.READ', roles: 'PERMISSIONS.MANAGE_ROLES', products: 'PRODUCTS.READ', 'ai-config': 'PERMISSIONS.MANAGE_ROLES', articles: 'PERMISSIONS.MANAGE_ROLES', 'audit-logs': 'AUDIT.READ' }
+const aliases: Record<string, string> = { accounts: 'STAFF.READ', roles: 'PERMISSIONS.MANAGE_ROLES', products: 'PRODUCTS.READ', 'ai-config': 'PERMISSIONS.MANAGE_ROLES', articles: 'ARTICLES.READ', 'contact-requests': 'CONTACT_REQUESTS.READ', 'audit-logs': 'AUDIT.READ' }
 const PermissionContext = createContext<PermissionContextValue | undefined>(undefined)
 export function PermissionProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, user } = useAuth()

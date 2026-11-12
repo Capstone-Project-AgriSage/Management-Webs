@@ -49,6 +49,8 @@ function useNavConfig() {
       { label: 'AI Policy', to: '/admin/ai/policies', icon: 'settings_suggest' },
       { label: 'Vấn đề & cách xử lý', to: '/admin/diseases', icon: 'healing' },
       { label: 'Thông báo', to: '/admin/notifications', icon: 'notifications' },
+      { label: 'Bài viết & Tin tức', to: '/admin/articles', icon: 'article' },
+      { label: 'Yêu cầu liên hệ', to: '/admin/contact-requests', icon: 'support_agent' },
       { label: 'Nhật ký', to: '/admin/audit-logs', icon: 'manage_search' },
     ]
     return { groups: [{ title: '', items }], brandIcon: 'shield_person', brandLabel: 'ADMIN', hubLabel: undefined }
@@ -102,6 +104,8 @@ function useNavConfig() {
       {
         title: 'Cộng đồng & Quản trị',
         items: [
+          { label: 'Bài viết & Tin tức', to: '/agent/articles', icon: 'article' },
+          { label: 'Yêu cầu liên hệ', to: '/agent/contact-requests', icon: 'support_agent' },
           { label: 'Khách hàng', to: '/agent/farmers', icon: 'groups' },
           { label: 'Vấn đề & cách xử lý', to: '/agent/diseases', icon: 'healing' },
           { label: 'Nhân sự', to: '/agent/staff', icon: 'manage_accounts' },
@@ -134,6 +138,7 @@ function useNavConfig() {
       { label: 'Ca chẩn đoán AI', to: '/sales/ai-review', icon: 'psychology', iconTone: 'primary' as const },
       { label: 'Ca tư vấn vật tư', to: '/sales/advisory-sessions', icon: 'forum' },
       { label: 'Cài đặt', to: '/sales/settings', icon: 'settings' },
+      { label: 'Yêu cầu liên hệ', to: '/sales/contact-requests', icon: 'support_agent' },
     ]
     items.push(
       { label: 'Hoàn tiền', to: '/agent/refunds', icon: 'currency_exchange' },

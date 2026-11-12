@@ -1,43 +1,4 @@
-import type { Article, SystemNotification, AuditLog } from '@/types'
-
-export const mockArticles: Article[] = [
-  {
-    id: 'ART-001',
-    title: 'Cách phòng trừ rầy nâu hại lúa vụ Đông Xuân',
-    category: 'Kỹ thuật canh tác',
-    author: 'TS. Nguyễn Văn A',
-    views: 1250,
-    status: 'Đã xuất bản',
-    publishedAt: '2024-03-10'
-  },
-  {
-    id: 'ART-002',
-    title: 'Bảng giá phân bón mới nhất tháng 4',
-    category: 'Tin tức thị trường',
-    author: 'Admin',
-    views: 890,
-    status: 'Đã xuất bản',
-    publishedAt: '2024-03-25'
-  },
-  {
-    id: 'ART-003',
-    title: 'Cảnh báo sương muối ở Tây Nguyên',
-    category: 'Cảnh báo thời tiết',
-    author: 'Trung tâm DBKTTV',
-    views: 0,
-    status: 'Chờ duyệt',
-    publishedAt: '2024-04-01'
-  },
-  {
-    id: 'ART-004',
-    title: 'Ứng dụng AI trong nhận diện sâu bệnh',
-    category: 'Cẩm nang Agrisage',
-    author: 'Team Kỹ thuật',
-    views: 0,
-    status: 'Bản nháp',
-    publishedAt: '-'
-  }
-]
+import type { SystemNotification, AuditLog } from '@/types'
 
 export const mockNotifications: SystemNotification[] = [
   {
