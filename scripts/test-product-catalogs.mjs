@@ -28,6 +28,7 @@ async function fixture(kind, { role = 'STORE_OWNER', codes = allCodes, width = 1
   await context.route('**/api/**', async route => {
     const req = route.request()
     const url = new URL(req.url())
+    if (!url.pathname.startsWith('/api/')) return route.continue()
     const json = (data, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(data) })
     state.requests.push({ path: url.pathname, method: req.method(), query: url.searchParams })
     if (url.pathname === '/api/auth/me') return json({ id: 'test-user', fullName: 'Quản lý kiểm thử', role, status: 'ACTIVE' })
@@ -93,9 +94,11 @@ try {
     await page.waitForResponse(res => res.url().includes(`api/${kind}?`) && res.url().includes('search=CODE-1'))
     await page.getByRole('cell', { name: 'Bản ghi 1', exact: true }).waitFor()
     assert.equal(state.requests.filter(req => req.path === `/api/${kind}`).at(-1).query.get('page'), '1')
-    const cleared = page.waitForResponse(response => response.url().includes(`/api/${kind}?`) && !response.url().includes('search='))
+    // Clearing goes back to the unfiltered first page. Categories and brands are lookup lists cached for 120 s
+    // (src/api/lookupCache.ts), so that page may come from the cache without a new request: check the table instead.
     await page.getByRole('button', { name: 'Xóa lọc', exact: true }).click()
-    await cleared
+    assert.equal(await search.inputValue(), '')
+    await page.getByRole('cell', { name: 'Bản ghi 2', exact: true }).waitFor()
     pass(`${kind}: owner navigation, server pagination and search reset`)
 
     if (kind === 'categories') {
