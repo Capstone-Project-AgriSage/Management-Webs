@@ -16,9 +16,10 @@ const metrics = [
 
 export default function CounterSalesReportCards() {
   const { has } = usePermission()
-  if (!has('REPORTS.READ')) {
+  // Same permission as the API (and as selling at the counter), not REPORTS.READ: decision 2026-11-16.
+  if (!has('COUNTER_SALES.SELL')) {
     return <section aria-label="Báo cáo bán tại quầy hôm nay" className="agrisage-summary-grid grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {metrics.map(metric => <KpiCard key={metric.key} title={metric.title} value="—" subtitle="Cần quyền xem báo cáo" />)}
+      {metrics.map(metric => <KpiCard key={metric.key} title={metric.title} value="—" subtitle="Cần quyền bán tại quầy" />)}
     </section>
   }
   return <AuthorizedCounterSalesReportCards />

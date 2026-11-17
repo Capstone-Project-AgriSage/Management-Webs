@@ -301,6 +301,18 @@ try {
   await dashboardDenied.context.close()
   pass('A dashboard without REPORTS.READ never requests sales or any other report')
 
+  // Today's counter figures need COUNTER_SALES.SELL, like selling at the counter, not REPORTS.READ (decision 2026-11-16).
+  const counterStaff = await fixture('SALES_STAFF', false, '/sales/counter-sales')
+  const counterCards = counterStaff.page.getByRole('region', { name: 'Báo cáo bán tại quầy hôm nay', exact: true })
+  await counterCards.getByRole('button', { name: 'Làm mới báo cáo bán tại quầy', exact: true }).waitFor()
+  await counterCards.getByText('Doanh thu hôm nay', { exact: true }).waitFor()
+  await counterStaff.page.waitForFunction(() => !document.querySelector('section[aria-label="Báo cáo bán tại quầy hôm nay"] .animate-pulse'))
+  assert.equal(await counterCards.getByText('Cần quyền bán tại quầy').count(), 0)
+  assert.equal(await counterCards.getByText('0 đ', { exact: true }).count(), 3)
+  assert.deepEqual([...new Set(counterStaff.state.requests.filter(r => r.path.startsWith('/api/reports/')).map(r => r.path))], ['/api/reports/counter-sales-today'])
+  await counterStaff.context.close()
+  pass('Sales staff without REPORTS.READ see today\'s counter figures and request no other report')
+
   const delegated = await fixture('SALES_STAFF', true, '/sales/orders')
   await ready(delegated.page, 'Tổng hợp đơn hàng')
   await noReportMenu(delegated.page)
