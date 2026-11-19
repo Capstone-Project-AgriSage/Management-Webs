@@ -1,0 +1,14 @@
+# Never send local settings or build output into an image (Dockerfile).
+.env
+.env.*
+*.local
+node_modules/
+dist/
+dist-ssr/
+
+# Not needed to build the site.
+.git/
+.github/
+.vscode/
+.idea/
+artifacts/
