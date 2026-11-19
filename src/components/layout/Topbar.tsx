@@ -4,6 +4,7 @@ import { usePageHeaderValue } from '@/context/PageHeaderContext';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useToast } from '@/context/ToastContext';
+import StoreAlertSettings from '@/features/alerts/StoreAlertSettings';
 
 interface TopbarProps {
   onMenuClick: () => void
@@ -104,6 +105,7 @@ export default function Topbar({ onMenuClick, menuOpen }: TopbarProps) {
           </div>
         </form>
         <div className="flex items-center gap-1">
+          <StoreAlertSettings />
           <button
             className="topbar-icon flex items-center justify-center rounded-lg hover:bg-surface-container-low text-on-surface-variant relative transition-colors"
             title="Thông báo của tôi"

@@ -36,6 +36,8 @@ async function session(width = 1440, authenticated = true) {
     if (path === '/api/auth/me') return json({ id: 'owner', fullName: 'Triệu Phú Thịnh', role: 'STORE_OWNER', status: 'ACTIVE' })
     if (path === '/api/me/permissions') return json({ permissions })
     if (path.endsWith('/unread-count')) return json({ count: 0 })
+    // The new-order alerts read the unread notifications of the owner and sale staff.
+    if (path === '/api/me/notifications') return json({ items: [], page: 1, pageSize: 20, totalCount: 0, totalPages: 0 })
     if (path === '/api/orders') {
       const page = Number(url.searchParams.get('page') || 1)
       const status = url.searchParams.get('status')
