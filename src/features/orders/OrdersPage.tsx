@@ -28,6 +28,7 @@ import { deliveriesApi, type DeliveryListItem, type DeliveryResponse } from '@/a
 import { ApiError } from '@/api/client';
 import { DELIVERY_STATUS_LABEL, formatDate, labelOf } from '@/utils/deliveryLabels';
 import { useRoleBase } from '@/utils/creditLabels';
+import { NEW_ORDER_EVENT } from '@/features/alerts/alertStore';
 import OrderEditModal from './OrderEditModal'
 import ConfirmOrderModal from './ConfirmOrderModal'
 import PickupModal from './PickupModal'
@@ -159,6 +160,13 @@ export default function OrdersPage() {
     void Promise.resolve().then(() => { if (active) void fetchOrders() })
     return () => { active = false; listRequest.current?.abort() }
   }, [fetchOrders, search, debouncedSearch])
+
+  // A new online order announced by NewOrderAlerts appears in the list without a manual refresh.
+  useEffect(() => {
+    const reload = () => { void fetchOrders() }
+    window.addEventListener(NEW_ORDER_EVENT, reload)
+    return () => window.removeEventListener(NEW_ORDER_EVENT, reload)
+  }, [fetchOrders])
 
   const handleClearFilters = () => {
     setSearch('')

@@ -58,6 +58,10 @@ const errors = []
 page.on('pageerror', error => errors.push(error.message))
 const count = path => requests.filter(request => request.path === path).length
 const refundCount = () => requests.filter(request => /\/api\/orders\/.+\/refunds$/.test(request.path)).length
+// The lists and refunds this page reads. Background traffic of the app shell (SignalR reconnects to the unmocked
+// /api/realtime, the store-alert notification poll) comes at its own times and is not what the reuse check is about.
+const pageReads = () => requests.filter(request => request.path === '/api/orders' || request.path === '/api/returns'
+  || /\/api\/orders\/.+\/refunds$/.test(request.path)).length
 const table = kind => page.getByRole('region', { name: kind === 'order' ? 'Hoàn tiền từ đơn đã hủy' : 'Hoàn tiền từ trả hàng', exact: true })
 async function ready(kind, text) {
   await table(kind).getByText(text, { exact: true }).waitFor()
@@ -78,10 +82,10 @@ try {
   assert.equal(count('/api/orders'), 4, 'Page 2 must reuse both source page-1 results')
   assert.equal(count('/api/returns'), 2, 'Inactive return tab must not load again')
   assert.equal(refundCount(), 20)
-  const beforeBack = requests.length
+  const beforeBack = pageReads()
   await table('order').getByRole('button', { name: 'Trang 1', exact: true }).click()
   await ready('order', 'OD-CANCELLED-0')
-  assert.equal(requests.length, beforeBack, 'Returning to a loaded page must reuse its lists and refunds')
+  assert.equal(pageReads(), beforeBack, 'Returning to a loaded page must reuse its lists and refunds')
   console.log('PASS Pagination fetches only missing source pages; revisiting a page needs no requests')
 
   await table('order').getByRole('button', { name: 'Trang 3', exact: true }).click()
