@@ -1,4 +1,5 @@
 import type { AttemptStatus, DeliveryAllocation, DeliveryStatus, FailureReason, ResolutionType } from '@/api/deliveriesApi'
+import { vnDate, vnDateTime } from './date'
 
 // Vietnamese labels for the delivery enums of FE_GUIDE_FLOW_2 (§4–§5). Unknown codes fall back to the raw value.
 export const DELIVERY_STATUS_LABEL: Record<DeliveryStatus, string> = {
@@ -59,11 +60,9 @@ export function openAllocationQuantity(a: DeliveryAllocation): number {
 }
 
 export function formatDate(iso: string | null | undefined): string {
-  return iso ? new Date(iso).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '--'
+  return iso ? vnDate(iso) : '--'
 }
 
 export function formatDateTime(iso: string | null | undefined): string {
-  return iso
-    ? new Date(iso).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })
-    : '--'
+  return iso ? vnDateTime(iso) : '--'
 }

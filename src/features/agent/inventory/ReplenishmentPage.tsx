@@ -18,6 +18,7 @@ import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh'
 import { useReportData } from '@/features/agent/reports/useReportData'
 import { formatDate, formatQtyUnit, unitLabel } from '@/utils/units'
 import PlanningSettingsModal from './PlanningSettingsModal'
+import { vnDateTime } from '@/utils/date'
 
 const views: { value: PlanningView; label: string }[] = [
   { value: 'suggestions', label: 'Đề xuất nhập' }, { value: 'stockout', label: 'Dự kiến hết hàng' },
@@ -99,7 +100,7 @@ export default function ReplenishmentPage() {
       <FilterSelect label="Sắp xếp" value={sortBy} onChange={filter(setSortBy)} options={[{ value: 'priority', label: 'Ưu tiên cao trước' }, { value: 'name', label: 'Tên sản phẩm' }, { value: 'stockout', label: 'Ngày tồn còn lại tăng dần' }, { value: 'quantity', label: 'Lượng nhập tăng dần' }]} />
     </ListToolbar>
     {error && <div role="alert" className="p-4 rounded-lg bg-rose-50 text-rose-700">{error} <button onClick={refresh} className="underline">Thử lại</button></div>}
-    <p className="text-xs text-slate-500">{data ? `Dữ liệu bán: ${formatDate(data.fromDate)} – ${formatDate(data.toDate)}. Tính lúc ${new Date(data.generatedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}.` : 'Đang chuẩn bị số liệu.'} Đề xuất cần người phụ trách xem xét, không tự thay đổi tồn kho.</p>
+    <p className="text-xs text-slate-500">{data ? `Dữ liệu bán: ${formatDate(data.fromDate)} – ${formatDate(data.toDate)}. Tính lúc ${vnDateTime(data.generatedAt)}.` : 'Đang chuẩn bị số liệu.'} Đề xuất cần người phụ trách xem xét, không tự thay đổi tồn kho.</p>
     <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden">
       <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-surface-container-low text-xs text-on-surface-variant uppercase border-b border-outline-variant"><tr>
         {['Sản phẩm', 'Còn bán được', view === 'forecast' ? 'Nhu cầu dự báo' : 'Đề nghị nhập', 'Đủ bán / Chờ nhập', 'Dự kiến hết hàng', 'Lý do / Dữ liệu', 'Ưu tiên', 'Thao tác'].map(h => <th key={h} className="px-4 py-3 font-medium">{h}</th>)}

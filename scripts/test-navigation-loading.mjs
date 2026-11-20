@@ -111,7 +111,7 @@ try {
   await page.setViewportSize({ width: 390, height: 844 })
   const mobileHeight = (await payments.boundingBox()).height
   state.reports = deferred()
-  await payments.getByRole('button').click()
+  await payments.getByRole('button', { name: 'Làm mới tổng hợp thanh toán' }).click()
   assert(Math.abs((await payments.boundingBox()).height - mobileHeight) < 1)
   state.reports.release(); state.reports = null
   await loaded('Tổng hợp thanh toán')

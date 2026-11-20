@@ -461,7 +461,7 @@ export default function OrdersPage() {
                       <div className="font-mono font-bold text-sm text-primary">{order.orderNumber}</div>
                       <div className="text-xs text-on-surface-variant mt-1 flex items-center gap-1">
                         <Clock size={12} />
-                        {new Date(order.createdAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        {vnDateTime(order.createdAt)}
                       </div>
                     </td>
                     <td className="py-4.5 px-3 text-center">
@@ -511,7 +511,7 @@ export default function OrdersPage() {
                 <h3 className="font-bold text-on-surface">#{selectedOrder.orderNumber}</h3>
                 <StatusBadge label={STATUS_MAP[selectedOrder.status]} className={STATUS_VISUALS[selectedOrder.status]?.className} />
               </div>
-              <div className="text-label-sm text-on-surface-variant mt-1">Tạo lúc: {new Date(selectedOrder.createdAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+              <div className="text-label-sm text-on-surface-variant mt-1">Tạo lúc: {vnDateTime(selectedOrder.createdAt)}</div>
             </div>
           </div>} footer={<div className="order-detail-actions">
             <div className="order-detail-secondary-actions">
@@ -871,8 +871,7 @@ export default function OrdersPage() {
             </div><div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label className="block text-sm">
                 <span className="font-medium text-on-surface-variant block mb-1">Hẹn giao lúc</span>
-                <input
-                  type="datetime-local"
+                <DateTimeInput
                   value={deliveryScheduledAt}
                   onChange={(e) => setDeliveryScheduledAt(e.target.value)}
                   className="w-full h-9 px-2 rounded-lg border border-outline-variant focus:outline-none focus:border-blue-500"
@@ -943,3 +942,6 @@ export default function OrdersPage() {
     </div>
   )
 }
+
+import { DateTimeInput } from '@/components/ui/DateInput'
+import { vnDateTime } from '@/utils/date'

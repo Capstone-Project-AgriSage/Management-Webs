@@ -13,6 +13,7 @@ import StatusBadge from '@/components/ui/StatusBadge'
 import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import FormModal from '@/components/ui/FormModal'
 import { LIST_PAGE_SIZE } from '@/utils/pagination'
+import { vnDateTime } from '@/utils/date'
 
 export default function ContactRequestsPage() {
   usePageHeader({ title: 'Yêu cầu liên hệ', subtitle: 'Tiếp nhận và phản hồi yêu cầu hỗ trợ' })
@@ -50,7 +51,7 @@ export default function ContactRequestsPage() {
         {list.loading ? <tr><td colSpan={6} className="p-8 text-center" role="status">Đang tải...</td></tr> : list.items.length === 0 ? <tr><td colSpan={6} className="p-8 text-center">Chưa có yêu cầu phù hợp.</td></tr> : list.items.map(item => <tr key={item.id} className="border-t border-slate-100">
           <td className="p-4">{item.requestNumber}</td><td className="p-4">{item.contactName}<p className="text-slate-500">{item.contactPhone || item.contactEmail}</p></td>
           <td className="p-4">{item.subject}</td><td className="p-4"><StatusBadge label={contactLabels[item.status]} /></td>
-          <td className="p-4">{new Date(item.createdAt).toLocaleString('vi-VN')}</td><td className="p-4 text-right"><RowActionsMenu triggerLabel={`Thao tác ${item.requestNumber}`} actions={[{ label: 'Xem và xử lý', onClick: () => edit(item) }]} /></td>
+          <td className="p-4">{vnDateTime(item.createdAt)}</td><td className="p-4 text-right"><RowActionsMenu triggerLabel={`Thao tác ${item.requestNumber}`} actions={[{ label: 'Xem và xử lý', onClick: () => edit(item) }]} /></td>
         </tr>)}
       </tbody></table>
       <ServerPagination {...list} onPageChange={list.setPage} unitLabel="yêu cầu" />
