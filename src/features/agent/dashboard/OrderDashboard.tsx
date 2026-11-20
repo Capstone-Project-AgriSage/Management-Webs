@@ -22,7 +22,10 @@ import { formatVnd } from '@/utils/money'
 // recharts is heavy and only the owner's and the admin's dashboards draw it, so it loads on demand.
 const DashboardCharts = lazy(() => import('./DashboardCharts'))
 
-const AGENT_LINKS: DashboardLinks = { orders: '/agent/orders', payments: '/agent/payments', products: '/agent/products', debts: '/agent/debts' }
+const AGENT_LINKS: DashboardLinks = {
+  orders: '/agent/orders', payments: '/agent/payments', products: '/agent/products', debts: '/agent/debts',
+  planning: '/agent/inventory/reports/planning', expiry: '/agent/inventory/reports/planning?tab=expiry', customers: '/agent/farmers',
+}
 
 // The statuses people look for from the dashboard; the order page keeps the full filter.
 const TABS: { value: OrderStatus | ''; label: string }[] = [

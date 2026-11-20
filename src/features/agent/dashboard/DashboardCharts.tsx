@@ -9,10 +9,12 @@ import { businessReportsApi, type OrderMetrics, type PaymentMetrics, type Paymen
 import { reportsApi, type DebtAgingReport, type DebtByGroupReport } from '@/api/reportsApi'
 import { useReportData } from '@/features/agent/reports/useReportData'
 import { periodProblem } from '@/features/agent/reports/reportFilters'
-import { rangeDays } from '@/utils/units'
+import { formatQtyUnit, rangeDays } from '@/utils/units'
+import { formatDay, todayVn } from '@/utils/creditLabels'
+import { replenishmentApi, type ExpiryRiskPage, type VelocityItem, type VelocityPage } from '@/api/replenishmentApi'
 import { formatVnd } from '@/utils/money'
 
-export interface DashboardLinks { orders?: string; payments?: string; products?: string; debts?: string }
+export interface DashboardLinks { orders?: string; payments?: string; products?: string; debts?: string; planning?: string; expiry?: string; customers?: string }
 
 // One accent (the project's green) for every single-series mark, slate for the quiet parts, and a status red only where the
 // color means "overdue", always next to an icon and a label. Checked with the dataviz palette validator: green/red as a pair
@@ -413,6 +415,109 @@ function DebtGroupsPanel({ report, to }: { report: Report<DebtByGroupReport>; to
   </Panel>
 }
 
+// ---- What sells, what is about to expire, who buys -------------------------------------------------------------------------
+
+/** Below this many days of stock (at the period's sales pace) a best seller is flagged before it runs out. */
+const LOW_STOCK_DAYS = 14
+
+function StockBadge({ item }: { item?: VelocityItem }) {
+  if (!item) return null
+  if (item.sellableBaseQuantity <= 0) return <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-rose-50 px-1.5 py-0.5 text-xs font-medium text-rose-700"><TriangleAlert size={12} aria-hidden="true" />Hết hàng</span>
+  if (item.daysOfStock !== null && item.daysOfStock < LOW_STOCK_DAYS) return <span title={`Còn đủ bán khoảng ${num(item.daysOfStock)} ngày`} className="inline-flex shrink-0 items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-800"><Clock size={12} aria-hidden="true" />Sắp hết · {num(item.daysOfStock)} ngày</span>
+  return null
+}
+
+function TopProductsPanel({ report, velocity, to }: { report: Report<RevenueReport>; velocity: Report<VelocityPage>; to?: string }) {
+  const rows = (report.data?.rows ?? []).filter(row => row.netSales > 0)
+  const top = rows[0]
+  const pace = new Map((velocity.data?.items ?? []).map(item => [item.storeProductId, item]))
+  const lowCount = rows.filter(row => { const item = pace.get(row.key); return item && (item.sellableBaseQuantity <= 0 || (item.daysOfStock !== null && item.daysOfStock < LOW_STOCK_DAYS)) }).length
+  return <Panel label="Sản phẩm bán chạy" to={to} className="xl:col-span-2"
+    headline={top ? <span className="min-w-0 truncate" title={top.label}>{top.label}</span> : report.data ? undefined : placeholder(report, 'w-48')}
+    sub={top ? <>dẫn đầu, {shortVnd(top.netSales)}</> : undefined}
+    aside={lowCount > 0 ? <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800"><Clock size={12} aria-hidden="true" />{num(lowCount)} sắp hết hàng</span> : undefined}>
+    <Body state={report} empty={() => !top} emptyText="Chưa có sản phẩm bán ra trong kỳ này.">
+      {() => <div className="mt-4">
+        <div aria-hidden="true" className="grid grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_4.5rem] gap-x-3 border-b border-slate-100 pb-2 text-xs text-slate-500"><span>#</span><span>Sản phẩm</span><span className="text-right">Đã bán</span><span className="text-right">Doanh thu</span></div>
+        <ol className="divide-y divide-slate-50">
+          {rows.slice(0, 10).map((row, index) => {
+            const item = pace.get(row.key)
+            return <li key={row.key} className="grid grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_4.5rem] items-center gap-x-3 py-2 text-sm">
+              <span className="tabular-nums text-slate-400">{index + 1}</span>
+              <span className="min-w-0">
+                <span className="flex min-w-0 items-center gap-2"><span title={row.label} className="truncate font-medium text-slate-900">{row.label}</span><StockBadge item={item} /></span>
+                <span className="block text-xs text-slate-500">{num(row.orderCount)} đơn</span>
+              </span>
+              <span className="text-right text-xs tabular-nums text-slate-600">{item ? formatQtyUnit(item.soldBaseQuantity, item.baseUnit) : '—'}</span>
+              <span title={formatVnd(row.netSales)} className="text-right font-semibold tabular-nums text-slate-900">{shortVnd(row.netSales)}</span>
+            </li>
+          })}
+        </ol>
+        <p className="mt-2 text-xs text-slate-500">Doanh thu theo kỳ đã chọn. Số lượng bán và cảnh báo "sắp hết" tính theo tốc độ bán của {velocity.data ? `${num(rangeDays(velocity.data.fromDate, velocity.data.toDate))} ngày gần nhất` : 'các ngày gần nhất'}.</p>
+      </div>}
+    </Body>
+  </Panel>
+}
+
+const EXPIRY_WINDOW_DAYS = 30
+const utcDay = (iso: string) => Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)))
+/** Whole days from today (Vietnam calendar) to a yyyy-MM-dd day; negative once it has passed. */
+const daysUntil = (iso: string) => Math.round((utcDay(iso) - utcDay(todayVn())) / 86_400_000)
+
+function ExpiryPanel({ report, to }: { report: Report<ExpiryRiskPage>; to?: string }) {
+  const data = report.data
+  const lots = data?.summary.lots ?? 0
+  return <Panel label={`Lô sắp hết hạn (${EXPIRY_WINDOW_DAYS} ngày tới)`} to={to}
+    headline={data ? (lots ? `${num(lots)} lô` : undefined) : placeholder(report, 'w-20')}
+    sub={data && lots ? (data.summary.knownRiskValue > 0 ? <>có thể không bán kịp <strong className="font-medium text-rose-700">{shortVnd(data.summary.knownRiskValue)}</strong></> : 'cần ưu tiên bán trước') : undefined}>
+    <Body state={report} empty={() => !lots} emptyText={`Không có lô nào hết hạn trong ${EXPIRY_WINDOW_DAYS} ngày tới.`}>
+      {page => <ul className="mt-4 space-y-3">
+        {page.items.slice(0, 3).map(lot => {
+          const left = daysUntil(lot.expiryDate)
+          return <li key={lot.inventoryLotId} className="text-sm">
+            <span title={lot.productName} className="block truncate font-medium text-slate-900">{lot.productName}</span>
+            <span className="mt-0.5 flex items-center justify-between gap-2 text-xs">
+              <span className="min-w-0 truncate text-slate-500" title={`Lô ${lot.lotNumber ?? '—'}, còn ${formatQtyUnit(lot.onHandBaseQuantity, lot.baseUnit)}`}>Lô {lot.lotNumber ?? '—'} · {formatQtyUnit(lot.onHandBaseQuantity, lot.baseUnit)}</span>
+              <span className={`shrink-0 rounded-md px-1.5 py-0.5 font-medium tabular-nums ${left < 0 ? 'bg-rose-50 text-rose-700' : left <= 7 ? 'bg-amber-50 text-amber-800' : 'bg-slate-100 text-slate-700'}`} title={`Hạn dùng ${formatDay(lot.expiryDate)}`}>
+                {left < 0 ? `Hết hạn ${formatDay(lot.expiryDate).slice(0, 5)}` : left === 0 ? 'Hết hạn hôm nay' : `còn ${num(left)} ngày`}
+              </span>
+            </span>
+          </li>
+        })}
+      </ul>}
+    </Body>
+  </Panel>
+}
+
+function TopCustomersPanel({ report, to }: { report: Report<RevenueReport>; to?: string }) {
+  const data = report.data
+  const total = data?.totals.netSales ?? 0
+  const rows = (data?.rows ?? []).filter(row => row.netSales > 0)
+  const top = rows[0]
+  const topName = top?.key === 'WALK_IN' ? 'khách lẻ' : top?.label
+  return <Panel label="Khách hàng mua nhiều" to={to}
+    headline={top && total > 0 ? percent(top.netSales / total * 100) : data ? undefined : placeholder(report, 'w-20')}
+    sub={top && total > 0 ? <>doanh thu từ <strong className="font-medium text-slate-700">{topName}</strong></> : undefined}>
+    <Body state={report} empty={() => !top} emptyText="Chưa có khách mua trong kỳ này.">
+      {() => <ul className="mt-4 space-y-3">
+        {rows.slice(0, 5).map(row => {
+          const share = total ? row.netSales / total * 100 : 0
+          return <li key={row.key}>
+            <div className="flex items-baseline justify-between gap-2 text-sm">
+              <span title={row.label} className="min-w-0 truncate font-medium text-slate-900">{row.key === 'WALK_IN' ? 'Khách lẻ (không đăng ký)' : row.label}</span>
+              <span title={formatVnd(row.netSales)} className="shrink-0 font-semibold tabular-nums text-slate-900">{shortVnd(row.netSales)}</span>
+            </div>
+            <div className="mt-1.5 flex items-center gap-3">
+              <div className="h-2 flex-1 rounded-full" style={{ backgroundColor: C.track }}><div className="h-full rounded-full" style={{ width: `${Math.max(share, 1.5)}%`, backgroundColor: C.accent }} /></div>
+              <span className="w-16 shrink-0 text-right text-xs tabular-nums text-slate-500">{num(row.orderCount)} đơn</span>
+            </div>
+          </li>
+        })}
+      </ul>}
+    </Body>
+  </Panel>
+}
+
 /** The owner's and the admin's dashboard below the period filter: every panel reads a report API for the same period. */
 export default function DashboardCharts({ fromDate, toDate, links = {} }: { fromDate: string; toDate: string; links?: DashboardLinks }) {
   const problem = periodProblem(fromDate, toDate)
@@ -428,6 +533,13 @@ export default function DashboardCharts({ fromDate, toDate, links = {} }: { from
   const statuses = useReport(useCallback((signal: AbortSignal) => businessReportsApi.orders({ fromDate, toDate, groupBy: 'STATUS' }, signal), [fromDate, toDate]), problem)
   const aging = useReport(useCallback((signal: AbortSignal) => reportsApi.getDebtAging({}, signal), []))
   const debtGroups = useReport(useCallback((signal: AbortSignal) => reportsApi.getDebtByGroup(signal), []))
+  const topProducts = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenue({ fromDate, toDate, groupBy: 'PRODUCT', page: 1, pageSize: 10 }, signal), [fromDate, toDate]), problem)
+  // Sales pace over the period's length (the API takes 14 to 365 days, counted back from today), for the units sold and the
+  // days of stock left next to each best seller.
+  const paceDays = Math.min(365, Math.max(14, rangeDays(fromDate, toDate)))
+  const velocity = useReport(useCallback((signal: AbortSignal) => replenishmentApi.velocity({ historyDays: paceDays, page: 1, pageSize: 100 }, signal), [paceDays]), problem)
+  const expiry = useReport(useCallback((signal: AbortSignal) => replenishmentApi.expiryRisk({ withinDays: EXPIRY_WINDOW_DAYS, page: 1, pageSize: 3 }, signal), []))
+  const topCustomers = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenue({ fromDate, toDate, groupBy: 'CUSTOMER', page: 1, pageSize: 5 }, signal), [fromDate, toDate]), problem)
 
   return <div className="flex flex-col gap-5">
     <div className="grid gap-5 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
@@ -443,6 +555,11 @@ export default function DashboardCharts({ fromDate, toDate, links = {} }: { from
       <FunnelPanel report={statuses} to={links.orders} />
       <DebtPanel report={aging} to={links.debts} />
       <DebtGroupsPanel report={debtGroups} to={links.debts} />
+    </div>
+    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+      <TopProductsPanel report={topProducts} velocity={velocity} to={links.planning} />
+      <ExpiryPanel report={expiry} to={links.expiry} />
+      <TopCustomersPanel report={topCustomers} to={links.customers} />
     </div>
   </div>
 }
