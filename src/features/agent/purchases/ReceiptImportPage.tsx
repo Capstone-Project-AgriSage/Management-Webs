@@ -11,6 +11,7 @@ import { formatVnd } from '@/utils/money';
 import { formatDate, formatQty } from '@/utils/units';
 import SupplierSelect from './SupplierSelect'
 import { RECEIPTS_BASE, importColumnLabel, localInputToIso, nowLocalInput, translateImportMessage } from './receiptLabels';
+import DateInput, { DateTimeInput } from '@/components/ui/DateInput'
 
 const MAX_BYTES = 2 * 1024 * 1024
 
@@ -153,7 +154,7 @@ export default function ReceiptImportPage() {
             <label className="text-sm font-medium text-slate-700" htmlFor="im-at">
               Thời điểm nhận hàng
             </label>
-            <input id="im-at" type="datetime-local" className={inputClassName} value={receivedAt} max={nowLocalInput()} onChange={(e) => changed(setReceivedAt)(e.target.value)} />
+            <DateTimeInput id="im-at" className={inputClassName} value={receivedAt} max={nowLocalInput()} onChange={(e) => changed(setReceivedAt)(e.target.value)} />
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium text-slate-700" htmlFor="im-inv">
@@ -165,7 +166,7 @@ export default function ReceiptImportPage() {
             <label className="text-sm font-medium text-slate-700" htmlFor="im-invdate">
               Ngày hóa đơn
             </label>
-            <input id="im-invdate" type="date" className={inputClassName} value={invoiceDate} onChange={(e) => changed(setInvoiceDate)(e.target.value)} />
+            <DateInput id="im-invdate" className={inputClassName} value={invoiceDate} onChange={(e) => changed(setInvoiceDate)(e.target.value)} />
           </div>
         </div>
         <div className="space-y-1">

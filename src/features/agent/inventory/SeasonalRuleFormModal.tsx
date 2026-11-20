@@ -5,6 +5,7 @@ import DetailModal from '@/components/ui/DetailModal'
 import ModalLayout from '@/components/ui/ModalLayout'
 import ProductPicker, { type PickedProduct } from './ProductPicker'
 import { todayInput } from '@/utils/units'
+import DateInput from '@/components/ui/DateInput'
 
 const input = 'w-full h-10 px-3 rounded-lg border border-slate-200 text-sm focus:ring-1 focus:ring-emerald-500'
 interface Line { product: PickedProduct; target: string }
@@ -47,8 +48,8 @@ export default function SeasonalRuleFormModal({ rule, onClose, onSaved }: { rule
       <div className="grid sm:grid-cols-2 gap-4">
         <label className="text-sm font-medium space-y-1">Cây trồng<input className={input} maxLength={50} required value={crop} onChange={e => setCrop(e.target.value)} /></label>
         <label className="text-sm font-medium space-y-1">Khu vực phục vụ<input className={input} maxLength={150} value={region} onChange={e => setRegion(e.target.value)} /></label>
-        <label className="text-sm font-medium space-y-1">Bắt đầu nhu cầu<input className={input} type="date" required value={starts} onChange={e => setStarts(e.target.value)} /></label>
-        <label className="text-sm font-medium space-y-1">Kết thúc nhu cầu<input className={input} type="date" required min={starts} value={ends} onChange={e => setEnds(e.target.value)} /></label>
+        <label className="text-sm font-medium space-y-1">Bắt đầu nhu cầu<DateInput className={input} required value={starts} onChange={e => setStarts(e.target.value)} /></label>
+        <label className="text-sm font-medium space-y-1">Kết thúc nhu cầu<DateInput className={input} required min={starts} value={ends} onChange={e => setEnds(e.target.value)} /></label>
         <label className="text-sm font-medium space-y-1">Chuẩn bị trước (ngày)<input className={input} type="number" min={0} max={90} step={1} required value={prepare} onChange={e => setPrepare(e.target.value)} /></label>
         <label className="text-sm font-medium space-y-1">Hệ số nhu cầu<input className={input} type="number" min={0.1} max={5} step={0.001} required value={factor} onChange={e => setFactor(e.target.value)} /></label>
       </div>

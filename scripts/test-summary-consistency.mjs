@@ -391,7 +391,7 @@ try {
     panels.requests.length = 0
     await panels.page.getByRole('button', { name: '7 ngày', exact: true }).click()
     await dashboardReady(panels.page)
-    assert.deepEqual(await panels.page.locator('input[type=date]').evaluateAll(inputs => inputs.map(input => input.value)), [addDays(today, -6), today])
+    assert.deepEqual(await panels.page.locator('.agrisage-date-input').evaluateAll(inputs => inputs.map(input => input.dataset.value)), [addDays(today, -6), today])
     assert.equal(await panels.page.getByRole('button', { name: '7 ngày', exact: true }).getAttribute('aria-pressed'), 'true')
     for (const report of ['revenue-summary', 'revenue', 'payments', 'orders']) assert(panels.requests.some(request => request.path === '/api/reports/' + report && request.query.fromDate === addDays(today, -6) && request.query.toDate === today), `${report} must reload for the new period`)
     assert(panels.requests.some(request => request.path === '/api/reports/revenue' && request.query.groupBy === 'DAY'), 'A week is drawn per day')
@@ -400,7 +400,8 @@ try {
     content = await text()
     assert.match(content, /Doanh thu thuần theo tháng/, 'A year is regrouped by month')
     assert(panels.requests.some(request => request.path === '/api/reports/revenue' && request.query.groupBy === 'MONTH'))
-    const inputs = panels.page.locator('input[type=date]')
+    // The date fields read dd/mm/yyyy; their yyyy-MM-dd value is in data-value, and filling an ISO day is accepted.
+    const inputs = panels.page.locator('.agrisage-date-input')
     await inputs.nth(0).fill(addDays(today, -59)); await inputs.nth(1).fill(today)
     await dashboardReady(panels.page)
     assert.match(await text(), /Doanh thu thuần theo tuần/, 'Two months are regrouped by week')

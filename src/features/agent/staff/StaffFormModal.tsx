@@ -4,6 +4,7 @@ import { staffApi, type StaffProfileRequest, type StaffRole, type StaffResponse 
 import { describeError } from '@/api/client'
 import DetailModal from '@/components/ui/DetailModal'
 import ModalLayout from '@/components/ui/ModalLayout'
+import DateInput from '@/components/ui/DateInput'
 
 export type StaffFormMode = 'create' | 'edit' | 'view' | 'reset-password'
 interface StaffFormModalProps {
@@ -80,7 +81,7 @@ export default function StaffFormModal({ mode, member, roles, onClose, onSaved }
             <label className="space-y-1 text-sm">Số điện thoại<input className={inputClass} type="tel" autoComplete="tel" value={profile.phoneNumber ?? ''} onChange={event => setField('phoneNumber', event.target.value)} /></label>
             <label className="space-y-1 text-sm">Email<input className={inputClass} type="email" maxLength={254} autoComplete="email" value={profile.email ?? ''} onChange={event => setField('email', event.target.value)} /></label>
             <label className="space-y-1 text-sm">Mã nhân viên<input className={inputClass} maxLength={50} value={profile.employeeCode ?? ''} onChange={event => setField('employeeCode', event.target.value)} /></label>
-            <label className="space-y-1 text-sm">Ngày vào làm<input className={inputClass} type="date" value={profile.joinedAt ?? ''} onChange={event => setField('joinedAt', event.target.value)} /></label>
+            <label className="space-y-1 text-sm">Ngày vào làm<DateInput className={inputClass} value={profile.joinedAt ?? ''} onChange={event => setField('joinedAt', event.target.value)} /></label>
           </>}
           {(mode === 'create' || mode === 'reset-password') && <>
             <p className="text-xs text-slate-500 sm:col-span-2">Mật khẩu có từ 8 đến 128 ký tự. Giao mật khẩu mới cho nhân viên sau khi lưu thành công.</p>

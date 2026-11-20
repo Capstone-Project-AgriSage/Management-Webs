@@ -29,6 +29,7 @@ import { describeApiError } from '@/utils/apiError'
 import PaymentDetailModal from './PaymentDetailModal'
 import { paymentLink } from './paymentLink'
 import PaymentsLedger from './PaymentsLedger'
+import { vnDateTime } from '@/utils/date'
 
 type PaymentStatusLabel = 'Chưa thanh toán' | 'Thanh toán 1 phần' | 'Đã thanh toán đủ' | 'Đang tải...'
 
@@ -227,7 +228,7 @@ export default function PaymentsPage() {
                   >
                     <td className="py-4.5 pl-4 px-3">
                       <div className="font-mono font-bold text-sm text-primary">{order.orderNumber}</div>
-                      <div className="text-xs text-on-surface-variant mt-1">{new Date(order.createdAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                      <div className="text-xs text-on-surface-variant mt-1">{vnDateTime(order.createdAt)}</div>
                     </td>
                     <td className="py-4.5 px-3">
                       <div className="font-bold text-sm text-on-surface">{order.customerName}</div>
@@ -317,7 +318,7 @@ export default function PaymentsPage() {
                       <div key={p.id} className="flex justify-between items-center p-3 border border-outline-variant rounded-lg bg-surface">
                         <div>
                           <div className="font-bold text-on-surface">{formatVnd(p.amount)} <span className="text-xs font-normal text-on-surface-variant">({p.paymentMethod})</span></div>
-                          <div className="text-xs text-on-surface-variant mt-1">{new Date(p.initiatedAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} - Trạng thái: {p.status}</div>
+                          <div className="text-xs text-on-surface-variant mt-1">{vnDateTime(p.initiatedAt)} - Trạng thái: {p.status}</div>
                         </div>
                         <div className="text-right">
                           <div className="text-xs font-mono text-on-surface-variant">{p.paymentNumber}</div>

@@ -13,6 +13,7 @@ import { useToast } from '@/context/ToastContext';
 import { reportsApi, type DebtAgingReport, type DebtCollectionReport, type DebtByGroupReport } from '@/api/reportsApi';
 import { formatVnd, formatVndShort } from '@/utils/money';
 import { formatDay, todayVn } from '@/utils/creditLabels';
+import DateInput from '@/components/ui/DateInput'
 
 // Chart chrome per the data-viz spec: one series → one hue (validated), thin bars with a 4px data-end,
 // hairline solid grid, axis text in muted ink, hover tooltip; every chart has a table beside it.
@@ -150,7 +151,7 @@ export default function DebtReportsPage() {
         }>
             <label className="text-sm text-slate-600 flex items-center gap-2">
               Tại ngày
-              <input type="date" className={inputClassName} value={asOf} max={todayVn()} onChange={(e) => setAsOf(e.target.value)} />
+              <DateInput className={inputClassName} value={asOf} max={todayVn()} onChange={(e) => setAsOf(e.target.value)} />
             </label>
         </ListToolbar>
         <div>
@@ -200,8 +201,8 @@ export default function DebtReportsPage() {
           </div>
         </div>
         <ListToolbar onClear={() => { setFromDate(firstOfMonth()); setToDate(todayVn()); setGroupBy('DAY') }}>
-            <input type="date" aria-label="Từ ngày" className={inputClassName} value={fromDate} max={toDate} onChange={(e) => setFromDate(e.target.value)} />
-            <input type="date" aria-label="Đến ngày" className={inputClassName} value={toDate} min={fromDate} max={todayVn()} onChange={(e) => setToDate(e.target.value)} />
+            <DateInput aria-label="Từ ngày" className={inputClassName} value={fromDate} max={toDate} onChange={(e) => setFromDate(e.target.value)} />
+            <DateInput aria-label="Đến ngày" className={inputClassName} value={toDate} min={fromDate} max={todayVn()} onChange={(e) => setToDate(e.target.value)} />
             <FilterSelect label="Gộp báo cáo thu nợ theo" value={groupBy} onChange={value => setGroupBy(value as 'DAY' | 'METHOD' | 'STAFF')} options={[...GROUP_BY_OPTIONS]} />
         </ListToolbar>
         <div>

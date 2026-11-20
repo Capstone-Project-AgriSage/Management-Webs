@@ -1,3 +1,4 @@
+import { vnDate, vnDateTime } from './date'
 /** Short Vietnamese label of a unit code returned by the API (units are seeded reference data). */
 const UNIT_LABELS: Record<string, string> = {
   KG: 'kg',
@@ -28,19 +29,12 @@ export function formatQtyUnit(value: number, unitCode: string | null | undefined
 
 /** "dd/MM/yyyy" for a date-only string from the API ("2026-11-19"). */
 export function formatDate(value: string | null | undefined): string {
-  if (!value) return '-'
-  const [y, m, d] = value.slice(0, 10).split('-')
-  return `${d}/${m}/${y}`
+  return value ? vnDate(value) : '-'
 }
 
-/** "14:05 05/10/2026" in the browser's local time, from an ISO date-time. */
+/** "05/10/2026 14:05" in Vietnam time, from an ISO date-time. */
 export function formatDateTime(value: string | null | undefined): string {
-  if (!value) return '-'
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return value
-  const date = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
-  const time = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })
-  return `${time} ${date}`
+  return value ? vnDateTime(value) : '-'
 }
 
 /** "yyyy-MM-dd" for a Date in the browser's local calendar (not UTC), the format of the API's date filters. */

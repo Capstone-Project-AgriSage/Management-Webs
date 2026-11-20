@@ -10,6 +10,7 @@ import { useToast } from '@/context/ToastContext'
 import { formatVnd } from '@/utils/money'
 import { formatQty, todayInput, unitLabel } from '@/utils/units'
 import StoreProductSearch from './StoreProductSearch'
+import DateInput from '@/components/ui/DateInput'
 
 interface ReceiptLineModalProps {
   receiptId: string
@@ -193,13 +194,13 @@ export default function ReceiptLineModal({ receiptId, item, onClose, onSaved }: 
             <label className="text-sm font-medium text-slate-700" htmlFor="rl-expiry">
               Hạn dùng {needExpiry ? '*' : ''}
             </label>
-            <input id="rl-expiry" type="date" className={inputClassName} value={expiry} min={todayInput()} onChange={(e) => setExpiry(e.target.value)} />
+            <DateInput id="rl-expiry" className={inputClassName} value={expiry} min={todayInput()} onChange={(e) => setExpiry(e.target.value)} />
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium text-slate-700" htmlFor="rl-mfg">
               Ngày sản xuất
             </label>
-            <input id="rl-mfg" type="date" className={inputClassName} value={mfg} onChange={(e) => setMfg(e.target.value)} />
+            <DateInput id="rl-mfg" className={inputClassName} value={mfg} onChange={(e) => setMfg(e.target.value)} />
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium text-slate-700" htmlFor="rl-note">

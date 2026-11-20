@@ -8,6 +8,7 @@ import DetailModal from '@/components/ui/DetailModal'
 import ModalLayout from '@/components/ui/ModalLayout'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import { paymentLink } from './paymentLink'
+import { vnDateTime } from '@/utils/date'
 
 const statusLabels: Record<string, string> = { PENDING: 'Chờ thanh toán', PAID: 'Đã thanh toán', FAILED: 'Thất bại', CANCELLED: 'Đã hủy', PARTIALLY_REFUNDED: 'Đã hoàn một phần', REFUNDED: 'Đã hoàn tiền' }
 export default function PaymentDetailModal({ paymentId, onClose, onChanged }: { paymentId: string; onClose: () => void; onChanged: () => void }) {
@@ -55,7 +56,7 @@ export default function PaymentDetailModal({ paymentId, onClose, onChanged }: { 
         {message && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{message}</p>}
         {loading ? <p role="status" className="py-8 text-center text-sm text-slate-500">Đang tải phiếu thanh toán...</p> : payment && <>
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-            {[['Số tiền', formatVnd(payment.amount)], ['Trạng thái', statusLabels[payment.status] ?? payment.status], ['Phương thức', payment.paymentMethod], ['Mục đích', payment.paymentContext === 'DEBT_REPAYMENT' ? 'Trả công nợ' : 'Thanh toán đơn hàng'], ['Người thanh toán', payment.payerName ?? 'Khách lẻ'], ['Ngày khởi tạo', new Date(payment.initiatedAt).toLocaleString('vi-VN')], ['Ngày xác nhận', payment.confirmedAt ? new Date(payment.confirmedAt).toLocaleString('vi-VN') : '—']].map(([label, value]) => <div key={label}><dt className="text-slate-500">{label}</dt><dd className="mt-1 font-semibold break-words">{value}</dd></div>)}
+            {[['Số tiền', formatVnd(payment.amount)], ['Trạng thái', statusLabels[payment.status] ?? payment.status], ['Phương thức', payment.paymentMethod], ['Mục đích', payment.paymentContext === 'DEBT_REPAYMENT' ? 'Trả công nợ' : 'Thanh toán đơn hàng'], ['Người thanh toán', payment.payerName ?? 'Khách lẻ'], ['Ngày khởi tạo', vnDateTime(payment.initiatedAt)], ['Ngày xác nhận', payment.confirmedAt ? vnDateTime(payment.confirmedAt) : '—']].map(([label, value]) => <div key={label}><dt className="text-slate-500">{label}</dt><dd className="mt-1 font-semibold break-words">{value}</dd></div>)}
           </dl>
           {payment.paymentMethod === 'PAYOS' && payment.status === 'PENDING' && checkoutUrl && <a href={checkoutUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[42px] items-center rounded-[10px] border border-primary px-4 text-sm font-semibold text-primary">Mở liên kết thanh toán payOS</a>}
           {payment.paymentMethod === 'PAYOS' && payment.status === 'PENDING' && <p className="text-xs text-slate-500">Trạng thái chỉ được cập nhật khi payOS xác nhận. Liên kết payOS được hủy bởi khách hàng hoặc hết hạn.</p>}

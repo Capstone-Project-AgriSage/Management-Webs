@@ -224,7 +224,7 @@ try {
   assert.equal(owner.state.requests.filter(request => request.path === '/api/reports/inventory-movement').length, movementReports)
   await owner.page.getByLabel('Tổng hợp xuất nhập tồn: từ ngày').fill('2026-10-02')
   await ready(owner.page, 'Tổng hợp xuất nhập tồn')
-  await owner.page.waitForFunction(() => document.getElementById('mv-from')?.value === '2026-10-02')
+  await owner.page.waitForFunction(() => document.getElementById('mv-from')?.dataset.value === '2026-10-02')
   assert.equal(owner.state.requests.filter(request => request.path === '/api/reports/inventory-movement').at(-1).query.fromDate, '2026-10-02')
   const movementList = owner.state.requests.filter(request => request.path === '/api/inventory/stock-movements').at(-1)
   assert.equal(movementList.query.fromDate, '2026-10-02')
@@ -274,12 +274,12 @@ try {
   const payments = await ready(owner.page, 'Tổng hợp thanh toán')
   assert.equal(await payments.getByText('2.900.000 đ', { exact: true }).count(), 1)
   owner.state.mode = 'error'
-  await payments.getByRole('button').click()
+  await payments.getByRole('button', { name: 'Làm mới tổng hợp thanh toán' }).click()
   await payments.getByRole('alert').filter({ hasText: 'Không tải được số liệu kiểm thử' }).waitFor()
   assert.equal(await payments.getByText('2.900.000 đ', { exact: true }).count(), 0)
   await owner.page.getByRole('table').waitFor()
   owner.state.mode = 'empty'
-  await payments.getByRole('button').click()
+  await payments.getByRole('button', { name: 'Làm mới tổng hợp thanh toán' }).click()
   await ready(owner.page, 'Tổng hợp thanh toán')
   assert.equal(await payments.getByText('0 đ', { exact: true }).count(), 3)
   owner.state.mode = 'normal'
