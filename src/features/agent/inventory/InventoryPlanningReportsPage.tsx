@@ -1,6 +1,6 @@
 import RowActionsMenu from '@/components/ui/RowActionsMenu'
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { replenishmentApi, type ExpiryRiskItem, type VelocityItem } from '@/api/replenishmentApi'
 import { catalogApi } from '@/api/catalogApi'
 import ListToolbar from '@/components/ui/ListToolbar'
@@ -21,7 +21,9 @@ const velocityLabels: Record<string, string> = { FAST: 'Tồn đủ bán ít ng�
 const riskLabels: Record<string, string> = { EXPIRED: 'Đã hết hạn', HELD_STOCK: 'Lô đang giữ / khóa', INSUFFICIENT_HISTORY: 'Chưa đủ lịch sử', ESTIMATED: 'Ước tính theo FEFO' }
 export default function InventoryPlanningReportsPage() {
   usePageHeader({ title: 'Phân tích tồn kho', subtitle: 'Tốc độ bán và lượng có nguy cơ không bán hết trước hạn' })
-  const [tab, setTab] = useState<'velocity' | 'expiry'>('velocity')
+  // ?tab=expiry opens the expiry risk (the dashboard's expiring-lots panel links here).
+  const [searchParams] = useSearchParams()
+  const [tab, setTab] = useState<'velocity' | 'expiry'>(() => (searchParams.get('tab') === 'expiry' ? 'expiry' : 'velocity'))
   const [search, setSearch] = useState('')
   const term = useDebouncedValue(search)
   const [category, setCategory] = useState('')
