@@ -28,7 +28,7 @@ import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import Pagination from '@/components/ui/Pagination'
 import { usePagination } from '@/hooks/usePagination'
 import DiseaseProductsPanel from './DiseaseProductsPanel'
-import { PROBLEM_TYPE_LABEL, TREATMENT_KIND_LABEL, diseaseLabel } from './diagnosisLabels'
+import { CROP_CODES, PROBLEM_TYPE_LABEL, TREATMENT_KIND_LABEL, cropLabel, diseaseLabel } from './diagnosisLabels'
 
 const field =
   'w-full px-3 py-2 rounded-md border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500'
@@ -49,6 +49,7 @@ interface ContentForm {
 interface CreateForm extends ContentForm {
   code: string
   problemType: ProblemType
+  cropType: string
 }
 
 const CODE_PATTERN = /^[A-Z][A-Z0-9_]{1,48}$/
@@ -56,6 +57,7 @@ const CODE_PATTERN = /^[A-Z][A-Z0-9_]{1,48}$/
 const emptyCreate: CreateForm = {
   code: '',
   problemType: 'DISEASE',
+  cropType: 'RICE',
   name: '',
   scientificName: '',
   description: '',
@@ -110,6 +112,10 @@ function priorityOf(value: string): number | null {
   return value.trim() !== '' && Number.isInteger(n) && n >= 0 && n <= 1000 ? n : null
 }
 
+// A problem saved before crops existed is rice. The healthy class is shared by every crop (AI_DIAGNOSIS.md D17).
+const cropOf = (d: Disease) => d.cropType || 'RICE'
+const cropText = (d: Disease) => (d.isHealthyClass ? 'Mọi cây trồng' : cropLabel(cropOf(d)))
+
 const searchText = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase()
 
 function Fact({ label, value }: { label: string; value: string | null }) {
@@ -123,8 +129,8 @@ function Fact({ label, value }: { label: string; value: string | null }) {
 
 export default function DiseaseContentPage() {
   usePageHeader({
-    title: 'Vấn đề trên lúa và cách xử lý',
-    subtitle: 'Bệnh, sâu rầy, cỏ dại, dinh dưỡng: nội dung nông dân đọc và các sản phẩm đã duyệt được gợi ý cho từng vấn đề',
+    title: 'Vấn đề cây trồng và cách xử lý',
+    subtitle: 'Bệnh, sâu rầy, cỏ dại, dinh dưỡng của từng cây: nội dung nông dân đọc và các sản phẩm đã duyệt được gợi ý cho từng vấn đề',
   })
   const { has } = usePermission()
   const { showToast } = useToast()
@@ -141,16 +147,20 @@ export default function DiseaseContentPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [problemType, setProblemType] = useState('')
+  const [crop, setCrop] = useState('')
   const [status, setStatus] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const selected = diseases?.find(d => d.id === selectedId)
   const filtered = useMemo(() => {
     const keyword = searchText(search.trim())
     return (diseases ?? []).filter(d => (!problemType || (d.problemType ?? 'DISEASE') === problemType)
+      && (!crop || d.isHealthyClass || cropOf(d) === crop)
       && (!status || d.isActive === (status === 'active'))
       && (!keyword || searchText([d.code, d.name, diseaseLabel(d.code, d.name), d.searchKeywords, d.symptoms].filter(Boolean).join(' ')).includes(keyword)))
-  }, [diseases, search, problemType, status])
-  const pagination = usePagination(filtered, undefined, JSON.stringify([search, problemType, status]))
+  }, [diseases, search, problemType, crop, status])
+  const pagination = usePagination(filtered, undefined, JSON.stringify([search, problemType, crop, status]))
+  // The catalog crops first, then any other code a problem carries (a crop added to the backend later).
+  const cropOptions = useMemo(() => [...new Set([...CROP_CODES, ...(diseases ?? []).filter(d => !d.isHealthyClass).map(cropOf)])], [diseases])
 
   const [editing, setEditing] = useState<Disease | null>(null)
   const [contentForm, setContentForm] = useState<ContentForm | null>(null)
@@ -229,6 +239,7 @@ export default function DiseaseContentPage() {
     const body: DiseaseCreateInput = {
       code: creating.code.trim(),
       problemType: creating.problemType,
+      cropType: creating.cropType,
       name: creating.name.trim(),
       scientificName: orNull(creating.scientificName),
       description: orNull(creating.description),
@@ -288,17 +299,18 @@ export default function DiseaseContentPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto space-y-5">
-        <div className="agrisage-summary-grid grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-5" aria-label="Tổng hợp vấn đề trên lúa">
+        <div className="agrisage-summary-grid grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-5" aria-label="Tổng hợp vấn đề cây trồng">
           <KpiCard title="Tổng số vấn đề" value={diseases ? diseases.length : loadError ? 'Lỗi tải' : '—'} subtitle="Toàn bộ danh sách" />
           <KpiCard title="Đang hoạt động" value={diseases ? diseases.filter(d => d.isActive).length : '—'} subtitle="Được hiển thị cho nông dân" />
           <KpiCard title="Cần bổ sung nội dung" value={diseases ? diseases.filter(d => !d.symptoms?.trim() && !d.prevention?.trim()).length : '—'} subtitle="Chưa có triệu chứng và phòng ngừa" />
           <KpiCard title="Cách xử lý đang dùng" value={diseases ? diseases.reduce((sum, d) => sum + d.treatments.filter(t => t.isActive).length, 0) : '—'} subtitle="Trên toàn bộ vấn đề" />
         </div>
         <ListToolbar
-          search={{ value: search, onChange: value => setSearch(value.slice(0, 200)), placeholder: 'Tìm mã, tên, triệu chứng, từ khóa...', label: 'Tìm vấn đề trên lúa' }}
-          onClear={() => { setSearch(''); setProblemType(''); setStatus('') }}
+          search={{ value: search, onChange: value => setSearch(value.slice(0, 200)), placeholder: 'Tìm mã, tên, triệu chứng, từ khóa...', label: 'Tìm vấn đề cây trồng' }}
+          onClear={() => { setSearch(''); setProblemType(''); setCrop(''); setStatus('') }}
           actions={canCreateProblem && <button type="button" disabled={busy} onClick={() => setCreating(emptyCreate)} className="inline-flex items-center justify-center gap-2 rounded-[10px] bg-primary-dark px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"><Plus size={16} aria-hidden="true" />Thêm vấn đề</button>}
         >
+          <FilterSelect label="Cây trồng" value={crop} onChange={setCrop} options={[{ value: '', label: 'Mọi cây trồng' }, ...cropOptions.map(value => ({ value, label: cropLabel(value) }))]} />
           <FilterSelect label="Loại vấn đề" value={problemType} onChange={setProblemType} options={[{ value: '', label: 'Tất cả loại' }, ...PROBLEM_TYPES.map(value => ({ value, label: PROBLEM_TYPE_LABEL[value] }))]} />
           <FilterSelect label="Trạng thái" value={status} onChange={setStatus} options={[{ value: '', label: 'Tất cả trạng thái' }, { value: 'active', label: 'Đang hoạt động' }, { value: 'inactive', label: 'Đã ngừng' }]} />
         </ListToolbar>
@@ -314,14 +326,15 @@ export default function DiseaseContentPage() {
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden" aria-busy={loading}>
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-5 py-4">
           <h2 className="text-base font-semibold text-slate-900">Danh sách vấn đề</h2>
-          <p className="text-xs text-slate-500" role="status">{loading ? 'Đang tải...' : diseases ? `${filtered.length ? pagination.startIndex + 1 : 0}–${pagination.endIndex} / ${filtered.length} vấn đề${search || problemType || status ? ' phù hợp' : ''}` : 'Chưa tải được dữ liệu'}</p>
+          <p className="text-xs text-slate-500" role="status">{loading ? 'Đang tải...' : diseases ? `${filtered.length ? pagination.startIndex + 1 : 0}–${pagination.endIndex} / ${filtered.length} vấn đề${search || problemType || crop || status ? ' phù hợp' : ''}` : 'Chưa tải được dữ liệu'}</p>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[820px] text-left text-sm" aria-label="Danh sách vấn đề trên lúa">
-            <thead><tr><th scope="col" className="px-4 py-3">Vấn đề</th><th scope="col" className="px-4 py-3">Loại</th><th scope="col" className="px-4 py-3">Nội dung</th><th scope="col" className="px-4 py-3 text-right">Cách xử lý</th><th scope="col" className="px-4 py-3">Trạng thái</th><th scope="col" className="px-4 py-3 text-right">Thao tác</th></tr></thead>
+          <table className="w-full min-w-[900px] text-left text-sm" aria-label="Danh sách vấn đề cây trồng">
+            <thead><tr><th scope="col" className="px-4 py-3">Vấn đề</th><th scope="col" className="px-4 py-3">Cây trồng</th><th scope="col" className="px-4 py-3">Loại</th><th scope="col" className="px-4 py-3">Nội dung</th><th scope="col" className="px-4 py-3 text-right">Cách xử lý</th><th scope="col" className="px-4 py-3">Trạng thái</th><th scope="col" className="px-4 py-3 text-right">Thao tác</th></tr></thead>
             <tbody>
               {pagination.paginated.map(d => <tr key={d.id} className="hover:bg-slate-50">
                 <td className="px-4 py-4"><button id={`problem-view-${d.id}`} type="button" className="text-left font-semibold text-primary-dark hover:underline focus-visible:outline-2 focus-visible:outline-primary" aria-label={`Xem chi tiết ${diseaseLabel(d.code, d.name)}`} onClick={() => setSelectedId(d.id)}>{diseaseLabel(d.code, d.name)}</button><p className="mt-1 text-xs text-slate-500 break-all">{d.code}</p>{d.name !== diseaseLabel(d.code, d.name) && <p className="mt-1 text-xs text-slate-500">{d.name}</p>}</td>
+                <td className="px-4 py-4 text-slate-700">{cropText(d)}</td>
                 <td className="px-4 py-4 text-slate-700">{d.isHealthyClass ? 'Lá khỏe' : PROBLEM_TYPE_LABEL[d.problemType ?? 'DISEASE']}</td>
                 <td className="px-4 py-4"><StatusBadge label={!d.symptoms?.trim() && !d.prevention?.trim() ? 'Cần bổ sung' : 'Đã có nội dung'} className={!d.symptoms?.trim() && !d.prevention?.trim() ? 'text-amber-700' : 'text-emerald-700'} /></td>
                 <td className="px-4 py-4 text-right tabular-nums"><span className="font-semibold">{d.treatments.filter(t => t.isActive).length}</span><p className="mt-1 text-xs text-slate-500">đang dùng</p></td>
@@ -333,7 +346,7 @@ export default function DiseaseContentPage() {
                   ...(canEditDisease && !d.isHealthyClass && !SEEDED_CODES.has(d.code) ? [{ label: d.isActive ? 'Ngừng hoạt động' : 'Kích hoạt lại', icon: d.isActive ? 'pause_circle' : 'play_circle', tone: d.isActive ? 'danger' as const : 'default' as const, onClick: () => setSwitching(d) }] : []),
                 ]} /></td>
               </tr>)}
-              {filtered.length === 0 && <EmptyTableRow colSpan={6} message={loading ? 'Đang tải vấn đề trên lúa...' : loadError && !diseases ? 'Không tải được danh sách. Chọn Thử lại để tải lại dữ liệu.' : diseases?.length ? 'Không có vấn đề phù hợp. Hãy đổi từ khóa hoặc xóa bộ lọc.' : 'Chưa có vấn đề nào trong danh sách.'} />}
+              {filtered.length === 0 && <EmptyTableRow colSpan={7} message={loading ? 'Đang tải vấn đề cây trồng...' : loadError && !diseases ? 'Không tải được danh sách. Chọn Thử lại để tải lại dữ liệu.' : diseases?.length ? 'Không có vấn đề phù hợp. Hãy đổi từ khóa hoặc xóa bộ lọc.' : 'Chưa có vấn đề nào trong danh sách.'} />}
             </tbody>
           </table>
         </div>
@@ -352,6 +365,7 @@ export default function DiseaseContentPage() {
                 <p className="mt-1 text-xs text-slate-500 break-words">
                   <span>{d.code}</span>
                   {d.name !== diseaseLabel(d.code, d.name) && <> · {d.name}</>}
+                  <span className="ml-2 px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold">{cropText(d)}</span>
                   <span className="ml-2 px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold">{PROBLEM_TYPE_LABEL[d.problemType ?? 'DISEASE']}</span>
                   {d.isHealthyClass && <span className="ml-2 px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-semibold">Lá khỏe</span>}
                 </p>
@@ -485,7 +499,7 @@ export default function DiseaseContentPage() {
       <ConfirmModal
         open={creating !== null}
         title="Thêm vấn đề"
-        message="Mã không đổi được sau khi tạo. Vấn đề mới hiện cho nông dân tìm kiếm ngay, nhưng chưa có sản phẩm nào cho đến khi bạn thêm và duyệt liên kết."
+        message="Mã và cây trồng không đổi được sau khi tạo. Vấn đề mới hiện cho nông dân tìm kiếm ngay, nhưng chưa có sản phẩm nào cho đến khi bạn thêm và duyệt liên kết. Một bệnh mới chỉ được AI chẩn đoán qua ảnh sau khi admin đăng ký mô hình AI có mã của bệnh đó."
         confirmLabel="Thêm vấn đề"
         busy={busy}
         confirmDisabled={createInvalid}
@@ -509,6 +523,16 @@ export default function DiseaseContentPage() {
             <label className="block text-sm font-semibold text-slate-700">
               Tên
               <input className={`${field} mt-1 font-normal`} maxLength={200} value={creating.name} onChange={(e) => setCreating({ ...creating, name: e.target.value })} aria-label="Tên vấn đề" />
+            </label>
+            <label className="block text-sm font-semibold text-slate-700">
+              Cây trồng
+              <Select className={`${field} mt-1 font-normal`} value={creating.cropType} onChange={(e) => setCreating({ ...creating, cropType: e.target.value })} aria-label="Cây trồng của vấn đề">
+                {CROP_CODES.map((code) => (
+                  <option key={code} value={code}>
+                    {cropLabel(code)}
+                  </option>
+                ))}
+              </Select>
             </label>
             <label className="block text-sm font-semibold text-slate-700">
               Loại

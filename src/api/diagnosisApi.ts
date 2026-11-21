@@ -224,6 +224,8 @@ export interface DiseaseContentInput {
 export interface DiseaseCreateInput extends DiseaseContentInput {
   code: string
   problemType: ProblemType
+  /** A crop code of the catalog (CROP_LABEL); the backend reads an omitted one as RICE. Cannot change afterwards. */
+  cropType?: string
 }
 
 /**
@@ -240,8 +242,8 @@ export interface TreatmentInput {
 }
 
 export const diseasesApi = {
-  /** The five rice classes with their treatments (inactive treatments included). */
-  list: (isActive?: boolean) => api<Disease[]>(`/api/diseases${buildQuery({ isActive })}`),
+  /** Every problem of every crop with its treatments (inactive treatments included). */
+  list: (isActive?: boolean, signal?: AbortSignal) => api<Disease[]>(`/api/diseases${buildQuery({ isActive })}`, { signal }),
 
   /** Admin and store owner. Returns the disease with its treatments. */
   update: (id: Uuid, data: DiseaseContentInput) =>
