@@ -63,6 +63,8 @@ async function session(width = 1440, authenticated = true) {
       return json({ rows: series, totals, page: 1, pageSize: 20, totalCount: state.mode === 'partial' ? 31 : series.length, totalPages: 1 })
     }
     if (path === '/api/reports/revenue-summary') return json({ current: totals, previous: totals, netSalesChangePercent: null })
+    if (path === '/api/reports/inventory-turnover') return json({ items: [], page: 1, pageSize: 100, totalCount: 0, totalPages: 0, summary: { products: 0, fast: 0, slow: 0, noSales: 0 }, fromDate: '2026-10-01', toDate: '2026-10-16' })
+    if (path === '/api/inventory/expiry-risk') return json({ items: [], page: 1, pageSize: 3, totalCount: 0, totalPages: 0, summary: { lots: 0, knownRiskLots: 0, unknownRiskLots: 0, knownRiskValue: 0 }, withinDays: 30 })
     if (path === '/api/staff') return json({ items: [], page: 1, pageSize: 10, totalCount: 0, totalPages: 1 })
     state.unknown.push(path)
     return route.abort()
@@ -92,7 +94,7 @@ try {
   for (const name of ['Việc cần xử lý', 'Kết quả kinh doanh', 'Doanh thu thuần theo ngày', 'Nhóm sản phẩm bán chạy', 'Kênh bán hàng', 'Phương thức thanh toán', 'Tỷ lệ hoàn thành đơn', 'Công nợ phải thu', 'Công nợ theo nhóm khách', 'Đơn hàng gần đây']) await page.getByText(name, { exact: true }).first().waitFor()
   assert((await page.locator('main .recharts-surface').count()) >= 1, 'The revenue chart is drawn')
   const reportCalls = state.requests.filter(request => request.path.startsWith('/api/reports/')).map(request => request.path + ':' + (request.query.groupBy ?? ''))
-  for (const expected of ['/api/reports/revenue-summary:', '/api/reports/revenue:DAY', '/api/reports/revenue:CATEGORY', '/api/reports/payments:METHOD', '/api/reports/orders:SOURCE', '/api/reports/orders:STATUS', '/api/reports/debt-aging:', '/api/reports/debt-by-customer-group:']) assert(reportCalls.includes(expected), `The dashboard must read ${expected}`)
+  for (const expected of ['/api/reports/revenue-summary:', '/api/reports/revenue:DAY', '/api/reports/revenue:CATEGORY', '/api/reports/payments:METHOD', '/api/reports/orders:SOURCE', '/api/reports/orders:STATUS', '/api/reports/revenue:PRODUCT', '/api/reports/revenue:CUSTOMER', '/api/reports/inventory-turnover:', '/api/reports/debt-aging:', '/api/reports/debt-by-customer-group:']) assert(reportCalls.includes(expected), `The dashboard must read ${expected}`)
   const surface = await page.locator('body').evaluate(element => [getComputedStyle(element).backgroundImage, getComputedStyle(element).backgroundColor])
   assert.deepEqual(surface, ['none', 'rgb(255, 255, 255)'], 'White theme: no gradient or image behind the page')
   for (const selector of ['.management-shell', '.management-sidebar', '.management-topbar']) assert.equal(await page.locator(selector).first().evaluate(element => getComputedStyle(element).backgroundColor), 'rgb(255, 255, 255)', `${selector} is white`)

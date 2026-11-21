@@ -49,6 +49,8 @@ async function makeSession(role = 'STORE_OWNER', permissions = READ_PERMISSIONS,
     if (path === '/api/reports/inventory-movement') return json({ fromDate: query.fromDate, toDate: query.toDate, rows: [], totals: { openingValue: 80000, stockIn: 50000, returnIn: 0, adjustmentIn: 0, sale: -10000, adjustmentOut: 0, reversal: 0, closingValue: 120000 } })
     if (path === '/api/reports/sales' || path === '/api/reports/revenue') return json({ ...paged([], 0, query), fromDate: query.fromDate, toDate: query.toDate, groupBy: 'DAY', rows: [], totals: salesMetrics })
     if (path === '/api/reports/revenue-summary') return json({ current: salesMetrics, previous: salesMetrics, netSalesChangePercent: 12.5 })
+    if (path === '/api/reports/inventory-turnover') return json({ items: [], page: 1, pageSize: 100, totalCount: 0, totalPages: 0, summary: { products: 0, fast: 0, slow: 0, noSales: 0 }, fromDate: '2026-10-01', toDate: '2026-10-16' })
+    if (path === '/api/inventory/expiry-risk') return json({ items: [], page: 1, pageSize: 3, totalCount: 0, totalPages: 0, summary: { lots: 0, knownRiskLots: 0, unknownRiskLots: 0, knownRiskValue: 0 }, withinDays: 30 })
     if (path === '/api/reports/orders') return json({ rows: [], totals: { orderCount: 7, orderValue: 700000 } })
     if (path === '/api/reports/payments') return json({ rows: [], totals: { paymentCount: 5, receivedAmount: 500000, orderPaymentAmount: 450000, debtRepaymentAmount: 50000, refundedAmount: 10000, netReceivedAmount: 490000 } })
     if (path === '/api/reports/purchases') return json({ rows: [], totals: { receiptCount: 2, purchaseAmount: 200000 } })
@@ -384,7 +386,7 @@ try {
     assert.match(content, /Chưa phân nhóm/, 'Customers without a group are named, not dropped')
     assert.equal(await panels.page.locator('main .recharts-surface').count(), 1, 'One chart: the revenue trend')
     assert.equal(await main.locator('table.sr-only').count(), 1, 'The trend chart has a table twin for screen readers')
-    assert.equal(await main.locator('a[title="Xem chi tiết"]').evaluateAll(links => [...new Set(links.map(link => link.getAttribute('href')))].sort().join(',')), '/agent/debts,/agent/orders,/agent/payments,/agent/products', 'Panels link to the pages that hold the detail')
+    assert.equal(await main.locator('a[title="Xem chi tiết"]').evaluateAll(links => [...new Set(links.map(link => link.getAttribute('href')))].sort().join(',')), '/agent/debts,/agent/farmers,/agent/inventory/reports/planning,/agent/inventory/reports/planning?tab=expiry,/agent/orders,/agent/payments,/agent/products', 'Panels link to the pages that hold the detail')
 
     // Period filter: a preset moves both dates and every report follows; the trend regroups with the length of the period.
     const today = todayVn()
