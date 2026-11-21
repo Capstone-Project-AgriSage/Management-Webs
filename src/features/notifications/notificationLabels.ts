@@ -1,4 +1,5 @@
 import type { NotificationItem } from '../../api/notificationsApi'
+import { vnDateTime } from '@/utils/date'
 
 export const notificationFilters = [
   { value: '', label: 'Tất cả' },
@@ -24,10 +25,7 @@ export function notificationIcon(type: string) {
   }
 }
 export function notificationTime(value: string) {
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? '' : new Intl.DateTimeFormat('vi-VN', {
-    dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh',
-  }).format(date)
+  return Number.isNaN(new Date(value).getTime()) ? '' : vnDateTime(value)
 }
 export function notificationTarget(item: NotificationItem, role: string | null): string | null {
   const data = item.data

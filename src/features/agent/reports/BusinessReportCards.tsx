@@ -8,6 +8,7 @@ import { formatVnd } from '@/utils/money';
 import { firstOfMonthVn, periodProblem, reportInputClass } from './reportFilters';
 import { useReportData } from './useReportData';
 import { inlineReports, type InlineReportKind, type InlineReportResult, type ReportMetric } from './inlineReportConfig';
+import DateInput from '@/components/ui/DateInput'
 
 interface Props {
   kind: InlineReportKind
@@ -66,9 +67,9 @@ function AuthorizedReportCards({ kind, fromDate, toDate, onFromDateChange, onToD
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {config.period && <>
-          <input aria-label={`${config.title}: từ ngày`} type="date" className={reportInputClass} value={from} max={to} onChange={event => (onFromDateChange ?? setLocalFrom)(event.target.value)} />
+          <DateInput aria-label={`${config.title}: từ ngày`} className={reportInputClass} value={from} max={to} onChange={event => (onFromDateChange ?? setLocalFrom)(event.target.value)} />
           <span className="text-slate-400">→</span>
-          <input aria-label={`${config.title}: đến ngày`} type="date" className={reportInputClass} value={to} min={from} onChange={event => (onToDateChange ?? setLocalTo)(event.target.value)} />
+          <DateInput aria-label={`${config.title}: đến ngày`} className={reportInputClass} value={to} min={from} onChange={event => (onToDateChange ?? setLocalTo)(event.target.value)} />
         </>}
         <button type="button" aria-label={`Làm mới ${config.title.toLowerCase()}`} onClick={refresh} disabled={loading || !!problem} className="inline-flex h-10 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-600 disabled:opacity-50"><RefreshCw size={14} className={loading ? 'animate-spin' : ''} />Làm mới</button>
       </div>

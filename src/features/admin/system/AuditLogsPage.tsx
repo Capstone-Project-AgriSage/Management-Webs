@@ -15,6 +15,8 @@ import { useAuth } from '@/context/AuthContext';
 
 import ListReportCards from '@/features/agent/reports/ListReportCards'
 import { actionLabel, actionLabels, actorLabel, browserLabel, changeRows, entityLabels, eventStatus, resourceLabel, roleLabels, valueLabel } from './auditLogPresentation';
+import DateInput from '@/components/ui/DateInput'
+import { vnDateTime } from '@/utils/date'
 
 interface Filters {
   action: string
@@ -35,10 +37,6 @@ const pageSize = LIST_PAGE_SIZE
 const uuidPattern = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
 const inputClass = 'w-full h-9 px-3 text-sm bg-white border border-outline-variant rounded focus:border-primary focus:ring-1 focus:ring-primary text-on-surface shadow-sm'
 const buttonClass = 'flex items-center justify-center gap-1.5 px-3 py-2 border border-outline-variant rounded bg-white hover:bg-surface-container-low text-on-surface font-medium text-sm shadow-sm disabled:opacity-40 disabled:cursor-not-allowed'
-const dateFormatter = new Intl.DateTimeFormat('vi-VN', {
-  timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit',
-  hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
-})
 
 function queryFor(filters: Filters): AuditLogListParams {
   const now = new Date()
@@ -175,8 +173,8 @@ export default function AuditLogsPage() {
             <FilterSelect label="Trạng thái hành động" value={draft.status} onChange={value => setDraft({ ...draft, status: value })} options={[{ value: '', label: 'Mọi trạng thái' }, { value: 'SUCCESS', label: 'Thành công' }, { value: 'FAILURE', label: 'Thất bại' }]} />
             <FilterSelect label="Thời gian" value={draft.timeRange} onChange={value => setDraft({ ...draft, timeRange: value as Filters['timeRange'] })} options={[{ value: '7days', label: '7 ngày qua' }, { value: '30days', label: '30 ngày qua' }, { value: 'all', label: 'Tất cả' }, { value: 'custom', label: 'Khoảng ngày' }]} />
             {draft.timeRange === 'custom' && <>
-                <label className="text-sm text-on-surface">Từ ngày (UTC+7)<input type="date" className={inputClass} value={draft.fromDate} max={draft.toDate || undefined} onChange={e => setDraft({ ...draft, fromDate: e.target.value })} /></label>
-                <label className="text-sm text-on-surface">Đến ngày (UTC+7)<input type="date" className={inputClass} value={draft.toDate} min={draft.fromDate || undefined} onChange={e => setDraft({ ...draft, toDate: e.target.value })} /></label>
+                <label className="text-sm text-on-surface">Từ ngày (UTC+7)<DateInput className={inputClass} value={draft.fromDate} max={draft.toDate || undefined} onChange={e => setDraft({ ...draft, fromDate: e.target.value })} /></label>
+                <label className="text-sm text-on-surface">Đến ngày (UTC+7)<DateInput className={inputClass} value={draft.toDate} min={draft.fromDate || undefined} onChange={e => setDraft({ ...draft, toDate: e.target.value })} /></label>
               </>}
           </ListToolbar>
           <details className="agrisage-advanced-filters rounded-xl border border-slate-200 bg-white p-3">
@@ -225,7 +223,7 @@ export default function AuditLogsPage() {
                 : !result?.items.length ? <tr><td colSpan={8} className="py-12 text-center text-on-surface-variant font-sans"><p role="status">Không tìm thấy nhật ký phù hợp.</p></td></tr>
                 : result.items.map(log => (
                   <tr key={log.id} data-audit-log-id={log.id} className="transition-colors hover:bg-surface-container-low">
-                    <td className="py-3 px-4 border-r border-outline-variant/40 text-on-surface-variant whitespace-nowrap"><time dateTime={log.occurredAt}>{dateFormatter.format(new Date(log.occurredAt))}</time></td>
+                    <td className="py-3 px-4 border-r border-outline-variant/40 text-on-surface-variant whitespace-nowrap"><time dateTime={log.occurredAt}>{vnDateTime(log.occurredAt, true)}</time></td>
                     <td className="py-3 px-4 border-r border-outline-variant/40"><span className="px-2 py-0.5 rounded text-xs bg-surface-container text-primary">{entityLabels[log.entityType] ?? log.entityType}</span></td>
                     <td className="py-3 px-4 border-r border-outline-variant/40 text-on-surface"><div className="font-semibold">{actorLabel(log)}</div><div className="mt-1 text-xs text-on-surface-variant break-all">{log.actorEmail}</div>{log.actorRole && <span className="mt-1 inline-block rounded bg-surface-container px-2 py-0.5 text-xs">{roleLabels[log.actorRole] ?? log.actorRole}</span>}</td>
                     <td className="py-3 px-4 border-r border-outline-variant/40"><div className="text-primary font-medium">{actionLabel(log)}</div><div className="mt-1 text-[11px] text-on-surface-variant font-mono">{log.action}</div>{log.reason && <p className="mt-1 max-w-xs text-xs text-on-surface-variant line-clamp-2" title={log.reason}>Lý do: {log.reason}</p>}</td>
@@ -271,7 +269,7 @@ function AuditLogDetail({ log }: { log: AuditLogResponse }) {
       {[
         ['Người thực hiện', actorLabel(log)], ['Email', log.actorEmail ?? 'Không ghi nhận'],
         ['Vai trò', log.actorRole ? roleLabels[log.actorRole] ?? log.actorRole : 'Không ghi nhận'],
-        ['Thời gian (UTC+7)', dateFormatter.format(new Date(log.occurredAt))],
+        ['Thời gian (UTC+7)', vnDateTime(log.occurredAt, true)],
         ['ID người thực hiện', log.actorUserId ?? 'Không ghi nhận'], ['Mã hành động', log.action],
         ['ID đối tượng', log.entityId ?? 'Không ghi nhận'], ['ID cửa hàng', log.storeId ?? 'Toàn hệ thống'],
         ['Địa chỉ IP', log.ipAddress ?? 'Không ghi nhận'], ['Trình duyệt / thiết bị', browserLabel(log.userAgent)],

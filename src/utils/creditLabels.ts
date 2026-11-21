@@ -1,5 +1,6 @@
 import { usePermission } from '@/context/PermissionContext'
 import { useAuth } from '@/context/AuthContext'
+import { vnDate, vnDateTime } from './date'
 
 // Vietnamese labels for FLOW_3 enums. Unknown codes fall back to the raw value.
 
@@ -115,15 +116,12 @@ export function label(map: Record<string, string>, key: string | null | undefine
 }
 
 export function formatDay(iso: string | null | undefined): string {
-  if (!iso) return '--'
-  // Date-only values ("2026-11-01") are Vietnam days: format without a timezone shift.
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
-  if (m) return `${m[3]}/${m[2]}/${m[1]}`
-  return new Date(iso).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  // Date-only values ("2026-11-01") are Vietnam days and are shown without a timezone shift.
+  return iso ? vnDate(iso) : '--'
 }
 
 export function formatDayTime(iso: string | null | undefined): string {
-  return iso ? new Date(iso).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : '--'
+  return iso ? vnDateTime(iso) : '--'
 }
 
 /** Today in Vietnam as yyyy-MM-dd (due dates are Vietnam days). */

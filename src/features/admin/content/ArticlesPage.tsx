@@ -15,6 +15,7 @@ import FormModal from '@/components/ui/FormModal'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import ImageUploader from '@/features/products/ImageUploader'
 import { LIST_PAGE_SIZE } from '@/utils/pagination'
+import { vnDateTime } from '@/utils/date'
 
 const empty: ArticleInput = { title: '', slug: '', summary: '', content: '', thumbnailUrl: '' }
 export default function ArticlesPage() {
@@ -64,7 +65,7 @@ export default function ArticlesPage() {
     {list.error && <p role="alert" className="text-red-700">{list.error}</p>}
     <div className="rounded-xl border border-slate-200 bg-white overflow-x-auto"><table className="w-full min-w-[700px] text-left text-sm"><thead className="bg-slate-50"><tr>{['Tiêu đề', 'Tác giả', 'Ngày xuất bản', 'Trạng thái', 'Thao tác'].map(label => <th key={label} className="p-4 last:text-right">{label}</th>)}</tr></thead><tbody>
       {list.loading ? <tr><td colSpan={5} className="p-8 text-center" role="status">Đang tải...</td></tr> : !list.items.length ? <tr><td colSpan={5} className="p-8 text-center">Chưa có bài viết phù hợp.</td></tr> : list.items.map(item => <tr key={item.id} className="border-t border-slate-100">
-        <td className="p-4"><div className="flex items-center gap-3">{item.thumbnailUrl && <img src={item.thumbnailUrl} alt="" className="w-16 h-12 rounded object-cover shrink-0" />}<div><button className="font-medium hover:underline text-left" onClick={() => edit(item)}>{item.title}</button><p className="text-xs text-slate-500 mt-1">{item.slug}</p></div></div></td><td className="p-4">{item.authorName}</td><td className="p-4">{item.publishedAt ? new Date(item.publishedAt).toLocaleString('vi-VN') : '—'}</td><td className="p-4"><StatusBadge label={articleLabels[item.status]} /></td>
+        <td className="p-4"><div className="flex items-center gap-3">{item.thumbnailUrl && <img src={item.thumbnailUrl} alt="" className="w-16 h-12 rounded object-cover shrink-0" />}<div><button className="font-medium hover:underline text-left" onClick={() => edit(item)}>{item.title}</button><p className="text-xs text-slate-500 mt-1">{item.slug}</p></div></div></td><td className="p-4">{item.authorName}</td><td className="p-4">{item.publishedAt ? vnDateTime(item.publishedAt) : '—'}</td><td className="p-4"><StatusBadge label={articleLabels[item.status]} /></td>
         <td className="p-4 text-right"><RowActionsMenu disabled={busy} triggerLabel={`Thao tác bài viết ${item.title}`} actions={[
           { label: has('ARTICLES.MANAGE') ? 'Chỉnh sửa' : 'Xem bài viết', onClick: () => edit(item) },
           ...(['PUBLISHED', 'DRAFT', 'ARCHIVED'] as const).filter(next => next !== item.status).map(next => ({ label: next === 'PUBLISHED' ? 'Xuất bản' : next === 'DRAFT' ? 'Chuyển về nháp' : 'Lưu trữ', permissionCodes: ['ARTICLES.MANAGE'], onClick: () => { setError(''); setPending({ item, status: next }) } })),

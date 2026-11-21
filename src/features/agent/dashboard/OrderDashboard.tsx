@@ -18,6 +18,7 @@ import { firstOfMonthVn, periodProblem, reportInputClass } from '@/features/agen
 import { todayVn } from '@/utils/creditLabels'
 import { formatDateTime } from '@/utils/units'
 import { formatVnd } from '@/utils/money'
+import DateInput from '@/components/ui/DateInput'
 
 // recharts is heavy and only the owner's and the admin's dashboards draw it, so it loads on demand.
 const DashboardCharts = lazy(() => import('./DashboardCharts'))
@@ -79,9 +80,9 @@ export default function OrderDashboard({ reports = false, ordersPath, area }: { 
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {!showCharts && <>
-            <input aria-label="Từ ngày" type="date" className={reportInputClass} value={fromDate} max={toDate} onChange={event => setFromDate(event.target.value)} />
+            <DateInput aria-label="Từ ngày" className={reportInputClass} value={fromDate} max={toDate} onChange={event => setFromDate(event.target.value)} />
             <span aria-hidden="true" className="text-slate-400">→</span>
-            <input aria-label="Đến ngày" type="date" className={reportInputClass} value={toDate} min={fromDate} onChange={event => setToDate(event.target.value)} />
+            <DateInput aria-label="Đến ngày" className={reportInputClass} value={toDate} min={fromDate} onChange={event => setToDate(event.target.value)} />
           </>}
           <label className="relative block w-full sm:w-72">
             <span className="sr-only">Tìm đơn hàng</span>

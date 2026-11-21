@@ -10,6 +10,7 @@ import KpiCard from '@/components/ui/KpiCard'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell, PieChart, Pie } from 'recharts'
 import { isoDateOffsetFromToday } from '@/utils/date'
 import { FAILURE_REASON_LABEL, labelOf } from '@/utils/deliveryLabels'
+import DateInput from '@/components/ui/DateInput'
 
 const INCIDENT_LABELS: Record<string, string> = {
   GOODS_DAMAGED: 'Hàng bị hư hỏng',
@@ -74,8 +75,7 @@ export default function DeliveryReportsPage() {
       }} disabled={loading} actions={<Button icon="search" onClick={() => void fetchReport()} disabled={loading}>Xem báo cáo</Button>}>
         <label className="block flex-1 min-w-[200px]">
           <span className="font-label-md text-label-md text-on-surface-variant block mb-1">Từ ngày</span>
-          <input
-            type="date"
+          <DateInput
             className="w-full h-10 px-3 bg-white border border-outline-variant rounded focus:border-primary focus:ring-1 focus:ring-primary text-sm"
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
@@ -83,8 +83,7 @@ export default function DeliveryReportsPage() {
         </label>
         <label className="block flex-1 min-w-[200px]">
           <span className="font-label-md text-label-md text-on-surface-variant block mb-1">Đến ngày</span>
-          <input
-            type="date"
+          <DateInput
             className="w-full h-10 px-3 bg-white border border-outline-variant rounded focus:border-primary focus:ring-1 focus:ring-primary text-sm"
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}

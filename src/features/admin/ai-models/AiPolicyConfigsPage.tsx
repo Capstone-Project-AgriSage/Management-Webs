@@ -12,6 +12,7 @@ import FilterSelect from '@/components/ui/FilterSelect'
 import Pagination from '@/components/ui/Pagination'
 import Modal from '@/components/ui/Modal'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
+import { vnDate } from '@/utils/date'
 
 export default function AiPolicyConfigsPage() {
   usePageHeader({ title: 'Chính sách AI' })
@@ -69,7 +70,7 @@ export default function AiPolicyConfigsPage() {
     {error && <div role="alert" className="text-rose-700">{error}</div>}
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden" aria-busy={loading}>
       <div className="overflow-x-auto"><table className="w-full min-w-[700px] text-sm text-left"><thead className="bg-slate-50"><tr><th className="p-4">Phiên bản</th><th className="p-4">Ngưỡng tin cậy</th><th className="p-4">Top K</th><th className="p-4">Ngày hiệu lực</th><th className="p-4">Trạng thái</th><th className="p-4">Thao tác</th></tr></thead><tbody className="divide-y divide-slate-100">
-        {pages.paginated.map(policy => <tr key={policy.id}><td className="p-4 font-semibold">{policy.version}</td><td className="p-4">{policy.minimumConfidence}</td><td className="p-4">{policy.topK}</td><td className="p-4">{new Date(policy.effectiveFrom).toLocaleDateString('vi-VN')}</td><td className="p-4">{policy.status}</td><td className="p-4 text-right"><RowActionsMenu disabled={busy} triggerLabel={`Thao tác chính sách ${policy.version}`} actions={[
+        {pages.paginated.map(policy => <tr key={policy.id}><td className="p-4 font-semibold">{policy.version}</td><td className="p-4">{policy.minimumConfidence}</td><td className="p-4">{policy.topK}</td><td className="p-4">{vnDate(policy.effectiveFrom)}</td><td className="p-4">{policy.status}</td><td className="p-4 text-right"><RowActionsMenu disabled={busy} triggerLabel={`Thao tác chính sách ${policy.version}`} actions={[
           { label: policy.status === 'ACTIVE' ? 'Ngừng hoạt động' : 'Kích hoạt', icon: policy.status === 'ACTIVE' ? 'pause_circle' : 'play_circle', permissionCodes: [`AI_POLICIES.${policy.status === 'ACTIVE' ? 'DEACTIVATE' : 'ACTIVATE'}`], onClick: () => { void run(() => aiModelsApi.setPolicyActive(policy.id, policy.status !== 'ACTIVE')) } },
         ]} /></td></tr>)}
         {!pages.paginated.length && <EmptyTableRow colSpan={6} message={loading ? 'Đang tải...' : 'Không có chính sách phù hợp.'} />}

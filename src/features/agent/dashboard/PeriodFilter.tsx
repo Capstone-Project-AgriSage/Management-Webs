@@ -1,6 +1,7 @@
 import { RefreshCw } from 'lucide-react'
 import { todayVn } from '@/utils/creditLabels'
 import { reportInputClass } from '@/features/agent/reports/reportFilters'
+import DateInput from '@/components/ui/DateInput'
 
 /** "YYYY-MM-DD" moved by whole days; computed in UTC so the calendar day never shifts with the browser's time zone. */
 function addDays(day: string, days: number): string {
@@ -30,9 +31,9 @@ export default function PeriodFilter({ title, fromDate, toDate, onChange, onRefr
         })}
       </div>
       <div className="flex w-full items-center gap-2 sm:w-auto">
-        <input aria-label="Từ ngày" type="date" className={`${reportInputClass} min-w-0 flex-1 sm:flex-none`} value={fromDate} max={toDate} onChange={event => onChange(event.target.value, toDate)} />
+        <DateInput aria-label="Từ ngày" className={`${reportInputClass} min-w-0 flex-1 sm:flex-none`} value={fromDate} max={toDate} onChange={event => onChange(event.target.value, toDate)} />
         <span aria-hidden="true" className="text-slate-400">→</span>
-        <input aria-label="Đến ngày" type="date" className={`${reportInputClass} min-w-0 flex-1 sm:flex-none`} value={toDate} min={fromDate} onChange={event => onChange(fromDate, event.target.value)} />
+        <DateInput aria-label="Đến ngày" className={`${reportInputClass} min-w-0 flex-1 sm:flex-none`} value={toDate} min={fromDate} onChange={event => onChange(fromDate, event.target.value)} />
         <button type="button" aria-label="Làm mới số liệu" title="Làm mới số liệu" onClick={onRefresh}
           className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-slate-200 bg-[#fff] text-slate-600 hover:bg-slate-50 hover:text-slate-900"><RefreshCw size={16} /></button>
       </div>

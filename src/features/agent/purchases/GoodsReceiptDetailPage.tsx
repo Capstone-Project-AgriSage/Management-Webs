@@ -16,6 +16,7 @@ import { formatDate, formatDateTime, formatQty } from '@/utils/units';
 import ReceiptLineModal from './ReceiptLineModal'
 import SupplierSelect from './SupplierSelect'
 import { RECEIPTS_BASE, RECEIPT_SOURCE_LABEL, RECEIPT_STATUS_BADGE_CLASS, RECEIPT_STATUS_LABEL, isoToLocalInput, localInputToIso, nowLocalInput } from './receiptLabels';
+import DateInput, { DateTimeInput } from '@/components/ui/DateInput'
 
 type Dialog = null | 'confirm' | 'cancel' | 'delete'
 
@@ -416,7 +417,7 @@ function ReceiptHeaderModal({ receipt, onClose, onSaved }: { receipt: GoodsRecei
             <label className="text-sm font-medium text-slate-700" htmlFor="rh-at">
               Thời điểm nhận hàng
             </label>
-            <input id="rh-at" type="datetime-local" className={inputClassName} value={receivedAt} max={nowLocalInput()} onChange={(e) => setReceivedAt(e.target.value)} />
+            <DateTimeInput id="rh-at" className={inputClassName} value={receivedAt} max={nowLocalInput()} onChange={(e) => setReceivedAt(e.target.value)} />
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium text-slate-700" htmlFor="rh-inv">
@@ -428,7 +429,7 @@ function ReceiptHeaderModal({ receipt, onClose, onSaved }: { receipt: GoodsRecei
             <label className="text-sm font-medium text-slate-700" htmlFor="rh-invdate">
               Ngày hóa đơn
             </label>
-            <input id="rh-invdate" type="date" className={inputClassName} value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
+            <DateInput id="rh-invdate" className={inputClassName} value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
           </div>
         </div><div className="space-y-1">
           <label className="text-sm font-medium text-slate-700" htmlFor="rh-note">
