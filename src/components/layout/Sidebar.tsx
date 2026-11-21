@@ -47,6 +47,7 @@ function useNavConfig() {
       { label: 'Hoạt chất', to: '/admin/products/ingredients', icon: 'science' },
       { label: 'AI Models', to: '/admin/ai/models', icon: 'model_training' },
       { label: 'AI Policy', to: '/admin/ai/policies', icon: 'settings_suggest' },
+      { label: 'Nhà cung cấp AI', to: '/admin/ai/provider', icon: 'key' },
       { label: 'Vấn đề & cách xử lý', to: '/admin/diseases', icon: 'healing' },
       { label: 'Thông báo', to: '/admin/notifications', icon: 'notifications' },
       { label: 'Bài viết & Tin tức', to: '/admin/articles', icon: 'article' },

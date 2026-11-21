@@ -50,6 +50,17 @@ export const TREATMENT_KIND_LABEL: Record<TreatmentKind, string> = {
   OTHER: 'Khác',
 }
 
+/** The backend crop catalog (Domain CropCatalog, AI_DIAGNOSIS.md 2.2), in its display order. A problem without a crop is rice. */
+export const CROP_LABEL: Record<string, string> = {
+  RICE: 'Lúa',
+  DURIAN: 'Sầu riêng',
+  COFFEE: 'Cà phê',
+  CORN: 'Bắp (ngô)',
+  MANGO: 'Xoài',
+}
+export const CROP_CODES = Object.keys(CROP_LABEL)
+export const cropLabel = (code: string | null | undefined) => CROP_LABEL[code || 'RICE'] ?? code ?? 'Lúa'
+
 export const PROBLEM_TYPE_LABEL: Record<ProblemType, string> = {
   DISEASE: 'Bệnh',
   PEST: 'Sâu rầy',

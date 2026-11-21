@@ -15,8 +15,11 @@ import ServerPagination from '@/components/ui/ServerPagination'
 import Modal from '@/components/ui/Modal'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
+import GeneralModelForm from './GeneralModelForm'
+import { providerInfo } from '@/api/aiProviderApi'
 
 const labels: Record<string, string> = { DRAFT: 'Bản nháp', ACTIVE: 'Đang hoạt động', RETIRED: 'Đã ngừng' }
+const frameworkLabel = (framework: string | null | undefined) => providerInfo(framework)?.label ?? framework ?? '—'
 const initialManifest = JSON.stringify({ name: '', version: '', framework: 'PyTorch', modelStorageUrl: '', classLabels: ['LEAF_BLAST', 'BACTERIAL_LEAF_BLIGHT', 'BROWN_SPOT', 'SHEATH_BLIGHT', 'HEALTHY'] }, null, 2)
 
 export default function AiModelsPage() {
@@ -29,6 +32,8 @@ export default function AiModelsPage() {
   const load = useCallback((page: number, signal: AbortSignal) => searchAiModels(page, status, keyword, signal), [status, keyword])
   const list = useServerList(load)
   const [creating, setCreating] = useState(false)
+  // A general model (Claude or Gemini) chosen by crop (AI_DIAGNOSIS.md 2.2), or a fixed-class model described by its JSON manifest.
+  const [mode, setMode] = useState<'general' | 'manifest'>('general')
   const [manifest, setManifest] = useState(initialManifest)
   const [detail, setDetail] = useState<AiModelRow | null>(null)
   const [retiring, setRetiring] = useState<AiModelRow | null>(null)
@@ -57,7 +62,7 @@ export default function AiModelsPage() {
       { label: 'Bản nháp', value: list.items.filter(model => model.status === 'DRAFT').length },
       { label: 'Đã ngừng', value: list.items.filter(model => model.status === 'RETIRED').length },
     ]} />
-    <ListToolbar search={{ value: search, onChange: value => { setSearch(value); list.setPage(1) }, placeholder: 'Tìm theo tên, ID hoặc phiên bản mô hình...' }} onClear={() => { setSearch(''); setStatus(''); list.setPage(1) }} actions={has('AI_MODELS.CREATE') && <button className="bg-primary-dark text-white px-4 rounded-[10px] font-semibold" onClick={() => { setManifest(initialManifest); setFormError(''); setCreating(true) }}>+ Đăng ký mô hình</button>}>
+    <ListToolbar search={{ value: search, onChange: value => { setSearch(value); list.setPage(1) }, placeholder: 'Tìm theo tên, ID hoặc phiên bản mô hình...' }} onClear={() => { setSearch(''); setStatus(''); list.setPage(1) }} actions={has('AI_MODELS.CREATE') && <button className="bg-primary-dark text-white px-4 rounded-[10px] font-semibold" onClick={() => { setManifest(initialManifest); setMode('general'); setFormError(''); setCreating(true) }}>+ Đăng ký mô hình</button>}>
       <FilterSelect label="Lọc trạng thái" value={status} onChange={value => { setStatus(value); list.setPage(1) }} options={[{ value: '', label: 'Mọi trạng thái' }, ...Object.entries(labels).map(([value, label]) => ({ value, label }))]} />
     </ListToolbar>
     {list.error && <div role="alert" className="text-rose-700">{list.error} <button onClick={list.reload}>Thử lại</button></div>}
@@ -65,7 +70,7 @@ export default function AiModelsPage() {
       <div className="overflow-x-auto"><table className="w-full text-sm text-left min-w-[700px]">
         <thead className="bg-slate-50"><tr><th className="p-4">Mô hình</th><th className="p-4">Phiên bản</th><th className="p-4">Framework</th><th className="p-4">Trạng thái</th><th className="p-4">Thao tác</th></tr></thead>
         <tbody className="divide-y divide-slate-100">
-          {list.items.map(model => <tr key={model.id} className="hover:bg-slate-50"><td className="p-4 font-semibold">{model.name}</td><td className="p-4">{model.version}</td><td className="p-4">{model.framework}</td><td className="p-4">{labels[model.status] ?? model.status}</td><td className="p-4 text-right"><RowActionsMenu disabled={busy} triggerLabel={`Thao tác mô hình ${model.name}`} actions={[
+          {list.items.map(model => <tr key={model.id} className="hover:bg-slate-50"><td className="p-4 font-semibold">{model.name}</td><td className="p-4">{model.version}</td><td className="p-4">{frameworkLabel(model.framework)}</td><td className="p-4">{labels[model.status] ?? model.status}</td><td className="p-4 text-right"><RowActionsMenu disabled={busy} triggerLabel={`Thao tác mô hình ${model.name}`} actions={[
             { label: 'Xem chi tiết', icon: 'visibility', onClick: () => setDetail(model) },
             ...(model.status === 'DRAFT' ? [{ label: 'Kích hoạt', icon: 'play_circle', permissionCodes: ['AI_MODELS.ACTIVATE'], onClick: () => { void run(() => aiModelsApi.activate(model.id)) } }] : []),
             ...(model.status === 'ACTIVE' ? [{ label: 'Ngừng mô hình', icon: 'pause_circle', permissionCodes: ['AI_MODELS.RETIRE'], onClick: () => setRetiring(model) }] : []),
@@ -76,12 +81,20 @@ export default function AiModelsPage() {
       <ServerPagination page={list.page} pageSize={LIST_PAGE_SIZE} totalCount={list.totalCount} totalPages={list.totalPages} unitLabel="mô hình" onPageChange={list.setPage} />
     </div>
     <Modal open={creating} onClose={() => { if (!busy) setCreating(false) }} title="Đăng ký mô hình AI">
-      <label className="block text-sm font-semibold">Manifest mô hình (JSON)<textarea className="mt-2 w-full h-80 border rounded-lg p-3 font-mono text-xs" value={manifest} onChange={event => setManifest(event.target.value)} disabled={busy} /></label>
+      <div role="group" aria-label="Loại mô hình" className="mb-4 inline-flex rounded-lg border border-slate-200 p-1 text-sm">
+        {([['general', 'Claude / Gemini theo cây trồng'], ['manifest', 'Manifest JSON (PyTorch)']] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={mode === value} disabled={busy}
+          onClick={() => { setMode(value); setFormError('') }} className={`rounded-md px-3 py-1.5 font-semibold ${mode === value ? 'bg-primary-dark text-white' : 'text-slate-700'}`}>{label}</button>)}
+      </div>
+      {mode === 'general'
+        ? <GeneralModelForm busy={busy} onSubmit={value => { if (has('AI_MODELS.CREATE')) void run(() => aiModelsApi.create(value)) }} />
+        : <>
+          <label className="block text-sm font-semibold">Manifest mô hình (JSON)<textarea className="mt-2 w-full h-80 border rounded-lg p-3 font-mono text-xs" value={manifest} onChange={event => setManifest(event.target.value)} disabled={busy} /></label>
+          <button onClick={create} disabled={busy} className="mt-4 bg-primary-dark text-white px-4 py-2 rounded-lg">{busy ? 'Đang lưu...' : 'Đăng ký'}</button>
+        </>}
       {formError && <p role="alert" className="text-rose-700 mt-2">{formError}</p>}
-      <button onClick={create} disabled={busy} className="mt-4 bg-primary-dark text-white px-4 py-2 rounded-lg">{busy ? 'Đang lưu...' : 'Đăng ký'}</button>
     </Modal>
     <Modal open={detail !== null} onClose={() => setDetail(null)} title={detail?.name ?? 'Chi tiết mô hình'}>
-      {detail && <div className="space-y-3 text-sm"><p>{detail.version} · {detail.framework} · {detail.architecture || '—'}</p><p>{labels[detail.status] ?? detail.status}</p><pre className="bg-slate-50 p-3 rounded-lg overflow-auto text-xs">{JSON.stringify(detail.metrics ?? {}, null, 2)}</pre></div>}
+      {detail && <div className="space-y-3 text-sm"><p>{detail.version} · {frameworkLabel(detail.framework)} · {detail.architecture || '—'}</p><p>{labels[detail.status] ?? detail.status}</p><p><span className="font-semibold">{(detail.classLabels ?? []).length} nhãn:</span> <span className="font-mono text-xs break-all">{(detail.classLabels ?? []).join(', ') || '—'}</span></p><pre className="bg-slate-50 p-3 rounded-lg overflow-auto text-xs">{JSON.stringify(detail.metrics ?? {}, null, 2)}</pre></div>}
     </Modal>
     <ConfirmModal open={retiring !== null} title="Ngừng mô hình AI" message={retiring?.name} confirmLabel="Ngừng mô hình" busy={busy} onClose={() => setRetiring(null)} onConfirm={() => { if (retiring && has('AI_MODELS.RETIRE')) void run(() => aiModelsApi.retire(retiring.id)) }} />
   </div>

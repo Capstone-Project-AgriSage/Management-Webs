@@ -19,6 +19,8 @@ const routes: [RegExp, string[]][] = [
   [/^\/admin\/credit-config/, ['CUSTOMER_GROUPS.READ', 'CREDIT_TIERS.READ']],
   [/\/(admin|agent)\/articles(?:\/|$)/, ['ARTICLES.READ']],
   [/\/contact-requests(?:\/|$)/, ['CONTACT_REQUESTS.READ']],
+  // The Claude provider and its API key (AI_DIAGNOSIS.md 2.2): admin-only permissions, not delegable.
+  [/^\/admin\/ai\/provider(?:\/|$)/, ['AI_PROVIDER.READ']],
   [/^\/admin\/ai/, ['PERMISSIONS.MANAGE_ROLES']],
   [/\/reports(?:\/|$)/, ['REPORTS.READ']],
   [/\/(agent|sales)\/staff/, ['STAFF.READ_GET']],

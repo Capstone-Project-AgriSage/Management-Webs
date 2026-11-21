@@ -22,6 +22,7 @@ import ProductManagementPage from '@/features/products/ProductManagementPage'
 import ActiveIngredientsPage from '@/features/admin/products/ActiveIngredientsPage'
 import AiModelsPage from '@/features/admin/ai-models/AiModelsPage'
 import AiPolicyConfigsPage from '@/features/admin/ai-models/AiPolicyConfigsPage'
+import AiProviderPage from '@/features/admin/ai-models/AiProviderPage'
 import AuditLogsPage from '@/features/admin/system/AuditLogsPage'
 import CreditConfigPage from '@/features/admin/credit-config/CreditConfigPage'
 import ArticlesPage from '@/features/admin/content/ArticlesPage'
@@ -142,6 +143,10 @@ export const router = createBrowserRouter([
           {
             path: 'admin/ai/policies',
             element: <RequireRole role="admin"><RequirePermission module="ai-config"><AiPolicyConfigsPage /></RequirePermission></RequireRole>,
+          },
+          {
+            path: 'admin/ai/provider',
+            element: <RequireRole role="admin"><RequirePermission module="ai-provider"><AiProviderPage /></RequirePermission></RequireRole>,
           },
           {
             path: 'admin/diseases',
