@@ -66,6 +66,13 @@ async function session(width = 1440, authenticated = true) {
     if (path === '/api/reports/inventory-turnover') return json({ items: [], page: 1, pageSize: 100, totalCount: 0, totalPages: 0, summary: { products: 0, fast: 0, slow: 0, noSales: 0 }, fromDate: '2026-10-01', toDate: '2026-10-16' })
     if (path === '/api/inventory/expiry-risk') return json({ items: [], page: 1, pageSize: 3, totalCount: 0, totalPages: 0, summary: { lots: 0, knownRiskLots: 0, unknownRiskLots: 0, knownRiskValue: 0 }, withinDays: 30 })
     if (path === '/api/staff') return json({ items: [], page: 1, pageSize: 10, totalCount: 0, totalPages: 1 })
+    // The owner dashboard's stock, credit and advice rows (2026-11-23), empty.
+    if (path === '/api/reports/inventory-valuation') return json({ rows: [], byCategory: [], totals: { stockValue: 0, expiredValue: 0 } })
+    if (path === '/api/reports/purchases') return json({ fromDate: url.searchParams.get('fromDate'), toDate: url.searchParams.get('toDate'), groupBy: url.searchParams.get('groupBy'), rows: [], totals: { receiptCount: 0, purchaseAmount: 0 } })
+    if (path === '/api/reports/credit-exposure') return json({ asOf: '2026-10-17T00:00:00Z', rows: [], totals: { creditLimit: 0, outstanding: 0, reservedCredit: 0, exposure: 0, availableCredit: 0 } })
+    if (path === '/api/debt-entries/dashboard') return json({ totalOutstandingDebt: 0, totalOverdueDebt: 0, collectedToday: 0, collectedThisMonth: 0, customersWithDebt: 0, customersWithOverdueDebt: 0, topDebtors: [], recentDebtPayments: [], overdueDebts: [] })
+    if (path === '/api/reports/debt-collections') return json({ fromDate: url.searchParams.get('fromDate'), toDate: url.searchParams.get('toDate'), groupBy: url.searchParams.get('groupBy'), rows: [], totals: { key: null, label: null, paymentCount: 0, collectedAmount: 0 } })
+    if (path === '/api/reports/advisory-diagnosis') return json({ fromDate: url.searchParams.get('fromDate'), toDate: url.searchParams.get('toDate'), attributionDays: 7, advisory: { sessionCount: 0, farmerCount: 0, textSessionCount: 0, diagnosisSessionCount: 0, sessionsWithProducts: 0, estimatedValue: 0, convertedSessions: 0, conversionPercent: null, convertedOrderValue: 0 }, topProblems: [], diagnosis: { caseCount: 0, byCrop: [] } })
     state.unknown.push(path)
     return route.abort()
   })

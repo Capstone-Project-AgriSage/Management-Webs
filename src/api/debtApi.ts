@@ -274,5 +274,5 @@ export const debtApi = {
     post<DebtEntry>(`/api/customers/${farmerProfileId}/debt/manual-entries`, data),
 
   /** Manage. */
-  getDashboard: () => api<DebtDashboard>('/api/debt-entries/dashboard'),
+  getDashboard: (signal?: AbortSignal) => api<DebtDashboard>('/api/debt-entries/dashboard', { signal }),
 }
