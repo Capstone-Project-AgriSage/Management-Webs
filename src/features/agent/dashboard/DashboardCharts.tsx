@@ -5,8 +5,12 @@ import {
   ArrowDownRight, ArrowUpRight, Banknote, ChevronDown, CircleDollarSign, Clock, Coins, Globe, Landmark, Minus, PackageCheck, QrCode, Receipt,
   ShieldCheck, Smartphone, Store, TriangleAlert, Undo2, Wallet, type LucideIcon,
 } from 'lucide-react'
-import { businessReportsApi, type OrderMetrics, type PaymentMetrics, type PaymentTotals, type PeriodReport, type RevenueReport, type RevenueSummary, type SalesMetrics } from '@/api/businessReportsApi'
-import { reportsApi, type DebtAgingReport, type DebtByGroupReport } from '@/api/reportsApi'
+import { businessReportsApi, type AdvisoryDiagnosisReport, type CreditExposureReport, type OrderMetrics, type PaymentMetrics, type PaymentTotals, type PeriodReport, type PurchaseMetrics, type RevenueReport, type RevenueSummary, type SalesMetrics } from '@/api/businessReportsApi'
+import { reportsApi, type DebtAgingReport, type DebtByGroupReport, type DebtCollectionReport } from '@/api/reportsApi'
+import { debtApi, type DebtDashboard } from '@/api/debtApi'
+import { inventoryReportsApi, type InventoryValuationReport } from '@/api/inventoryReportsApi'
+import { usePermission } from '@/context/PermissionContext'
+import { cropLabel } from '@/features/diagnosis/diagnosisLabels'
 import { useReportData } from '@/features/agent/reports/useReportData'
 import { periodProblem } from '@/features/agent/reports/reportFilters'
 import { formatQtyUnit, rangeDays } from '@/utils/units'
@@ -14,7 +18,10 @@ import { formatDay, todayVn } from '@/utils/creditLabels'
 import { replenishmentApi, type ExpiryRiskPage, type VelocityItem, type VelocityPage } from '@/api/replenishmentApi'
 import { formatVnd } from '@/utils/money'
 
-export interface DashboardLinks { orders?: string; payments?: string; products?: string; debts?: string; planning?: string; expiry?: string; customers?: string }
+export interface DashboardLinks {
+  orders?: string; payments?: string; products?: string; debts?: string; planning?: string; expiry?: string; customers?: string
+  inventory?: string; purchases?: string; advisory?: string; diagnosis?: string
+}
 
 // One accent (the project's green) for every single-series mark, slate for the quiet parts, and a status red only where the
 // color means "overdue", always next to an icon and a label. Checked with the dataviz palette validator: green/red as a pair
@@ -548,8 +555,208 @@ function TopCustomersPanel({ report, to }: { report: Report<RevenueReport>; to?:
   </Panel>
 }
 
+// ---- Where the money sits and what the advice brings (manager view, 2026-11-23) -------------------------------------------
+
+/** A section title of the manager view, with the page that holds the full figures. */
+function SectionHeading({ title, note, to, linkLabel }: { title: string; note: string; to?: string; linkLabel?: string }) {
+  return <div className="flex items-end justify-between gap-3 pt-2">
+    <div><h2 className="text-base font-semibold text-slate-900">{title}</h2><p className="mt-1 text-xs text-slate-500">{note}</p></div>
+    {to && linkLabel && <Link to={to} className="shrink-0 text-sm font-medium text-green-800 hover:underline">{linkLabel} <ArrowUpRight size={14} aria-hidden="true" className="inline" /></Link>}
+  </div>
+}
+
+const NOW_NOTE = 'Hiện tại · Không theo kỳ báo cáo'
+
+/** One bar per entry, labelled with its amount and its share of the total, so the bars need no color legend. */
+function AmountBars({ rows, total }: { rows: { key: string; name: string; value: number; detail?: string }[]; total: number }) {
+  return <ul className="mt-4 space-y-3">
+    {rows.map(row => {
+      const share = total > 0 ? row.value / total * 100 : 0
+      return <li key={row.key}>
+        <div className="flex items-baseline justify-between gap-2 text-sm">
+          <span title={row.name} className="min-w-0 truncate font-medium text-slate-900">{row.name}</span>
+          <span title={formatVnd(row.value)} className="shrink-0 font-semibold tabular-nums text-slate-900">{shortVnd(row.value)}</span>
+        </div>
+        <div className="mt-1.5 flex items-center gap-3">
+          <div className="h-2 flex-1 rounded-full" style={{ backgroundColor: C.track }}><div className="h-full rounded-full" style={{ width: `${row.value > 0 ? Math.max(share, 1.5) : 0}%`, backgroundColor: C.accent }} /></div>
+          <span className="w-10 shrink-0 text-right text-xs tabular-nums text-slate-500">{percent(share)}</span>
+        </div>
+        {row.detail && <p className="mt-1 text-xs text-slate-500">{row.detail}</p>}
+      </li>
+    })}
+  </ul>
+}
+
+function InventoryValuePanel({ report, to }: { report: Report<InventoryValuationReport>; to?: string }) {
+  const data = report.data
+  const total = data?.totals.stockValue ?? 0
+  const expired = data?.totals.expiredValue ?? 0
+  const groups = (data?.byCategory ?? []).filter(group => group.stockValue > 0).sort((a, b) => b.stockValue - a.stockValue)
+  return <Panel label="Giá trị tồn kho" to={to} headline={data ? formatVnd(total) : placeholder(report, 'w-32')} sub={data ? 'theo giá vốn bình quân' : undefined}>
+    <p className="mt-2 text-xs text-slate-500">{NOW_NOTE}</p>
+    <Body state={report} empty={() => total <= 0} emptyText="Kho chưa có hàng.">
+      {() => <>
+        {expired > 0 && <p className="mt-3 flex items-center gap-1.5 text-sm font-medium text-rose-700"><TriangleAlert size={14} aria-hidden="true" />Trong đó đã hết hạn {formatVnd(expired)}</p>}
+        <AmountBars total={total} rows={groups.slice(0, 5).map(group => ({ key: group.categoryId, name: group.name, value: group.stockValue }))} />
+        {groups.length > 5 && <p className="mt-3 text-xs text-slate-500">và {num(groups.length - 5)} nhóm hàng khác</p>}
+      </>}
+    </Body>
+  </Panel>
+}
+
+function PurchasesPanel({ report, summary, to }: { report: Report<PeriodReport<PurchaseMetrics>>; summary: Report<RevenueSummary>; to?: string }) {
+  const data = report.data
+  const total = data?.totals.purchaseAmount ?? 0
+  const suppliers = (data?.rows ?? []).filter(row => row.purchaseAmount > 0).sort((a, b) => b.purchaseAmount - a.purchaseAmount)
+  const netSales = summary.data?.current.netSales ?? 0
+  return <Panel label="Nhập hàng trong kỳ" to={to} headline={data ? formatVnd(total) : placeholder(report, 'w-32')} sub={data ? `${num(data.totals.receiptCount)} phiếu nhập đã xác nhận` : undefined}>
+    <Body state={report} empty={() => total <= 0} emptyText="Chưa nhập hàng trong kỳ này.">
+      {() => <>
+        <AmountBars total={total} rows={suppliers.slice(0, 5).map(row => ({ key: row.key, name: row.label, value: row.purchaseAmount, detail: `${num(row.receiptCount)} phiếu` }))} />
+        {suppliers.length > 5 && <p className="mt-3 text-xs text-slate-500">và {num(suppliers.length - 5)} nhà cung cấp khác</p>}
+        {netSales > 0 && <p className="mt-auto pt-3 text-xs text-slate-500">Tiền nhập bằng {percent(total / netSales * 100)} doanh thu thuần cùng kỳ.</p>}
+      </>}
+    </Body>
+  </Panel>
+}
+
+function CreditPanel({ exposure, debt, to }: { exposure: Report<CreditExposureReport>; debt: Report<DebtDashboard>; to?: string }) {
+  const totals = exposure.data?.totals
+  const limit = totals?.creditLimit ?? 0
+  const share = totals && limit > 0 ? totals.exposure / limit * 100 : null
+  const width = (value: number) => (limit > 0 ? Math.min(100, value / limit * 100) : 0)
+  const alerts = debt.data?.creditLimitAlerts ?? []
+  const alertCount = debt.data?.creditLimitAlertCount ?? alerts.length
+  const dueSoon = debt.data?.dueSoonAmount ?? 0
+  return <Panel label="Hạn mức tín dụng" to={to} headline={totals ? (share !== null ? percent(share) : formatVnd(totals.exposure)) : placeholder(exposure, 'w-20')} sub={totals ? (share !== null ? 'tổng hạn mức đang dùng' : 'đang dùng tín dụng') : undefined}>
+    <p className="mt-2 text-xs text-slate-500">{NOW_NOTE}</p>
+    <Body state={exposure} empty={() => limit <= 0 && (totals?.exposure ?? 0) <= 0} emptyText="Chưa có khách nào được cấp hạn mức.">
+      {() => totals && <>
+        <div className="mt-4 flex h-2.5 w-full overflow-hidden rounded-full bg-slate-100" role="img"
+          aria-label={`Đã dùng ${formatVnd(totals.exposure)} trên tổng hạn mức ${formatVnd(limit)}: dư nợ ${formatVnd(totals.outstanding)}, giữ chỗ ${formatVnd(totals.reservedCredit)}`}>
+          <span className="h-full" style={{ width: `${width(totals.outstanding)}%`, backgroundColor: C.accent }} />
+          <span className="h-full" style={{ width: `${width(totals.reservedCredit)}%`, backgroundColor: FUNNEL_RAMP[3] }} />
+        </div>
+        <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+          <div><dt className="flex items-center gap-1.5 text-xs text-slate-500"><span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: C.accent }} />Dư nợ</dt><dd className="mt-0.5 font-semibold tabular-nums text-slate-900">{formatVnd(totals.outstanding)}</dd></div>
+          <div><dt className="flex items-center gap-1.5 text-xs text-slate-500"><span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: FUNNEL_RAMP[3] }} />Giữ chỗ cho đơn chưa giao</dt><dd className="mt-0.5 font-semibold tabular-nums text-slate-900">{formatVnd(totals.reservedCredit)}</dd></div>
+          <div><dt className="text-xs text-slate-500">Còn được mua chịu</dt><dd className="mt-0.5 font-semibold tabular-nums text-slate-900">{formatVnd(totals.availableCredit)}</dd></div>
+          <div><dt className="text-xs text-slate-500">Tổng hạn mức</dt><dd className="mt-0.5 font-semibold tabular-nums text-slate-900">{formatVnd(limit)}</dd></div>
+        </dl>
+        {alertCount > 0 && <div className="mt-4 border-t border-slate-100 pt-3">
+          <p className="flex items-center gap-1.5 text-sm font-medium text-amber-800"><TriangleAlert size={14} aria-hidden="true" />{num(alertCount)} khách gần hoặc chạm hạn mức</p>
+          <ul className="mt-2 space-y-1.5 text-sm">
+            {alerts.slice(0, 3).map(alert => <li key={alert.farmerProfileId} className="flex items-baseline justify-between gap-2">
+              <span title={alert.fullName} className="min-w-0 truncate text-slate-700">{alert.fullName}</span>
+              <span className="shrink-0 text-xs text-slate-500">{alert.state === 'AT_LIMIT' ? 'Chạm hạn mức' : 'Gần hạn mức'} · còn {shortVnd(alert.availableCredit)}</span>
+            </li>)}
+          </ul>
+        </div>}
+        {dueSoon > 0 && <p className="mt-auto pt-3 text-xs text-slate-500">Sắp đến hạn thu <strong className="font-semibold text-slate-700">{formatVnd(dueSoon)}</strong></p>}
+      </>}
+    </Body>
+  </Panel>
+}
+
+function CollectionsPanel({ report, debt, to }: { report: Report<DebtCollectionReport>; debt: Report<DebtDashboard>; to?: string }) {
+  const data = report.data
+  const rows: ShareRow[] = METHODS.map(method => {
+    const found = (data?.rows ?? []).filter(row => row.key === method.key || (row.key !== null && method.aliases?.includes(row.key)))
+    return { key: method.key, name: method.name, icon: method.icon, value: found.reduce((sum, row) => sum + row.paymentCount, 0), unit: 'lần', detail: formatVnd(found.reduce((sum, row) => sum + row.collectedAmount, 0)) }
+  })
+  return <Panel label="Thu nợ trong kỳ" to={to} headline={data ? formatVnd(data.totals.collectedAmount) : placeholder(report, 'w-32')} sub={data ? `${num(data.totals.paymentCount)} lần thu` : undefined}>
+    <Body state={report} empty={d => !d.totals.paymentCount} emptyText="Chưa thu nợ khoản nào trong kỳ này.">{() => <ShareBars rows={rows} />}</Body>
+    {typeof debt.data?.collectedToday === 'number' && <p className="mt-auto flex flex-wrap gap-x-3 border-t border-slate-100 pt-3 text-xs text-slate-500">
+      <span>Hôm nay thu {formatVnd(debt.data!.collectedToday)}</span><span>Tháng này {formatVnd(debt.data!.collectedThisMonth)}</span>
+    </p>}
+  </Panel>
+}
+
+function AdvisoryPanel({ report, to }: { report: Report<AdvisoryDiagnosisReport>; to?: string }) {
+  const data = report.data
+  const advice = data?.advisory
+  const days = data?.attributionDays ?? 7
+  const stages = advice ? [
+    { name: 'Lượt tư vấn', value: advice.sessionCount, detail: `${num(advice.farmerCount)} nông dân` },
+    { name: 'Có gợi ý sản phẩm', value: advice.sessionsWithProducts, detail: `ước tính ${shortVnd(advice.estimatedValue)}` },
+    { name: `Ra đơn trong ${num(days)} ngày`, value: advice.convertedSessions, detail: `đơn ${shortVnd(advice.convertedOrderValue)}` },
+  ] : []
+  const max = advice?.sessionCount ?? 0
+  return <Panel label="Tư vấn ra đơn" to={to} className="xl:col-span-2"
+    headline={advice ? (advice.conversionPercent !== null ? percent(advice.conversionPercent) : `${num(advice.sessionCount)} lượt`) : placeholder(report, 'w-20')}
+    sub={advice ? (advice.conversionPercent !== null ? 'lượt tư vấn có gợi ý đã ra đơn' : 'tư vấn trong kỳ') : undefined}>
+    <Body state={report} empty={d => !d.advisory?.sessionCount} emptyText="Chưa có lượt tư vấn nào trong kỳ này.">
+      {d => <>
+        <div className="mt-4 grid gap-6 md:grid-cols-2">
+          <div>
+            <ol className="space-y-3">
+              {stages.map((stage, index) => <li key={stage.name}>
+                <div className="flex items-baseline justify-between gap-2 text-sm">
+                  <span className="min-w-0 text-slate-700">{stage.name}</span>
+                  <span className="shrink-0 tabular-nums"><strong className="font-semibold text-slate-900">{num(stage.value)}</strong> <span className="text-xs text-slate-500">· {stage.detail}</span></span>
+                </div>
+                <div className="mt-1.5 h-2 w-full rounded-full" style={{ backgroundColor: C.track }}>
+                  <div className="h-full rounded-full" style={{ width: `${max ? Math.max(stage.value / max * 100, stage.value ? 1.5 : 0) : 0}%`, backgroundColor: FUNNEL_RAMP[index + 1] }} />
+                </div>
+              </li>)}
+            </ol>
+            <p className="mt-3 text-xs text-slate-500">Gõ tìm {num(d.advisory.textSessionCount)} lượt · Từ ảnh chẩn đoán {num(d.advisory.diagnosisSessionCount)} lượt</p>
+          </div>
+          <div>
+            <h4 className="text-xs font-medium text-slate-500">Vấn đề được hỏi nhiều</h4>
+            <ol className="mt-2 space-y-2">
+              {(d.topProblems ?? []).map((item, index) => <li key={item.diseaseId} className="grid grid-cols-[1.25rem_minmax(0,1fr)_auto] items-baseline gap-x-2 text-sm">
+                <span className="tabular-nums text-slate-400">{index + 1}</span>
+                <span className="min-w-0"><span title={item.name} className="block truncate font-medium text-slate-900">{item.name}</span><span className="block text-xs text-slate-500">{cropLabel(item.cropType)}</span></span>
+                <span className="text-xs tabular-nums text-slate-600">{num(item.sessionCount)} lượt</span>
+              </li>)}
+            </ol>
+          </div>
+        </div>
+        <p className="mt-auto pt-4 text-xs leading-5 text-slate-500">"Ra đơn": cùng nông dân đặt đơn không bị hủy có sản phẩm đã gợi ý, trong {num(days)} ngày sau lượt tư vấn. Đây là cách ước tính: đơn hàng không ghi lại lượt tư vấn nào dẫn tới nó.</p>
+      </>}
+    </Body>
+  </Panel>
+}
+
+const CERTAINTY_SEGMENTS = [
+  { key: 'sure', name: 'Chắc chắn', color: C.accent },
+  { key: 'unsure', name: 'Chưa chắc', color: '#d97706' },
+  { key: 'none', name: 'Chưa có kết quả', color: C.quiet },
+] as const
+
+function DiagnosisPanel({ report, to }: { report: Report<AdvisoryDiagnosisReport>; to?: string }) {
+  const diagnosis = report.data?.diagnosis
+  return <Panel label="Chẩn đoán ảnh theo cây" to={to} headline={diagnosis ? `${num(diagnosis.caseCount)} ca` : placeholder(report, 'w-20')} sub={diagnosis ? 'gửi trong kỳ' : undefined}>
+    <Body state={report} empty={d => !d.diagnosis?.caseCount} emptyText="Chưa có ca chẩn đoán ảnh nào trong kỳ này.">
+      {d => <>
+        <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
+          {CERTAINTY_SEGMENTS.map(segment => <li key={segment.key} className="flex items-center gap-1.5"><span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: segment.color }} />{segment.name}</li>)}
+        </ul>
+        <ul className="mt-4 space-y-3">
+          {d.diagnosis.byCrop.map(crop => {
+            const values = { sure: crop.confidentCount + crop.verifiedCount, unsure: crop.uncertainCount, none: crop.noResultCount }
+            const label = CERTAINTY_SEGMENTS.map(segment => `${segment.name} ${num(values[segment.key])}`).join(', ')
+            return <li key={crop.cropType}>
+              <div className="flex items-baseline justify-between gap-2 text-sm">
+                <span className="min-w-0 truncate font-medium text-slate-900">{crop.cropName}</span>
+                <span className="shrink-0 text-xs tabular-nums text-slate-600">{num(crop.caseCount)} ca · {num(values.sure)} chắc chắn</span>
+              </div>
+              <div className="mt-1.5 flex h-2 w-full gap-0.5" role="img" aria-label={`${crop.cropName}: ${label}`}>
+                {CERTAINTY_SEGMENTS.filter(segment => values[segment.key] > 0).map(segment => <span key={segment.key} title={`${segment.name}: ${num(values[segment.key])}`} className="h-full rounded-full" style={{ flexGrow: values[segment.key], flexBasis: 0, minWidth: 4, backgroundColor: segment.color }} />)}
+              </div>
+            </li>
+          })}
+        </ul>
+        <p className="mt-auto pt-4 text-xs leading-5 text-slate-500">Theo kết quả AI nông dân thấy. "Chưa có kết quả": đang xử lý, lỗi hoặc đã hủy.</p>
+      </>}
+    </Body>
+  </Panel>
+}
+
 /** The owner's and the admin's dashboard below the period filter: every panel reads a report API for the same period. */
 export default function DashboardCharts({ fromDate, toDate, links = {}, manager = false }: { fromDate: string; toDate: string; links?: DashboardLinks; manager?: boolean }) {
+  const { has } = usePermission()
   const problem = periodProblem(fromDate, toDate)
   const granularity = granularityFor(rangeDays(fromDate, toDate))
 
@@ -565,6 +772,15 @@ export default function DashboardCharts({ fromDate, toDate, links = {}, manager 
   // days of stock left next to each best seller.
   const paceDays = Math.min(365, Math.max(14, rangeDays(fromDate, toDate)))
   const velocity = useReport(useCallback((signal: AbortSignal) => replenishmentApi.velocity({ historyDays: paceDays, page: 1, pageSize: 100 }, signal), [paceDays]), problem)
+  // The manager view's money and advice rows (2026-11-23). The admin dashboard does not show them, so it does not ask.
+  const managerOnly = manager ? null : 'Chỉ có ở dashboard chủ cửa hàng.'
+  const managerPeriod = managerOnly ?? problem
+  const valuation = useReport(useCallback((signal: AbortSignal) => inventoryReportsApi.getValuation({}, signal), []), managerOnly)
+  const purchases = useReport(useCallback((signal: AbortSignal) => businessReportsApi.purchases({ fromDate, toDate, groupBy: 'SUPPLIER' }, signal), [fromDate, toDate]), managerPeriod)
+  const exposure = useReport(useCallback((signal: AbortSignal) => businessReportsApi.creditExposure(signal), []), managerOnly)
+  const debtDashboard = useReport(useCallback((signal: AbortSignal) => debtApi.getDashboard(signal), []), managerOnly ?? (has('DEBT.READ_DASHBOARD') ? null : 'Cần quyền xem tổng quan công nợ.'))
+  const collections = useReport(useCallback((signal: AbortSignal) => reportsApi.getDebtCollections({ fromDate, toDate, groupBy: 'METHOD' }, signal), [fromDate, toDate]), managerPeriod)
+  const advice = useReport(useCallback((signal: AbortSignal) => businessReportsApi.advisoryDiagnosis({ fromDate, toDate }, signal), [fromDate, toDate]), managerPeriod)
   const categories = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenue({ fromDate, toDate, groupBy: 'CATEGORY', page: 1, pageSize: 5 }, signal), [fromDate, toDate]), problem)
   const sources = useReport(useCallback((signal: AbortSignal) => businessReportsApi.orders({ fromDate, toDate, groupBy: 'SOURCE' }, signal), [fromDate, toDate]), problem)
   const statuses = useReport(useCallback((signal: AbortSignal) => businessReportsApi.orders({ fromDate, toDate, groupBy: 'STATUS' }, signal), [fromDate, toDate]), problem)
@@ -585,6 +801,21 @@ export default function DashboardCharts({ fromDate, toDate, links = {}, manager 
     <div className="grid gap-5 xl:grid-cols-3">
       <TopProductsPanel report={topProducts} velocity={velocity} to={links.planning} limit={5} />
       <ExpiryPanel report={expiry} to={links.expiry} />
+    </div>
+    <SectionHeading title="Tồn kho & nhập hàng" note="Vốn đang nằm trong kho và tiền nhập hàng của kỳ." to={links.purchases} linkLabel="Phiếu nhập" />
+    <div className="grid gap-5 md:grid-cols-2">
+      <InventoryValuePanel report={valuation} to={links.inventory} />
+      <PurchasesPanel report={purchases} summary={summary} to={links.purchases} />
+    </div>
+    <SectionHeading title="Tín dụng & thu nợ" note="Khách đang dùng bao nhiêu hạn mức và tiền nợ thu về trong kỳ." to={links.debts} linkLabel="Công nợ" />
+    <div className="grid gap-5 md:grid-cols-2">
+      <CreditPanel exposure={exposure} debt={debtDashboard} to={links.debts} />
+      <CollectionsPanel report={collections} debt={debtDashboard} to={links.debts} />
+    </div>
+    <SectionHeading title="Tư vấn & chẩn đoán AI" note="Lượt tư vấn sản phẩm, đơn đặt sau tư vấn và kết quả chẩn đoán ảnh của kỳ." to={links.advisory} linkLabel="Lượt tư vấn" />
+    <div className="grid gap-5 xl:grid-cols-3">
+      <AdvisoryPanel report={advice} to={links.advisory} />
+      <DiagnosisPanel report={advice} to={links.diagnosis} />
     </div>
     <details className="group border-y border-slate-200 py-4">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg p-1 focus-visible:outline-2 focus-visible:outline-green-700 [&::-webkit-details-marker]:hidden">

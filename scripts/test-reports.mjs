@@ -84,6 +84,7 @@ async function fixture(role = 'STORE_OWNER', withReports = true, path = '/agent/
     if (report === 'deliveries') return json({ ...period, rows: [], failureReasons: [], incidents: [], totals: { deliveries: 4, attempts: 5, successful: 3, partial: 1, failed: 1, successRate: 0.6 } })
     if (report === 'debt-aging') return json({ asOf: url.searchParams.get('asOf'), rows: [], totals: aging })
     if (report === 'debt-collections') return json({ ...period, rows: [], totals: { key: '', label: '', paymentCount: 2, collectedAmount: 250000 } })
+    if (report === 'advisory-diagnosis') return json({ fromDate: period.fromDate, toDate: period.toDate, attributionDays: 7, advisory: { sessionCount: 0, farmerCount: 0, textSessionCount: 0, diagnosisSessionCount: 0, sessionsWithProducts: 0, estimatedValue: 0, convertedSessions: 0, conversionPercent: null, convertedOrderValue: 0 }, topProblems: [], diagnosis: { caseCount: 0, byCrop: [] } })
     if (report === 'debt-by-customer-group') return json({ rows: [{ customerGroup: null, customersWithDebt: 1, outstanding: 1500000, overdueAmount: 500000, totalCreditLimit: 5000000, utilization: 0.3 }] })
     throw new Error('Unexpected report: ' + report)
   })
@@ -202,8 +203,8 @@ try {
   await owner.page.getByRole('button', { name: 'Xuất Excel', exact: true }).click()
   await response
   await download
-  assert.equal(new Set(owner.state.requests.filter(r => r.path.startsWith('/api/reports/')).map(r => r.path)).size, 18)
-  pass('All 18 report endpoints are connected, including counter sales, inventory turnover and export; expiry risk is also requested')
+  assert.equal(new Set(owner.state.requests.filter(r => r.path.startsWith('/api/reports/')).map(r => r.path)).size, 19)
+  pass('All 19 owner report endpoints are connected, including counter sales, inventory turnover, export and advice on the dashboard; expiry risk is also requested')
 
   await owner.page.goto(base + '/agent/products')
   const products = await ready(owner.page, 'Giá trị tồn kho')

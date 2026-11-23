@@ -59,6 +59,9 @@ async function makeSession(role = 'STORE_OWNER', permissions = READ_PERMISSIONS,
     if (path === '/api/reports/debt-aging') return json({ asOf: '2026-10-17', rows: [], totals: { notDue: 70000, days1To30: 20000, days31To60: 0, days61To90: 0, over90: 0, total: 90000 } })
     if (path === '/api/reports/debt-by-customer-group') return json({ rows: [] })
     if (path === '/api/reports/credit-exposure') return json({ asOf: '2026-10-11T00:00:00Z', rows: [], totals: { creditLimit: 1000000, outstanding: 100000, reservedCredit: 10000, exposure: 110000, availableCredit: 890000 } })
+    // The owner dashboard's debt-collection and advice rows (2026-11-23).
+    if (path === '/api/reports/debt-collections') return json({ fromDate: query.fromDate, toDate: query.toDate, groupBy: query.groupBy || 'DAY', rows: [], totals: { key: null, label: null, paymentCount: 0, collectedAmount: 0 } })
+    if (path === '/api/reports/advisory-diagnosis') return json({ fromDate: query.fromDate, toDate: query.toDate, attributionDays: 7, advisory: { sessionCount: 0, farmerCount: 0, textSessionCount: 0, diagnosisSessionCount: 0, sessionsWithProducts: 0, estimatedValue: 0, convertedSessions: 0, conversionPercent: null, convertedOrderValue: 0 }, topProblems: [], diagnosis: { caseCount: 0, byCrop: [] } })
     if (path === '/api/reports/deliveries') return json({ rows: [], failureReasons: [], incidents: [], totals: { deliveries: 12, attempts: 14, successful: 10, partial: 1, failed: 3, successRate: 10 / 14 } })
     if (path === '/api/debt-entries/dashboard') return json({ totalOutstandingDebt: 150000, totalOverdueDebt: 30000, customersWithDebt: 3, customersWithOverdueDebt: 1, collectedToday: 20000, collectedThisMonth: 60000 })
     if (path === '/api/debt-accounts' || path === '/api/debt-entries' || path === '/api/payments') return json(paged([], 0, query))
@@ -307,12 +310,9 @@ try {
     assert.equal(sales.requests.filter(request => request.path === '/api/catalog/products' && request.query.pageSize === '100').length, 0, 'Inventory must use product names from inventory lots instead of an extra catalog page')
     await sales.page.goto(base + '/sales')
     await sales.page.getByText('ORD-API', { exact: true }).waitFor()
-    const strip = sales.page.locator('section[aria-label="Đơn hàng trong kỳ"]')
-    await strip.waitFor()
-    await sales.page.waitForFunction(() => !document.querySelector('section[aria-label="Đơn hàng trong kỳ"] .animate-pulse'))
-    const stripText = (await strip.innerText()).replace(/\s+/g, ' ')
-    assert.match(stripText, /Đơn trong kỳ\s*73/, 'Total results must use backend totalCount beyond the visible five orders')
-    assert.match(stripText, /Đã hoàn thành\s*73/, 'Completed and cancelled counts come from their own filtered list calls')
+    // Today's counter and "my results" need COUNTER_SALES.SELL, which this session lacks: placeholders, no report call.
+    await sales.page.getByText('Cần quyền bán tại quầy để xem số liệu quầy hôm nay.').waitFor()
+    await sales.page.getByText('Cần quyền bán tại quầy để xem kết quả của bạn.').waitFor()
     assert.match(await sales.page.locator('main').innerText(), /73 đơn/, 'The recent-orders header states the true total')
     assert.doesNotMatch(await sales.page.locator('main').innerText(), /Trong 5 đơn gần nhất/, 'The staff strip no longer reports metrics over the visible page')
     assert(!/mẫu|823\.500|15\.2%/.test(await sales.page.locator('body').innerText()), 'Operational dashboards must not show hard-coded mock values')
@@ -387,7 +387,7 @@ try {
     assert.match(content, /Chưa phân nhóm/, 'Customers without a group are named, not dropped')
     assert.equal(await panels.page.locator('main .recharts-surface').count(), 1, 'One chart: the revenue trend')
     assert.equal(await main.locator('table.sr-only').count(), 1, 'The trend chart has a table twin for screen readers')
-    assert.equal(await main.locator('a[title="Xem chi tiết"]').evaluateAll(links => [...new Set(links.map(link => link.getAttribute('href')))].sort().join(',')), '/agent/debts,/agent/farmers,/agent/inventory/reports/planning,/agent/inventory/reports/planning?tab=expiry,/agent/orders,/agent/payments,/agent/products', 'Panels link to the pages that hold the detail')
+    assert.equal(await main.locator('a[title="Xem chi tiết"]').evaluateAll(links => [...new Set(links.map(link => link.getAttribute('href')))].sort().join(',')), '/agent/advisory-sessions,/agent/ai-recommendations,/agent/debts,/agent/farmers,/agent/inventory/reports,/agent/inventory/reports/planning,/agent/inventory/reports/planning?tab=expiry,/agent/orders,/agent/payments,/agent/products,/agent/purchases/receipts', 'Panels link to the pages that hold the detail')
 
     // Period filter: a preset moves both dates and every report follows; the trend regroups with the length of the period.
     const today = todayVn()
