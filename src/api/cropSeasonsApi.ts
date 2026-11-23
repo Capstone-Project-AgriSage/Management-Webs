@@ -1,6 +1,6 @@
 import { api, toQuery } from './client'
 import type { Uuid, Paged } from './types'
-import type { RolloverReasonCode } from './debtApi'
+import type { DebtReasonCode, RolloverReasonCode } from './debtApi'
 
 // Debt by crop season (FE_GUIDE_FLOW_3 §4.1, §10). Dates are Vietnam days (yyyy-MM-dd); instants are UTC.
 
@@ -58,9 +58,10 @@ export interface CropSeasonUpdateRequest {
   harvestEnd: string
   graceDays: number
   version: number
-  /** Owner only. Moves collecting entries that still follow the old due date; `reason` is then required. */
+  /** Owner only. Moves collecting entries that still follow the old due date; `reason` and `reasonCode` are then required. */
   applyNewDueDateToCollectingDebts?: boolean
   reason?: string
+  reasonCode?: DebtReasonCode
 }
 
 export type ClosingBlocker = 'ALREADY_CLOSED' | 'HARVEST_NOT_ENDED' | 'OPEN_ENTRIES' | 'OPEN_CREDIT_ORDERS'

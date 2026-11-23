@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState, type ChangeEvent, type ReactNode } from '
 import Modal from '@/components/ui/Modal'
 import ModalLayout from '@/components/ui/ModalLayout'
 import type { CropSeason, CropSeasonCreateRequest, CropSeasonUpdateRequest } from '@/api/cropSeasonsApi'
-import { formatDay } from '@/utils/creditLabels'
+import type { DebtReasonCode } from '@/api/debtApi'
+import { DEBT_REASON_CODE_LABEL, DEBT_REASON_CODES, formatDay } from '@/utils/creditLabels'
 import { DEFAULT_GRACE_DAYS, addDays, seasonDueDate, validateSeasonDates, type SeasonDates } from './seasonRules'
 
 export type SeasonFormResult =
@@ -22,7 +23,7 @@ interface Props {
   onSubmit: (result: SeasonFormResult) => void
 }
 
-type Values = SeasonDates & { code: string; name: string; applyNewDueDate: boolean; reason: string }
+type Values = SeasonDates & { code: string; name: string; applyNewDueDate: boolean; reason: string; reasonCode: DebtReasonCode | '' }
 
 const input =
   'w-full h-10 px-3 rounded-lg border text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 disabled:bg-slate-50 disabled:text-slate-500'
@@ -38,8 +39,9 @@ const initialValues = (season: CropSeason | null, suggestedStart: string | null)
         graceDays: String(season.graceDays),
         applyNewDueDate: false,
         reason: '',
+        reasonCode: '',
       }
-    : { code: '', name: '', orderWindowStart: suggestedStart ?? '', harvestStart: '', harvestEnd: '', graceDays: String(DEFAULT_GRACE_DAYS), applyNewDueDate: false, reason: '' }
+    : { code: '', name: '', orderWindowStart: suggestedStart ?? '', harvestStart: '', harvestEnd: '', graceDays: String(DEFAULT_GRACE_DAYS), applyNewDueDate: false, reason: '', reasonCode: '' }
 
 export default function CropSeasonFormModal({ open, season, suggestedStart, nextSeason, saving, onClose, onSubmit }: Props) {
   const [values, setValues] = useState<Values>(() => initialValues(season, suggestedStart))
@@ -66,6 +68,7 @@ export default function CropSeasonFormModal({ open, season, suggestedStart, next
     const found: Partial<Record<keyof Values, string>> = validateSeasonDates(values)
     if (!season && !values.code.trim()) found.code = 'Nhập mã vụ.'
     if (!values.name.trim()) found.name = 'Nhập tên vụ.'
+    if (offerExtension && values.applyNewDueDate && !values.reasonCode) found.reasonCode = 'Chọn mã lý do.'
     if (offerExtension && values.applyNewDueDate && !values.reason.trim()) found.reason = 'Nhập lý do áp hạn mới.'
     return found
   }, [values, season, offerExtension])
@@ -83,7 +86,7 @@ export default function CropSeasonFormModal({ open, season, suggestedStart, next
     }
     if (season) {
       const apply = offerExtension && values.applyNewDueDate
-      onSubmit({ mode: 'edit', body: { ...common, version: season.version, ...(apply ? { applyNewDueDateToCollectingDebts: true, reason: values.reason.trim() } : {}) } })
+      onSubmit({ mode: 'edit', body: { ...common, version: season.version, ...(apply && values.reasonCode ? { applyNewDueDateToCollectingDebts: true, reason: values.reason.trim(), reasonCode: values.reasonCode } : {}) } })
     } else {
       onSubmit({ mode: 'create', body: { ...common, code: values.code.trim().toUpperCase(), orderWindowStart: values.orderWindowStart } })
     }
@@ -169,6 +172,18 @@ export default function CropSeasonFormModal({ open, season, suggestedStart, next
                   <span className="block text-xs text-amber-800 mt-0.5">Khoản đang khiếu nại giữ hạn cũ và cần Chủ quyết riêng. Không chọn thì các khoản đã ghi giữ hạn cũ.</span>
                 </span>
               </label>
+              {values.applyNewDueDate && field('reasonCode', 'Mã lý do',
+                <select
+                  id="season-reasonCode"
+                  value={values.reasonCode}
+                  onChange={(e) => set('reasonCode', e.target.value)}
+                  aria-invalid={touched && !!errors.reasonCode}
+                  aria-describedby={touched && errors.reasonCode ? 'season-reasonCode-error' : undefined}
+                  className={`${input} ${touched && errors.reasonCode ? 'border-rose-300' : 'border-slate-200'} bg-white`}
+                >
+                  <option value="">-- Chọn --</option>
+                  {DEBT_REASON_CODES.map((code) => <option key={code} value={code}>{DEBT_REASON_CODE_LABEL[code]}</option>)}
+                </select>, 'Ghi vào lịch sử của từng khoản được dời hạn.', true)}
               {values.applyNewDueDate && field('reason', 'Lý do áp hạn mới',
                 <input {...textProps('reason')} placeholder="VD: Thu hoạch chậm do mưa kéo dài" maxLength={1000} />, undefined, true)}
             </div>
