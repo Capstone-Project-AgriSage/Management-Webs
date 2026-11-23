@@ -4,8 +4,11 @@ import { PermissionRoute } from '@/components/auth/PermissionRoute';
 import Sidebar from '@/components/layout/Sidebar'
 import Topbar from '@/components/layout/Topbar'
 import { PageHeaderProvider } from '@/context/PageHeaderContext';
+import { useAuth } from '@/context/AuthContext';
+import StoreAlerts from '@/features/alerts/StoreAlerts';
 
 export default function DashboardLayout() {
+  const { user } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
@@ -29,6 +32,8 @@ export default function DashboardLayout() {
             <PermissionRoute><Outlet /></PermissionRoute>
           </main>
         </div>
+        {/* Keyed by user: a new sign-in starts with no cards and no remembered alerts of this tab. */}
+        <StoreAlerts key={user?.id || 'anonymous'} />
       </div>
     </PageHeaderProvider>
   )

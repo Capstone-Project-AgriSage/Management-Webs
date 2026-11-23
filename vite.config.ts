@@ -3,9 +3,9 @@ import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
 import { fileURLToPath, URL } from 'node:url'
 
-// Backend the dev server proxies /api to. Default = the https launch profile; set VITE_PROXY_TARGET to point elsewhere,
-// e.g. VITE_PROXY_TARGET=http://localhost:5206 for the Docker image.
-const apiTarget = process.env.VITE_PROXY_TARGET || 'https://localhost:7068'
+// Both backend launch profiles expose HTTP on port 5206; set VITE_PROXY_TARGET to point elsewhere,
+// e.g. VITE_PROXY_TARGET=https://localhost:7068 for the https profile.
+const apiTarget = process.env.VITE_PROXY_TARGET || 'http://localhost:5206'
 
 // https://vite.dev/config/
 export default defineConfig({

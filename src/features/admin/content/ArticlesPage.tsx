@@ -1,241 +1,96 @@
+import { useCallback, useState } from 'react'
+import { contentApi, articleLabels, type Article, type ArticleInput, type ArticleStatus } from '@/api/contentApi'
+import { describeError } from '@/api/client'
+import { useServerList } from '@/hooks/useServerList'
+import { useContentRefresh } from '@/hooks/useContentRefresh'
+import { usePageHeader } from '@/context/PageHeaderContext'
+import { usePermission } from '@/context/PermissionContext'
+import { useToast } from '@/context/ToastContext'
 import ListToolbar from '@/components/ui/ListToolbar'
 import FilterSelect from '@/components/ui/FilterSelect'
-import KpiCard from '@/components/ui/KpiCard'
-
-import { LIST_PAGE_SIZE } from '@/utils/pagination';
-import { useState } from 'react';
-
-import { usePageHeader } from '@/context/PageHeaderContext';
-import { useToast } from '@/context/ToastContext';
+import ServerPagination from '@/components/ui/ServerPagination'
+import StatusBadge from '@/components/ui/StatusBadge'
 import RowActionsMenu from '@/components/ui/RowActionsMenu'
-import Pagination from '@/components/ui/Pagination'
 import FormModal from '@/components/ui/FormModal'
-import { useFilteredList } from '@/hooks/useFilteredList';
-import { usePagination } from '@/hooks/usePagination';
-import { useFormValues } from '@/hooks/useFormValues';
-import * as contentService from '@/features/admin/services/contentService'
-import type { Article, ArticleStatus, ArticleActionId } from '@/types';
+import ConfirmModal from '@/components/ui/ConfirmModal'
+import ImageUploader from '@/features/products/ImageUploader'
+import { LIST_PAGE_SIZE } from '@/utils/pagination'
+import { vnDateTime } from '@/utils/date'
 
+const empty: ArticleInput = { title: '', slug: '', summary: '', content: '', thumbnailUrl: '' }
 export default function ArticlesPage() {
-  usePageHeader({ title: 'Bài viết & Tin tức', subtitle: 'Quản lý nội dung truyền thông và kỹ thuật' })
-
-  const [articleList, setArticleList] = useState<Article[]>(() => contentService.listArticles())
+  usePageHeader({ title: 'Bài viết & Tin tức', subtitle: 'Quản lý nội dung kiến thức nông nghiệp' })
+  const { has } = usePermission()
   const { showToast } = useToast()
-
-  const [createOpen, setCreateOpen] = useState(false)
-  const createForm = useFormValues({ title: '', category: 'Cẩm nang Agrisage', author: 'Admin', status: 'Bản nháp', content: '' }) // content is fake
-
-  const [editTarget, setEditTarget] = useState<Article | null>(null)
-  const editForm = useFormValues({ title: '', category: '', author: '', status: 'Bản nháp', content: '' }) // content is fake
-
-  const {
-    search,
-    setSearch,
-    statusFilter,
-    setStatusFilter,
-    filtered: filteredArticles,
-  } = useFilteredList(
-    articleList,
-    '',
-    (item, keyword, status) =>
-      (!keyword ||
-        item.title.toLowerCase().includes(keyword.toLowerCase()) ||
-        item.author.toLowerCase().includes(keyword.toLowerCase())) &&
-      (!status || item.status === (status as ArticleStatus)),
-    '',
-  )
-
-  const {
-    page,
-    totalPages,
-    paginated: paginatedArticles,
-    startIndex,
-    endIndex,
-    totalCount,
-    goPrev,
-    goNext,
-    setPage,
-  } = usePagination(filteredArticles, LIST_PAGE_SIZE, [search, statusFilter].join('|'))
-
-  const handleAction = (article: Article, actionId: ArticleActionId) => {
-    switch (actionId) {
-      case 'view':
-      case 'edit':
-        editForm.reset({ title: article.title, category: article.category, author: article.author, status: article.status, content: 'Nội dung bài viết...' })
-        setEditTarget(article)
-        break
-      case 'approve':
-      case 'publish':
-        contentService.updateArticleStatus(article.id, 'Đã xuất bản')
-        setArticleList(contentService.listArticles())
-        showToast(`Đã duyệt và xuất bản bài viết: ${article.title}`)
-        break
-      case 'delete':
-        contentService.deleteArticle(article.id)
-        setArticleList(contentService.listArticles())
-        showToast(`Đã xóa bài viết`)
-        break
-    }
+  const [search, setSearch] = useState('')
+  const [status, setStatus] = useState('')
+  const load = useCallback((page: number, signal: AbortSignal) => contentApi.articles({ page, pageSize: LIST_PAGE_SIZE, search, status }, signal), [search, status])
+  const list = useServerList(load)
+  useContentRefresh(list.reload)
+  const [open, setOpen] = useState(false)
+  const [target, setTarget] = useState<Article | null>(null)
+  const [form, setForm] = useState<ArticleInput>(empty)
+  const [pending, setPending] = useState<{ item: Article; status?: ArticleStatus } | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState('')
+  const edit = (item: Article | null) => { setTarget(item); setForm(item ? { title: item.title, slug: item.slug, summary: item.summary, content: item.content, thumbnailUrl: item.thumbnailUrl } : empty); setError(''); setOpen(true) }
+  const save = async () => {
+    if (busy || uploading) return
+    if (!form.thumbnailUrl) { setError('Vui lòng tải ảnh đại diện cho bài viết.'); return }
+    setBusy(true); setError('')
+    const data = { ...form, title: form.title.trim(), summary: form.summary?.trim() || null, thumbnailUrl: form.thumbnailUrl?.trim() || null }
+    try {
+      if (target) await contentApi.updateArticle(target.id, data)
+      else await contentApi.createArticle(data)
+      setOpen(false); list.reload(); showToast('Đã lưu bài viết')
+    } catch (err) { setError(describeError(err)) }
+    finally { setBusy(false) }
   }
-
-  const handleCreate = () => {
-    const { title, category, author, status } = createForm.values
-    contentService.createArticle({ title, category, author, status: status as ArticleStatus })
-    setArticleList(contentService.listArticles())
-    showToast(`Đã tạo bài viết: ${title}`)
-    setCreateOpen(false)
-    createForm.reset({ title: '', category: 'Cẩm nang Agrisage', author: 'Admin', status: 'Bản nháp', content: '' })
+  const apply = async () => {
+    if (!pending || busy) return
+    setBusy(true); setError('')
+    try {
+      if (pending.status) await contentApi.articleStatus(pending.item.id, pending.status)
+      else await contentApi.deleteArticle(pending.item.id)
+      setPending(null); list.reload(); showToast('Đã cập nhật bài viết')
+    } catch (err) { setError(describeError(err)) }
+    finally { setBusy(false) }
   }
-
-  const handleEdit = () => {
-    if (!editTarget) return
-    const { title, category, author, status } = editForm.values
-    contentService.updateArticle(editTarget.id, { title, category, author, status: status as ArticleStatus })
-    setArticleList(contentService.listArticles())
-    showToast(`Đã cập nhật bài viết: ${title}`)
-    setEditTarget(null)
-  }
-
-  return (
-    <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg">
-      <div className="flex items-start justify-between mt-2">
-        <div className="flex flex-col gap-1.5">
-          <h1 className="text-3xl font-semibold text-on-surface">Quản lý Bài viết</h1>
-        </div>
-
-      </div>
-
-      <p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Dữ liệu mẫu — chưa có API backend quản lý bài viết.</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
-        <KpiCard title="Tổng bài viết" value={articleList.length} />
-        <KpiCard title="Đã xuất bản" value={articleList.filter(a => a.status === 'Đã xuất bản').length} />
-        <KpiCard title="Chờ duyệt" value={articleList.filter(a => a.status === 'Chờ duyệt').length} />
-        <KpiCard title="Tổng lượt xem" value={articleList.reduce((acc, curr) => acc + curr.views, 0)} />
-      </div>
-
-      <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: "Tìm kiếm tiêu đề hoặc tác giả..." }} onClear={() => { setSearch(''); setStatusFilter(''); setPage(1) }} actions={<><button
-            className="flex items-center gap-1.5 px-4 py-1.5 bg-primary-dark hover:bg-green-900 text-white rounded-[10px] font-medium text-sm shadow-sm transition-colors"
-            onClick={() => setCreateOpen(true)}
-          >
-            <span className="material-symbols-outlined text-[18px]">edit_document</span>
-            Viết bài mới
-          </button></>}>
-        <FilterSelect label="Trạng thái" value={statusFilter} onChange={value => { setStatusFilter(value); setPage(1) }} options={[{ value: '', label: 'Mọi trạng thái' }, 'Đã xuất bản', 'Chờ duyệt', 'Bản nháp']} />
-      </ListToolbar>
-
-      <div className="border border-outline-variant/60 rounded-xl overflow-hidden bg-white shadow-sm mt-2 flex flex-col">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[1000px]">
-            <thead>
-              <tr className="bg-surface-container-lowest border-b border-outline-variant/60">
-                <th className="py-3 px-4 font-semibold text-[13px] text-on-surface border-r border-outline-variant/40 w-[35%] uppercase tracking-wider">Tiêu đề</th>
-                <th className="py-3 px-4 font-semibold text-[13px] text-on-surface border-r border-outline-variant/40 w-[15%] uppercase tracking-wider">Tác giả</th>
-                <th className="py-3 px-4 font-semibold text-[13px] text-on-surface border-r border-outline-variant/40 w-[15%] uppercase tracking-wider text-center">Ngày xuất bản</th>
-                <th className="py-3 px-4 font-semibold text-[13px] text-on-surface border-r border-outline-variant/40 text-center w-[10%] uppercase tracking-wider">Lượt xem</th>
-                <th className="py-3 px-4 font-semibold text-[13px] text-on-surface border-r border-outline-variant/40 text-center w-[15%] uppercase tracking-wider">Trạng thái</th>
-                <th className="py-3 px-2 w-[5%]"></th>
-              </tr>
-            </thead>
-            <tbody className="text-sm divide-y divide-outline-variant/60">
-              {filteredArticles.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-on-surface-variant">Không tìm thấy bài viết phù hợp.</td>
-                </tr>
-              )}
-              {paginatedArticles.map((article) => {
-                return (
-                  <tr key={article.id} className="transition-colors group hover:bg-surface-container-low">
-                    <td className="py-3 px-4 border-r border-outline-variant/40">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded bg-surface-container-high flex items-center justify-center text-on-surface-variant shrink-0 overflow-hidden">
-                          <span className="material-symbols-outlined text-[24px]">image</span>
-                        </div>
-                        <div className="min-w-0">
-                          <div
-                            className="font-medium text-on-surface text-sm truncate hover:underline cursor-pointer"
-                            onClick={() => handleAction(article, 'edit')}
-                          >
-                            {article.title}
-                          </div>
-                          <div className="text-[11px] text-primary mt-0.5 truncate">{article.category}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 border-r border-outline-variant/40">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px]">
-                          {article.author.charAt(0)}
-                        </div>
-                        <span className="truncate">{article.author}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 border-r border-outline-variant/40 text-center text-on-surface-variant">
-                      {article.publishedAt}
-                    </td>
-                    <td className="py-3 px-4 border-r border-outline-variant/40 text-center font-mono text-on-surface-variant">
-                      {article.views.toLocaleString()}
-                    </td>
-                    <td className="py-3 px-4 border-r border-outline-variant/40 text-center">
-                      <span className={`px-2.5 py-1 rounded-md border text-[11px] tracking-wider font-semibold shadow-sm whitespace-nowrap uppercase
-                        ${article.status === 'Đã xuất bản' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' :
-                          article.status === 'Chờ duyệt' ? 'border-amber-400 text-amber-700 bg-amber-50' :
-                          'border-outline-variant/60 text-on-surface-variant bg-surface-container-lowest'
-                        }
-                      `}>
-                        {article.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-2 text-center">
-                      <div className="flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <RowActionsMenu
-                          triggerLabel="Thao tác"
-                          actions={contentService.articleActionsFor(article.status).map(a => ({ ...a, onClick: () => handleAction(article, a.id) }))}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        <Pagination page={page} totalPages={totalPages} startIndex={startIndex} endIndex={endIndex} totalCount={totalCount} unitLabel="" goPrev={goPrev} goNext={goNext} setPage={setPage} />
-      </div>
-
-      <FormModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        title="Viết bài mới"
-        values={createForm.values}
-        onChange={createForm.update}
-        onSubmit={handleCreate}
-        submitLabel="Lưu bài viết"
-        fields={[
-          { key: 'title', label: 'Tiêu đề bài viết', placeholder: 'Nhập tiêu đề...', required: true },
-          { key: 'category', label: 'Chuyên mục', type: 'select', options: ['Kỹ thuật canh tác', 'Tin tức thị trường', 'Cảnh báo thời tiết', 'Cẩm nang Agrisage'] },
-          { key: 'author', label: 'Tác giả', placeholder: 'Tên tác giả...' },
-          { key: 'status', label: 'Trạng thái', type: 'select', options: ['Bản nháp', 'Chờ duyệt', 'Đã xuất bản'] },
-          { key: 'content', label: 'Nội dung (Rich Text Editor giả lập)', type: 'text', placeholder: 'Soạn thảo nội dung ở đây...' },
-        ]}
-      />
-
-      <FormModal
-        open={editTarget !== null}
-        onClose={() => setEditTarget(null)}
-        title={editTarget ? `Sửa bài viết: ${editTarget.title}` : 'Sửa bài viết'}
-        values={editForm.values}
-        onChange={editForm.update}
-        onSubmit={handleEdit}
-        submitLabel="Lưu thay đổi"
-        fields={[
-          { key: 'title', label: 'Tiêu đề bài viết', placeholder: 'Nhập tiêu đề...', required: true },
-          { key: 'category', label: 'Chuyên mục', type: 'select', options: ['Kỹ thuật canh tác', 'Tin tức thị trường', 'Cảnh báo thời tiết', 'Cẩm nang Agrisage'] },
-          { key: 'author', label: 'Tác giả', placeholder: 'Tên tác giả...' },
-          { key: 'status', label: 'Trạng thái', type: 'select', options: ['Bản nháp', 'Chờ duyệt', 'Đã xuất bản'] },
-          { key: 'content', label: 'Nội dung (Rich Text Editor giả lập)', type: 'text', placeholder: 'Soạn thảo nội dung ở đây...' },
-        ]}
-      />
-    </div>
-  )
+  return <div className="space-y-5">
+    <h1 className="text-2xl font-semibold">Bài viết & Tin tức</h1>
+    <ListToolbar search={{ value: search, onChange: value => { setSearch(value); list.setPage(1) }, placeholder: 'Tìm tiêu đề, tóm tắt...' }} onClear={() => { setSearch(''); setStatus(''); list.setPage(1) }} actions={<><button onClick={list.reload}>Tải lại</button>{has('ARTICLES.MANAGE') && <button className="rounded-lg bg-primary text-white px-4 py-2" onClick={() => edit(null)}>Viết bài mới</button>}</>}>
+      <FilterSelect label="Trạng thái" value={status} onChange={value => { setStatus(value); list.setPage(1) }} options={[{ value: '', label: 'Mọi trạng thái' }, ...Object.entries(articleLabels).map(([value, label]) => ({ value, label }))]} />
+    </ListToolbar>
+    {list.error && <p role="alert" className="text-red-700">{list.error}</p>}
+    <div className="rounded-xl border border-slate-200 bg-white overflow-x-auto"><table className="w-full min-w-[700px] text-left text-sm"><thead className="bg-slate-50"><tr>{['Tiêu đề', 'Tác giả', 'Ngày xuất bản', 'Trạng thái', 'Thao tác'].map(label => <th key={label} className="p-4 last:text-right">{label}</th>)}</tr></thead><tbody>
+      {list.loading ? <tr><td colSpan={5} className="p-8 text-center" role="status">Đang tải...</td></tr> : !list.items.length ? <tr><td colSpan={5} className="p-8 text-center">Chưa có bài viết phù hợp.</td></tr> : list.items.map(item => <tr key={item.id} className="border-t border-slate-100">
+        <td className="p-4"><div className="flex items-center gap-3">{item.thumbnailUrl && <img src={item.thumbnailUrl} alt="" className="w-16 h-12 rounded object-cover shrink-0" />}<div><button className="font-medium hover:underline text-left" onClick={() => edit(item)}>{item.title}</button><p className="text-xs text-slate-500 mt-1">{item.slug}</p></div></div></td><td className="p-4">{item.authorName}</td><td className="p-4">{item.publishedAt ? vnDateTime(item.publishedAt) : '—'}</td><td className="p-4"><StatusBadge label={articleLabels[item.status]} /></td>
+        <td className="p-4 text-right"><RowActionsMenu disabled={busy} triggerLabel={`Thao tác bài viết ${item.title}`} actions={[
+          { label: has('ARTICLES.MANAGE') ? 'Chỉnh sửa' : 'Xem bài viết', onClick: () => edit(item) },
+          ...(['PUBLISHED', 'DRAFT', 'ARCHIVED'] as const).filter(next => next !== item.status).map(next => ({ label: next === 'PUBLISHED' ? 'Xuất bản' : next === 'DRAFT' ? 'Chuyển về nháp' : 'Lưu trữ', permissionCodes: ['ARTICLES.MANAGE'], onClick: () => { setError(''); setPending({ item, status: next }) } })),
+          { label: 'Xóa bài viết', tone: 'danger', permissionCodes: ['ARTICLES.MANAGE'], onClick: () => { setError(''); setPending({ item }) } },
+        ]} /></td>
+      </tr>)}
+    </tbody></table><ServerPagination {...list} unitLabel="bài viết" onPageChange={list.setPage} /></div>
+    <FormModal open={open} onClose={() => setOpen(false)} title={target ? 'Chi tiết bài viết' : 'Viết bài mới'} busy={busy || uploading} widthClassName="max-w-3xl">
+      <form className="space-y-4" onSubmit={e => { e.preventDefault(); void save() }}>
+        <fieldset disabled={busy || uploading || !has('ARTICLES.MANAGE')} className="space-y-4">
+          <label className="block">Tiêu đề<input required maxLength={255} className="block w-full border rounded-lg p-2 mt-1" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></label>
+          <label className="block">Đường dẫn (slug)<input required maxLength={255} pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="ky-thuat-canh-tac" className="block w-full border rounded-lg p-2 mt-1" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} /></label>
+          <div><p className="mb-2">Ảnh đại diện <span className="text-red-700">*</span></p><ImageUploader url={form.thumbnailUrl} alt="Ảnh bài viết" upload={contentApi.uploadArticleImage}
+            disabled={busy || !has('ARTICLES.MANAGE')} onUploadingChange={setUploading}
+            onUploaded={image => setForm(current => ({ ...current, thumbnailUrl: image.url }))} onRemove={() => setForm(current => ({ ...current, thumbnailUrl: null }))}
+            hint="Chọn hoặc kéo ảnh từ máy. JPG, PNG, WebP, tối đa 3 MB. Bài viết cần có ảnh đại diện trước khi lưu." /></div>
+          <label className="block">Tóm tắt<textarea aria-label="Tóm tắt" maxLength={1000} rows={3} className="block w-full border rounded-lg p-2 mt-1" value={form.summary ?? ''} onChange={e => setForm({ ...form, summary: e.target.value })} /></label>
+          <label className="block">Nội dung<textarea aria-label="Nội dung" required maxLength={100000} rows={12} className="block w-full border rounded-lg p-3 mt-1" value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} /></label>
+        </fieldset>
+        {error && <p role="alert" className="text-red-700">{error}</p>}
+        <div className="flex justify-end gap-3"><button type="button" disabled={busy || uploading} onClick={() => setOpen(false)}>Đóng</button>{has('ARTICLES.MANAGE') && <button type="submit" disabled={busy || uploading || !form.thumbnailUrl} className="rounded-lg bg-primary text-white px-4 py-2 disabled:opacity-50">{uploading ? 'Đang tải ảnh...' : busy ? 'Đang lưu...' : target ? 'Lưu bài viết' : 'Tạo bản nháp'}</button>}</div>
+      </form>
+    </FormModal>
+    <ConfirmModal open={!!pending} onClose={() => setPending(null)} title={pending?.status ? 'Đổi trạng thái bài viết' : 'Xóa bài viết'} confirmLabel="Xác nhận" tone={pending?.status ? 'primary' : 'danger'} busy={busy} onConfirm={() => void apply()} message={`${pending?.item.title ?? ''}${pending?.status ? ` → ${articleLabels[pending.status]}` : ' sẽ bị xóa khỏi danh sách và trang kiến thức.'}`}>
+      {error && <p role="alert" className="text-red-700">{error}</p>}
+    </ConfirmModal>
+  </div>
 }

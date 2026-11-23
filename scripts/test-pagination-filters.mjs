@@ -52,6 +52,8 @@ async function fixture(path, endpoint, status, width = 1440, role = 'STORE_OWNER
     if (url.pathname === '/api/auth/me') return json({ id: 'owner', fullName: 'Người kiểm thử', role, status: 'ACTIVE' })
     if (url.pathname === '/api/me/permissions') return json({ permissions: path.endsWith('/reports') ? [...codes, 'REPORTS.READ'] : codes })
     if (url.pathname.endsWith('/unread-count')) return json({ count: 0 })
+    // The counter screen loads today's figures with COUNTER_SALES.SELL alone (no REPORTS.READ).
+    if (url.pathname === '/api/reports/counter-sales-today') return json({ date: date.slice(0, 10), asOf: date, paidSalesRevenue: 0, completedOrderCount: 0, receivedAmount: 0, creditSalesAmount: 0 })
     if (url.pathname === '/api/catalog/categories') return json([{ id: 'category', code: 'CAT', name: 'Danh mục', displayOrder: 0, isActive: true, children: [] }])
     if (path === '/admin/ai/policies' && url.pathname === '/api/ai-models') return json({ items: [{ ...item(0), version: 'v1' }], page: 1, pageSize: 10, totalCount: 1, totalPages: 1 })
     if (path === '/admin/ai/policies' && url.pathname.endsWith('/policies')) return json(Array.from({ length: 21 }, (_, i) => ({ id: `policy-${i}`, version: `v${i}`, minimumConfidence: 0.8, topK: 3, status: 'DRAFT', effectiveFrom: date })))

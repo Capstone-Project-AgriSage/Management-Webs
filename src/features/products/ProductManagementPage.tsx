@@ -1,6 +1,8 @@
 import ListToolbar from '@/components/ui/ListToolbar'
 import { LIST_PAGE_SIZE } from '@/utils/pagination';
 import { usePermission } from '@/context/PermissionContext';
+import { useUrlSearch } from '@/hooks/useUrlSearch';
+import { useLocation } from 'react-router-dom';
 import PermissionAction from '@/components/auth/PermissionAction'
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { PackagePlus } from 'lucide-react';
@@ -70,10 +72,14 @@ export default function ProductManagementPage() {
   const [data, setData] = useState<Paged<ProductListItem> | null>(null)
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useUrlSearch()
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [status, setStatus] = useState('')
+  const location = useLocation()
+  useEffect(() => {
+    if (location.state?.globalSearch) { setPage(1); setCategoryId(''); setStatus('') }
+  }, [location.key, location.state])
 
   const [stores, setStores] = useState<StoreProductRow[]>([])
   const [categories, setCategories] = useState<CategoryOption[]>([])

@@ -84,6 +84,7 @@ async function fixture(role = 'STORE_OWNER', withReports = true, path = '/agent/
     if (report === 'deliveries') return json({ ...period, rows: [], failureReasons: [], incidents: [], totals: { deliveries: 4, attempts: 5, successful: 3, partial: 1, failed: 1, successRate: 0.6 } })
     if (report === 'debt-aging') return json({ asOf: url.searchParams.get('asOf'), rows: [], totals: aging })
     if (report === 'debt-collections') return json({ ...period, rows: [], totals: { key: '', label: '', paymentCount: 2, collectedAmount: 250000 } })
+    if (report === 'advisory-diagnosis') return json({ fromDate: period.fromDate, toDate: period.toDate, attributionDays: 7, advisory: { sessionCount: 0, farmerCount: 0, textSessionCount: 0, diagnosisSessionCount: 0, sessionsWithProducts: 0, estimatedValue: 0, convertedSessions: 0, conversionPercent: null, convertedOrderValue: 0 }, topProblems: [], diagnosis: { caseCount: 0, byCrop: [] } })
     if (report === 'debt-by-customer-group') return json({ rows: [{ customerGroup: null, customersWithDebt: 1, outstanding: 1500000, overdueAmount: 500000, totalCreditLimit: 5000000, utilization: 0.3 }] })
     throw new Error('Unexpected report: ' + report)
   })
@@ -134,12 +135,13 @@ try {
     for (const endpoint of endpoints) assert(owner.state.requests.some(request => request.path === '/api/reports/' + endpoint), endpoint)
     await noReportMenu(owner.page)
   }
-  assert.equal(new Set(owner.state.requests.filter(request => request.path.startsWith('/api/reports/')).map(request => request.path)).size, 15)
+  const requestedReports = new Set(owner.state.requests.filter(request => request.path.startsWith('/api/reports/')).map(request => request.path))
+  for (const endpoint of new Set(pages.flatMap(([, , endpoints]) => endpoints))) assert(requestedReports.has('/api/reports/' + endpoint), endpoint)
   assert(owner.state.requests.filter(request => request.path.startsWith('/api/reports/')).every(request => request.method === 'GET'))
   assert.deepEqual(owner.errors, [])
-  pass('All 15 core reporting APIs are requested, including sales on the current dashboard')
+  pass('All core reporting APIs are requested, including sales on the current dashboard')
 
-  const profit = owner.page.getByRole('region', { name: 'Chỉ số kinh doanh trong kỳ', exact: true }).getByText('Lãi gộp', { exact: true }).locator('../..')
+  const profit = owner.page.getByRole('region', { name: 'Chỉ số kinh doanh trong kỳ', exact: true }).getByRole('heading', { name: 'Lãi gộp', exact: true }).locator('..')
   assert.match(await profit.innerText(), /1\.200\.000 đ/)
   assert.match(await profit.innerText(), /Giá vốn 1\.800\.000 đ/)
   assert.match(await profit.innerText(), /Trước trả hàng/)
@@ -201,8 +203,8 @@ try {
   await owner.page.getByRole('button', { name: 'Xuất Excel', exact: true }).click()
   await response
   await download
-  assert.equal(new Set(owner.state.requests.filter(r => r.path.startsWith('/api/reports/')).map(r => r.path)).size, 18)
-  pass('All 18 report endpoints are connected, including counter sales, inventory turnover and export; expiry risk is also requested')
+  assert.equal(new Set(owner.state.requests.filter(r => r.path.startsWith('/api/reports/')).map(r => r.path)).size, 19)
+  pass('All 19 owner report endpoints are connected, including counter sales, inventory turnover, export and advice on the dashboard; expiry risk is also requested')
 
   await owner.page.goto(base + '/agent/products')
   const products = await ready(owner.page, 'Giá trị tồn kho')
@@ -224,7 +226,7 @@ try {
   assert.equal(owner.state.requests.filter(request => request.path === '/api/reports/inventory-movement').length, movementReports)
   await owner.page.getByLabel('Tổng hợp xuất nhập tồn: từ ngày').fill('2026-10-02')
   await ready(owner.page, 'Tổng hợp xuất nhập tồn')
-  await owner.page.waitForFunction(() => document.getElementById('mv-from')?.value === '2026-10-02')
+  await owner.page.waitForFunction(() => document.getElementById('mv-from')?.dataset.value === '2026-10-02')
   assert.equal(owner.state.requests.filter(request => request.path === '/api/reports/inventory-movement').at(-1).query.fromDate, '2026-10-02')
   const movementList = owner.state.requests.filter(request => request.path === '/api/inventory/stock-movements').at(-1)
   assert.equal(movementList.query.fromDate, '2026-10-02')
@@ -274,12 +276,12 @@ try {
   const payments = await ready(owner.page, 'Tổng hợp thanh toán')
   assert.equal(await payments.getByText('2.900.000 đ', { exact: true }).count(), 1)
   owner.state.mode = 'error'
-  await payments.getByRole('button').click()
+  await payments.getByRole('button', { name: 'Làm mới tổng hợp thanh toán' }).click()
   await payments.getByRole('alert').filter({ hasText: 'Không tải được số liệu kiểm thử' }).waitFor()
   assert.equal(await payments.getByText('2.900.000 đ', { exact: true }).count(), 0)
   await owner.page.getByRole('table').waitFor()
   owner.state.mode = 'empty'
-  await payments.getByRole('button').click()
+  await payments.getByRole('button', { name: 'Làm mới tổng hợp thanh toán' }).click()
   await ready(owner.page, 'Tổng hợp thanh toán')
   assert.equal(await payments.getByText('0 đ', { exact: true }).count(), 3)
   owner.state.mode = 'normal'
@@ -300,6 +302,18 @@ try {
   assert.equal(dashboardDenied.state.requests.filter(r => r.path.startsWith('/api/reports/')).length, 0)
   await dashboardDenied.context.close()
   pass('A dashboard without REPORTS.READ never requests sales or any other report')
+
+  // Today's counter figures need COUNTER_SALES.SELL, like selling at the counter, not REPORTS.READ (decision 2026-11-16).
+  const counterStaff = await fixture('SALES_STAFF', false, '/sales/counter-sales')
+  const counterCards = counterStaff.page.getByRole('region', { name: 'Báo cáo bán tại quầy hôm nay', exact: true })
+  await counterCards.getByRole('button', { name: 'Làm mới báo cáo bán tại quầy', exact: true }).waitFor()
+  await counterCards.getByText('Doanh thu hôm nay', { exact: true }).waitFor()
+  await counterStaff.page.waitForFunction(() => !document.querySelector('section[aria-label="Báo cáo bán tại quầy hôm nay"] .animate-pulse'))
+  assert.equal(await counterCards.getByText('Cần quyền bán tại quầy').count(), 0)
+  assert.equal(await counterCards.getByText('0 đ', { exact: true }).count(), 3)
+  assert.deepEqual([...new Set(counterStaff.state.requests.filter(r => r.path.startsWith('/api/reports/')).map(r => r.path))], ['/api/reports/counter-sales-today'])
+  await counterStaff.context.close()
+  pass('Sales staff without REPORTS.READ see today\'s counter figures and request no other report')
 
   const delegated = await fixture('SALES_STAFF', true, '/sales/orders')
   await ready(delegated.page, 'Tổng hợp đơn hàng')

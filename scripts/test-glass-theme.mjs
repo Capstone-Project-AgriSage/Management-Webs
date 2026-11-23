@@ -36,6 +36,8 @@ async function session(width = 1440, authenticated = true) {
     if (path === '/api/auth/me') return json({ id: 'owner', fullName: 'Triệu Phú Thịnh', role: 'STORE_OWNER', status: 'ACTIVE' })
     if (path === '/api/me/permissions') return json({ permissions })
     if (path.endsWith('/unread-count')) return json({ count: 0 })
+    // The new-order alerts read the unread notifications of the owner and sale staff.
+    if (path === '/api/me/notifications') return json({ items: [], page: 1, pageSize: 20, totalCount: 0, totalPages: 0 })
     if (path === '/api/orders') {
       const page = Number(url.searchParams.get('page') || 1)
       const status = url.searchParams.get('status')
@@ -61,7 +63,16 @@ async function session(width = 1440, authenticated = true) {
       return json({ rows: series, totals, page: 1, pageSize: 20, totalCount: state.mode === 'partial' ? 31 : series.length, totalPages: 1 })
     }
     if (path === '/api/reports/revenue-summary') return json({ current: totals, previous: totals, netSalesChangePercent: null })
+    if (path === '/api/reports/inventory-turnover') return json({ items: [], page: 1, pageSize: 100, totalCount: 0, totalPages: 0, summary: { products: 0, fast: 0, slow: 0, noSales: 0 }, fromDate: '2026-10-01', toDate: '2026-10-16' })
+    if (path === '/api/inventory/expiry-risk') return json({ items: [], page: 1, pageSize: 3, totalCount: 0, totalPages: 0, summary: { lots: 0, knownRiskLots: 0, unknownRiskLots: 0, knownRiskValue: 0 }, withinDays: 30 })
     if (path === '/api/staff') return json({ items: [], page: 1, pageSize: 10, totalCount: 0, totalPages: 1 })
+    // The owner dashboard's stock, credit and advice rows (2026-11-23), empty.
+    if (path === '/api/reports/inventory-valuation') return json({ rows: [], byCategory: [], totals: { stockValue: 0, expiredValue: 0 } })
+    if (path === '/api/reports/purchases') return json({ fromDate: url.searchParams.get('fromDate'), toDate: url.searchParams.get('toDate'), groupBy: url.searchParams.get('groupBy'), rows: [], totals: { receiptCount: 0, purchaseAmount: 0 } })
+    if (path === '/api/reports/credit-exposure') return json({ asOf: '2026-10-17T00:00:00Z', rows: [], totals: { creditLimit: 0, outstanding: 0, reservedCredit: 0, exposure: 0, availableCredit: 0 } })
+    if (path === '/api/debt-entries/dashboard') return json({ totalOutstandingDebt: 0, totalOverdueDebt: 0, collectedToday: 0, collectedThisMonth: 0, customersWithDebt: 0, customersWithOverdueDebt: 0, topDebtors: [], recentDebtPayments: [], overdueDebts: [] })
+    if (path === '/api/reports/debt-collections') return json({ fromDate: url.searchParams.get('fromDate'), toDate: url.searchParams.get('toDate'), groupBy: url.searchParams.get('groupBy'), rows: [], totals: { key: null, label: null, paymentCount: 0, collectedAmount: 0 } })
+    if (path === '/api/reports/advisory-diagnosis') return json({ fromDate: url.searchParams.get('fromDate'), toDate: url.searchParams.get('toDate'), attributionDays: 7, advisory: { sessionCount: 0, farmerCount: 0, textSessionCount: 0, diagnosisSessionCount: 0, sessionsWithProducts: 0, estimatedValue: 0, convertedSessions: 0, conversionPercent: null, convertedOrderValue: 0 }, topProblems: [], diagnosis: { caseCount: 0, byCrop: [] } })
     state.unknown.push(path)
     return route.abort()
   })
@@ -86,11 +97,12 @@ try {
   const { page, state } = desktop
   await page.goto(base + '/agent')
   await settled(page, 'dashboard')
+  await page.locator('summary').filter({ hasText: 'Phân tích chi tiết' }).click()
   assert.equal(await page.locator('.agrisage-kpi-card').count(), 0, 'The dashboard draws its own strip and panels, not the list summary cards')
   for (const name of ['Việc cần xử lý', 'Kết quả kinh doanh', 'Doanh thu thuần theo ngày', 'Nhóm sản phẩm bán chạy', 'Kênh bán hàng', 'Phương thức thanh toán', 'Tỷ lệ hoàn thành đơn', 'Công nợ phải thu', 'Công nợ theo nhóm khách', 'Đơn hàng gần đây']) await page.getByText(name, { exact: true }).first().waitFor()
   assert((await page.locator('main .recharts-surface').count()) >= 1, 'The revenue chart is drawn')
   const reportCalls = state.requests.filter(request => request.path.startsWith('/api/reports/')).map(request => request.path + ':' + (request.query.groupBy ?? ''))
-  for (const expected of ['/api/reports/revenue-summary:', '/api/reports/revenue:DAY', '/api/reports/revenue:CATEGORY', '/api/reports/payments:METHOD', '/api/reports/orders:SOURCE', '/api/reports/orders:STATUS', '/api/reports/debt-aging:', '/api/reports/debt-by-customer-group:']) assert(reportCalls.includes(expected), `The dashboard must read ${expected}`)
+  for (const expected of ['/api/reports/revenue-summary:', '/api/reports/revenue:DAY', '/api/reports/revenue:CATEGORY', '/api/reports/payments:METHOD', '/api/reports/orders:SOURCE', '/api/reports/orders:STATUS', '/api/reports/revenue:PRODUCT', '/api/reports/revenue:CUSTOMER', '/api/reports/inventory-turnover:', '/api/reports/debt-aging:', '/api/reports/debt-by-customer-group:']) assert(reportCalls.includes(expected), `The dashboard must read ${expected}`)
   const surface = await page.locator('body').evaluate(element => [getComputedStyle(element).backgroundImage, getComputedStyle(element).backgroundColor])
   assert.deepEqual(surface, ['none', 'rgb(255, 255, 255)'], 'White theme: no gradient or image behind the page')
   for (const selector of ['.management-shell', '.management-sidebar', '.management-topbar']) assert.equal(await page.locator(selector).first().evaluate(element => getComputedStyle(element).backgroundColor), 'rgb(255, 255, 255)', `${selector} is white`)

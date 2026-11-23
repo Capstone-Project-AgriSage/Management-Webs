@@ -28,9 +28,11 @@ import { deliveriesApi, type DeliveryListItem, type DeliveryResponse } from '@/a
 import { ApiError } from '@/api/client';
 import { DELIVERY_STATUS_LABEL, formatDate, labelOf } from '@/utils/deliveryLabels';
 import { useRoleBase } from '@/utils/creditLabels';
+import { NEW_ORDER_EVENT } from '@/features/alerts/alertStore';
 import OrderEditModal from './OrderEditModal'
 import ConfirmOrderModal from './ConfirmOrderModal'
 import PickupModal from './PickupModal'
+import OrderInvoiceModal from './OrderInvoiceModal'
 import { formatDay } from '@/utils/creditLabels'
 import './order-detail.css'
 /**
@@ -97,6 +99,7 @@ export default function OrdersPage() {
 
   // Payment state
   const [paymentSummary, setPaymentSummary] = useState<OrderPaymentsSummary | null>(null)
+  const [invoice, setInvoice] = useState<{ order: OrderResponse; payments: OrderPaymentsSummary } | null>(null)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [paymentAmount, setPaymentAmount] = useState('')
   const [isPaying, setIsPaying] = useState(false)
@@ -159,6 +162,13 @@ export default function OrdersPage() {
     void Promise.resolve().then(() => { if (active) void fetchOrders() })
     return () => { active = false; listRequest.current?.abort() }
   }, [fetchOrders, search, debouncedSearch])
+
+  // A new online order announced by NewOrderAlerts appears in the list without a manual refresh.
+  useEffect(() => {
+    const reload = () => { void fetchOrders() }
+    window.addEventListener(NEW_ORDER_EVENT, reload)
+    return () => window.removeEventListener(NEW_ORDER_EVENT, reload)
+  }, [fetchOrders])
 
   const handleClearFilters = () => {
     setSearch('')
@@ -453,7 +463,7 @@ export default function OrdersPage() {
                       <div className="font-mono font-bold text-sm text-primary">{order.orderNumber}</div>
                       <div className="text-xs text-on-surface-variant mt-1 flex items-center gap-1">
                         <Clock size={12} />
-                        {new Date(order.createdAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        {vnDateTime(order.createdAt)}
                       </div>
                     </td>
                     <td className="py-4.5 px-3 text-center">
@@ -503,10 +513,19 @@ export default function OrdersPage() {
                 <h3 className="font-bold text-on-surface">#{selectedOrder.orderNumber}</h3>
                 <StatusBadge label={STATUS_MAP[selectedOrder.status]} className={STATUS_VISUALS[selectedOrder.status]?.className} />
               </div>
-              <div className="text-label-sm text-on-surface-variant mt-1">Tạo lúc: {new Date(selectedOrder.createdAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+              <div className="text-label-sm text-on-surface-variant mt-1">Tạo lúc: {vnDateTime(selectedOrder.createdAt)}</div>
             </div>
           </div>} footer={<div className="order-detail-actions">
             <div className="order-detail-secondary-actions">
+              {isCounterOrder(selectedOrder) && selectedOrder.status === 'COMPLETED' && (
+                <button type="button"
+                  className="order-detail-button border border-outline-variant text-on-surface hover:bg-surface-container disabled:opacity-50"
+                  disabled={!paymentSummary || !selectedOrder.items?.length}
+                  onClick={() => { if (paymentSummary) setInvoice({ order: selectedOrder, payments: paymentSummary }) }}
+                >
+                  <Receipt size={16} /> Xem / In hóa đơn
+                </button>
+              )}
               {selectedOrder.status === 'PENDING_CONFIRMATION' && selectedOrder.items && (
                 <PermissionAction codes={['ORDERS.UPDATE']}><button
                   type="button"
@@ -737,6 +756,8 @@ export default function OrdersPage() {
         ) : null}
       </DetailModal>
 
+      {invoice && <OrderInvoiceModal order={invoice.order} payments={invoice.payments} onClose={() => setInvoice(null)} />}
+
       {/* Payment Modal */}
       {isPaymentModalOpen && paymentSummary && selectedOrder && (
         <DetailModal open onClose={() => setIsPaymentModalOpen(false)}>
@@ -863,8 +884,7 @@ export default function OrdersPage() {
             </div><div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label className="block text-sm">
                 <span className="font-medium text-on-surface-variant block mb-1">Hẹn giao lúc</span>
-                <input
-                  type="datetime-local"
+                <DateTimeInput
                   value={deliveryScheduledAt}
                   onChange={(e) => setDeliveryScheduledAt(e.target.value)}
                   className="w-full h-9 px-2 rounded-lg border border-outline-variant focus:outline-none focus:border-blue-500"
@@ -935,3 +955,6 @@ export default function OrdersPage() {
     </div>
   )
 }
+
+import { DateTimeInput } from '@/components/ui/DateInput'
+import { vnDateTime } from '@/utils/date'

@@ -22,6 +22,7 @@ import { formatVnd } from '@/utils/money';
 import { formatDateTime } from '@/utils/units';
 import SupplierSelect from './SupplierSelect'
 import { RECEIPTS_BASE, RECEIPT_STATUS_BADGE_CLASS, RECEIPT_STATUS_LABEL, localInputToIso, nowLocalInput } from './receiptLabels';
+import DateInput, { DateTimeInput } from '@/components/ui/DateInput'
 
 const PAGE_SIZE = 10
 
@@ -233,7 +234,7 @@ function CreateReceiptModal({ onClose, onCreated }: { onClose: () => void; onCre
             <label className="text-sm font-medium text-slate-700" htmlFor="gr-received">
               Thời điểm nhận hàng
             </label>
-            <input id="gr-received" type="datetime-local" className={inputClassName} value={receivedAt} max={nowLocalInput()} onChange={(e) => setReceivedAt(e.target.value)} />
+            <DateTimeInput id="gr-received" className={inputClassName} value={receivedAt} max={nowLocalInput()} onChange={(e) => setReceivedAt(e.target.value)} />
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium text-slate-700" htmlFor="gr-inv">
@@ -245,7 +246,7 @@ function CreateReceiptModal({ onClose, onCreated }: { onClose: () => void; onCre
             <label className="text-sm font-medium text-slate-700" htmlFor="gr-invdate">
               Ngày hóa đơn
             </label>
-            <input id="gr-invdate" type="date" className={inputClassName} value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
+            <DateInput id="gr-invdate" className={inputClassName} value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
           </div>
         </div><div className="space-y-1">
           <label className="text-sm font-medium text-slate-700" htmlFor="gr-note">

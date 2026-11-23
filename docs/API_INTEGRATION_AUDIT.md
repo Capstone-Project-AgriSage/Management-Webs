@@ -1,5 +1,8 @@
 # Rà soát kết nối Backend → Management-Webs
 
+**Cập nhật 12/11/2026:** bài viết và liên hệ đã có API, route, menu và quyền tương ứng; đã thay dữ liệu mẫu.
+Xem [CONTENT_CONTACT.md](CONTENT_CONTACT.md). Phần thống kê bên dưới là ảnh chụp rà soát ngày 11/10/2026.
+
 Ngày: **11/10/2026**. Nguồn HTTP: code hiện tại trong `D:/Test/Backend-Agrisage/src/AgriSage.Api`; nguồn frontend: `src/api` và callsite trong đồ thị import của `src/main.tsx`.
 
 **Chưa tích hợp tất cả API backend vào trang quản lý.** Backend có 330 HTTP action trong 59 controller; 290 action dùng cho quản lý/nhân viên hoặc xác thực dùng chung. 38 action dành cho Farmer (kể cả đăng ký), 1 webhook của payOS và 1 action mô phỏng thanh toán trong Development được tách khỏi số API quản lý cần xét.

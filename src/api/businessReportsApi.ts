@@ -58,6 +58,37 @@ export interface CreditExposureReport {
   rows: (CreditExposureMetrics & { farmerProfileId: string; fullName: string; status: string; utilizationPercent: number | null })[]
   totals: CreditExposureMetrics
 }
+/** GET /api/reports/advisory-diagnosis (REPORTS.READ): advice given and photo diagnoses of a period. */
+export interface AdvisoryDiagnosisReport {
+  fromDate: string
+  toDate: string
+  /** A session "converted" when the same Farmer ordered a suggested product within this many days (an attribution). */
+  attributionDays: number
+  advisory: {
+    sessionCount: number
+    farmerCount: number
+    textSessionCount: number
+    diagnosisSessionCount: number
+    sessionsWithProducts: number
+    estimatedValue: number
+    convertedSessions: number
+    conversionPercent: number | null
+    convertedOrderValue: number
+  }
+  topProblems: { diseaseId: string; code: string; name: string; cropType: string; sessionCount: number }[]
+  diagnosis: {
+    caseCount: number
+    byCrop: { cropType: string; cropName: string; caseCount: number; confidentCount: number; uncertainCount: number; verifiedCount: number; noResultCount: number }[]
+  }
+}
+/** GET /api/reports/my-sales (COUNTER_SALES.SELL): the signed-in seller's own figures; never cost of goods or profit. */
+export interface MySalesReport {
+  fromDate: string
+  toDate: string
+  orders: { createdCount: number; completedCount: number; cancelledCount: number; openCount: number }
+  sales: { orderCount: number; fulfilledValue: number; returnValue: number; netSales: number; averageOrderValue: number }
+  payments: { paymentCount: number; receivedAmount: number; orderPaymentAmount: number; debtRepaymentAmount: number }
+}
 
 // Report requests share the authenticated client and support cancellation when filters or pages change.
 export const businessReportsApi = {
@@ -72,4 +103,8 @@ export const businessReportsApi = {
   returns: (params: ReportPeriod, signal?: AbortSignal) => api<PeriodReport<ReturnMetrics>>(`/api/reports/returns${toQuery({ ...params })}`, { signal }),
   refunds: (params: ReportPeriod, signal?: AbortSignal) => api<PeriodReport<RefundMetrics>>(`/api/reports/refunds${toQuery({ ...params })}`, { signal }),
   creditExposure: (signal?: AbortSignal) => api<CreditExposureReport>('/api/reports/credit-exposure', { signal }),
+  advisoryDiagnosis: (params: ReportPeriod, signal?: AbortSignal) =>
+    api<AdvisoryDiagnosisReport>(`/api/reports/advisory-diagnosis${toQuery({ fromDate: params.fromDate, toDate: params.toDate })}`, { signal }),
+  mySales: (params: ReportPeriod, signal?: AbortSignal) =>
+    api<MySalesReport>(`/api/reports/my-sales${toQuery({ fromDate: params.fromDate, toDate: params.toDate })}`, { signal }),
 }

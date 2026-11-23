@@ -9,6 +9,7 @@ import { reportsApi } from '@/api/reportsApi'
 import { usePermission } from '@/context/PermissionContext'
 import { useReportData } from '@/features/agent/reports/useReportData'
 import { formatVnd } from '@/utils/money'
+import { todayVn } from '@/utils/creditLabels'
 
 type Area = 'agent' | 'sales'
 
@@ -53,14 +54,16 @@ function tilesFor(area: Area): Tile[] {
       load: async signal => { const { totals } = await reportsApi.getDebtAging({}, signal); return totals.total - totals.notDue },
     },
   )
+  if (area === 'agent') {
+    const priority = ['orders', 'debt', 'stock', 'deliveries', 'diagnosis']
+    tiles.sort((a, b) => priority.indexOf(a.key) - priority.indexOf(b.key))
+  }
   return tiles
 }
 
 // yyyy-MM-dd of the day six days ago, so the range covers this day and the six before it.
 function weekAgo(): string {
-  const d = new Date()
-  d.setDate(d.getDate() - 6)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return new Date(Date.parse(`${todayVn()}T00:00:00Z`) - 6 * 86_400_000).toISOString().slice(0, 10)
 }
 
 /** What needs doing now, one tile per queue the signed-in person may open. A tile that cannot load shows a dash and leaves the others alone. */
@@ -70,12 +73,17 @@ export default function AttentionTiles({ area }: { area: Area }) {
   const load = useCallback((signal: AbortSignal) => Promise.all(tiles.map(tile => tile.load(signal).catch(() => null))), [tiles])
   const { data, loading, refresh } = useReportData(load, tiles.length ? null : 'Không có mục nào để hiển thị.')
   if (!tiles.length) return null
+  const actionable = tiles.filter((_, index) => (data?.[index] ?? 0) > 0).length
+  const unavailable = data?.some(value => value === null)
 
   // One strip with hairline dividers: icon, label and count per queue. The longer note moves to the tooltip, and the icon's
   // color says whether something is waiting (amber) or all clear (green), always next to the count itself.
   return <section aria-label="Việc cần xử lý" className="space-y-3">
     <div className="flex items-center justify-between gap-2">
-      <h2 className="text-base font-semibold text-slate-900">Việc cần xử lý</h2>
+      <div>
+        <h2 className="text-base font-semibold text-slate-900">Việc cần xử lý</h2>
+        {area === 'agent' && <p className="mt-1 text-xs text-slate-500">Hiện tại · Không phụ thuộc kỳ báo cáo bên dưới{!loading && data && ` · ${actionable} mục có việc cần xử lý`}</p>}
+      </div>
       <button type="button" aria-label="Làm mới việc cần xử lý" title="Làm mới việc cần xử lý" onClick={refresh} disabled={loading} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-[#fff] text-slate-600 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"><RefreshCw size={15} className={loading ? 'animate-spin' : ''} /></button>
     </div>
     <div aria-busy={loading} className="flex flex-col divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-[#fff] shadow-sm md:flex-row md:divide-x md:divide-y-0">
@@ -86,13 +94,15 @@ export default function AttentionTiles({ area }: { area: Area }) {
         return <Link key={tile.key} to={tile.to} title={tile.note} aria-label={`${tile.title}: ${value === null ? 'chưa tải được' : tile.money ? formatVnd(value) : value.toLocaleString('vi-VN')}. Mở danh sách`}
           className="group flex min-w-0 flex-1 items-center gap-3 px-4 py-3 transition-colors hover:bg-green-50/60 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary md:flex-col md:items-stretch md:justify-between md:gap-2 md:px-5 md:py-4">
           <span className="flex min-w-0 flex-1 items-start gap-2 md:flex-none">
-            <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${waiting ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700'}`}><Icon size={15} aria-hidden="true" /></span>
+            <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${value === null || loading ? 'bg-slate-100 text-slate-500' : waiting ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700'}`}><Icon size={15} aria-hidden="true" /></span>
             <span className="min-w-0 flex-1 pt-0.5 text-sm leading-5 text-slate-500">{tile.title}</span>
             <ArrowUpRight size={16} aria-hidden="true" className="mt-0.5 hidden shrink-0 text-slate-400 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 md:block" />
           </span>
-          <span className="block shrink-0 whitespace-nowrap text-lg font-semibold leading-7 text-slate-900 md:text-2xl md:leading-8">{loading ? <span aria-hidden="true" className="inline-block h-7 w-14 animate-pulse rounded bg-slate-100 align-middle" /> : value === null ? '—' : tile.money ? formatVnd(value) : value.toLocaleString('vi-VN')}</span>
+          <span className={`block shrink-0 text-lg font-semibold leading-7 tabular-nums [overflow-wrap:anywhere] md:text-2xl md:leading-8 ${waiting ? tile.money ? 'text-rose-700' : 'text-amber-800' : 'text-slate-900'}`}>{loading ? <span aria-hidden="true" className="inline-block h-7 w-14 animate-pulse rounded bg-slate-100 align-middle" /> : value === null ? '—' : tile.money ? formatVnd(value) : value.toLocaleString('vi-VN')}</span>
+          {area === 'agent' && <span className="hidden text-xs leading-5 text-slate-500 md:block">{!loading && value === null ? 'Chưa tải được · Bấm làm mới để thử lại' : tile.note}</span>}
         </Link>
       })}
     </div>
+    {area === 'agent' && unavailable && <p role="status" className="text-xs text-slate-600">Một số mục chưa tải được. Dấu — không có nghĩa là không có việc cần xử lý.</p>}
   </section>
 }

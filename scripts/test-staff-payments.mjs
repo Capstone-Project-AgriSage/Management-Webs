@@ -33,6 +33,8 @@ async function session(permissions) {
     if (path === '/api/auth/me') return json({ id: 'owner', fullName: 'Kiểm thử', role: 'STORE_OWNER', status: 'ACTIVE' })
     if (path === '/api/me/permissions') return json({ permissions })
     if (path.endsWith('/unread-count')) return json({ count: 0 })
+    // The new-order alerts read the unread notifications of the owner and sale staff.
+    if (path === '/api/me/notifications' && method === 'GET') return json({ items: [], page: 1, pageSize: 20, totalCount: 0, totalPages: 0 })
     if (path === '/api/staff' && method === 'GET') {
       const items = state.staff.filter(item => (!query.search || item.fullName.toLowerCase().includes(query.search.toLowerCase())) && (!query.role || item.role === query.role) && (!query.status || item.status === query.status))
       return json({ items, page: 1, pageSize: 10, totalCount: items.length, totalPages: 1 })

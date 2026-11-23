@@ -208,18 +208,6 @@ export type AiPolicyActionId = 'edit' | 'delete' | 'toggle-active'
 
 // --- Content & System Types (Admin) ---
 
-export type ArticleStatus = 'Đã xuất bản' | 'Bản nháp' | 'Chờ duyệt'
-export interface Article {
-  id: string
-  title: string
-  category: string
-  author: string
-  views: number
-  status: ArticleStatus
-  publishedAt: string
-}
-export type ArticleActionId = 'view' | 'edit' | 'delete' | 'approve' | 'publish'
-
 export type NotificationTarget = 'Tất cả' | 'Nông dân' | 'Đại lý' | 'Chuyên gia'
 export type NotificationStatus = 'Đã gửi' | 'Lên lịch' | 'Bản nháp'
 export interface SystemNotification {

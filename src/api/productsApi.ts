@@ -161,9 +161,9 @@ export function storageKeyFromUrl(url: string | null | undefined): string | null
 const MAX_LOOKUP = 100
 
 export const productsApi = {
-  list: (q: ProductListQuery = {}) =>
+  list: (q: ProductListQuery = {}, signal?: AbortSignal) =>
     api<Paged<ProductListItem>>(
-      `/api/products${toQuery({ Search: q.search, CategoryId: q.categoryId, Status: q.status, Page: q.page, PageSize: q.pageSize })}`,
+      `/api/products${toQuery({ Search: q.search, CategoryId: q.categoryId, Status: q.status, Page: q.page, PageSize: q.pageSize })}`, { signal },
     ),
 
   get: (id: Uuid) => api<ProductResponse>(`/api/products/${id}`),

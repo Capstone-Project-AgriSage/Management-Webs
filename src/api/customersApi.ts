@@ -149,7 +149,7 @@ export interface AddressResponse extends CustomerAddress {
 }
 
 export const customersApi = {
-  getCustomers: (q: CustomerListQuery = {}) =>
+  getCustomers: (q: CustomerListQuery = {}, signal?: AbortSignal) =>
     api<PagedResult<CustomerResponse>>(
       `/api/customers${toQuery({
         Search: q.search,
@@ -161,6 +161,7 @@ export const customersApi = {
         Page: q.page,
         PageSize: q.pageSize,
       })}`,
+      { signal },
     ),
 
   getCustomer: (id: string) => api<CustomerResponse>(`/api/customers/${id}`),

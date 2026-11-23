@@ -41,6 +41,7 @@ export default function CounterSalesPage() {
   const [busy, setBusy] = useState<'create' | 'review' | 'sell' | null>(null)
   const [review, setReview] = useState<CounterSalePreviewResponse | null>(null)
   const [result, setResult] = useState<CounterResult | null>(null)
+  const [printInvoice, setPrintInvoice] = useState(false)
 
   const customerReady = draft.customer.kind === 'WALK_IN' || draft.customer.customer !== null
 
@@ -96,6 +97,7 @@ export default function CounterSalesPage() {
   const reset = () => {
     setItems([])
     setDraft(newDraft())
+    setPrintInvoice(false)
     setReview(null)
     setResult(null)
     setSubmitError('')
@@ -171,9 +173,9 @@ export default function CounterSalesPage() {
   }
 
   const right = result ? (
-    <SaleResult result={result} onNew={reset} onOpenOrder={(id) => navigate(`${base}/orders?open=${id}`)} />
+    <SaleResult key={result.order.id} result={result} printOnComplete={printInvoice} onNew={reset} onOpenOrder={(id) => navigate(`${base}/orders?open=${id}`)} />
   ) : review ? (
-    <QuickSaleReview preview={review} selling={busy === 'sell'} onBack={() => setReview(null)} onSell={sell} />
+    <QuickSaleReview preview={review} selling={busy === 'sell'} printInvoice={printInvoice} onPrintInvoiceChange={setPrintInvoice} onBack={() => setReview(null)} onSell={sell} />
   ) : (
     <div className="flex flex-col min-h-0 xl:h-full z-10">
       <div className="px-5 py-4 border-b border-outline-variant/40 flex items-center justify-between">

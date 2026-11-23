@@ -6,6 +6,8 @@ import { useToast } from '@/context/ToastContext';
 import { staffApi, type StaffResponse, type StaffRole, type StaffStatus } from '@/api/staffApi';
 import { describeError } from '@/api/client';
 import { useAuth } from '@/context/AuthContext'
+import { useUrlSearch } from '@/hooks/useUrlSearch'
+import { useLocation } from 'react-router-dom'
 import RowActionsMenu, { type RowAction } from '@/components/ui/RowActionsMenu'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import StaffFormModal, { type StaffFormMode } from './StaffFormModal'
@@ -20,10 +22,14 @@ import ServerPagination from '@/components/ui/ServerPagination'
 export default function StaffPage() {
   const [staff, setStaff] = useState<StaffResponse[]>([])
   const [page, setPage] = useState(1)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useUrlSearch()
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [role, setRole] = useState('')
   const [status, setStatus] = useState('')
+  const location = useLocation()
+  useEffect(() => {
+    if (location.state?.globalSearch) { setPage(1); setRole(''); setStatus('') }
+  }, [location.key, location.state])
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search.trim()), 350)
     return () => clearTimeout(timer)

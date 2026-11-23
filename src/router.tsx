@@ -22,8 +22,11 @@ import ProductManagementPage from '@/features/products/ProductManagementPage'
 import ActiveIngredientsPage from '@/features/admin/products/ActiveIngredientsPage'
 import AiModelsPage from '@/features/admin/ai-models/AiModelsPage'
 import AiPolicyConfigsPage from '@/features/admin/ai-models/AiPolicyConfigsPage'
+import AiProviderPage from '@/features/admin/ai-models/AiProviderPage'
 import AuditLogsPage from '@/features/admin/system/AuditLogsPage'
 import CreditConfigPage from '@/features/admin/credit-config/CreditConfigPage'
+import ArticlesPage from '@/features/admin/content/ArticlesPage'
+import ContactRequestsPage from '@/features/content/ContactRequestsPage'
 
 // =======================
 // AGENT FEATURES
@@ -142,11 +145,18 @@ export const router = createBrowserRouter([
             element: <RequireRole role="admin"><RequirePermission module="ai-config"><AiPolicyConfigsPage /></RequirePermission></RequireRole>,
           },
           {
+            path: 'admin/ai/provider',
+            element: <RequireRole role="admin"><RequirePermission module="ai-provider"><AiProviderPage /></RequirePermission></RequireRole>,
+          },
+          {
             path: 'admin/diseases',
             element: <RequireRole role="admin"><RequirePermission module="diseases"><DiseaseContentPage /></RequirePermission></RequireRole>,
           },
-          // Not routed until their API exists (the backend has none): Articles (admin) and Product reviews (owner).
-          // The pages stay in features/admin/content and features/agent/products, still on sample data, to be wired then.
+          { path: 'admin/articles', element: <RequireRole role="admin"><ArticlesPage /></RequireRole> },
+          { path: 'agent/articles', element: <RequireRole role="agent"><ArticlesPage /></RequireRole> },
+          { path: 'admin/contact-requests', element: <RequireRole role="admin"><ContactRequestsPage /></RequireRole> },
+          { path: 'agent/contact-requests', element: <RequireRole role={["agent", "sales_staff"]}><ContactRequestsPage /></RequireRole> },
+          { path: 'sales/contact-requests', element: <RequireRole role="sales_staff"><ContactRequestsPage /></RequireRole> },
           {
             path: 'admin/notifications',
             element: <RequireRole role="admin"><NotificationsPage /></RequireRole>,

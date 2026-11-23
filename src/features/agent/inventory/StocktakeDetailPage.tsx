@@ -310,9 +310,9 @@ export default function StocktakeDetailPage() {
           <span className="flex items-start gap-2">
             <AlertTriangle size={16} className="mt-0.5 shrink-0" />
             <span>
-              <strong>{staleItems.length} lô bị cũ:</strong> có phiếu kho (bán, nhập, điều chỉnh...) phát sinh quanh lúc bạn đếm nên số sổ sách không còn đúng. Làm mới rồi đếm lại đúng những lô này (các lô khác giữ nguyên).
+              <strong>{staleItems.length} lô bị cũ:</strong> có phiếu kho (bán, nhập, điều chỉnh...) phát sinh sau lúc chụp số sổ sách và trước khi bạn đếm, nên số sổ sách không còn đúng. Làm mới rồi đếm lại đúng những lô này (các lô khác giữ nguyên).
               <span className="block mt-1 text-amber-800">
-                Lưu ý: phiếu kho phát sinh trong vòng 5 phút trước lúc chụp vẫn được tính là xen vào, nên nếu vừa có giao dịch thì dòng có thể còn bị đánh dấu cũ cho tới khi qua 5 phút. Khi đó hãy đợi rồi đếm lại.
+                Làm mới xong là đếm lại được ngay, không cần chờ.
               </span>
             </span>
           </span>
