@@ -34,15 +34,19 @@ interface DebtEntryModalProps {
   onChanged: () => void
 }
 
-/** Optional for now: the proposed code list and whether the code becomes mandatory are still open with the backend. */
+/** Required by the API for adjust, cancel and change of due date (one of the 7 codes); the note below is still needed. */
 const REASON_CODE_FIELD: PromptField = {
   key: 'reasonCode',
-  label: 'Mã lý do (không bắt buộc)',
+  label: 'Mã lý do',
   type: 'select',
+  required: true,
   options: DEBT_REASON_CODES.map((code) => ({ value: code, label: DEBT_REASON_CODE_LABEL[code] })),
-  hint: 'Chọn nếu có để báo cáo và lịch sử dễ đọc. Ghi chú bên dưới vẫn cần nhập.',
+  hint: 'Dùng cho báo cáo và lịch sử. Ghi chú bên dưới vẫn cần nhập.',
 }
-const codeOf = (v: Record<string, string>) => (DEBT_REASON_CODES as readonly string[]).includes(v.reasonCode) ? (v.reasonCode as DebtReasonCode) : undefined
+const codeOf = (v: Record<string, string>): DebtReasonCode => {
+  if (!(DEBT_REASON_CODES as readonly string[]).includes(v.reasonCode)) throw new Error('Vui lòng chọn mã lý do.')
+  return v.reasonCode as DebtReasonCode
+}
 
 const errorText = (err: unknown, fallback: string) => (err instanceof Error && err.message ? err.message : fallback)
 
@@ -173,6 +177,13 @@ export default function DebtEntryModal({ entryId, onClose, onChanged }: DebtEntr
               </div>
             ))}
           </div>
+          {/* Returns, reductions and write-offs lower the balance without being payments; say so, or the three figures above do not add up. */}
+          {entry.originalAmount - entry.totalPaid - entry.outstandingAmount > 0 && (
+            <p className="text-xs text-slate-600">
+              Đã giảm trừ không qua thanh toán (trả hàng, điều chỉnh, xóa nợ):{' '}
+              <strong className="text-slate-800 tabular-nums">{formatVnd(entry.originalAmount - entry.totalPaid - entry.outstandingAmount)}</strong>
+            </p>
+          )}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
             <span><span className="text-slate-500">Vụ phát sinh: </span><strong className="text-slate-800">{entry.originSeason?.name ?? 'Theo hạng tín dụng'}</strong></span>
             <span><span className="text-slate-500">Vụ đang thu: </span><strong className="text-slate-800">{entry.collectionSeason?.name ?? 'Theo hạng tín dụng'}</strong></span>
