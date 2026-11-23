@@ -200,56 +200,7 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
             {delivery.cancelReason && (
               <div className="text-xs text-rose-600 mt-1">Lý do hủy: {delivery.cancelReason}</div>
             )}
-          </div>} footer={<div className="flex flex-wrap items-center justify-end gap-3">
-            {isEditable && (
-              <div>
-                <label htmlFor="driver-select" className="text-xs font-bold text-slate-700 block mb-1">Phân công tài xế</label>
-                <div className="flex gap-2">
-                  <Select
-                    id="driver-select"
-                    className="flex-1 h-9 px-3 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
-                    value={selectedDriverId}
-                    onChange={(e) => setSelectedDriverId(e.target.value)}
-                    disabled={isProcessing}
-                  >
-                    <option value="">-- Chọn tài xế --</option>
-                    {drivers.map((d) => (
-                      <option key={d.id} value={d.id}>{d.fullName}{d.phoneNumber ? ` · ${d.phoneNumber}` : ''}</option>
-                    ))}
-                  </Select>
-                  <PermissionAction codes={["DELIVERIES.ASSIGN"]}><button
-                    type="button"
-                    className="px-4 h-9 bg-slate-800 text-white hover:bg-slate-900 font-medium rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center gap-1"
-                    onClick={handleAssign}
-                    disabled={!selectedDriverId || isProcessing || delivery.assignedTo?.userId === selectedDriverId}
-                  >
-                    <UserCircle size={16} />
-                    Lưu
-                  </button></PermissionAction>
-                </div>
-                {driversForbidden ? (
-                  <p className="text-xs text-amber-700 mt-1">Tài khoản này chưa được cấp quyền xem danh sách tài xế. Nhờ Đại lý phân công.</p>
-                ) : drivers.length === 0 ? (
-                  <p className="text-xs text-slate-500 mt-1">Chưa có tài xế đang hoạt động.</p>
-                ) : null}
-              </div>
-            )}
-
-            {canDispatch && (
-              <PermissionAction codes={["DELIVERIES.DISPATCH"]}><button
-                type="button"
-                className="w-full h-10 bg-primary text-on-primary hover:bg-primary/90 font-bold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                onClick={handleDispatch}
-                disabled={isProcessing}
-              >
-                <CheckCircle size={18} />
-                {delivery.status === 'ASSIGNED' ? 'Xuất kho & đi giao' : 'Xuất phát lại'}
-              </button></PermissionAction>
-            )}
-            {isEditable && !delivery.assignedTo && (
-              <p className="text-xs text-slate-500">Phân công tài xế trước khi xuất phát.</p>
-            )}
-
+          </div>} footer={<div className="flex w-full flex-col flex-nowrap! items-stretch! justify-start! gap-3">
             {delivery.status === 'OUT_FOR_DELIVERY' && (
               <div className="bg-amber-50 text-amber-800 border border-amber-200 rounded-lg p-3 text-sm flex items-start gap-2">
                 <Truck size={18} className="shrink-0 mt-0.5 text-amber-600" />
@@ -262,28 +213,79 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
               </div>
             )}
 
-            <div className="flex flex-wrap gap-2 justify-end">
-              {activeAttempt && (
-                <PermissionAction codes={['DELIVERY_ATTEMPTS.CANCEL']}><button
-                  type="button"
-                  className="px-3 h-9 rounded-lg border border-amber-300 text-amber-800 hover:bg-amber-50 text-sm font-medium flex items-center gap-1"
-                  onClick={() => setCancelTarget('attempt')}
-                  disabled={isProcessing}
-                >
-                  <XCircle size={16} /> Hủy lần giao đang chạy
-                </button></PermissionAction>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+              {isEditable && (
+                <div className="w-full sm:flex-1 sm:min-w-[280px]">
+                  <label htmlFor="driver-select" className="text-xs font-bold text-slate-700 block mb-1">Phân công tài xế</label>
+                  <div className="flex items-center gap-2">
+                    <Select
+                      id="driver-select"
+                      className="min-w-0 flex-1 h-10! min-h-10! py-0! px-3 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
+                      value={selectedDriverId}
+                      onChange={(e) => setSelectedDriverId(e.target.value)}
+                      disabled={isProcessing}
+                    >
+                      <option value="">-- Chọn tài xế --</option>
+                      {drivers.map((d) => (
+                        <option key={d.id} value={d.id}>{d.fullName}{d.phoneNumber ? ` · ${d.phoneNumber}` : ''}</option>
+                      ))}
+                    </Select>
+                    <PermissionAction codes={["DELIVERIES.ASSIGN"]}><button
+                      type="button"
+                      className="shrink-0 px-4 h-10 bg-slate-800 text-white hover:bg-slate-900 font-medium rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-1 whitespace-nowrap"
+                      onClick={handleAssign}
+                      disabled={!selectedDriverId || isProcessing || delivery.assignedTo?.userId === selectedDriverId}
+                    >
+                      <UserCircle size={16} />
+                      Lưu
+                    </button></PermissionAction>
+                  </div>
+                </div>
               )}
-              {canCancelDelivery && (
-                <PermissionAction codes={['DELIVERIES.CANCEL']}><button
-                  type="button"
-                  className="px-3 h-9 rounded-lg border border-rose-300 text-rose-700 hover:bg-rose-50 text-sm font-medium flex items-center gap-1"
-                  onClick={() => setCancelTarget('delivery')}
-                  disabled={isProcessing}
-                >
-                  <XCircle size={16} /> Hủy phiếu giao
-                </button></PermissionAction>
-              )}
+
+              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                {canDispatch && (
+                  <PermissionAction codes={["DELIVERIES.DISPATCH"]}><button
+                    type="button"
+                    className="flex-1 sm:flex-none shrink-0 px-5 h-10 bg-primary text-on-primary hover:bg-primary/90 font-bold rounded-lg text-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50"
+                    onClick={handleDispatch}
+                    disabled={isProcessing}
+                  >
+                    <CheckCircle size={18} />
+                    {delivery.status === 'ASSIGNED' ? 'Xuất kho & đi giao' : 'Xuất phát lại'}
+                  </button></PermissionAction>
+                )}
+                {activeAttempt && (
+                  <PermissionAction codes={['DELIVERY_ATTEMPTS.CANCEL']}><button
+                    type="button"
+                    className="flex-1 sm:flex-none shrink-0 px-4 h-10 rounded-lg border border-amber-300 text-amber-800 hover:bg-amber-50 text-sm font-medium flex items-center justify-center gap-1 whitespace-nowrap disabled:opacity-50"
+                    onClick={() => setCancelTarget('attempt')}
+                    disabled={isProcessing}
+                  >
+                    <XCircle size={16} /> Hủy lần giao đang chạy
+                  </button></PermissionAction>
+                )}
+                {canCancelDelivery && (
+                  <PermissionAction codes={['DELIVERIES.CANCEL']}><button
+                    type="button"
+                    className="flex-1 sm:flex-none shrink-0 px-4 h-10 rounded-lg border border-rose-300 text-rose-700 hover:bg-rose-50 text-sm font-medium flex items-center justify-center gap-1 whitespace-nowrap disabled:opacity-50"
+                    onClick={() => setCancelTarget('delivery')}
+                    disabled={isProcessing}
+                  >
+                    <XCircle size={16} /> Hủy phiếu giao
+                  </button></PermissionAction>
+                )}
+              </div>
             </div>
+
+            {isEditable && driversForbidden ? (
+              <p className="text-xs text-amber-700">Tài khoản này chưa được cấp quyền xem danh sách tài xế. Nhờ Đại lý phân công.</p>
+            ) : isEditable && drivers.length === 0 ? (
+              <p className="text-xs text-slate-500">Chưa có tài xế đang hoạt động.</p>
+            ) : null}
+            {isEditable && !delivery.assignedTo && (
+              <p className="text-xs text-slate-500">Phân công tài xế trước khi xuất phát.</p>
+            )}
           </div>} bodyClassName="space-y-4"><div className="p-4 border-b border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Người nhận</span>
