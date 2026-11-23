@@ -2,7 +2,7 @@ import { useCallback, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Area, AreaChart, CartesianGrid, ReferenceDot, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import {
-  ArrowDownRight, ArrowUpRight, Banknote, CircleDollarSign, Clock, Coins, Globe, Landmark, Minus, PackageCheck, QrCode, Receipt,
+  ArrowDownRight, ArrowUpRight, Banknote, ChevronDown, CircleDollarSign, Clock, Coins, Globe, Landmark, Minus, PackageCheck, QrCode, Receipt,
   ShieldCheck, Smartphone, Store, TriangleAlert, Undo2, Wallet, type LucideIcon,
 } from 'lucide-react'
 import { businessReportsApi, type OrderMetrics, type PaymentMetrics, type PaymentTotals, type PeriodReport, type RevenueReport, type RevenueSummary, type SalesMetrics } from '@/api/businessReportsApi'
@@ -142,6 +142,28 @@ function StatGrid({ summary, sales, payments }: { summary: Report<RevenueSummary
         <div className="min-h-6">{stat.foot}</div>
       </div>
     })}
+  </section>
+}
+
+/** The manager's first scan: sales, profit, cash and fulfilled orders each answer a different question. */
+function ManagerStats({ summary, sales, payments }: { summary: Report<RevenueSummary>; sales: Report<PeriodReport<SalesMetrics>>; payments: Report<PeriodReport<PaymentMetrics, PaymentTotals>> }) {
+  const current = summary.data?.current
+  const previous = summary.data?.previous
+  const paid = payments.data?.totals
+  const profit = sales.data?.totals
+  const stats = [
+    { label: 'Doanh thu thuần', state: summary, value: current && formatVnd(current.netSales), note: 'Giá trị đã giao, trừ hàng trả', change: current && previous && <Versus current={current.netSales} previous={previous.netSales} /> },
+    { label: 'Lãi gộp', state: sales, value: profit && formatVnd(profit.grossProfit), note: profit ? `Giá vốn ${formatVnd(profit.costOfGoods)}` : 'Trước trả hàng và chi phí vận hành', change: profit && <><p className="mb-2 text-xs leading-5 text-slate-500">Trước trả hàng, chưa trừ chi phí vận hành.</p>{previous && <Versus current={profit.grossProfit} previous={previous.grossProfit} />}</> },
+    { label: 'Tiền thực thu', state: payments, value: paid && formatVnd(paid.netReceivedAmount), note: 'Tiền đã nhận, trừ tiền đã hoàn', change: paid && <p className="text-xs text-slate-500">Gồm thu nợ {formatVnd(paid.debtRepaymentAmount)}</p> },
+    { label: 'Đơn giao thành công', state: summary, value: current && `${num(current.orderCount)} đơn`, note: 'Có ghi nhận giao hàng trong kỳ', change: current && previous && <Versus current={current.orderCount} previous={previous.orderCount} /> },
+  ]
+  return <section aria-label="Chỉ số kinh doanh trong kỳ" className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 xl:grid-cols-4">
+    {stats.map(stat => <div key={stat.label} aria-busy={stat.state.loading} className={`min-w-0 bg-white p-4 sm:p-5 ${stat.state.stale ? 'opacity-60' : ''}`}>
+      <h3 className="text-sm font-medium text-slate-600">{stat.label}</h3>
+      <p className="mt-2 text-lg font-semibold leading-8 tabular-nums text-slate-900 [overflow-wrap:anywhere] sm:text-2xl">{stat.value ?? placeholder(stat.state, 'w-20')}</p>
+      <p className="mt-1 text-xs leading-5 text-slate-500">{stat.note}</p>
+      <div className="mt-3">{stat.state.error ? <p role="alert" className="text-xs text-rose-700">{friendly(stat.state.error)}</p> : stat.change}</div>
+    </div>)}
   </section>
 }
 
@@ -351,26 +373,31 @@ function Gauge({ share }: { share: number }) {
   </svg>
 }
 
-function DebtPanel({ report, to }: { report: Report<DebtAgingReport>; to?: string }) {
+function DebtPanel({ report, to, focusOverdue = false }: { report: Report<DebtAgingReport>; to?: string; focusOverdue?: boolean }) {
   const data = report.data
   const totals = data?.totals
   const total = totals?.total ?? 0
   const share = totals && total > 0 ? totals.notDue / total : 1
+  const overdue = totals ? Math.max(0, total - totals.notDue) : 0
   const stats = totals ? [
     { label: 'Trong hạn', detail: 'chưa tới hạn', value: totals.notDue, icon: ShieldCheck, good: true },
     { label: 'Quá hạn', detail: 'đến 30 ngày', value: totals.days1To30, icon: Clock, good: false },
     { label: 'Quá hạn', detail: 'trên 30 ngày', value: totals.days31To60 + totals.days61To90 + totals.over90, icon: TriangleAlert, good: false },
   ] : []
-  return <Panel label="Công nợ phải thu" to={to} headline={data ? formatVnd(total) : placeholder(report, "w-32")} sub={data ? 'tính đến hôm nay' : undefined}>
+  return <Panel label="Công nợ phải thu" to={to} headline={data ? <span className={focusOverdue && overdue > 0 ? 'text-rose-700' : undefined}>{formatVnd(focusOverdue ? overdue : total)}</span> : placeholder(report, "w-32")} sub={data ? focusOverdue ? 'đã quá hạn' : 'tính đến hôm nay' : undefined}>
     <Body state={report} empty={() => total <= 0} emptyText="Không có khoản nợ nào.">
       {() => <>
-        <div className="relative mx-auto mt-4 w-full max-w-[260px]">
+        {focusOverdue ? <div className="mt-4 space-y-3">
+          <p className="text-xs text-slate-500">Hiện tại · {data?.asOf ? dayMonthYear(data.asOf) : 'Hôm nay'} · Không theo kỳ báo cáo</p>
+          <div className="flex items-baseline justify-between gap-2 border-b border-slate-100 pb-3 text-sm"><span className="text-slate-600">Tổng phải thu</span><strong className="font-semibold tabular-nums text-slate-900">{formatVnd(total)}</strong></div>
+          <p className={`flex items-start gap-2 text-sm ${overdue > 0 ? 'text-rose-700' : 'text-green-700'}`}>{overdue > 0 ? <TriangleAlert size={16} className="mt-0.5 shrink-0" aria-hidden="true" /> : <ShieldCheck size={16} className="mt-0.5 shrink-0" aria-hidden="true" />}{overdue > 0 ? 'Ưu tiên liên hệ khách có nợ quá hạn để thu hồi.' : 'Chưa có khoản nợ quá hạn.'}</p>
+        </div> : <div className="relative mx-auto mt-4 w-full max-w-[260px]">
           <Gauge share={share} />
           <div className="absolute inset-x-0 bottom-0 text-center">
             <p className="text-3xl font-semibold leading-9 text-slate-900">{percent(share * 100)}</p>
             <p className="text-xs text-slate-500">nợ còn trong hạn</p>
           </div>
-        </div>
+        </div>}
         <dl className="mt-auto grid grid-cols-3 divide-x divide-slate-100 border-t border-slate-100 pt-4 text-center">
           {stats.map(stat => {
             const Icon = stat.icon
@@ -427,25 +454,25 @@ function StockBadge({ item }: { item?: VelocityItem }) {
   return null
 }
 
-function TopProductsPanel({ report, velocity, to }: { report: Report<RevenueReport>; velocity: Report<VelocityPage>; to?: string }) {
+function TopProductsPanel({ report, velocity, to, limit = 10 }: { report: Report<RevenueReport>; velocity: Report<VelocityPage>; to?: string; limit?: number }) {
   const rows = (report.data?.rows ?? []).filter(row => row.netSales > 0)
   const top = rows[0]
   const pace = new Map((velocity.data?.items ?? []).map(item => [item.storeProductId, item]))
   const lowCount = rows.filter(row => { const item = pace.get(row.key); return item && (item.sellableBaseQuantity <= 0 || (item.daysOfStock !== null && item.daysOfStock < LOW_STOCK_DAYS)) }).length
   return <Panel label="Sản phẩm bán chạy" to={to} className="xl:col-span-2"
-    headline={top ? <span className="min-w-0 truncate" title={top.label}>{top.label}</span> : report.data ? undefined : placeholder(report, 'w-48')}
-    sub={top ? <>dẫn đầu, {shortVnd(top.netSales)}</> : undefined}
+    headline={limit === 5 ? undefined : top ? <span className="min-w-0 truncate" title={top.label}>{top.label}</span> : report.data ? undefined : placeholder(report, 'w-48')}
+    sub={limit !== 5 && top ? <>dẫn đầu, {shortVnd(top.netSales)}</> : undefined}
     aside={lowCount > 0 ? <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800"><Clock size={12} aria-hidden="true" />{num(lowCount)} sắp hết hàng</span> : undefined}>
     <Body state={report} empty={() => !top} emptyText="Chưa có sản phẩm bán ra trong kỳ này.">
       {() => <div className="mt-4">
         <div aria-hidden="true" className="grid grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_4.5rem] gap-x-3 border-b border-slate-100 pb-2 text-xs text-slate-500"><span>#</span><span>Sản phẩm</span><span className="text-right">Đã bán</span><span className="text-right">Doanh thu</span></div>
         <ol className="divide-y divide-slate-50">
-          {rows.slice(0, 10).map((row, index) => {
+          {rows.slice(0, limit).map((row, index) => {
             const item = pace.get(row.key)
             return <li key={row.key} className="grid grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_4.5rem] items-center gap-x-3 py-2 text-sm">
               <span className="tabular-nums text-slate-400">{index + 1}</span>
               <span className="min-w-0">
-                <span className="flex min-w-0 items-center gap-2"><span title={row.label} className="truncate font-medium text-slate-900">{row.label}</span><StockBadge item={item} /></span>
+                <span className="flex min-w-0 flex-col items-start gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2"><span title={row.label} className="max-w-full font-medium text-slate-900 [overflow-wrap:anywhere]">{row.label}</span><StockBadge item={item} /></span>
                 <span className="block text-xs text-slate-500">{num(row.orderCount)} đơn</span>
               </span>
               <span className="text-right text-xs tabular-nums text-slate-600">{item ? formatQtyUnit(item.soldBaseQuantity, item.baseUnit) : '—'}</span>
@@ -469,7 +496,8 @@ function ExpiryPanel({ report, to }: { report: Report<ExpiryRiskPage>; to?: stri
   const lots = data?.summary.lots ?? 0
   return <Panel label={`Lô sắp hết hạn (${EXPIRY_WINDOW_DAYS} ngày tới)`} to={to}
     headline={data ? (lots ? `${num(lots)} lô` : undefined) : placeholder(report, 'w-20')}
-    sub={data && lots ? (data.summary.knownRiskValue > 0 ? <>có thể không bán kịp <strong className="font-medium text-rose-700">{shortVnd(data.summary.knownRiskValue)}</strong></> : 'cần ưu tiên bán trước') : undefined}>
+    sub={data && lots ? (data.summary.knownRiskValue > 0 ? <>có thể không bán kịp <strong className="font-medium text-rose-700">{shortVnd(data.summary.knownRiskValue)}</strong></> : 'cần kiểm tra hạn dùng') : undefined}>
+    <p className="mt-2 text-xs text-slate-500">Hiện tại · Không theo kỳ báo cáo</p>
     <Body state={report} empty={() => !lots} emptyText={`Không có lô nào hết hạn trong ${EXPIRY_WINDOW_DAYS} ngày tới.`}>
       {page => <ul className="mt-4 space-y-3">
         {page.items.slice(0, 3).map(lot => {
@@ -486,6 +514,8 @@ function ExpiryPanel({ report, to }: { report: Report<ExpiryRiskPage>; to?: stri
         })}
       </ul>}
     </Body>
+    {(data?.summary.unknownRiskLots ?? 0) > 0 && <p className="mt-3 text-xs text-amber-800">{num(data!.summary.unknownRiskLots)} lô chưa đủ dữ liệu ước tính giá trị rủi ro.</p>}
+    {!!lots && <p className="mt-auto pt-4 text-xs leading-5 text-slate-500">Tách riêng lô đã hết hạn; ưu tiên xuất lô còn hạn gần nhất.</p>}
   </Panel>
 }
 
@@ -519,27 +549,62 @@ function TopCustomersPanel({ report, to }: { report: Report<RevenueReport>; to?:
 }
 
 /** The owner's and the admin's dashboard below the period filter: every panel reads a report API for the same period. */
-export default function DashboardCharts({ fromDate, toDate, links = {} }: { fromDate: string; toDate: string; links?: DashboardLinks }) {
+export default function DashboardCharts({ fromDate, toDate, links = {}, manager = false }: { fromDate: string; toDate: string; links?: DashboardLinks; manager?: boolean }) {
   const problem = periodProblem(fromDate, toDate)
   const granularity = granularityFor(rangeDays(fromDate, toDate))
 
-  // Declared in reading order, so the queue fetches what is on screen first.
+  // Fetch the headline figures and current risks before secondary breakdowns.
   const summary = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenueSummary({ fromDate, toDate }, signal), [fromDate, toDate]), problem)
   const sales = useReport(useCallback((signal: AbortSignal) => businessReportsApi.sales({ fromDate, toDate, groupBy: 'DAY' }, signal), [fromDate, toDate]), problem)
   const trend = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenue({ fromDate, toDate, groupBy: granularity, page: 1, pageSize: 100 }, signal), [fromDate, toDate, granularity]), problem)
   const payments = useReport(useCallback((signal: AbortSignal) => businessReportsApi.payments({ fromDate, toDate, groupBy: 'METHOD' }, signal), [fromDate, toDate]), problem)
-  const categories = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenue({ fromDate, toDate, groupBy: 'CATEGORY', page: 1, pageSize: 5 }, signal), [fromDate, toDate]), problem)
-  const sources = useReport(useCallback((signal: AbortSignal) => businessReportsApi.orders({ fromDate, toDate, groupBy: 'SOURCE' }, signal), [fromDate, toDate]), problem)
-  const statuses = useReport(useCallback((signal: AbortSignal) => businessReportsApi.orders({ fromDate, toDate, groupBy: 'STATUS' }, signal), [fromDate, toDate]), problem)
   const aging = useReport(useCallback((signal: AbortSignal) => reportsApi.getDebtAging({}, signal), []))
-  const debtGroups = useReport(useCallback((signal: AbortSignal) => reportsApi.getDebtByGroup(signal), []))
+  const expiry = useReport(useCallback((signal: AbortSignal) => replenishmentApi.expiryRisk({ withinDays: EXPIRY_WINDOW_DAYS, page: 1, pageSize: 3 }, signal), []))
   const topProducts = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenue({ fromDate, toDate, groupBy: 'PRODUCT', page: 1, pageSize: 10 }, signal), [fromDate, toDate]), problem)
   // Sales pace over the period's length (the API takes 14 to 365 days, counted back from today), for the units sold and the
   // days of stock left next to each best seller.
   const paceDays = Math.min(365, Math.max(14, rangeDays(fromDate, toDate)))
   const velocity = useReport(useCallback((signal: AbortSignal) => replenishmentApi.velocity({ historyDays: paceDays, page: 1, pageSize: 100 }, signal), [paceDays]), problem)
-  const expiry = useReport(useCallback((signal: AbortSignal) => replenishmentApi.expiryRisk({ withinDays: EXPIRY_WINDOW_DAYS, page: 1, pageSize: 3 }, signal), []))
+  const categories = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenue({ fromDate, toDate, groupBy: 'CATEGORY', page: 1, pageSize: 5 }, signal), [fromDate, toDate]), problem)
+  const sources = useReport(useCallback((signal: AbortSignal) => businessReportsApi.orders({ fromDate, toDate, groupBy: 'SOURCE' }, signal), [fromDate, toDate]), problem)
+  const statuses = useReport(useCallback((signal: AbortSignal) => businessReportsApi.orders({ fromDate, toDate, groupBy: 'STATUS' }, signal), [fromDate, toDate]), problem)
+  const debtGroups = useReport(useCallback((signal: AbortSignal) => reportsApi.getDebtByGroup(signal), []))
   const topCustomers = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenue({ fromDate, toDate, groupBy: 'CUSTOMER', page: 1, pageSize: 5 }, signal), [fromDate, toDate]), problem)
+
+  if (manager) return <div className="flex flex-col gap-5">
+    <p className="text-xs text-slate-500">{dayMonthYear(fromDate)} – {dayMonthYear(toDate)} · So sánh với khoảng thời gian liền trước có cùng số ngày.</p>
+    <ManagerStats summary={summary} sales={sales} payments={payments} />
+    <div className="grid gap-5 xl:grid-cols-3">
+      <div className="min-w-0 xl:col-span-2 [&>section]:h-full"><TrendPanel trend={trend} requested={granularity} /></div>
+      <DebtPanel report={aging} to={links.debts} focusOverdue />
+    </div>
+    <div className="flex items-end justify-between gap-3 pt-2">
+      <div><h2 className="text-base font-semibold text-slate-900">Hàng hóa cần theo dõi</h2><p className="mt-1 text-xs text-slate-500">Sản phẩm tạo doanh thu và các lô có rủi ro tồn đọng.</p></div>
+      {links.planning && <Link to={links.planning} className="shrink-0 text-sm font-medium text-green-800 hover:underline">Kế hoạch nhập hàng <ArrowUpRight size={14} aria-hidden="true" className="inline" /></Link>}
+    </div>
+    <div className="grid gap-5 xl:grid-cols-3">
+      <TopProductsPanel report={topProducts} velocity={velocity} to={links.planning} limit={5} />
+      <ExpiryPanel report={expiry} to={links.expiry} />
+    </div>
+    <details className="group border-y border-slate-200 py-4">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg p-1 focus-visible:outline-2 focus-visible:outline-green-700 [&::-webkit-details-marker]:hidden">
+        <span><span className="block text-base font-semibold text-slate-900">Phân tích chi tiết</span><span className="mt-1 block text-xs text-slate-500">Kênh bán, thanh toán, tiến độ đơn và nhóm khách hàng</span></span>
+        <ChevronDown size={20} aria-hidden="true" className="shrink-0 text-slate-500 transition-transform group-open:rotate-180" />
+      </summary>
+      <dl className="mt-5 flex flex-wrap gap-x-12 gap-y-4 px-1">
+        <div><dt className="text-sm text-slate-500">Giá trị đơn trung bình</dt><dd className="mt-1 font-semibold tabular-nums text-slate-900">{summary.data ? formatVnd(summary.data.current.averageOrderValue) : '—'}</dd></div>
+        <div><dt className="text-sm text-slate-500">Hàng trả lại trong kỳ</dt><dd className="mt-1 font-semibold tabular-nums text-slate-900">{summary.data ? formatVnd(summary.data.current.returnValue) : '—'}</dd></div>
+      </dl>
+      <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <FunnelPanel report={statuses} to={links.orders} />
+        <SourcesPanel report={sources} to={links.orders} />
+        <MethodsPanel report={payments} to={links.payments} />
+        <CategoryPanel report={categories} to={links.products} />
+        <DebtGroupsPanel report={debtGroups} to={links.debts} />
+        <TopCustomersPanel report={topCustomers} to={links.customers} />
+      </div>
+    </details>
+  </div>
 
   return <div className="flex flex-col gap-5">
     <div className="grid gap-5 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">

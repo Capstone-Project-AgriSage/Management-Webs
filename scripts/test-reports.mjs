@@ -134,12 +134,13 @@ try {
     for (const endpoint of endpoints) assert(owner.state.requests.some(request => request.path === '/api/reports/' + endpoint), endpoint)
     await noReportMenu(owner.page)
   }
-  assert.equal(new Set(owner.state.requests.filter(request => request.path.startsWith('/api/reports/')).map(request => request.path)).size, 15)
+  const requestedReports = new Set(owner.state.requests.filter(request => request.path.startsWith('/api/reports/')).map(request => request.path))
+  for (const endpoint of new Set(pages.flatMap(([, , endpoints]) => endpoints))) assert(requestedReports.has('/api/reports/' + endpoint), endpoint)
   assert(owner.state.requests.filter(request => request.path.startsWith('/api/reports/')).every(request => request.method === 'GET'))
   assert.deepEqual(owner.errors, [])
-  pass('All 15 core reporting APIs are requested, including sales on the current dashboard')
+  pass('All core reporting APIs are requested, including sales on the current dashboard')
 
-  const profit = owner.page.getByRole('region', { name: 'Chỉ số kinh doanh trong kỳ', exact: true }).getByText('Lãi gộp', { exact: true }).locator('../..')
+  const profit = owner.page.getByRole('region', { name: 'Chỉ số kinh doanh trong kỳ', exact: true }).getByRole('heading', { name: 'Lãi gộp', exact: true }).locator('..')
   assert.match(await profit.innerText(), /1\.200\.000 đ/)
   assert.match(await profit.innerText(), /Giá vốn 1\.800\.000 đ/)
   assert.match(await profit.innerText(), /Trước trả hàng/)

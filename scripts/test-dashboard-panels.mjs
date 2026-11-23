@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
 import { pathToFileURL } from 'node:url'
+import { mkdir } from 'node:fs/promises'
+import { join } from 'node:path'
 
 // The owner's dashboard adds three panels: best sellers (with units sold and a warning before they run out), lots expiring
 // in the next 30 days, and the customers who buy most. Every API request is intercepted; no live store is read or written.
@@ -7,10 +9,12 @@ const { chromium } = await import(process.env.UI_PLAYWRIGHT_MODULE ? pathToFileU
 const browser = await chromium.launch({ headless: true, channel: process.env.UI_BROWSER_CHANNEL })
 const base = process.env.UI_TEST_URL || 'http://127.0.0.1:5175'
 const failures = []
+const screenshotDir = process.env.DASHBOARD_SCREENSHOT_DIR
+if (screenshotDir) await mkdir(screenshotDir, { recursive: true })
 let checks = 0
 const pass = message => { checks++; console.log('PASS ' + message) }
 
-const metrics = (netSales, orderCount = 1) => ({ orderCount, fulfilledValue: netSales, costOfGoods: netSales * .6, grossProfit: netSales * .4, returnValue: 0, netSales, averageOrderValue: netSales / orderCount, grossMarginPercent: 40 })
+const metrics = (netSales, orderCount = 1) => ({ orderCount, fulfilledValue: netSales, costOfGoods: netSales * .6, grossProfit: netSales * .4, returnValue: 0, netSales, averageOrderValue: orderCount ? netSales / orderCount : 0, grossMarginPercent: netSales ? 40 : null })
 const products = [['sp-tilt', 'Tilt Super 300EC', 2400000, 12], ['sp-ure', 'Đạm Phú Mỹ', 1650000, 9], ['sp-chess', 'Chess 50WG', 320000, 4]]
 const customers = [['farmer-1', 'Nguyễn Văn An', 1800000, 5], ['WALK_IN', 'Khách lẻ', 900000, 7]]
 const vnToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date())
@@ -34,11 +38,12 @@ async function session(mode = 'normal') {
     const empty = mode === 'empty'
     if (request.method() !== 'GET') { failures.push(`Unexpected write ${request.method()} ${path}`); return route.abort() }
     if (path === '/api/auth/me') return json({ id: 'owner', fullName: 'Chủ cửa hàng', role: 'STORE_OWNER', status: 'ACTIVE' })
-    if (path === '/api/me/permissions') return json({ permissions: ['REPORTS.READ', 'ORDERS.READ', 'PAYMENTS.READ', 'DEBT.READ', 'DEBT.READ_DASHBOARD', 'INVENTORY.READ', 'CUSTOMERS.READ', 'DELIVERIES.READ', 'RETURNS.READ'] })
+    if (path === '/api/me/permissions') return json({ permissions: ['REPORTS.READ', 'ORDERS.READ', 'PAYMENTS.READ', 'DEBT.READ', 'DEBT.READ_DASHBOARD', 'INVENTORY.READ', 'CUSTOMERS.READ', 'DELIVERIES.READ', 'RETURNS.READ'].filter(code => mode !== 'denied' || code !== 'REPORTS.READ') })
     if (path.endsWith('/unread-count')) return json({ count: 0 })
+    if (path === '/api/inventory/alerts' && mode === 'failed') return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ message: 'Không tải được cảnh báo kho.' }) })
     if (path === '/api/reports/revenue') {
       const by = query.groupBy
-      const list = empty ? [] : by === 'PRODUCT' ? products : by === 'CUSTOMER' ? customers : []
+      const list = empty ? [] : by === 'PRODUCT' ? products : by === 'CUSTOMER' ? customers : by === 'DAY' ? [1200000, 1500000, 900000, 2400000, 1800000, 2100000, 2100000].map((value, index) => [addDays(vnToday, index - 6), addDays(vnToday, index - 6), value, 3]) : []
       const rows = list.map(([key, label, net, orders]) => ({ key, label, ...metrics(net, orders) }))
       const total = rows.reduce((sum, row) => sum + row.netSales, 0)
       return json({ fromDate: query.fromDate, toDate: query.toDate, groupBy: by, rows, page: 1, pageSize: Number(query.pageSize || 20), totalCount: rows.length, totalPages: 1, totals: metrics(total || 0, 1) })
@@ -57,11 +62,14 @@ async function session(mode = 'normal') {
       ], page: 1, pageSize: 3, totalCount: empty ? 0 : 5, totalPages: 1, summary: { lots: empty ? 0 : 5, knownRiskLots: 2, unknownRiskLots: 0, knownRiskValue: empty ? 0 : 350000 }, withinDays: 30,
     })
     // The other dashboard reports and tiles: real shapes with nothing in them.
-    if (path === '/api/reports/revenue-summary') return json({ current: metrics(0), previous: metrics(0), netSalesChangePercent: null })
-    if (path === '/api/reports/sales') return json({ rows: [], totals: metrics(0), page: 1, pageSize: 20, totalCount: 0, totalPages: 0 })
+    if (path === '/api/reports/revenue-summary') return json({ current: metrics(empty ? 0 : 12000000, empty ? 0 : 24), previous: metrics(empty ? 0 : 10000000, empty ? 0 : 20), netSalesChangePercent: empty ? null : 20 })
+    if (path === '/api/reports/sales') {
+      if (mode === 'failed') return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ message: 'Báo cáo lãi gộp tạm thời không có.' }) })
+      return json({ rows: [], totals: metrics(empty ? 0 : 12000000), page: 1, pageSize: 20, totalCount: 0, totalPages: 0 })
+    }
     if (path === '/api/reports/orders') return json({ rows: [], totals: { orderCount: 0, orderValue: 0 } })
     if (path === '/api/reports/payments') return json({ rows: [], totals: { paymentCount: 0, receivedAmount: 0, orderPaymentAmount: 0, debtRepaymentAmount: 0, refundedAmount: 0, netReceivedAmount: 0 } })
-    if (path === '/api/reports/debt-aging') return json({ asOf: vnToday, rows: [], totals: { notDue: 0, days1To30: 0, days31To60: 0, days61To90: 0, over90: 0, total: 0 } })
+    if (path === '/api/reports/debt-aging') return json({ asOf: vnToday, rows: [], totals: { notDue: empty ? 0 : 7000000, days1To30: empty ? 0 : 2000000, days31To60: empty ? 0 : 1000000, days61To90: 0, over90: 0, total: empty ? 0 : 10000000 } })
     if (path === '/api/reports/debt-by-customer-group') return json({ rows: [] })
     if (path === '/api/inventory/replenishment/products' || path === '/api/inventory/replenishment/urgent') return json({ ...paged([]), summary: { totalProducts: 0, outOfStock: 0, highPriority: 0, needsConfiguration: 0, insufficientHistory: 0, seasonalProducts: 0 }, generatedAt: new Date().toISOString(), fromDate: vnToday, toDate: vnToday, horizonDays: 30 })
     return json(paged([]))
@@ -76,6 +84,15 @@ try {
   await page.goto(`${base}/agent`)
   const best = page.getByRole('region', { name: 'Sản phẩm bán chạy', exact: true })
   await best.getByText('Tilt Super 300EC').first().waitFor()
+  const stats = page.getByRole('region', { name: 'Chỉ số kinh doanh trong kỳ', exact: true })
+  assert.match(await stats.innerText(), /Doanh thu thuần[\s\S]*12\.000\.000 đ[\s\S]*\+20%/)
+  assert.match(await stats.innerText(), /Lãi gộp[\s\S]*4\.800\.000 đ/)
+  const debt = page.getByRole('region', { name: 'Công nợ phải thu', exact: true })
+  assert.match(await debt.innerText(), /3\.000\.000 đ[\s\S]*đã quá hạn[\s\S]*Tổng phải thu[\s\S]*10\.000\.000 đ/)
+  assert.match(await debt.innerText(), /Không theo kỳ báo cáo/)
+  assert.equal(await page.locator('details').getAttribute('open'), null)
+  assert.equal(await page.getByRole('region', { name: 'Kênh bán hàng', exact: true }).count(), 0, 'Secondary analysis is collapsed on arrival')
+  pass('Manager first sees four business figures, overdue debt and current-data scope')
 
   // Best sellers: ranked by the period's net sales, with units sold and a stock warning from the sales pace.
   const items = best.getByRole('listitem')
@@ -104,7 +121,25 @@ try {
   assert.equal(expiryRequest.query.withinDays, '30')
   pass('Expiring lots show the count, the value at risk and the nearest lots, and link to the expiry tab')
 
+  for (const width of [1440, 768, 390, 320]) {
+    await page.setViewportSize({ width, height: 1000 })
+    // Recharts applies ResizeObserver measurements asynchronously after a viewport change.
+    await page.waitForFunction(() => document.documentElement.scrollWidth <= innerWidth + 1, null, { timeout: 5000 })
+    if (screenshotDir) await page.screenshot({ path: join(screenshotDir, `manager-${width}.png`), fullPage: true })
+    const overflow = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, elements: [...document.querySelectorAll('main *')].filter(element => element.getBoundingClientRect().right > innerWidth + 1 && !element.closest('[class*="overflow-x"]')).slice(0, 8).map(element => ({ tag: element.tagName, cls: String(element.className), text: element.textContent.slice(0, 50), width: element.getBoundingClientRect().width })) }))
+    assert.ok(overflow.width <= width + 1, `No document overflow at ${width}px: ${JSON.stringify(overflow)}`)
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  const debtCalls = state.requests.filter(request => request.path === '/api/reports/debt-aging').length
+  await page.getByRole('button', { name: '7 ngày', exact: true }).click()
+  await page.waitForFunction(() => !document.querySelector('main .animate-pulse'))
+  assert.equal(state.requests.filter(request => request.path === '/api/reports/debt-aging').length, debtCalls, 'Changing the period does not refetch current debt')
+  assert.ok(state.requests.some(request => request.path === '/api/reports/revenue-summary' && request.query.fromDate === addDays(vnToday, -6)))
+  assert.match(await debt.innerText(), /3\.000\.000 đ/)
+  pass('Responsive layout has no page overflow; date filters update period reports and preserve current debt')
+
   // Top customers: registered farmers and walk-in sales, with their share of the period's revenue.
+  await page.locator('summary').filter({ hasText: 'Phân tích chi tiết' }).click()
   const buyers = page.getByRole('region', { name: 'Khách hàng mua nhiều', exact: true })
   await buyers.getByText('Nguyễn Văn An').first().waitFor()
   assert.match(await buyers.innerText(), /67%[\s\S]*doanh thu từ[\s\S]*Nguyễn Văn An/)
@@ -124,9 +159,27 @@ try {
   await quiet.page.goto(`${base}/agent`)
   await quiet.page.getByText('Chưa có sản phẩm bán ra trong kỳ này.').waitFor()
   await quiet.page.getByText('Không có lô nào hết hạn trong 30 ngày tới.').waitFor()
+  await quiet.page.locator('summary').filter({ hasText: 'Phân tích chi tiết' }).click()
   await quiet.page.getByText('Chưa có khách mua trong kỳ này.').waitFor()
   pass('Empty periods show a plain message in each new panel')
   await quiet.context.close()
+
+  const failed = await session('failed')
+  await failed.page.goto(`${base}/agent`)
+  await failed.page.getByRole('region', { name: 'Chỉ số kinh doanh trong kỳ' }).getByRole('alert').waitFor()
+  await failed.page.getByText('Một số mục chưa tải được.', { exact: false }).waitFor()
+  assert.match(await failed.page.getByRole('link', { name: /Cảnh báo kho:/ }).innerText(), /—/)
+  assert.match(await failed.page.getByRole('region', { name: 'Chỉ số kinh doanh trong kỳ' }).innerText(), /12\.000\.000 đ/)
+  assert.equal(await failed.page.getByRole('heading', { name: 'Lãi gộp', exact: true }).locator('..').locator('.animate-pulse').count(), 0)
+  pass('An unavailable profit report shows an error without hiding revenue or leaving a perpetual loading state')
+  await failed.context.close()
+
+  const denied = await session('denied')
+  await denied.page.goto(`${base}/agent`)
+  await denied.page.getByText('Cần quyền xem báo cáo').first().waitFor()
+  assert.equal(denied.state.requests.filter(request => request.path.startsWith('/api/reports/')).length, 0)
+  pass('Without report permission, the manager dashboard does not request reports')
+  await denied.context.close()
 } catch (error) {
   failures.push(error.stack || String(error))
 } finally {

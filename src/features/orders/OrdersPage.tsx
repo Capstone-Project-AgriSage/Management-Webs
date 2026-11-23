@@ -32,6 +32,7 @@ import { NEW_ORDER_EVENT } from '@/features/alerts/alertStore';
 import OrderEditModal from './OrderEditModal'
 import ConfirmOrderModal from './ConfirmOrderModal'
 import PickupModal from './PickupModal'
+import OrderInvoiceModal from './OrderInvoiceModal'
 import { formatDay } from '@/utils/creditLabels'
 import './order-detail.css'
 /**
@@ -98,6 +99,7 @@ export default function OrdersPage() {
 
   // Payment state
   const [paymentSummary, setPaymentSummary] = useState<OrderPaymentsSummary | null>(null)
+  const [invoice, setInvoice] = useState<{ order: OrderResponse; payments: OrderPaymentsSummary } | null>(null)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [paymentAmount, setPaymentAmount] = useState('')
   const [isPaying, setIsPaying] = useState(false)
@@ -515,6 +517,15 @@ export default function OrdersPage() {
             </div>
           </div>} footer={<div className="order-detail-actions">
             <div className="order-detail-secondary-actions">
+              {isCounterOrder(selectedOrder) && selectedOrder.status === 'COMPLETED' && (
+                <button type="button"
+                  className="order-detail-button border border-outline-variant text-on-surface hover:bg-surface-container disabled:opacity-50"
+                  disabled={!paymentSummary || !selectedOrder.items?.length}
+                  onClick={() => { if (paymentSummary) setInvoice({ order: selectedOrder, payments: paymentSummary }) }}
+                >
+                  <Receipt size={16} /> Xem / In hóa đơn
+                </button>
+              )}
               {selectedOrder.status === 'PENDING_CONFIRMATION' && selectedOrder.items && (
                 <PermissionAction codes={['ORDERS.UPDATE']}><button
                   type="button"
@@ -744,6 +755,8 @@ export default function OrdersPage() {
           </ModalLayout>
         ) : null}
       </DetailModal>
+
+      {invoice && <OrderInvoiceModal order={invoice.order} payments={invoice.payments} onClose={() => setInvoice(null)} />}
 
       {/* Payment Modal */}
       {isPaymentModalOpen && paymentSummary && selectedOrder && (

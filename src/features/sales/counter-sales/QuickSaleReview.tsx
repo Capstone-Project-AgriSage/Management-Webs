@@ -5,21 +5,23 @@ import type { CounterSalePreviewResponse } from '@/api/types'
 interface QuickSaleReviewProps {
   preview: CounterSalePreviewResponse
   selling: boolean
+  printInvoice: boolean
+  onPrintInvoiceChange: (value: boolean) => void
   onBack: () => void
   onSell: () => void
 }
 
 /** FE_GUIDE_FLOW_1 §M7: before a quick sale the staff sees each line, its price and the lots that will leave stock. */
-export default function QuickSaleReview({ preview, selling, onBack, onSell }: QuickSaleReviewProps) {
+export default function QuickSaleReview({ preview, selling, printInvoice, onPrintInvoiceChange, onBack, onSell }: QuickSaleReviewProps) {
   const short = preview.items.some((i) => i.shortageBaseQuantity > 0)
   return (
     <div className="flex flex-col h-full z-10">
       <div className="p-4 border-b border-outline-variant flex justify-between items-center">
         <h2 className="font-bold text-lg flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary">receipt_long</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-primary">receipt_long</span>
           Xác nhận thanh toán
         </h2>
-        <button type="button" onClick={onBack} className="text-on-surface-variant hover:text-on-surface text-sm font-medium">
+        <button type="button" onClick={onBack} disabled={selling} className="text-on-surface-variant hover:text-on-surface text-sm font-medium disabled:opacity-50">
           Sửa đơn hàng
         </button>
       </div>
@@ -59,6 +61,18 @@ export default function QuickSaleReview({ preview, selling, onBack, onSell }: Qu
       </div>
 
       <div className="p-6 border-t border-outline-variant/30 z-20">
+        <fieldset disabled={selling} className="mb-5 space-y-2 text-sm">
+          <legend className="mb-2 font-semibold">Hóa đơn bán hàng</legend>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="invoice-print" checked={!printInvoice} onChange={() => onPrintInvoiceChange(false)} className="accent-emerald-600" />
+            Không in hóa đơn
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="invoice-print" checked={printInvoice} onChange={() => onPrintInvoiceChange(true)} className="accent-emerald-600" />
+            In hóa đơn sau thanh toán
+          </label>
+          <p className="text-xs text-on-surface-variant">Có thể xem và in lại hóa đơn sau khi bán hàng.</p>
+        </fieldset>
         <div className="flex justify-between items-end mb-6">
           <span className="font-bold text-on-surface-variant uppercase text-sm tracking-wider">Khách phải trả</span>
           <span className="font-bold text-4xl text-emerald-600 tracking-tight tabular-nums">{formatVnd(preview.totalAmount)}</span>
@@ -75,7 +89,7 @@ export default function QuickSaleReview({ preview, selling, onBack, onSell }: Qu
             </>
           ) : (
             <>
-              <span className="material-symbols-outlined text-2xl">payments</span> XÁC NHẬN & THU TIỀN
+              <span aria-hidden="true" className="material-symbols-outlined text-2xl">payments</span> {printInvoice ? 'THU TIỀN & IN HÓA ĐƠN' : 'XÁC NHẬN & THU TIỀN'}
             </>
           )}
         </button>

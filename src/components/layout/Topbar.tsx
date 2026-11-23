@@ -1,10 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePageHeaderValue } from '@/context/PageHeaderContext';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
-import { useToast } from '@/context/ToastContext';
 import StoreAlertSettings from '@/features/alerts/StoreAlertSettings';
+import GlobalSearch from './GlobalSearch';
 
 interface TopbarProps {
   onMenuClick: () => void
@@ -14,53 +13,19 @@ interface TopbarProps {
 export default function Topbar({ onMenuClick, menuOpen }: TopbarProps) {
   const { title, badge } = usePageHeaderValue()
   const { logout, currentRole, user } = useAuth()
-  const { showToast } = useToast()
   const navigate = useNavigate()
 
-  const [searchQuery, setSearchQuery] = useState('')
   const { unreadCount } = useNotifications()
-  const searchInputRef = useRef<HTMLInputElement>(null)
   const displayName = user.fullName || user.name || 'Tài khoản'
   const initials = user.initials || displayName.split(' ').filter(Boolean).slice(-2).map((part: string) => part[0]).join('')
   const roleLabel = ({ admin: 'Quản trị viên', agent: 'Chủ cửa hàng', sales_staff: 'Nhân viên bán hàng', delivery_staff: 'Nhân viên giao hàng' } as Record<string, string>)[currentRole || '']
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault()
-        searchInputRef.current?.focus()
-      } else if (
-        e.key === '/' &&
-        document.activeElement?.tagName !== 'INPUT' &&
-        document.activeElement?.tagName !== 'TEXTAREA'
-      ) {
-        e.preventDefault()
-        searchInputRef.current?.focus()
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [])
-
   const handleLogout = () => {
     logout()
     navigate('/login')
   }
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const q = searchQuery.trim().toLowerCase()
-    if (!q) return
-    showToast(`Tìm kiếm: "${searchQuery}"`)
-    setSearchQuery('')
-  }
-
   const handleNotificationsClick = () => navigate('/notifications')
 
   const badgeIcon = currentRole === 'admin' ? 'verified_user' : 'agriculture'
-  const searchPlaceholder = currentRole === 'admin'
-    ? 'Tìm tài khoản theo tên, mã, SĐT...'
-    : 'Tìm nông dân, đơn hàng, vật tư...'
 
   return (
     <header className="management-topbar bg-white border-b border-outline-variant sticky top-0 z-40 flex items-center justify-between gap-3">
@@ -89,21 +54,7 @@ export default function Topbar({ onMenuClick, menuOpen }: TopbarProps) {
       </div>
 
       <div className="flex items-center justify-end gap-space-md shrink-0">
-        <form className="topbar-search relative hidden lg:block" onSubmit={handleSearchSubmit}>
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-outline">search</span>
-          <input
-            ref={searchInputRef}
-            className="w-full h-10 pl-9 pr-14 text-sm bg-surface-container-low border border-outline-variant rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/15 focus:bg-white text-on-surface transition-colors placeholder:text-outline font-body-md"
-            placeholder={searchPlaceholder}
-            aria-label={searchPlaceholder}
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <div className="absolute right-1.5 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 pointer-events-none text-outline">
-            <kbd className="font-sans text-label-sm bg-surface-container-highest px-1.5 py-0.5 rounded border border-outline-variant shadow-sm leading-none flex items-center justify-center h-5 tracking-tighter">Ctrl K</kbd>
-          </div>
-        </form>
+        <GlobalSearch />
         <div className="flex items-center gap-1">
           <StoreAlertSettings />
           <button

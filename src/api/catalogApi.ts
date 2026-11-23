@@ -39,7 +39,7 @@ export const catalogApi = {
   getCategories: () => {
     return api<CatalogCategory[]>('/api/catalog/categories')
   },
-  getProducts: (params?: { search?: string; categoryId?: string; page?: number; pageSize?: number }) => {
+  getProducts: (params?: { search?: string; categoryId?: string; page?: number; pageSize?: number }, signal?: AbortSignal) => {
     const searchParams = new URLSearchParams()
     if (params?.search) searchParams.append('search', params.search)
     if (params?.categoryId) searchParams.append('categoryId', params.categoryId)
@@ -47,7 +47,7 @@ export const catalogApi = {
     if (params?.pageSize) searchParams.append('pageSize', params.pageSize.toString())
     
     const qs = searchParams.toString()
-    return api<Paged<CatalogProduct>>(`/api/catalog/products${qs ? `?${qs}` : ''}`)
+    return api<Paged<CatalogProduct>>(`/api/catalog/products${qs ? `?${qs}` : ''}`, { signal })
   },
   
   getProductDetail: (id: string) => {

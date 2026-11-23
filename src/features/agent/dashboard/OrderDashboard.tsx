@@ -64,7 +64,7 @@ export default function OrderDashboard({ reports = false, ordersPath, area }: { 
       <PeriodFilter title="Kết quả kinh doanh" fromDate={fromDate} toDate={toDate} onChange={setPeriod} onRefresh={refreshAll} />
       {problem && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{problem}</p>}
       <Suspense fallback={<div aria-hidden="true" className="h-96 animate-pulse rounded-2xl bg-slate-50" />}>
-        <DashboardCharts fromDate={fromDate} toDate={toDate} links={area === 'agent' ? AGENT_LINKS : undefined} />
+        <DashboardCharts fromDate={fromDate} toDate={toDate} links={area === 'agent' ? AGENT_LINKS : undefined} manager={area === 'agent'} />
       </Suspense>
     </section> : reports ? <BusinessReportCards kind="sales" fromDate={fromDate} toDate={toDate} onFromDateChange={setFromDate} onToDateChange={setToDate} /> :
       <StatStrip label="Đơn hàng trong kỳ" loading={counts.loading} stats={[

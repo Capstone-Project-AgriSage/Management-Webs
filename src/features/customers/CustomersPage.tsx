@@ -54,6 +54,8 @@ export default function CustomersPage() {
   // ?customer=<id> opens that customer's detail (linked from the debt dashboard's credit-limit alerts).
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedId, setSelectedId] = useState<string | null>(() => searchParams.get('customer'))
+  const customerId = searchParams.get('customer')
+  useEffect(() => { setSelectedId(customerId) }, [customerId])
   const [form, setForm] = useState<{ customer: CustomerResponse | null } | null>(null)
 
   useEffect(() => {

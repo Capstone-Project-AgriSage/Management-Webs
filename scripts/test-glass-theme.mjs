@@ -90,6 +90,7 @@ try {
   const { page, state } = desktop
   await page.goto(base + '/agent')
   await settled(page, 'dashboard')
+  await page.locator('summary').filter({ hasText: 'Phân tích chi tiết' }).click()
   assert.equal(await page.locator('.agrisage-kpi-card').count(), 0, 'The dashboard draws its own strip and panels, not the list summary cards')
   for (const name of ['Việc cần xử lý', 'Kết quả kinh doanh', 'Doanh thu thuần theo ngày', 'Nhóm sản phẩm bán chạy', 'Kênh bán hàng', 'Phương thức thanh toán', 'Tỷ lệ hoàn thành đơn', 'Công nợ phải thu', 'Công nợ theo nhóm khách', 'Đơn hàng gần đây']) await page.getByText(name, { exact: true }).first().waitFor()
   assert((await page.locator('main .recharts-surface').count()) >= 1, 'The revenue chart is drawn')

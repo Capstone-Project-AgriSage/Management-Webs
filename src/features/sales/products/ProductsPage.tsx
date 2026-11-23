@@ -1,7 +1,8 @@
 import ListToolbar from '@/components/ui/ListToolbar'
 import ModalLayout from '@/components/ui/ModalLayout'
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useUrlSearch } from '@/hooks/useUrlSearch';
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
 import ListReportCards from '@/features/agent/reports/ListReportCards'
@@ -24,8 +25,9 @@ export default function ProductsPage() {
 
   const { showToast } = useToast()
   const navigate = useNavigate()
+  const location = useLocation()
 
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useUrlSearch()
   const [page, setPage] = useState(1)
   const [products, setProducts] = useState<CatalogProduct[]>([])
   const [totalCount, setTotalCount] = useState(0)
@@ -35,6 +37,7 @@ export default function ProductsPage() {
   const request = useRef(0)
 
   const [selectedProduct, setSelectedProduct] = useState<CatalogProductDetail | null>(null)
+  useEffect(() => { if (location.state?.globalSearch) setPage(1) }, [location.key, location.state])
 
   useEffect(() => {
     const requestId = ++request.current
