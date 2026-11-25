@@ -4,7 +4,7 @@ import PermissionAction from '@/components/auth/PermissionAction'
 import { useEffect, useState } from 'react';
 import { cropSeasonsApi, type CropSeason } from '@/api/cropSeasonsApi';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Banknote, Landmark, FilePlus2 } from 'lucide-react';
+import { ArrowLeft, Banknote, Landmark, FilePlus2, MessageSquareText } from 'lucide-react';
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
 import { usePermission } from '@/context/PermissionContext';
@@ -153,6 +153,20 @@ export default function CustomerDebtPage() {
   const name = customer?.fullName ?? ''
   const balance = account?.currentBalance ?? 0
 
+  const sendDebtSms = async () => {
+    if (!customer?.phoneNumber || !window.confirm(`Gửi SMS nhắc nợ đến ${customer.phoneNumber}?`)) return
+    setBusy(true)
+    try {
+      await debtApi.sendDebtSms(id)
+      showToast('Đã gửi SMS nhắc nợ và ghi vào lịch sử liên hệ', 'success')
+      refreshAll()
+    } catch (err) {
+      showToast(errorText(err, 'Không gửi được SMS nhắc nợ'), 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="max-w-[1400px] mx-auto flex flex-col gap-space-lg p-space-md">
       <Link to={`${base}/debts`} className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 w-fit">
@@ -169,6 +183,14 @@ export default function CustomerDebtPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <PermissionAction codes={["DEBT.FOLLOW_UP"]}><button
+            type="button"
+            disabled={busy || noAccount || balance <= 0 || !customer?.phoneNumber}
+            className="h-9 px-4 rounded-lg border border-slate-200 bg-white text-sm font-medium hover:bg-slate-50 disabled:opacity-50 flex items-center gap-1.5"
+            onClick={sendDebtSms}
+          >
+            <MessageSquareText size={16} /> Gửi SMS nhắc nợ
+          </button></PermissionAction>
           <PermissionAction codes={["PAYMENTS.RECEIVE_CASH"]}><button
             type="button"
             disabled={noAccount || balance <= 0}

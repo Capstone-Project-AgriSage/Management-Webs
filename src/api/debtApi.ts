@@ -212,6 +212,8 @@ const entry = (id: string) => `/api/debt-entries/${id}`
 const post = <T>(path: string, body: unknown) => api<T>(path, { method: 'POST', body: JSON.stringify(body) })
 
 export const debtApi = {
+  sendDebtSms: (farmerProfileId: string) =>
+    api<{ id: string }>(`/api/customers/${farmerProfileId}/debt/send-sms`, { method: 'POST' }),
   getDebtAccounts: (q: { search?: string; hasOutstanding?: boolean; overdueOnly?: boolean; page?: number; pageSize?: number } = {}) =>
     api<PagedResult<DebtAccountListItem>>(
       `/api/debt-accounts${toQuery({ Search: q.search, HasOutstanding: q.hasOutstanding, OverdueOnly: q.overdueOnly, Page: q.page, PageSize: q.pageSize })}`,
