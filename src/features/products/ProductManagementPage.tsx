@@ -21,6 +21,7 @@ import ProductThumb from '@/components/ui/ProductThumb'
 import ProductFormModal from './ProductFormModal'
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
 import KpiCard from '@/components/ui/KpiCard'
+import SeasonalSuggestionNotice from '@/features/agent/inventory/SeasonalSuggestionNotice'
 
 const PAGE_SIZE = LIST_PAGE_SIZE
 
@@ -220,6 +221,8 @@ export default function ProductManagementPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
+      {/* Store screens only: the admin's master catalog uses this page too and has no store season. */}
+      {location.pathname.startsWith('/agent') && <SeasonalSuggestionNotice />}
       <BusinessReportCards kind="valuation" searchResult={{ count: data?.totalCount ?? 0, unit: 'sản phẩm' }} leadingCards={<KpiCard title="Đang kinh doanh trên trang" value={loading ? '…' : data?.items.filter(product => product.status === 'ACTIVE').length ?? '—'} subtitle="Trong các sản phẩm đang hiển thị" className="border-slate-200 min-h-40" />} />
       <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: "Tìm theo tên hoặc mã SKU..." }} onClear={resetFilters} actions={<><PermissionAction codes={["PRODUCTS.CREATE"]}><button type="button" className="h-9 px-4 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 flex items-center gap-1.5" onClick={() => setForm({ product: null })}>
             <PackagePlus size={16} /> Thêm sản phẩm
