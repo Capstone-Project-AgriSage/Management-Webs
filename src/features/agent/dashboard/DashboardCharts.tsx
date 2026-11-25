@@ -672,7 +672,8 @@ function CollectionsPanel({ report, debt, to }: { report: Report<DebtCollectionR
   </Panel>
 }
 
-/** F3.23: overdue customers nobody reminded lately, and promises to pay that have passed. Current figures, not the period. */
+/** F3.23: overdue customers nobody reminded lately (disputed debt left out), and customers whose latest reminder is a promise
+ * that passed unpaid with nobody following it up. Current figures, not the period. */
 function FollowUpPanel({ debt, to }: { debt: Report<DebtDashboard>; to?: string }) {
   const follow = debt.data?.followUp
   return <Panel label="Theo dõi nhắc nợ" to={to}
@@ -686,7 +687,7 @@ function FollowUpPanel({ debt, to }: { debt: Report<DebtDashboard>; to?: string 
         return <>
           <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
             <div><dt className="text-xs text-slate-500">Khách đang quá hạn</dt><dd className="mt-0.5 font-semibold tabular-nums text-slate-900">{num(f.overdueCustomerCount)}</dd></div>
-            <div><dt className="text-xs text-slate-500">Hẹn trả đã quá ngày</dt>
+            <div><dt className="text-xs text-slate-500">Lỡ hẹn, chưa nhắc lại</dt>
               <dd className={`mt-0.5 flex items-center gap-1 font-semibold tabular-nums ${f.brokenPromiseCount > 0 ? 'text-rose-700' : 'text-slate-900'}`}>{f.brokenPromiseCount > 0 && <TriangleAlert size={14} aria-hidden="true" />}{num(f.brokenPromiseCount)}</dd></div>
           </dl>
           {f.overdueCustomerCount > 0 && <div className="mt-4">
@@ -695,7 +696,7 @@ function FollowUpPanel({ debt, to }: { debt: Report<DebtDashboard>; to?: string 
             </div>
             <p className="mt-1.5 text-xs text-slate-600">Đã nhắc trong {num(f.windowDays)} ngày: <strong className="font-semibold text-slate-900">{num(reminded)}/{num(f.overdueCustomerCount)}</strong> khách</p>
           </div>}
-          <p className="mt-auto pt-3 text-xs leading-5 text-slate-500">Cửa hàng tự nhắc khách rồi ghi lại trên trang công nợ của khách. Hệ thống chỉ lưu lại, không tự gửi gì.</p>
+          <p className="mt-auto pt-3 text-xs leading-5 text-slate-500">Không tính khoản đang tranh chấp. Cửa hàng tự nhắc khách rồi ghi lại trên trang công nợ của khách; hệ thống chỉ lưu lại, không tự gửi gì.</p>
         </>
       }}
     </Body>

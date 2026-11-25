@@ -162,8 +162,9 @@ export interface AllocationPreview {
 // F3.23 (FLOW_3 §8j): reminders the store made outside the system, logged afterwards. Internal: never on the Farmer apps.
 export type DebtFollowUpChannel = 'PHONE_CALL' | 'VISIT' | 'AT_STORE' | 'MESSAGE' | 'OTHER'
 export type DebtFollowUpOutcome = 'PROMISED' | 'ASKED_MORE_TIME' | 'NO_ANSWER' | 'REFUSED' | 'OTHER'
-/** Derived by the server from the payments since the contact; only a label. */
-export type DebtPromiseStatus = 'WAITING' | 'KEPT' | 'BROKEN'
+/** Derived by the server from the payments since the contact; only a label. KEPT = paid by the promised day, LATE = paid
+ * after it, CLEARED = nothing owed any more without that payment (return, reduction, write-off). */
+export type DebtPromiseStatus = 'WAITING' | 'KEPT' | 'LATE' | 'CLEARED' | 'BROKEN'
 export interface DebtFollowUp {
   id: string
   contactedAt: string
@@ -179,6 +180,8 @@ export interface DebtFollowUp {
   overdueAmount: number
   createdBy: { id: string; name: string | null; role: string | null }
   createdAt: string
+  /** A later reminder of the same customer exists: this one is no longer the latest word (absent on an older server). */
+  hasLaterContact?: boolean
 }
 export interface DebtFollowUpSummary {
   contactedAt: string

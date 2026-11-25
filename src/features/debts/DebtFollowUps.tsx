@@ -20,11 +20,13 @@ export const FOLLOW_UP_OUTCOME_LABEL: Record<DebtFollowUpOutcome, string> = {
 const PROMISE: Record<DebtPromiseStatus, { text: string; className: string }> = {
   WAITING: { text: 'Chờ đến hẹn', className: 'border-slate-200 bg-slate-50 text-slate-700' },
   KEPT: { text: 'Đã trả theo hẹn', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
+  LATE: { text: 'Trả trễ hẹn', className: 'border-amber-200 bg-amber-50 text-amber-800' },
+  CLEARED: { text: 'Hết nợ', className: 'border-sky-200 bg-sky-50 text-sky-800' },
   BROKEN: { text: 'Quá hẹn', className: 'border-rose-200 bg-rose-50 text-rose-700' },
 }
 
 export function PromiseBadge({ status }: { status: DebtPromiseStatus | null | undefined }) {
-  if (!status) return null
+  if (!status || !PROMISE[status]) return null
   const badge = PROMISE[status]
   return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${badge.className}`}>{badge.text}</span>
 }
@@ -179,6 +181,7 @@ export function DebtFollowUpList({ items, loading }: { items: DebtFollowUp[] | n
               <span className="text-slate-600">· {FOLLOW_UP_CHANNEL_LABEL[item.channel] ?? item.channel}</span>
               <span className="font-medium text-slate-900">· {FOLLOW_UP_OUTCOME_LABEL[item.outcome] ?? item.outcome}{item.promisedDate ? ` ${formatDay(item.promisedDate)}` : ''}{item.promisedAmount ? ` · ${formatVnd(item.promisedAmount)}` : ''}</span>
               <PromiseBadge status={item.promiseStatus} />
+              {item.promiseStatus && item.hasLaterContact && <span className="text-xs text-slate-500">· đã có lần nhắc sau</span>}
             </p>
             {item.note && <p className="mt-1 whitespace-pre-line text-sm text-slate-700 [overflow-wrap:anywhere]">{item.note}</p>}
             <p className="mt-1 text-xs text-slate-500">

@@ -31,7 +31,9 @@ async function session(mode = 'owner') {
   await context.addInitScript(() => localStorage.setItem('agrisage_token', 'debt-follow-ups'))
   const state = { requests: [], posts: [], followUps: [
     followUp('f-2', { channel: 'VISIT', outcome: 'PROMISED', note: 'Hẹn bán lúa xong trả', promisedDate: addDays(vnToday, -1), promisedAmount: 1000000, promiseStatus: 'BROKEN', contactedAt: `${addDays(vnToday, -3)}T03:00:00Z` }),
-    followUp('f-1', { outcome: 'PROMISED', promisedDate: addDays(vnToday, -10), promiseStatus: 'KEPT', paidSinceContact: 2000000, contactedAt: `${addDays(vnToday, -12)}T03:00:00Z` }),
+    followUp('f-1', { outcome: 'PROMISED', promisedDate: addDays(vnToday, -10), promiseStatus: 'KEPT', paidSinceContact: 2000000, contactedAt: `${addDays(vnToday, -12)}T03:00:00Z`, hasLaterContact: true }),
+    followUp('f-0', { outcome: 'PROMISED', promisedDate: addDays(vnToday, -20), promiseStatus: 'LATE', paidSinceContact: 500000, contactedAt: `${addDays(vnToday, -22)}T03:00:00Z`, hasLaterContact: true }),
+    followUp('f-z', { outcome: 'PROMISED', promisedDate: addDays(vnToday, -25), promiseStatus: 'CLEARED', contactedAt: `${addDays(vnToday, -26)}T03:00:00Z`, hasLaterContact: true }),
   ] }
   const staff = mode === 'staff'
   const permissions = ['DEBT.READ', 'DEBT.READ_DASHBOARD', 'PAYMENTS.RECEIVE_CASH', 'BANK_PAYMENTS.RECORD', 'CUSTOMERS.READ', 'ORDERS.READ', ...(staff ? [] : ['DEBT.FOLLOW_UP', 'DEBT.MANUAL'])]
@@ -53,7 +55,7 @@ async function session(mode = 'owner') {
         const body = JSON.parse(request.postData() || '{}')
         state.posts.push(body)
         const created = followUp('f-new', { ...body, contactedAt: body.contactedAt, promiseStatus: body.promisedDate ? 'WAITING' : null, createdAt: new Date().toISOString() })
-        state.followUps.unshift(created)
+        state.followUps = [created, ...state.followUps.map(item => ({ ...item, hasLaterContact: true }))]
         return json(created, 201)
       }
       return json(paged(state.followUps))
@@ -119,12 +121,16 @@ try {
   const history = page.getByRole('list', { name: 'Lịch sử nhắc nợ' })
   await history.getByText('Ra ruộng gặp, hẹn cuối tuần').waitFor()
   const items = history.getByRole('listitem')
-  assert.equal(await items.count(), 3)
+  assert.equal(await items.count(), 5)
   assert.match(await items.nth(0).innerText(), /Đến nhà\/ruộng[\s\S]*Hứa trả[\s\S]*500\.000 đ[\s\S]*Chờ đến hẹn/)
-  assert.match(await items.nth(1).innerText(), /Hẹn bán lúa xong trả[\s\S]*Quá hẹn|Quá hẹn[\s\S]*Hẹn bán lúa xong trả/)
+  assert.doesNotMatch(await items.nth(0).innerText(), /đã có lần nhắc sau/, 'The newest record is the latest word')
+  assert.match(await items.nth(1).innerText(), /Quá hẹn[\s\S]*đã có lần nhắc sau[\s\S]*Hẹn bán lúa xong trả/)
   assert.match(await items.nth(2).innerText(), /Đã trả theo hẹn/)
+  assert.match(await items.nth(3).innerText(), /Trả trễ hẹn/)
+  assert.match(await items.nth(4).innerText(), /Hết nợ/)
+  assert.doesNotMatch(await items.nth(4).innerText(), /Đã trả theo hẹn/, 'A debt cleared without paying is not "paid as promised"')
   assert.match(await items.nth(1).innerText(), /Lúc ghi: còn nợ 3\.000\.000 đ · quá hạn 2\.000\.000 đ/)
-  pass('The history lists reminders newest first with "Chờ đến hẹn", "Quá hẹn" and "Đã trả theo hẹn"')
+  pass('The history lists reminders newest first with "Chờ đến hẹn", "Quá hẹn", "Đã trả theo hẹn", "Trả trễ hẹn", "Hết nợ" and marks older ones')
 
   for (const width of [390, 320]) {
     await page.setViewportSize({ width, height: 900 })
