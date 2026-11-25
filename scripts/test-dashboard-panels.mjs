@@ -67,6 +67,7 @@ async function session(mode = 'normal') {
     if (path === '/api/reports/purchases') return json({ fromDate: query.fromDate, toDate: query.toDate, groupBy: query.groupBy, rows: empty ? [] : [{ key: 'sup-1', label: 'Công ty Lộc Trời', receiptCount: 3, purchaseAmount: 6000000 }, { key: 'sup-2', label: 'Đại lý Phú Mỹ', receiptCount: 1, purchaseAmount: 2000000 }], totals: { receiptCount: empty ? 0 : 4, purchaseAmount: empty ? 0 : 8000000 } })
     if (path === '/api/reports/credit-exposure') return json({ asOf: new Date().toISOString(), rows: [], totals: empty ? { creditLimit: 0, outstanding: 0, reservedCredit: 0, exposure: 0, availableCredit: 0 } : { creditLimit: 40000000, outstanding: 10000000, reservedCredit: 2000000, exposure: 12000000, availableCredit: 28000000 } })
     if (path === '/api/debt-entries/dashboard') return json({ totalOutstandingDebt: 10000000, totalOverdueDebt: 3000000, collectedToday: 500000, collectedThisMonth: 3500000, customersWithDebt: 4, customersWithOverdueDebt: 2, topDebtors: [], recentDebtPayments: [], overdueDebts: [], dueSoonAmount: empty ? 0 : 1500000,
+      followUp: empty ? { windowDays: 7, overdueCustomerCount: 0, notContactedCount: 0, brokenPromiseCount: 0 } : { windowDays: 7, overdueCustomerCount: 5, notContactedCount: 2, brokenPromiseCount: 1 },
       creditLimitAlertCount: empty ? 0 : 2, creditLimitAlerts: empty ? [] : [
         { farmerProfileId: 'farmer-b', fullName: 'Trần Thị Bình', phoneNumber: null, creditLimit: 5000000, usedCredit: 5000000, availableCredit: 0, state: 'AT_LIMIT' },
         { farmerProfileId: 'farmer-c', fullName: 'Lê Văn Cường', phoneNumber: null, creditLimit: 4000000, usedCredit: 3600000, availableCredit: 400000, state: 'NEAR_LIMIT' },
@@ -170,6 +171,15 @@ try {
   assert.match(await collected.innerText(), /Hôm nay thu 500\.000 đ[\s\S]*Tháng này 3\.500\.000 đ/)
   assert.equal(state.requests.filter(request => request.path === '/api/reports/debt-collections').at(-1).query.groupBy, 'METHOD')
   pass('Credit shows the limit used, near-limit customers and dues; collections split by method')
+
+  // Reminders made outside the system (F3.23): overdue customers nobody reminded this week, and passed promises.
+  const reminders = page.getByRole('region', { name: 'Theo dõi nhắc nợ', exact: true })
+  await reminders.getByText('Khách đang quá hạn').waitFor()
+  assert.match(await reminders.innerText(), /2 khách[\s\S]*quá hạn mà chưa được nhắc trong 7 ngày[\s\S]*Không theo kỳ báo cáo/)
+  assert.match(await reminders.innerText(), /Khách đang quá hạn[\s\S]*5[\s\S]*Hẹn trả đã quá ngày[\s\S]*1/)
+  assert.match(await reminders.innerText(), /Đã nhắc trong 7 ngày: 3\/5 khách/)
+  assert.equal(await reminders.getByRole('link').getAttribute('href'), '/agent/debts')
+  pass('The reminder panel shows overdue customers not reminded in 7 days and broken promises, from the debt dashboard')
 
   // Advice and photo diagnosis: the funnel to an order within 7 days, the problems asked about most, results per crop.
   const advice = page.getByRole('region', { name: 'Tư vấn ra đơn', exact: true })

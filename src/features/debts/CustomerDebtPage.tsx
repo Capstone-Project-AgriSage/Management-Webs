@@ -4,13 +4,13 @@ import PermissionAction from '@/components/auth/PermissionAction'
 import { useEffect, useState } from 'react';
 import { cropSeasonsApi, type CropSeason } from '@/api/cropSeasonsApi';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Banknote, Landmark, FilePlus2 } from 'lucide-react';
+import { ArrowLeft, Banknote, Landmark, FilePlus2, MessageSquarePlus } from 'lucide-react';
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
 import { usePermission } from '@/context/PermissionContext';
 import { ApiError } from '@/api/client';
 import { customersApi, type CustomerResponse } from '@/api/customersApi';
-import { debtApi, type DebtAccount, type DebtEntryListItem, type DebtTransaction } from '@/api/debtApi';
+import { debtApi, type DebtAccount, type DebtEntryListItem, type DebtFollowUp, type DebtTransaction } from '@/api/debtApi';
 import { paymentsApi } from '@/api/paymentsApi';
 import type { PagedResult } from '@/api/types';
 import PromptModal from '@/components/ui/PromptModal'
@@ -21,9 +21,11 @@ import DebtEntriesTable from './DebtEntriesTable'
 import { DebtGroupCards } from './DebtSeasonBits'
 import DebtEntryModal from './DebtEntryModal'
 import CollectCashModal from './CollectCashModal'
+import { DebtFollowUpList, DebtFollowUpModal } from './DebtFollowUps'
 
 const PAGE_SIZE = LIST_PAGE_SIZE
-type Tab = 'entries' | 'ledger'
+type Tab = 'entries' | 'ledger' | 'followUps'
+const TAB_LABEL: Record<Tab, string> = { entries: 'Khoản nợ', ledger: 'Sổ cái', followUps: 'Nhắc nợ' }
 
 const errorText = (err: unknown, fallback: string) => (err instanceof Error && err.message ? err.message : fallback)
 
@@ -36,7 +38,8 @@ function Kpi({ title, value, tone }: { title: string; value: string; tone?: 'dan
   )
 }
 
-// One customer's debt (FLOW_3 §6–§7): entries + actions, ledger, cash collection, bank transfer, manual entry.
+// One customer's debt (FLOW_3 §6–§7): entries + actions, ledger, cash collection, bank transfer, manual entry, and the
+// reminders the store made outside the system (F3.23, §8j).
 export default function CustomerDebtPage() {
   const { id = '' } = useParams()
   const { showToast } = useToast()
@@ -54,14 +57,17 @@ export default function CustomerDebtPage() {
   const [ledger, setLedger] = useState<PagedResult<DebtTransaction> | null>(null)
   const [entriesPage, setEntriesPage] = useState(1)
   const [ledgerPage, setLedgerPage] = useState(1)
+  const [followUps, setFollowUps] = useState<PagedResult<DebtFollowUp> | null>(null)
+  const [followUpsPage, setFollowUpsPage] = useState(1)
+  const [followUpsLoading, setFollowUpsLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null)
-  const [modal, setModal] = useState<'cash' | 'bank' | 'manual' | null>(null)
+  const [modal, setModal] = useState<'cash' | 'bank' | 'manual' | 'followUp' | null>(null)
   const [busy, setBusy] = useState(false)
   useDetailBusy(busy)
 
   useEffect(() => {
-    const permission = modal === 'cash' ? 'PAYMENTS.RECEIVE_CASH' : modal === 'bank' ? 'BANK_PAYMENTS.RECORD' : 'DEBT.MANUAL'
+    const permission = modal === 'cash' ? 'PAYMENTS.RECEIVE_CASH' : modal === 'bank' ? 'BANK_PAYMENTS.RECORD' : modal === 'followUp' ? 'DEBT.FOLLOW_UP' : 'DEBT.MANUAL'
     if (modal && !has(permission)) setModal(null)
   }, [has, modal])
 
@@ -72,7 +78,7 @@ export default function CustomerDebtPage() {
     return () => { active = false }
   }, [modal])
 
-  usePageHeader({ title: customer ? `Công nợ — ${customer.fullName}` : 'Công nợ khách hàng', subtitle: 'Khoản nợ, sổ cái và thu nợ' })
+  usePageHeader({ title: customer ? `Công nợ — ${customer.fullName}` : 'Công nợ khách hàng', subtitle: 'Khoản nợ, sổ cái, thu nợ và nhắc nợ' })
 
   const loadHeader = async () => {
     try {
@@ -115,10 +121,22 @@ export default function CustomerDebtPage() {
     }
   }
 
+  const loadFollowUps = async () => {
+    setFollowUpsLoading(true)
+    try {
+      setFollowUps(await debtApi.getFollowUps(id, { page: followUpsPage, pageSize: PAGE_SIZE }))
+    } catch {
+      setFollowUps(null)
+    } finally {
+      setFollowUpsLoading(false)
+    }
+  }
+
   const refreshAll = () => {
     loadHeader()
     loadEntries()
     if (tab === 'ledger') loadLedger()
+    if (tab === 'followUps') loadFollowUps()
   }
 
   useEffect(() => {
@@ -136,6 +154,11 @@ export default function CustomerDebtPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, tab, ledgerPage])
 
+  useEffect(() => {
+    if (tab === 'followUps') loadFollowUps()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, tab, followUpsPage])
+
   const run = async (action: () => Promise<unknown>, success: string) => {
     setBusy(true)
     try {
@@ -152,6 +175,7 @@ export default function CustomerDebtPage() {
 
   const name = customer?.fullName ?? ''
   const balance = account?.currentBalance ?? 0
+  const overdue = (account?.overdueAmount ?? 0) > 0
 
   return (
     <div className="max-w-[1400px] mx-auto flex flex-col gap-space-lg p-space-md">
@@ -185,6 +209,15 @@ export default function CustomerDebtPage() {
           >
             <Landmark size={16} /> Ghi nhận chuyển khoản
           </button></PermissionAction>
+          <PermissionAction codes={["DEBT.FOLLOW_UP"]}><button
+            type="button"
+            disabled={noAccount || balance <= 0}
+            title={overdue ? 'Khách đang quá hạn: ghi lại lần cửa hàng đã nhắc' : 'Ghi lại lần cửa hàng đã nhắc khách'}
+            className={`h-9 px-4 rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1.5 ${overdue ? 'border border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100' : 'border border-slate-200 bg-white hover:bg-slate-50'}`}
+            onClick={() => setModal('followUp')}
+          >
+            <MessageSquarePlus size={16} /> Ghi nhận nhắc nợ
+          </button></PermissionAction>
           <PermissionAction codes={["DEBT.MANUAL"]}>
             <button
               type="button"
@@ -216,7 +249,7 @@ export default function CustomerDebtPage() {
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col">
         <div className="px-4 border-b border-slate-100 flex gap-1" role="tablist">
-          {(['entries', 'ledger'] as Tab[]).map((t) => (
+          {(['entries', 'ledger', 'followUps'] as Tab[]).map((t) => (
             <button
               key={t}
               role="tab"
@@ -224,7 +257,7 @@ export default function CustomerDebtPage() {
               className={`px-3 py-3 text-sm font-medium border-b-2 -mb-px ${tab === t ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
               onClick={() => setTab(t)}
             >
-              {t === 'entries' ? 'Khoản nợ' : 'Sổ cái'}
+              {TAB_LABEL[t]}
             </button>
           ))}
         </div>
@@ -234,6 +267,14 @@ export default function CustomerDebtPage() {
             <DebtEntriesTable entries={entries?.items ?? []} loading={loading} showCustomer={false} onOpen={(e) => setSelectedEntryId(e.id)} />
             {entries && (
               <ServerPagination page={entriesPage} pageSize={PAGE_SIZE} totalCount={entries.totalCount} totalPages={entries.totalPages} unitLabel="khoản nợ" onPageChange={setEntriesPage} />
+            )}
+          </>
+        ) : tab === 'followUps' ? (
+          <>
+            <p className="px-4 pt-3 text-xs text-slate-500">Những lần cửa hàng tự nhắc khách (gọi, đến nhà, nhắn tin…). Chỉ là ghi chép nội bộ: khách không thấy, hệ thống không tự làm gì.</p>
+            <DebtFollowUpList items={followUps?.items ?? null} loading={followUpsLoading} />
+            {followUps && followUps.totalCount > 0 && (
+              <ServerPagination page={followUpsPage} pageSize={PAGE_SIZE} totalCount={followUps.totalCount} totalPages={followUps.totalPages} unitLabel="lần nhắc" onPageChange={setFollowUpsPage} />
             )}
           </>
         ) : (
@@ -279,6 +320,20 @@ export default function CustomerDebtPage() {
       </div>
 
       <DebtEntryModal entryId={selectedEntryId} onClose={() => setSelectedEntryId(null)} onChanged={refreshAll} />
+
+      <PermissionAction codes={["DEBT.FOLLOW_UP"]}><DebtFollowUpModal
+        open={modal === 'followUp'}
+        farmerProfileId={id}
+        customerName={name}
+        outstanding={balance}
+        onClose={() => setModal(null)}
+        onRecorded={() => {
+          setModal(null)
+          showToast('Đã ghi nhận lần nhắc nợ', 'success')
+          if (tab === 'followUps' && followUpsPage === 1) loadFollowUps()
+          else { setFollowUpsPage(1); setTab('followUps') }
+        }}
+      /></PermissionAction>
 
       <PermissionAction codes={["PAYMENTS.RECEIVE_CASH"]}><CollectCashModal
         open={modal === 'cash'}

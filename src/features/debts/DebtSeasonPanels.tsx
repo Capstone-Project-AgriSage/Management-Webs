@@ -5,6 +5,7 @@ import type { CreditLimitAlert, DebtDashboard, DebtEntryListItem } from '@/api/d
 import { formatDay, useRoleBase } from '@/utils/creditLabels'
 import { formatVnd } from '@/utils/money'
 import { DueStateBadge, EntryFlags, SeasonPair } from './DebtSeasonBits'
+import { LastFollowUp } from './DebtFollowUps'
 
 // FE_GUIDE_FLOW_3 §3.1 mục 6 and 10: the season part of the debt dashboard. The server decides what needs a decision and
 // who is near the credit limit; this only shows it.
@@ -29,12 +30,13 @@ function DecisionRow({ entry, onOpen }: { entry: DebtEntryListItem; onOpen: (id:
         <p className="mt-0.5 text-xs text-slate-600">Hạn {formatDay(entry.dueDate)}{entry.isOverdue ? ` · quá hạn ${entry.overdueDays} ngày` : ''}</p>
         <div className="mt-1 flex flex-wrap items-center gap-2"><DueStateBadge state={entry.dueState} /><SeasonPair entry={entry} /></div>
         <EntryFlags entry={entry} />
+        <LastFollowUp summary={entry.lastFollowUp} />
       </div>
       <div className="flex shrink-0 items-center gap-1">
         <span className="text-sm font-semibold tabular-nums text-slate-900">{formatVnd(entry.outstandingAmount)}</span>
         <RowActionsMenu triggerLabel={`Thao tác khoản nợ ${entry.entryNumber}`} actions={[
           { label: 'Xử lý khoản nợ (gia hạn, giảm, xóa…)', icon: 'edit_note', onClick: () => onOpen(entry.id) },
-          { label: 'Xem công nợ của khách', icon: 'person', onClick: () => navigate(`${base}/debts/${entry.farmerProfileId}`) },
+          { label: 'Xem công nợ và ghi nhận nhắc nợ', icon: 'person', onClick: () => navigate(`${base}/debts/${entry.farmerProfileId}`) },
         ]} />
       </div>
     </li>

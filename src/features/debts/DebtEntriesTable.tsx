@@ -4,16 +4,19 @@ import type { DebtEntryListItem } from '@/api/debtApi'
 import { formatVnd } from '@/utils/money'
 import { DEBT_ENTRY_STATUS_LABEL, DEBT_SOURCE_LABEL, formatDay, label } from '@/utils/creditLabels'
 import { DueStateBadge, EntryFlags, OriginalDue, SeasonPair } from './DebtSeasonBits'
+import { LastFollowUp } from './DebtFollowUps'
 
 interface DebtEntriesTableProps {
   entries: DebtEntryListItem[]
   loading: boolean
   /** Hide the customer column on a single customer's page. */
   showCustomer?: boolean
+  /** F3.23: the customer's latest reminder, under the customer ("Cần quyết định"). */
+  showLastFollowUp?: boolean
   onOpen: (entry: DebtEntryListItem) => void
 }
 
-export default function DebtEntriesTable({ entries, loading, showCustomer = true, onOpen }: DebtEntriesTableProps) {
+export default function DebtEntriesTable({ entries, loading, showCustomer = true, showLastFollowUp = false, onOpen }: DebtEntriesTableProps) {
   const cols = showCustomer ? 8 : 7
   return (
     <div className="overflow-x-auto">
@@ -49,6 +52,7 @@ export default function DebtEntriesTable({ entries, loading, showCustomer = true
                   <td className="py-3 px-3">
                     <div className="font-medium">{e.fullName ?? '--'}</div>
                     <div className="text-xs text-slate-500">{e.phoneNumber ?? ''}</div>
+                    {showLastFollowUp && <LastFollowUp summary={e.lastFollowUp} compact />}
                   </td>
                 )}
                 <td className="py-3 px-3"><SeasonPair entry={e} /></td>

@@ -672,6 +672,36 @@ function CollectionsPanel({ report, debt, to }: { report: Report<DebtCollectionR
   </Panel>
 }
 
+/** F3.23: overdue customers nobody reminded lately, and promises to pay that have passed. Current figures, not the period. */
+function FollowUpPanel({ debt, to }: { debt: Report<DebtDashboard>; to?: string }) {
+  const follow = debt.data?.followUp
+  return <Panel label="Theo dõi nhắc nợ" to={to}
+    headline={follow ? `${num(follow.notContactedCount)} khách` : debt.loading ? placeholder(debt, 'w-24') : '—'}
+    sub={follow ? `quá hạn mà chưa được nhắc trong ${num(follow.windowDays)} ngày` : undefined}>
+    <p className="mt-2 text-xs text-slate-500">{NOW_NOTE}</p>
+    <Body state={debt} empty={d => !d.followUp} emptyText="Máy chủ chưa có số liệu nhắc nợ.">
+      {d => {
+        const f = d.followUp!
+        const reminded = Math.max(0, f.overdueCustomerCount - f.notContactedCount)
+        return <>
+          <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+            <div><dt className="text-xs text-slate-500">Khách đang quá hạn</dt><dd className="mt-0.5 font-semibold tabular-nums text-slate-900">{num(f.overdueCustomerCount)}</dd></div>
+            <div><dt className="text-xs text-slate-500">Hẹn trả đã quá ngày</dt>
+              <dd className={`mt-0.5 flex items-center gap-1 font-semibold tabular-nums ${f.brokenPromiseCount > 0 ? 'text-rose-700' : 'text-slate-900'}`}>{f.brokenPromiseCount > 0 && <TriangleAlert size={14} aria-hidden="true" />}{num(f.brokenPromiseCount)}</dd></div>
+          </dl>
+          {f.overdueCustomerCount > 0 && <div className="mt-4">
+            <div className="h-2 w-full rounded-full" style={{ backgroundColor: C.track }} role="img" aria-label={`Đã nhắc trong ${f.windowDays} ngày: ${reminded} trên ${f.overdueCustomerCount} khách quá hạn`}>
+              <div className="h-full rounded-full" style={{ width: `${reminded ? Math.max(reminded / f.overdueCustomerCount * 100, 1.5) : 0}%`, backgroundColor: C.accent }} />
+            </div>
+            <p className="mt-1.5 text-xs text-slate-600">Đã nhắc trong {num(f.windowDays)} ngày: <strong className="font-semibold text-slate-900">{num(reminded)}/{num(f.overdueCustomerCount)}</strong> khách</p>
+          </div>}
+          <p className="mt-auto pt-3 text-xs leading-5 text-slate-500">Cửa hàng tự nhắc khách rồi ghi lại trên trang công nợ của khách. Hệ thống chỉ lưu lại, không tự gửi gì.</p>
+        </>
+      }}
+    </Body>
+  </Panel>
+}
+
 function AdvisoryPanel({ report, to }: { report: Report<AdvisoryDiagnosisReport>; to?: string }) {
   const data = report.data
   const advice = data?.advisory
@@ -807,10 +837,11 @@ export default function DashboardCharts({ fromDate, toDate, links = {}, manager 
       <InventoryValuePanel report={valuation} to={links.inventory} />
       <PurchasesPanel report={purchases} summary={summary} to={links.purchases} />
     </div>
-    <SectionHeading title="Tín dụng & thu nợ" note="Khách đang dùng bao nhiêu hạn mức và tiền nợ thu về trong kỳ." to={links.debts} linkLabel="Công nợ" />
-    <div className="grid gap-5 md:grid-cols-2">
+    <SectionHeading title="Tín dụng & thu nợ" note="Khách đang dùng bao nhiêu hạn mức, tiền nợ thu về trong kỳ và việc nhắc khách quá hạn." to={links.debts} linkLabel="Công nợ" />
+    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
       <CreditPanel exposure={exposure} debt={debtDashboard} to={links.debts} />
       <CollectionsPanel report={collections} debt={debtDashboard} to={links.debts} />
+      <FollowUpPanel debt={debtDashboard} to={links.debts} />
     </div>
     <SectionHeading title="Tư vấn & chẩn đoán AI" note="Lượt tư vấn sản phẩm, đơn đặt sau tư vấn và kết quả chẩn đoán ảnh của kỳ." to={links.advisory} linkLabel="Lượt tư vấn" />
     <div className="grid gap-5 xl:grid-cols-3">

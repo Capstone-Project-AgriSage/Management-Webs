@@ -76,6 +76,8 @@ export interface DebtEntryListItem extends DebtEntrySeasonFields {
   overdueDays: number
   status: DebtEntryStatus
   createdAt: string
+  /** F3.23: the customer's latest reminder (staff lists only; null on the Farmer's own list or an older server). */
+  lastFollowUp?: DebtFollowUpSummary | null
 }
 
 export type DebtReasonCode = 'MAT_MUA' | 'THIEN_TAI' | 'KHO_KHAN' | 'TRI_AN' | 'SAI_SOT' | 'KHONG_THU_HOI' | 'KHAC'
@@ -157,6 +159,46 @@ export interface AllocationPreview {
   unallocatedAmount: number
 }
 
+// F3.23 (FLOW_3 §8j): reminders the store made outside the system, logged afterwards. Internal: never on the Farmer apps.
+export type DebtFollowUpChannel = 'PHONE_CALL' | 'VISIT' | 'AT_STORE' | 'MESSAGE' | 'OTHER'
+export type DebtFollowUpOutcome = 'PROMISED' | 'ASKED_MORE_TIME' | 'NO_ANSWER' | 'REFUSED' | 'OTHER'
+/** Derived by the server from the payments since the contact; only a label. */
+export type DebtPromiseStatus = 'WAITING' | 'KEPT' | 'BROKEN'
+export interface DebtFollowUp {
+  id: string
+  contactedAt: string
+  channel: DebtFollowUpChannel
+  outcome: DebtFollowUpOutcome
+  note: string | null
+  promisedDate: string | null
+  promisedAmount: number | null
+  promiseStatus: DebtPromiseStatus | null
+  paidSinceContact: number
+  /** The customer's balance and overdue amount when the reminder was recorded. */
+  outstandingAmount: number
+  overdueAmount: number
+  createdBy: { id: string; name: string | null; role: string | null }
+  createdAt: string
+}
+export interface DebtFollowUpSummary {
+  contactedAt: string
+  channel: DebtFollowUpChannel
+  outcome: DebtFollowUpOutcome
+  promisedDate: string | null
+  promiseStatus: DebtPromiseStatus | null
+  byName: string | null
+}
+export interface DebtFollowUpRequest {
+  channel: DebtFollowUpChannel
+  outcome: DebtFollowUpOutcome
+  note?: string | null
+  /** ISO time of the contact; up to 30 days back, never ahead. */
+  contactedAt?: string | null
+  promisedDate?: string | null
+  promisedAmount?: number | null
+}
+export interface DebtFollowUpDashboard { windowDays: number; overdueCustomerCount: number; notContactedCount: number; brokenPromiseCount: number }
+
 export interface DebtDashboard {
   totalOutstandingDebt: number
   totalOverdueDebt: number
@@ -175,6 +217,8 @@ export interface DebtDashboard {
   needsDecision?: DebtEntryListItem[]
   creditLimitAlertCount?: number
   creditLimitAlerts?: CreditLimitAlert[]
+  /** F3.23: overdue customers, those not reminded within windowDays, broken promises; absent on an older server. */
+  followUp?: DebtFollowUpDashboard | null
 }
 
 export interface CreditLimitAlert {
@@ -276,4 +320,11 @@ export const debtApi = {
 
   /** Manage. */
   getDashboard: (signal?: AbortSignal) => api<DebtDashboard>('/api/debt-entries/dashboard', { signal }),
+
+  /** F3.23, DEBT.READ: reminders made outside the system, latest contact first. */
+  getFollowUps: (farmerProfileId: string, params: { page?: number; pageSize?: number } = {}) =>
+    api<PagedResult<DebtFollowUp>>(`/api/customers/${farmerProfileId}/debt/follow-ups${toQuery(params)}`),
+  /** F3.23, DEBT.FOLLOW_UP: only logs; sends nothing and changes no debt. */
+  recordFollowUp: (farmerProfileId: string, data: DebtFollowUpRequest) =>
+    post<DebtFollowUp>(`/api/customers/${farmerProfileId}/debt/follow-ups`, data),
 }

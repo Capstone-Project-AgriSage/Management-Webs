@@ -256,7 +256,7 @@ export default function DebtsPage() {
           </div>
         )}
 
-        {tab === 'entries' && <DebtEntriesTable entries={entries?.items ?? []} loading={loading} onOpen={(e) => setSelectedEntryId(e.id)} />}
+        {tab === 'entries' && <DebtEntriesTable entries={entries?.items ?? []} loading={loading} showLastFollowUp={needsDecision} onOpen={(e) => setSelectedEntryId(e.id)} />}
 
         {tab === 'transfers' && (
           <div className="overflow-x-auto">
