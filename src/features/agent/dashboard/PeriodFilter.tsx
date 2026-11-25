@@ -16,26 +16,32 @@ const PRESETS: { label: string; range: (today: string) => [string, string] }[] =
   { label: 'Năm nay', range: today => [`${today.slice(0, 4)}-01-01`, today] },
 ]
 
-/** One row above everything the period scopes: quick ranges first, then the exact dates, then a refresh for every figure. */
-export default function PeriodFilter({ title, fromDate, toDate, onChange, onRefresh }: { title: string; fromDate: string; toDate: string; onChange: (from: string, to: string) => void; onRefresh: () => void }) {
+/**
+ * The heading of everything the period scopes, as in the template: the title and what it covers on the left, the quick ranges,
+ * the exact dates and a refresh for every figure on the right.
+ */
+export default function PeriodFilter({ title, note, fromDate, toDate, onChange, onRefresh }: { title: string; note?: string; fromDate: string; toDate: string; onChange: (from: string, to: string) => void; onRefresh: () => void }) {
   const today = todayVn()
-  return <div className="flex flex-wrap items-center justify-between gap-3">
-    <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+  return <div className="flex flex-wrap items-end justify-between gap-3">
+    <div className="min-w-0">
+      <h2 className="text-xl font-medium tracking-tight text-zinc-900 sm:text-2xl">{title}</h2>
+      {note && <p className="mt-1 text-sm text-zinc-500">{note}</p>}
+    </div>
     <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-      <div role="group" aria-label="Chọn nhanh khoảng thời gian" className="grid w-full grid-cols-5 gap-0.5 rounded-xl bg-slate-100 p-1 sm:inline-flex sm:w-auto">
+      <div role="group" aria-label="Chọn nhanh khoảng thời gian" className="grid w-full grid-cols-5 gap-0.5 rounded-lg border border-zinc-200 bg-zinc-50 p-0.5 sm:inline-flex sm:w-auto">
         {PRESETS.map(preset => {
           const [from, to] = preset.range(today)
           const selected = from === fromDate && to === toDate
           return <button key={preset.label} type="button" aria-pressed={selected} onClick={() => onChange(from, to)}
-            className={`whitespace-nowrap rounded-lg px-1.5 py-1.5 text-[13px] font-medium transition-colors sm:px-3 sm:text-sm ${selected ? 'bg-[#fff] text-green-800 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}>{preset.label}</button>
+            className={`whitespace-nowrap rounded-md px-1.5 py-1.5 text-[13px] font-medium transition-colors sm:px-3 sm:text-sm ${selected ? 'bg-[#fff] text-green-800 shadow-sm ring-1 ring-green-200' : 'text-zinc-500 hover:text-zinc-900'}`}>{preset.label}</button>
         })}
       </div>
       <div className="flex w-full items-center gap-2 sm:w-auto">
         <DateInput aria-label="Từ ngày" className={`${reportInputClass} min-w-0 flex-1 sm:flex-none`} value={fromDate} max={toDate} onChange={event => onChange(event.target.value, toDate)} />
-        <span aria-hidden="true" className="text-slate-400">→</span>
+        <span aria-hidden="true" className="text-zinc-400">→</span>
         <DateInput aria-label="Đến ngày" className={`${reportInputClass} min-w-0 flex-1 sm:flex-none`} value={toDate} min={fromDate} onChange={event => onChange(fromDate, event.target.value)} />
         <button type="button" aria-label="Làm mới số liệu" title="Làm mới số liệu" onClick={onRefresh}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-slate-200 bg-[#fff] text-slate-600 hover:bg-slate-50 hover:text-slate-900"><RefreshCw size={16} /></button>
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-zinc-200 bg-[#fff] text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"><RefreshCw size={16} /></button>
       </div>
     </div>
   </div>

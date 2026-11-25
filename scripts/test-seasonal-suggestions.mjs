@@ -103,14 +103,23 @@ try {
   assert.equal(await page.getByRole('button', { name: /AI|Tạo gợi ý/ }).count(), 0)
   pass('There is no button that asks the AI or creates a suggestion')
 
-  // 2. The dashboard shows the same notice with a link to the product page.
+  // 2. The dashboard keeps it to one line per season (the management figures stay on top); the list opens in a dialog.
   await page.goto(`${base}/agent`)
   const onDashboard = page.getByRole('region', { name: 'Sắp tới mùa vụ' })
-  await onDashboard.getByRole('heading', { name: `Vụ Lúa: ${dmy(startsOn)} – ${dmy(endsOn)}` }).waitFor()
-  await onDashboard.getByRole('link', { name: 'Quản lý sản phẩm' }).click()
-  await page.waitForURL(/\/agent\/products$/)
-  pass('The dashboard shows the notice and links to the product page')
+  await onDashboard.getByText('Sắp tới vụ Lúa').waitFor()
+  assert.match(await onDashboard.innerText(), new RegExp(`${dmy(startsOn)} – ${dmy(endsOn)}[\\s\\S]*6 mặt hàng nên chuẩn bị[\\s\\S]*đặt hàng trước ${dmy(addDays(startsOn, -21))}[\\s\\S]*nên đặt ngay`))
+  assert.equal(await onDashboard.getByText('Phân NPK 16-16-8').count(), 0, 'the products are not listed on the dashboard itself')
+  assert.ok((await onDashboard.boundingBox()).height < 90, 'one season takes one short line')
   await shot(page, 'dashboard')
+  await onDashboard.getByRole('button', { name: 'Xem gợi ý nhập hàng vụ Lúa' }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByRole('heading', { name: 'Gợi ý nhập hàng vụ Lúa' }).waitFor()
+  await dialog.getByText('Sản phẩm thứ sáu').waitFor()
+  await dialog.getByText('Bán 300 bao từ 01/12/2025 đến 30/01/2026 (cùng kỳ năm trước).').waitFor()
+  await shot(page, 'dashboard-dialog')
+  await dialog.getByRole('link', { name: 'Quản lý sản phẩm' }).click()
+  await page.waitForURL(/\/agent\/products$/)
+  pass('The dashboard shows one line per season; its dialog lists every product with evidence and links to the product page')
 
   // 3. The old page is gone.
   await page.goto(`${base}/agent/inventory/seasonal-suggestions`)

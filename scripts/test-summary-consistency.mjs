@@ -385,8 +385,8 @@ try {
     assert.match(content, /Tổng phải thu\s*1\.000\.000 đ/, 'Total receivables remain available beside the overdue amount')
     assert.match(content, /3 khách đang nợ/, 'Debt by group adds the customers across groups')
     assert.match(content, /Chưa phân nhóm/, 'Customers without a group are named, not dropped')
-    assert.equal(await panels.page.locator('main .recharts-surface').count(), 1, 'One chart: the revenue trend')
-    assert.equal(await main.locator('table.sr-only').count(), 1, 'The trend chart has a table twin for screen readers')
+    assert.equal(await panels.page.locator('main .recharts-surface').count(), 2, 'Two charts on one scale each: the revenue trend and the delivered orders')
+    assert.equal(await main.locator('table.sr-only').count(), 2, 'Each chart has a table twin for screen readers')
     assert.equal(await main.locator('a[title="Xem chi tiết"]').evaluateAll(links => [...new Set(links.map(link => link.getAttribute('href')))].sort().join(',')), '/agent/advisory-sessions,/agent/ai-recommendations,/agent/debts,/agent/farmers,/agent/inventory/reports,/agent/inventory/reports/planning,/agent/inventory/reports/planning?tab=expiry,/agent/orders,/agent/payments,/agent/products,/agent/purchases/receipts', 'Panels link to the pages that hold the detail')
 
     // Period filter: a preset moves both dates and every report follows; the trend regroups with the length of the period.
