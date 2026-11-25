@@ -1,8 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CheckCircle2, ReceiptText } from 'lucide-react'
 import { formatVnd } from '@/utils/money'
 import type { OrderResponse, PaymentResponse } from '@/api/types'
 import OrderInvoiceModal from '@/features/orders/OrderInvoiceModal'
+import PermissionAction from '@/components/auth/PermissionAction'
+import { usePermission } from '@/context/PermissionContext'
+import { invoicesApi } from '@/api/invoicesApi'
+import { describeError } from '@/api/client'
 
 export type CounterResult = { kind: 'ORDER'; order: OrderResponse } | { kind: 'SALE'; order: OrderResponse; payment: PaymentResponse }
 
@@ -17,6 +21,16 @@ interface SaleResultProps {
 export default function SaleResult({ result, printOnComplete, onOpenOrder, onNew }: SaleResultProps) {
   const { order } = result
   const sale = result.kind === 'SALE'
+  const { has } = usePermission()
+  const [savedInvoice, setSavedInvoice] = useState('')
+  const [invoiceError, setInvoiceError] = useState('')
+  useEffect(() => {
+    if (!sale || !has('INVOICES.READ') || !has('INVOICES.CREATE')) return
+    let active = true
+    invoicesApi.ensureForOrder(order.id, true).then(value => { if (active) setSavedInvoice(value.invoiceNumber) })
+      .catch(error => { if (active) setInvoiceError(describeError(error, 'Chưa lưu được hóa đơn. Mở hóa đơn để thử lại.')) })
+    return () => { active = false }
+  }, [order.id, sale, has])
   const [invoice, setInvoice] = useState<{ autoPrint: boolean } | null>(() => sale && printOnComplete ? { autoPrint: true } : null)
   return (
     <>
@@ -60,11 +74,13 @@ export default function SaleResult({ result, printOnComplete, onOpenOrder, onNew
               <dd className="font-bold text-emerald-700 text-lg tabular-nums">{formatVnd(sale ? result.payment.amount : order.totalAmount)}</dd>
             </div>
           </dl>
+          {savedInvoice && <p className="mt-4 text-sm text-emerald-700">Đã lưu hóa đơn {savedInvoice}.</p>}
+          {invoiceError && <p role="alert" className="mt-4 text-sm text-amber-800">Đơn đã bán thành công. {invoiceError} Bạn có thể mở hóa đơn để thử lại.</p>}
         </div>
         <div className="p-5 border-t border-outline-variant grid grid-cols-2 gap-3">
-          {sale && <button type="button" onClick={() => setInvoice({ autoPrint: false })} className="col-span-2 h-11 rounded-xl border border-primary text-primary font-semibold text-sm hover:bg-primary/5 flex items-center justify-center gap-2">
+          {sale && <PermissionAction codes={['INVOICES.READ']}><button type="button" onClick={() => setInvoice({ autoPrint: false })} className="col-span-2 h-11 rounded-xl border border-primary text-primary font-semibold text-sm hover:bg-primary/5 flex items-center justify-center gap-2">
             <ReceiptText size={18} /> Xem / In hóa đơn
-          </button>}
+          </button></PermissionAction>}
           <button type="button" onClick={() => onOpenOrder(order.id)} className="h-11 rounded-xl border border-outline-variant font-semibold text-sm hover:bg-surface-container">
             {sale ? 'Xem đơn' : 'Mở đơn để xử lý'}
           </button>
@@ -74,8 +90,7 @@ export default function SaleResult({ result, printOnComplete, onOpenOrder, onNew
         </div>
       </div>
       {invoice && result.kind === 'SALE' && <OrderInvoiceModal
-        order={order}
-        payments={{ paidAmount: result.payment.amount, remainingToPay: 0, payments: [result.payment], refunds: [] }}
+        orderId={order.id}
         autoPrint={invoice.autoPrint}
         onClose={() => setInvoice(null)}
       />}

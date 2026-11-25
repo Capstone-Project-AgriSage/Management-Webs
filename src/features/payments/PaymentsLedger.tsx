@@ -14,7 +14,7 @@ import ServerPagination from '@/components/ui/ServerPagination'
 import { vnDateTime } from '@/utils/date'
 
 const statuses = [{ value: '', label: 'Mọi trạng thái' }, { value: 'PENDING', label: 'Chờ thanh toán' }, { value: 'PAID', label: 'Đã thanh toán' }, { value: 'FAILED', label: 'Thất bại' }, { value: 'CANCELLED', label: 'Đã hủy' }, { value: 'PARTIALLY_REFUNDED', label: 'Đã hoàn một phần' }, { value: 'REFUNDED', label: 'Đã hoàn tiền' }]
-const methods = [{ value: '', label: 'Mọi phương thức' }, { value: 'CASH', label: 'Tiền mặt' }, { value: 'PAYOS', label: 'payOS' }, { value: 'BANK_TRANSFER', label: 'Chuyển khoản' }]
+const methods = [{ value: '', label: 'Mọi phương thức' }, { value: 'CASH', label: 'Tiền mặt' }, { value: 'PAYOS', label: 'payOS' }, { value: 'BANK_TRANSFER', label: 'Chuyển khoản' }, { value: 'EXCHANGE_CREDIT', label: 'Bù trừ đổi hàng' }]
 
 export default function PaymentsLedger({ revision, onSelect, onCountChange }: { revision: number; onSelect: (id: string) => void; onCountChange: (total: number) => void }) {
   const [search, setSearch] = useState('')

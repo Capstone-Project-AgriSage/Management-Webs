@@ -1,3 +1,6 @@
+import ExchangesPage from '@/features/exchanges/ExchangesPage'
+import ExchangeCreatePage from '@/features/exchanges/ExchangeCreatePage'
+import ExchangeDetailPage from '@/features/exchanges/ExchangeDetailPage'
 import { DetailListLayout, DetailRoute } from '@/components/ui/DetailRoute'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
@@ -33,6 +36,7 @@ import ContactRequestsPage from '@/features/content/ContactRequestsPage'
 // =======================
 import AgentDashboardPage from '@/features/agent/dashboard/DashboardPage'
 import OrdersPage from '@/features/orders/OrdersPage'
+import InvoicesPage from '@/features/orders/InvoicesPage'
 import PaymentsPage from '@/features/payments/PaymentsPage'
 import DiagnosisQueuePage from '@/features/diagnosis/DiagnosisQueuePage'
 import DiagnosisCasePage from '@/features/diagnosis/DiagnosisCasePage'
@@ -179,6 +183,16 @@ export const router = createBrowserRouter([
             path: 'agent/orders',
             element: <RequireRole role={["agent", "sales_staff"]}><OrdersPage /></RequireRole>,
           },
+          { path: 'agent/exchanges', element: <RequireRole role={["admin", "agent", "sales_staff"]}><DetailListLayout><ExchangesPage /></DetailListLayout></RequireRole>, children: [
+            { path: 'new', element: <ExchangeCreatePage /> },
+            { path: ':id', element: <ExchangeDetailPage /> },
+          ] },
+          { path: 'sales/exchanges', element: <RequireRole role={"sales_staff"}><DetailListLayout><ExchangesPage /></DetailListLayout></RequireRole>, children: [
+            { path: 'new', element: <ExchangeCreatePage /> },
+            { path: ':id', element: <ExchangeDetailPage /> },
+          ] },
+          { path: 'agent/invoices', element: <RequireRole role={["admin", "agent", "sales_staff"]}><InvoicesPage /></RequireRole> },
+          { path: 'sales/invoices', element: <RequireRole role="sales_staff"><InvoicesPage /></RequireRole> },
           {
             path: 'agent/counter-sales',
             element: <RequireRole role={["agent", "sales_staff"]}><CounterSalesPage /></RequireRole>,

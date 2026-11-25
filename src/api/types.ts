@@ -54,7 +54,7 @@ export interface FefoLotSuggestion {
 }
 
 export interface PaymentResponse {
-  id: Uuid; paymentNumber: string; paymentContext: 'ORDER_PAYMENT' | 'DEBT_REPAYMENT'; paymentMethod: 'CASH' | 'PAYOS' | 'BANK_TRANSFER'
+  id: Uuid; paymentNumber: string; paymentContext: 'ORDER_PAYMENT' | 'DEBT_REPAYMENT'; paymentMethod: 'CASH' | 'PAYOS' | 'BANK_TRANSFER' | 'EXCHANGE_CREDIT'
   amount: Money; status: 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED' | 'PARTIALLY_REFUNDED' | 'REFUNDED'
   payerName: string | null; confirmedAt: string | null; initiatedAt: string
   currency: string; payerFarmerProfileId: Uuid | null; confirmationSource: 'STAFF' | 'PAYOS_WEBHOOK' | null
