@@ -8,6 +8,7 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import StatusBadge from '@/components/ui/StatusBadge'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import AttentionTiles from './AttentionTiles'
+import SeasonalSuggestionNotice from '@/features/agent/inventory/SeasonalSuggestionNotice'
 import PeriodFilter from './PeriodFilter'
 import { STATUS_LABELS } from './orderStatus'
 import type { DashboardLinks } from './DashboardCharts'
@@ -63,6 +64,7 @@ export default function OrderDashboard({ reports = false, ordersPath, area }: { 
 
   return <div className="agrisage-dashboard max-w-[1440px] min-w-0 mx-auto flex flex-col gap-7">
     {area && <AttentionTiles area={area} />}
+    {area && <SeasonalSuggestionNotice productsPath={area === 'agent' ? '/agent/products' : '/sales/products'} />}
     {showCharts ? <section aria-label="Kết quả kinh doanh" className="flex flex-col gap-4">
       <PeriodFilter title="Kết quả kinh doanh" fromDate={fromDate} toDate={toDate} onChange={setPeriod} onRefresh={refreshAll} />
       {problem && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{problem}</p>}

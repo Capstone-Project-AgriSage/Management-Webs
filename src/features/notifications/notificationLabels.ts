@@ -21,6 +21,7 @@ export function notificationIcon(type: string) {
     case 'DEBT_CREATED': case 'DEBT_DISPUTED': case 'DEBT_OVERDUE': case 'DEBT_DUE_SOON': case 'CREDIT_LIMIT_CHANGED': return 'account_balance_wallet'
     case 'OUT_OF_STOCK': case 'STOCK_RECEIVED': case 'STOCK_ISSUED': case 'STOCK_ADJUSTED': case 'LOW_STOCK': return 'inventory_2'
     case 'EXPIRY_WARNING': return 'event_busy'
+    case 'SEASONAL_SUGGESTION_READY': return 'event_available'
     default: return 'notifications'
   }
 }
@@ -42,6 +43,8 @@ export function notificationTarget(item: NotificationItem, role: string | null):
     case 'STOCK_MOVEMENT': return role === 'agent' ? prefix + '/inventory/movements' : null
     case 'STORE_PRODUCT': case 'INVENTORY_LOT': return prefix + '/inventory'
     case 'DEBT_ENTRY': case 'CREDIT_PROFILE': return prefix + '/debts'
+    // Seasonal suggestions are shown on the dashboard (and the owner's product page).
+    case 'SEASONAL_SUGGESTION_RUN': return prefix
     default: return null
   }
 }
