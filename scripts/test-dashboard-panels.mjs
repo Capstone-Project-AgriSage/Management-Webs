@@ -110,7 +110,8 @@ try {
   assert.match(await debt.innerText(), /3\.000\.000 đ[\s\S]*đã quá hạn[\s\S]*Tổng phải thu[\s\S]*10\.000\.000 đ/)
   assert.match(await debt.innerText(), /Không theo kỳ báo cáo/)
   assert.equal(await page.locator('details').getAttribute('open'), null)
-  assert.equal(await page.getByRole('region', { name: 'Kênh bán hàng', exact: true }).count(), 0, 'Secondary analysis is collapsed on arrival')
+  assert.equal(await page.getByRole('region', { name: 'Khách hàng mua nhiều', exact: true }).count(), 0, 'Secondary analysis is collapsed on arrival')
+  assert.equal(await page.getByRole('region', { name: 'Kênh bán hàng', exact: true }).count(), 1, 'Sales channels are drawn without opening anything')
   pass('Manager first sees four business figures, overdue debt and current-data scope')
 
   // Best sellers: ranked by the period's net sales, with units sold and a stock warning from the sales pace.
