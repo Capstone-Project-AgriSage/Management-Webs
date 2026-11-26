@@ -1,24 +1,46 @@
 import { useState } from 'react'
 import { replenishmentApi, type SeasonalRule } from '@/api/replenishmentApi'
+import type { SeasonalRuleDraft } from '@/api/seasonalSuggestionsApi'
 import { describeError } from '@/api/client'
 import DetailModal from '@/components/ui/DetailModal'
 import ModalLayout from '@/components/ui/ModalLayout'
 import ProductPicker, { type PickedProduct } from './ProductPicker'
-import { todayInput } from '@/utils/units'
+import { formatDate, todayInput } from '@/utils/units'
 import DateInput from '@/components/ui/DateInput'
 
 const input = 'w-full h-10 px-3 rounded-lg border border-slate-200 text-sm focus:ring-1 focus:ring-emerald-500'
+const factorText = (value: number) => value.toLocaleString('vi-VN', { maximumFractionDigits: 3 })
 interface Line { product: PickedProduct; target: string }
-export default function SeasonalRuleFormModal({ rule, onClose, onSaved }: { rule: SeasonalRule | null; onClose: () => void; onSaved: () => void }) {
-  const [name, setName] = useState(rule?.name ?? '')
-  const [crop, setCrop] = useState(rule?.cropType ?? 'RICE')
-  const [region, setRegion] = useState(rule?.region ?? '')
-  const [starts, setStarts] = useState(rule?.startsOn ?? todayInput())
-  const [ends, setEnds] = useState(rule?.endsOn ?? todayInput())
-  const [prepare, setPrepare] = useState(String(rule?.prepareDays ?? 14))
-  const [factor, setFactor] = useState(String(rule?.demandFactor ?? 1))
+
+/** Where a draft's demand factor came from, and what the draft left out (F4.7 "create a rule from a suggestion"). */
+function DraftNote({ draft }: { draft: SeasonalRuleDraft }) {
+  return <div role="note" aria-label="Căn cứ của bản nháp" className="space-y-1.5 rounded-lg border border-emerald-200 bg-emerald-50/60 p-3 text-sm text-slate-700">
+    <p>Điền sẵn từ gợi ý nhập hàng vụ {draft.cropName}. Hệ thống không tự lưu: kiểm tra, sửa nếu cần rồi bấm <strong>Lưu quy tắc</strong>.</p>
+    {draft.demandFactorBasis === 'LAST_SEASON'
+      ? <p>Hệ số nhu cầu <strong>{factorText(draft.demandFactor)}</strong> tính từ mùa trước: tốc độ bán trong mùa {formatDate(draft.comparedFrom)} – {formatDate(draft.comparedTo)} so với 90 ngày trước đó ({formatDate(draft.baselineFrom)} – {formatDate(draft.baselineTo)}), lấy trung vị của {draft.demandFactorProducts} sản phẩm.</p>
+      : <p>Hệ số nhu cầu mặc định <strong>{factorText(draft.demandFactor)}</strong> vì chưa có sản phẩm nào đủ lịch sử bán ở mùa trước và 90 ngày trước đó.</p>}
+    <p>Mục tiêu tồn lấy từ gợi ý; ô để trống thì hệ thống tự tính.</p>
+    {draft.skipped.length > 0 && <p className="text-amber-800">Chưa đưa vào quy tắc vì cửa hàng chưa kinh doanh: {draft.skipped.map(s => s.productName).join(', ')}. Thêm sản phẩm vào cửa hàng trước nếu muốn nhập.</p>}
+  </div>
+}
+
+/**
+ * Create or edit a seasonal rule. `draft` fills a new rule in from a seasonal suggestion; the owner still saves it.
+ */
+export default function SeasonalRuleFormModal({ rule, draft = null, onClose, onSaved }: { rule: SeasonalRule | null; draft?: SeasonalRuleDraft | null; onClose: () => void; onSaved: () => void }) {
+  const source = rule ? null : draft
+  const [name, setName] = useState(rule?.name ?? source?.name ?? '')
+  const [crop, setCrop] = useState(rule?.cropType ?? source?.cropType ?? 'RICE')
+  const [region, setRegion] = useState(rule?.region ?? source?.region ?? '')
+  const [starts, setStarts] = useState(rule?.startsOn ?? source?.startsOn ?? todayInput())
+  const [ends, setEnds] = useState(rule?.endsOn ?? source?.endsOn ?? todayInput())
+  const [prepare, setPrepare] = useState(String(rule?.prepareDays ?? source?.prepareDays ?? 14))
+  const [factor, setFactor] = useState(String(rule?.demandFactor ?? source?.demandFactor ?? 1))
   const [active, setActive] = useState(rule?.isActive ?? true)
-  const [lines, setLines] = useState<Line[]>(rule?.items.map(i => ({ product: { storeProductId: i.storeProductId, sku: i.sku, productName: i.productName, baseUnit: '' }, target: i.targetStockLevelBase?.toString() ?? '' })) ?? [])
+  const [lines, setLines] = useState<Line[]>(
+    rule?.items.map(i => ({ product: { storeProductId: i.storeProductId, sku: i.sku, productName: i.productName, baseUnit: '' }, target: i.targetStockLevelBase?.toString() ?? '' }))
+    ?? source?.items.map(i => ({ product: { storeProductId: i.storeProductId, sku: i.sku, productName: i.productName, baseUnit: i.baseUnit }, target: i.targetStockLevelBase?.toString() ?? '' }))
+    ?? [])
   const [picked, setPicked] = useState<PickedProduct | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -40,10 +62,11 @@ export default function SeasonalRuleFormModal({ rule, onClose, onSaved }: { rule
     } catch (err) { setError(describeError(err, 'Không lưu được quy tắc. Nếu dữ liệu đã thay đổi, đóng và mở lại để tải bản mới.')) }
     finally { setBusy(false) }
   }
-  return <DetailModal open onClose={onClose} busy={busy} widthClassName="max-w-3xl"><ModalLayout header={<h3 className="text-lg font-semibold">{rule ? 'Sửa' : 'Thêm'} quy tắc mùa vụ</h3>}>
+  const title = rule ? 'Sửa quy tắc mùa vụ' : source ? 'Tạo quy tắc mùa vụ từ gợi ý' : 'Thêm quy tắc mùa vụ'
+  return <DetailModal open onClose={onClose} busy={busy} widthClassName="max-w-3xl"><ModalLayout header={<h3 className="text-lg font-semibold">{title}</h3>}>
     <form onSubmit={save} className="space-y-4">
       {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
-      <p className="text-sm text-slate-500">Lịch chuẩn bị nhập hàng theo từng vụ/năm. Không thay đổi lịch thu nợ theo vụ.</p>
+      {source ? <DraftNote draft={source} /> : <p className="text-sm text-slate-500">Lịch chuẩn bị nhập hàng theo từng vụ/năm. Không thay đổi lịch thu nợ theo vụ.</p>}
       <label className="block text-sm font-medium space-y-1">Tên quy tắc<input className={input} maxLength={150} required value={name} onChange={e => setName(e.target.value)} /></label>
       <div className="grid sm:grid-cols-2 gap-4">
         <label className="text-sm font-medium space-y-1">Cây trồng<input className={input} maxLength={50} required value={crop} onChange={e => setCrop(e.target.value)} /></label>
