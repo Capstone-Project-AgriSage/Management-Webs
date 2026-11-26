@@ -99,7 +99,8 @@ async function ready(page, title) {
   await section.waitFor()
   if (title === 'Kết quả kinh doanh') {
     await page.waitForFunction(() => {
-      const stats = document.querySelector('section[aria-label="Chỉ số kinh doanh trong kỳ"]')
+      // The owner's four figures, or the admin's six.
+      const stats = document.querySelector('section[aria-label="Chỉ số chính"], section[aria-label="Chỉ số kinh doanh trong kỳ"]')
       return stats && !stats.querySelector('.animate-pulse')
     })
     return section
@@ -141,7 +142,7 @@ try {
   assert.deepEqual(owner.errors, [])
   pass('All core reporting APIs are requested, including sales on the current dashboard')
 
-  const profit = owner.page.getByRole('region', { name: 'Chỉ số kinh doanh trong kỳ', exact: true }).getByRole('heading', { name: 'Lãi gộp', exact: true }).locator('..')
+  const profit = owner.page.getByRole('region', { name: 'Chỉ số chính', exact: true }).getByRole('heading', { name: 'Lãi gộp', exact: true }).locator('..')
   assert.match(await profit.innerText(), /1\.200\.000 đ/)
   assert.match(await profit.innerText(), /Giá vốn 1\.800\.000 đ/)
   assert.match(await profit.innerText(), /Trước trả hàng/)
@@ -188,7 +189,11 @@ try {
   assert.equal(await profit.getByText('Giá vốn 0 đ', { exact: true }).count(), 0)
   pass('An invalid dashboard period blocks the sales endpoint and clears the previous figures')
 
-  let response = owner.page.waitForResponse(r => new URL(r.url()).pathname === '/api/reports/counter-sales-today')
+  // The advice report sits in the dashboard's "Tư vấn & AI" tab and loads when that tab opens.
+  let response = owner.page.waitForResponse(r => new URL(r.url()).pathname === '/api/reports/advisory-diagnosis')
+  await owner.page.goto(base + '/agent?tab=advice')
+  await response
+  response = owner.page.waitForResponse(r => new URL(r.url()).pathname === '/api/reports/counter-sales-today')
   await owner.page.goto(base + '/agent/counter-sales')
   await response
   response = owner.page.waitForResponse(r => new URL(r.url()).pathname === '/api/reports/inventory-turnover')

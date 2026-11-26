@@ -3,9 +3,10 @@ import { pathToFileURL } from 'node:url'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 
-// The owner's dashboard adds three panels: best sellers (with units sold and a warning before they run out), lots expiring
-// in the next 30 days, and the customers who buy most; and three rows (2026-11-23): stock and purchases, credit and debt
-// collection, advice and photo diagnosis. Every API request is intercepted; no live store is read or written.
+// The owner's dashboard (2026-11-27): one line of what is waiting, then tabs. "Tổng quan" holds four figures, one trend chart
+// (revenue or delivered orders) beside the best sellers, and the recent orders; the other panels sit in a tab by topic
+// (Bán hàng, Công nợ, Kho hàng, Tư vấn & AI) and load the first time their tab opens. Every API request is intercepted; no
+// live store is read or written.
 const { chromium } = await import(process.env.UI_PLAYWRIGHT_MODULE ? pathToFileURL(process.env.UI_PLAYWRIGHT_MODULE).href : 'playwright')
 const browser = await chromium.launch({ headless: true, channel: process.env.UI_BROWSER_CHANNEL })
 const base = process.env.UI_TEST_URL || 'http://127.0.0.1:5175'
@@ -99,21 +100,62 @@ async function session(mode = 'normal') {
   return { context, page, state }
 }
 
+const TAB_NAMES = ['Tổng quan', 'Bán hàng', 'Công nợ', 'Kho hàng', 'Tư vấn & AI']
+// The router applies the new ?tab= in a transition, so the tab is selected a moment after the click.
+const tabSelected = (page, name) => page.waitForFunction(label => [...document.querySelectorAll('[role="tab"]')].some(tab => tab.textContent === label && tab.getAttribute('aria-selected') === 'true'), name, { timeout: 5000 })
+async function openTab(page, name) {
+  await page.getByRole('tab', { name, exact: true }).click()
+  await tabSelected(page, name)
+  return page.getByRole('tabpanel', { name, exact: true })
+}
+
 try {
   const { context, page, state } = await session()
   await page.goto(`${base}/agent`)
   const best = page.getByRole('region', { name: 'Sản phẩm bán chạy', exact: true })
   await best.getByText('Tilt Super 300EC').first().waitFor()
-  const stats = page.getByRole('region', { name: 'Chỉ số kinh doanh trong kỳ', exact: true })
-  assert.match(await stats.innerText(), /Doanh thu thuần[\s\S]*12\.000\.000 đ[\s\S]*\+20%/)
-  assert.match(await stats.innerText(), /Lãi gộp[\s\S]*4\.800\.000 đ/)
-  const debt = page.getByRole('region', { name: 'Công nợ phải thu', exact: true })
-  assert.match(await debt.innerText(), /3\.000\.000 đ[\s\S]*đã quá hạn[\s\S]*Tổng phải thu[\s\S]*10\.000\.000 đ/)
-  assert.match(await debt.innerText(), /Không theo kỳ báo cáo/)
-  assert.equal(await page.locator('details').getAttribute('open'), null)
-  assert.equal(await page.getByRole('region', { name: 'Khách hàng mua nhiều', exact: true }).count(), 0, 'Secondary analysis is collapsed on arrival')
-  assert.equal(await page.getByRole('region', { name: 'Kênh bán hàng', exact: true }).count(), 1, 'Sales channels are drawn without opening anything')
-  pass('Manager first sees four business figures, overdue debt and current-data scope')
+  const stats = page.getByRole('region', { name: 'Chỉ số chính', exact: true })
+  await stats.getByText('Quá hạn 3.000.000 đ').waitFor()
+  // Nothing scrolled yet: the figures, the trend and the best sellers start on a laptop's first screen.
+  assert.ok((await best.boundingBox()).y < 900, `The best sellers start on the first screen (top ${Math.round((await best.boundingBox()).y)}px)`)
+  assert.equal(await stats.getByRole('heading').count(), 4, 'Four figures, read left to right')
+  assert.match(await stats.innerText(), /Doanh thu thuần[\s\S]*12\.000\.000 đ[\s\S]*\+20%[\s\S]*Lãi gộp[\s\S]*4\.800\.000 đ[\s\S]*Tiền thực thu[\s\S]*Nợ phải thu[\s\S]*Hiện tại[\s\S]*10\.000\.000 đ[\s\S]*Quá hạn 3\.000\.000 đ/)
+  // What is waiting: only the overdue debt here; queues with nothing in them are left out.
+  const todo = page.getByRole('region', { name: 'Việc cần xử lý', exact: true })
+  await todo.getByRole('link', { name: /^Nợ quá hạn: 3\.000\.000 đ/ }).waitFor()
+  assert.equal(await todo.getByRole('link').count(), 1, 'Queues with nothing waiting are not drawn')
+  assert.deepEqual(await page.getByRole('tab').allInnerTexts(), TAB_NAMES)
+  assert.equal(await page.getByRole('tab', { name: 'Tổng quan', exact: true }).getAttribute('aria-selected'), 'true')
+  assert.equal(await page.locator('details').count(), 0, 'Nothing is folded away: the topics are tabs')
+  assert.equal(await page.getByRole('region', { name: 'Kênh bán hàng', exact: true }).count(), 0, 'Sales channels wait in their tab')
+  const recent = page.getByRole('region', { name: 'Đơn hàng gần đây', exact: true })
+  await recent.waitFor()
+  await page.waitForLoadState('networkidle')
+  // The recent orders end the page: nothing hidden (such as the chart's screen-reader table) stretches it further.
+  const { pageBottom, lastBottom, tallHidden } = await recent.evaluate(section => ({
+    pageBottom: document.documentElement.scrollHeight, lastBottom: Math.max(innerHeight, section.getBoundingClientRect().bottom + scrollY + 80),
+    // Only text hidden right now ("sm:not-sr-only" shows it again on wider screens).
+    tallHidden: [...document.querySelectorAll('main .sr-only')].filter(hidden => getComputedStyle(hidden).position === 'absolute' && hidden.getBoundingClientRect().height > 1).length,
+  }))
+  assert.equal(tallHidden, 0, 'Screen-reader text takes no room (a table ignores sr-only\'s 1px height)')
+  assert.ok(pageBottom <= lastBottom, `No blank space below the recent orders (page ${pageBottom}px, allowed ${Math.round(lastBottom)}px)`)
+  const later = ['/api/reports/orders', '/api/reports/credit-exposure', '/api/reports/inventory-valuation', '/api/debt-entries/dashboard', '/api/reports/purchases', '/api/reports/debt-collections', '/api/reports/advisory-diagnosis', '/api/inventory/expiry-risk', '/api/reports/debt-by-customer-group']
+  assert.deepEqual(later.filter(path => state.requests.some(request => request.path === path)), [], 'Arriving asks for the overview only')
+  assert.deepEqual([...new Set(state.requests.filter(request => request.path === '/api/reports/revenue').map(request => request.query.groupBy))].sort(), ['DAY', 'PRODUCT'])
+  pass('The owner first sees what is waiting, four figures, the trend, best sellers and recent orders; other topics wait in tabs')
+
+  // One chart for the days of the period: revenue, or delivered orders on their own scale (never two axes).
+  const revenueTrend = page.getByRole('region', { name: 'Doanh thu thuần theo ngày', exact: true })
+  await revenueTrend.getByRole('button', { name: 'Số đơn', exact: true }).click()
+  const ordersTrend = page.getByRole('region', { name: 'Đơn giao theo ngày', exact: true })
+  await ordersTrend.waitFor()
+  assert.equal(await ordersTrend.getByRole('button', { name: 'Số đơn', exact: true }).getAttribute('aria-pressed'), 'true')
+  assert.equal(await ordersTrend.getByRole('link', { name: 'Xem chi tiết: Đơn giao theo ngày' }).getAttribute('href'), '/agent/orders')
+  assert.match(await ordersTrend.innerText(), /Cao nhất[\s\S]*3 đơn/)
+  assert.equal(await page.locator('main .recharts-surface').count(), 1, 'Still a single chart')
+  await ordersTrend.getByRole('button', { name: 'Doanh thu', exact: true }).click()
+  await revenueTrend.waitFor()
+  pass('The trend switches between revenue and delivered orders in one chart')
 
   // Best sellers: ranked by the period's net sales, with units sold and a stock warning from the sales pace.
   const items = best.getByRole('listitem')
@@ -130,6 +172,9 @@ try {
   assert.ok(Number(pace.query.historyDays) >= 14 && Number(pace.query.historyDays) <= 365, 'the pace uses 14 to 365 days, as the API requires')
   pass('Best sellers show sales, units sold, low-stock and out-of-stock warnings, and link to the planning report')
 
+  // Stock tab: what is in stock today first, then the period's purchases, each under its own heading.
+  const stockTab = await openTab(page, 'Kho hàng')
+  assert.match(page.url(), /\?tab=stock$/, 'The open tab is kept in the address')
   // Expiring lots: the next 30 days, nearest first, an expired lot called out.
   const expiry = page.getByRole('region', { name: 'Lô sắp hết hạn (30 ngày tới)', exact: true })
   await expiry.getByText('Beam 75WP').waitFor()
@@ -155,8 +200,15 @@ try {
   assert.match(await bought.innerText(), /Tiền nhập bằng 67% doanh thu thuần cùng kỳ/)
   assert.equal(await bought.getByRole('link').getAttribute('href'), '/agent/purchases/receipts')
   assert.equal(state.requests.filter(request => request.path === '/api/reports/purchases').at(-1).query.groupBy, 'SUPPLIER')
+  assert.match(await stockTab.innerText(), /Hiện tại[\s\S]*Giá trị tồn kho[\s\S]*Lô sắp hết hạn[\s\S]*Trong kỳ[\s\S]*Nhập hàng trong kỳ/)
   pass('Stock value names expired stock and the largest groups; purchases show suppliers and the share of net sales')
 
+  // Debt tab: receivables by age, credit, reminders and groups as of today, then the period's collections.
+  const debtTab = await openTab(page, 'Công nợ')
+  const debt = page.getByRole('region', { name: 'Công nợ phải thu', exact: true })
+  await debt.getByText('Tổng phải thu').waitFor()
+  assert.match(await debt.innerText(), /3\.000\.000 đ[\s\S]*đã quá hạn[\s\S]*Tổng phải thu[\s\S]*10\.000\.000 đ/)
+  assert.match(await debt.innerText(), /Không theo kỳ báo cáo/)
   // Credit and collections: how much of the credit limits is used, who is at the limit, what came back in the period.
   const credit = page.getByRole('region', { name: 'Hạn mức tín dụng', exact: true })
   await credit.getByText('Trần Thị Bình').waitFor()
@@ -181,9 +233,11 @@ try {
   assert.match(await reminders.innerText(), /Không tính khoản đang tranh chấp/)
   assert.match(await reminders.innerText(), /Đã nhắc trong 7 ngày: 3\/5 khách/)
   assert.equal(await reminders.getByRole('link').getAttribute('href'), '/agent/debts')
+  assert.match(await debtTab.innerText(), /Hiện tại[\s\S]*Công nợ phải thu[\s\S]*Theo dõi nhắc nợ[\s\S]*Trong kỳ[\s\S]*Thu nợ trong kỳ/)
   pass('The reminder panel shows overdue customers not reminded in 7 days and broken promises, from the debt dashboard')
 
   // Advice and photo diagnosis: the funnel to an order within 7 days, the problems asked about most, results per crop.
+  await openTab(page, 'Tư vấn & AI')
   const advice = page.getByRole('region', { name: 'Tư vấn ra đơn', exact: true })
   await advice.getByText('Đạo ôn lá').waitFor()
   assert.match(await advice.innerText(), /25%[\s\S]*lượt tư vấn có gợi ý đã ra đơn/)
@@ -199,15 +253,57 @@ try {
   assert.equal(state.requests.filter(request => request.path === '/api/reports/advisory-diagnosis').length, 1, 'One request feeds both advice panels')
   pass('Advice shows the 7-day conversion as an estimate with top problems; diagnosis shows certainty per crop')
 
+  // Sales tab: the period's order figures, then where orders come from, how they are paid, how many finish, what and who.
+  const salesTab = await openTab(page, 'Bán hàng')
+  const orderFigures = page.getByRole('region', { name: 'Đơn hàng trong kỳ', exact: true })
+  await orderFigures.getByText('24 đơn').waitFor()
+  assert.match(await orderFigures.innerText(), /Đơn giao thành công[\s\S]*24 đơn[\s\S]*\+20%[\s\S]*Giá trị đơn trung bình[\s\S]*500\.000 đ[\s\S]*Hàng trả lại/)
+  for (const name of ['Kênh bán hàng', 'Phương thức thanh toán', 'Tỷ lệ hoàn thành đơn', 'Nhóm sản phẩm bán chạy']) await salesTab.getByRole('region', { name, exact: true }).waitFor()
+  // Top customers: registered farmers and walk-in sales, with their share of the period's revenue.
+  const buyers = page.getByRole('region', { name: 'Khách hàng mua nhiều', exact: true })
+  await buyers.getByText('Nguyễn Văn An').first().waitFor()
+  assert.match(await buyers.innerText(), /67%[\s\S]*doanh thu từ[\s\S]*Nguyễn Văn An/)
+  assert.match(await buyers.innerText(), /Khách lẻ \(không đăng ký\)[\s\S]*7 đơn/)
+  assert.equal(await buyers.getByRole('link').getAttribute('href'), '/agent/farmers')
+  pass('The sales tab shows the order figures, channels, payments, completion, product groups and top customers')
+
+  // A tab opened once stays loaded: going back shows it at once, without asking again. Arrow keys move between tabs.
+  const asks = path => state.requests.filter(request => request.path === path).length
+  const kept = ['/api/reports/credit-exposure', '/api/debt-entries/dashboard', '/api/reports/advisory-diagnosis', '/api/reports/orders', '/api/inventory/expiry-risk']
+  const askedBefore = kept.map(asks)
+  for (const name of ['Tổng quan', 'Công nợ', 'Tư vấn & AI', 'Kho hàng', 'Bán hàng']) await openTab(page, name)
+  assert.deepEqual(kept.map(asks), askedBefore, 'Reopening a tab asks for nothing new')
+  await page.getByRole('tab', { name: 'Bán hàng', exact: true }).focus()
+  await page.keyboard.press('ArrowRight')
+  await tabSelected(page, 'Công nợ')
+  assert.equal(await page.evaluate(() => document.activeElement?.textContent), 'Công nợ')
+  await page.keyboard.press('Home')
+  await tabSelected(page, 'Tổng quan')
+  await page.keyboard.press('ArrowLeft')
+  await tabSelected(page, 'Tư vấn & AI')
+  assert.equal(await page.evaluate(() => document.activeElement?.textContent), 'Tư vấn & AI')
+  assert.equal(await page.getByRole('tab', { selected: true }).count(), 1)
+  pass('Opened tabs stay loaded and the arrow, Home and End keys move between tabs')
+
   for (const width of [1440, 768, 390, 320]) {
     await page.setViewportSize({ width, height: 1000 })
-    // Recharts applies ResizeObserver measurements asynchronously after a viewport change.
-    await page.waitForFunction(() => document.documentElement.scrollWidth <= innerWidth + 1, null, { timeout: 5000 })
-    if (screenshotDir) await page.screenshot({ path: join(screenshotDir, `manager-${width}.png`), fullPage: true })
-    const overflow = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, elements: [...document.querySelectorAll('main *')].filter(element => element.getBoundingClientRect().right > innerWidth + 1 && !element.closest('[class*="overflow-x"]')).slice(0, 8).map(element => ({ tag: element.tagName, cls: String(element.className), text: element.textContent.slice(0, 50), width: element.getBoundingClientRect().width })) }))
-    assert.ok(overflow.width <= width + 1, `No document overflow at ${width}px: ${JSON.stringify(overflow)}`)
+    for (const [index, name] of TAB_NAMES.entries()) {
+      await openTab(page, name)
+      // Recharts applies ResizeObserver measurements asynchronously after a viewport change.
+      await page.waitForFunction(() => document.documentElement.scrollWidth <= innerWidth + 1, null, { timeout: 5000 })
+      if (screenshotDir && (index === 0 || width === 1440 || width === 390)) await page.screenshot({ path: join(screenshotDir, `manager-${index === 0 ? '' : `tab${index}-`}${width}.png`), fullPage: true })
+      const overflow = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, elements: [...document.querySelectorAll('main *')].filter(element => element.getBoundingClientRect().right > innerWidth + 1 && !element.closest('[class*="overflow-x"]')).slice(0, 8).map(element => ({ tag: element.tagName, cls: String(element.className), text: element.textContent.slice(0, 50), width: element.getBoundingClientRect().width })) }))
+      assert.ok(overflow.width <= width + 1, `No document overflow at ${width}px on ${name}: ${JSON.stringify(overflow)}`)
+    }
+    // The card clips what does not fit, so check that every waiting queue (and the refresh) is inside it, not cut off.
+    const clipped = await todo.evaluate(card => {
+      const box = card.getBoundingClientRect()
+      return [...card.querySelectorAll('a, button')].filter(element => { const r = element.getBoundingClientRect(); return r.left < box.left - 1 || r.right > box.right + 1 }).map(element => element.textContent)
+    })
+    assert.deepEqual(clipped, [], `Nothing in "Việc cần xử lý" is cut off at ${width}px`)
   }
   await page.setViewportSize({ width: 1440, height: 1000 })
+  await openTab(page, 'Tổng quan')
   const debtCalls = state.requests.filter(request => request.path === '/api/reports/debt-aging').length
   const currentCalls = ['/api/reports/credit-exposure', '/api/reports/inventory-valuation', '/api/debt-entries/dashboard'].map(path => state.requests.filter(request => request.path === path).length)
   await page.getByRole('button', { name: '7 ngày', exact: true }).click()
@@ -221,43 +317,52 @@ try {
     assert.ok(asked(path), `${path} follows the period`)
   }
   assert.deepEqual(['/api/reports/credit-exposure', '/api/reports/inventory-valuation', '/api/debt-entries/dashboard'].map(path => state.requests.filter(request => request.path === path).length), currentCalls, 'Current stock and credit are not refetched for a new period')
+  await openTab(page, 'Công nợ')
   assert.match(await debt.innerText(), /3\.000\.000 đ/)
-  pass('Responsive layout has no page overflow; date filters update period reports and preserve current debt')
-
-  // Top customers: registered farmers and walk-in sales, with their share of the period's revenue.
-  await page.locator('summary').filter({ hasText: 'Phân tích chi tiết' }).click()
-  const buyers = page.getByRole('region', { name: 'Khách hàng mua nhiều', exact: true })
-  await buyers.getByText('Nguyễn Văn An').first().waitFor()
-  assert.match(await buyers.innerText(), /67%[\s\S]*doanh thu từ[\s\S]*Nguyễn Văn An/)
-  assert.match(await buyers.innerText(), /Khách lẻ \(không đăng ký\)[\s\S]*7 đơn/)
-  assert.equal(await buyers.getByRole('link').getAttribute('href'), '/agent/farmers')
-  pass('Top customers show the leader\'s share, walk-in sales and link to the customer list')
+  pass('Responsive layout has no page overflow on any tab; date filters update period reports and preserve current debt')
 
   // The expiry link opens the planning report on its expiry tab.
+  await openTab(page, 'Kho hàng')
   await expiry.getByRole('link').click()
   await page.getByRole('tab', { name: 'Rủi ro hạn dùng' }).waitFor()
   assert.equal(await page.getByRole('tab', { name: 'Rủi ro hạn dùng' }).getAttribute('aria-selected'), 'true')
   pass('?tab=expiry opens the expiry risk tab')
+
+  // An address with ?tab= opens that tab, and only its reports (plus the overview's figures it shares) are asked for.
+  state.requests.length = 0
+  await page.goto(`${base}/agent?tab=debt`)
+  await page.getByRole('region', { name: 'Hạn mức tín dụng', exact: true }).getByText('Trần Thị Bình').waitFor()
+  assert.equal(await page.getByRole('tab', { name: 'Công nợ', exact: true }).getAttribute('aria-selected'), 'true')
+  await page.waitForLoadState('networkidle')
+  assert.equal(state.requests.filter(request => request.path === '/api/reports/advisory-diagnosis' || request.path === '/api/reports/orders').length, 0, 'Tabs not opened are not asked for')
+  pass('?tab=debt opens the debt tab and loads only what it shows')
   await context.close()
 
-  // Nothing sold, nothing expiring: each panel says so instead of drawing an empty list.
+  // Nothing sold, nothing expiring, nothing waiting: each panel says so in one short line instead of drawing an empty list.
   const quiet = await session('empty')
   await quiet.page.goto(`${base}/agent`)
-  await quiet.page.getByText('Chưa có sản phẩm bán ra trong kỳ này.').waitFor()
-  await quiet.page.getByText('Không có lô nào hết hạn trong 30 ngày tới.').waitFor()
-  for (const text of ['Kho chưa có hàng.', 'Chưa nhập hàng trong kỳ này.', 'Chưa có khách nào được cấp hạn mức.', 'Chưa thu nợ khoản nào trong kỳ này.', 'Chưa có lượt tư vấn nào trong kỳ này.', 'Chưa có ca chẩn đoán ảnh nào trong kỳ này.'])
-    await quiet.page.getByText(text, { exact: true }).waitFor()
-  await quiet.page.locator('summary').filter({ hasText: 'Phân tích chi tiết' }).click()
-  await quiet.page.getByText('Chưa có khách mua trong kỳ này.').waitFor()
-  pass('Empty periods show a plain message in each new panel')
+  const nothingSold = quiet.page.getByText('Chưa có sản phẩm bán ra trong kỳ này.')
+  await nothingSold.waitFor()
+  assert.ok((await nothingSold.boundingBox()).height < 48, 'An empty panel says so in one short line')
+  await quiet.page.getByRole('region', { name: 'Việc cần xử lý', exact: true }).getByText(/Không có đơn, chuyến giao, cảnh báo kho hay nợ quá hạn nào đang chờ/).waitFor()
+  for (const [tab, texts] of [
+    ['Kho hàng', ['Không có lô nào hết hạn trong 30 ngày tới.', 'Kho chưa có hàng.', 'Chưa nhập hàng trong kỳ này.']],
+    ['Công nợ', ['Chưa có khách nào được cấp hạn mức.', 'Chưa thu nợ khoản nào trong kỳ này.']],
+    ['Tư vấn & AI', ['Chưa có lượt tư vấn nào trong kỳ này.', 'Chưa có ca chẩn đoán ảnh nào trong kỳ này.']],
+    ['Bán hàng', ['Chưa có khách mua trong kỳ này.']],
+  ]) {
+    await openTab(quiet.page, tab)
+    for (const text of texts) await quiet.page.getByText(text, { exact: true }).waitFor()
+  }
+  pass('Empty periods show a plain message in each panel, and a clear queue says nothing is waiting')
   await quiet.context.close()
 
   const failed = await session('failed')
   await failed.page.goto(`${base}/agent`)
-  await failed.page.getByRole('region', { name: 'Chỉ số kinh doanh trong kỳ' }).getByRole('alert').waitFor()
+  await failed.page.getByRole('region', { name: 'Chỉ số chính' }).getByRole('alert').waitFor()
   await failed.page.getByText('Một số mục chưa tải được.', { exact: false }).waitFor()
   assert.match(await failed.page.getByRole('link', { name: /Cảnh báo kho:/ }).innerText(), /—/)
-  assert.match(await failed.page.getByRole('region', { name: 'Chỉ số kinh doanh trong kỳ' }).innerText(), /12\.000\.000 đ/)
+  assert.match(await failed.page.getByRole('region', { name: 'Chỉ số chính' }).innerText(), /12\.000\.000 đ/)
   assert.equal(await failed.page.getByRole('heading', { name: 'Lãi gộp', exact: true }).locator('..').locator('.animate-pulse').count(), 0)
   pass('An unavailable profit report shows an error without hiding revenue or leaving a perpetual loading state')
   await failed.context.close()

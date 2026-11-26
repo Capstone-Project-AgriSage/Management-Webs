@@ -8,7 +8,7 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import StatusBadge from '@/components/ui/StatusBadge'
 import EmptyTableRow from '@/components/ui/EmptyTableRow'
 import RowActionsMenu from '@/components/ui/RowActionsMenu'
-import AttentionTiles from './AttentionTiles'
+import AttentionTiles, { AttentionBar } from './AttentionTiles'
 import SeasonalSuggestionNotice from '@/features/agent/inventory/SeasonalSuggestionNotice'
 import PeriodFilter from './PeriodFilter'
 import { STATUS_LABELS } from './orderStatus'
@@ -46,7 +46,8 @@ const refreshAll = () => window.dispatchEvent(new Event('agrisage-business-data-
 
 /**
  * Period totals use report APIs. The owner and the admin read the business reports; sale staff see today's counter and their
- * own results (COUNTER_SALES.SELL, decision 2026-11-23). `area` adds the "needs doing now" tiles.
+ * own results (COUNTER_SALES.SELL, decision 2026-11-23). `area` adds the "needs doing now" tiles: one line for the owner, with
+ * the upcoming-season reminder under it, and the owner's recent orders sit in the overview tab of the charts.
  */
 export default function OrderDashboard({ reports = false, ordersPath, area }: { reports?: boolean; ordersPath?: string; area?: 'agent' | 'sales' }) {
   const { has } = usePermission()
@@ -64,27 +65,33 @@ export default function OrderDashboard({ reports = false, ordersPath, area }: { 
   const setPeriod = (from: string, to: string) => { setFromDate(from); setToDate(to) }
   const navigate = useNavigate()
   const periodNote = `${formatDay(fromDate)} – ${formatDay(toDate)} · so với khoảng liền trước cùng số ngày`
+  const manager = area === 'agent'
+  const ordersInOverview = manager && showCharts
+  // In the owner's overview the list is denser: title and count on one line, the status filter beside the search, shorter
+  // rows and no footer (the header already says how many and links to all of them).
+  const dense = ordersInOverview
+  const statusFilter = <div role="group" aria-label="Lọc theo trạng thái" className="inline-flex flex-wrap gap-0.5 rounded-lg bg-zinc-100 p-1">
+    {TABS.map(tab => <button key={tab.value || 'all'} type="button" aria-pressed={status === tab.value} onClick={() => setStatus(tab.value)}
+      className={`rounded-md px-3 ${dense ? 'py-1' : 'py-1.5'} text-sm transition-colors ${status === tab.value ? 'bg-[#fff] font-medium text-green-800 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'}`}>{tab.label}</button>)}
+  </div>
+  const searchBox = <label className="relative block w-full sm:w-72">
+    <span className="sr-only">Tìm đơn hàng</span>
+    <Search size={16} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+    <input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Tìm mã đơn, tên hoặc SĐT khách" className={`${dense ? 'h-9' : 'h-10'} w-full rounded-lg border border-zinc-200 bg-[#fff] pl-9 pr-3 text-sm`} />
+  </label>
+  const allLink = ordersPath && <Link to={ordersPath} className={`inline-flex ${dense ? 'h-9' : 'h-10'} items-center gap-1 rounded-lg border border-zinc-200 bg-[#fff] px-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900`}>Xem tất cả<ArrowUpRight size={15} aria-hidden="true" /></Link>
 
-  return <div className="agrisage-dashboard max-w-[1440px] min-w-0 mx-auto flex flex-col gap-6">
-    {area && <AttentionTiles area={area} />}
-    {area && <SeasonalSuggestionNotice variant="banner" productsPath={area === 'agent' ? '/agent/products' : '/sales/products'} />}
-    {showCharts ? <section aria-label="Kết quả kinh doanh" className="flex flex-col gap-4">
-      <PeriodFilter title="Kết quả kinh doanh" note={periodNote} fromDate={fromDate} toDate={toDate} onChange={setPeriod} onRefresh={refreshAll} />
-      {problem && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{problem}</p>}
-      <Suspense fallback={<div aria-hidden="true" className="h-96 animate-pulse rounded-xl bg-zinc-50" />}>
-        <DashboardCharts fromDate={fromDate} toDate={toDate} links={area === 'agent' ? AGENT_LINKS : undefined} manager={area === 'agent'} />
-      </Suspense>
-    </section> : reports ? <BusinessReportCards kind="sales" fromDate={fromDate} toDate={toDate} onFromDateChange={setFromDate} onToDateChange={setToDate} /> :
-      <>
-        <CounterSalesReportCards variant="strip" />
-        <section aria-label="Kết quả của tôi" className="flex flex-col gap-4">
-          <PeriodFilter title="Kết quả của tôi" fromDate={fromDate} toDate={toDate} onChange={setPeriod} onRefresh={refreshAll} />
-          {problem && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{problem}</p>}
-          <MySalesSummary fromDate={fromDate} toDate={toDate} problem={problem} />
-        </section>
-      </>}
-    {canReadOrders ? <section aria-label="Đơn hàng gần đây" aria-busy={loading} className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
-      <div className="flex flex-wrap items-end justify-between gap-3 p-5 pb-4">
+  const recentOrders = canReadOrders ? <section aria-label="Đơn hàng gần đây" aria-busy={loading} className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+      {dense ? <div className="flex flex-col gap-3 px-4 pt-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+            <h2 className="text-base font-medium text-zinc-900">Đơn hàng gần đây</h2>
+            <p className="text-sm text-zinc-500"><strong className="font-medium text-zinc-800">{data ? `${data.totalCount.toLocaleString('vi-VN')} đơn` : '—'}</strong> tạo trong kỳ, theo bộ lọc · hiện 5 đơn mới nhất</p>
+          </div>
+          {allLink}
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2">{statusFilter}{searchBox}</div>
+      </div> : <><div className="flex flex-wrap items-end justify-between gap-3 p-5 pb-4">
         <div>
           <h2 className="text-sm text-zinc-500">Đơn hàng gần đây</h2>
           <p className="mt-1 flex flex-wrap items-baseline gap-x-2 text-2xl font-medium leading-8 tracking-tight text-zinc-900">
@@ -98,27 +105,18 @@ export default function OrderDashboard({ reports = false, ordersPath, area }: { 
             <span aria-hidden="true" className="text-zinc-400">→</span>
             <DateInput aria-label="Đến ngày" className={reportInputClass} value={toDate} min={fromDate} onChange={event => setToDate(event.target.value)} />
           </>}
-          <label className="relative block w-full sm:w-72">
-            <span className="sr-only">Tìm đơn hàng</span>
-            <Search size={16} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-            <input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Tìm mã đơn, tên hoặc SĐT khách" className="h-10 w-full rounded-lg border border-zinc-200 bg-[#fff] pl-9 pr-3 text-sm" />
-          </label>
-          {ordersPath && <Link to={ordersPath} className="inline-flex h-10 items-center gap-1 rounded-lg border border-zinc-200 bg-[#fff] px-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900">Xem tất cả<ArrowUpRight size={15} aria-hidden="true" /></Link>}
+          {searchBox}
+          {allLink}
         </div>
       </div>
-      <div className="px-5">
-        <div role="group" aria-label="Lọc theo trạng thái" className="inline-flex flex-wrap gap-0.5 rounded-lg bg-zinc-100 p-1">
-          {TABS.map(tab => <button key={tab.value || 'all'} type="button" aria-pressed={status === tab.value} onClick={() => setStatus(tab.value)}
-            className={`rounded-md px-3 py-1.5 text-sm transition-colors ${status === tab.value ? 'bg-[#fff] font-medium text-green-800 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'}`}>{tab.label}</button>)}
-        </div>
-      </div>
-      {(error || (reports && !showCharts && problem)) && <p role="alert" className="mx-5 mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error ?? problem}</p>}
-      <div className="mt-4 overflow-x-auto border-t border-zinc-200"><table className="agrisage-flat-table w-full text-left text-sm sm:min-w-[650px]">
-        <thead className="border-b border-zinc-200 text-zinc-700"><tr><th className="py-3 pl-4 pr-2 font-medium sm:px-5">Mã đơn</th><th className="px-2 py-3 font-medium sm:px-4">Khách hàng</th><th className="hidden px-4 py-3 font-medium sm:table-cell">Trạng thái</th><th className="hidden px-4 py-3 font-medium sm:table-cell">Ngày tạo</th><th className="hidden px-4 py-3 text-right font-medium sm:table-cell">Giá trị đơn</th>{ordersPath && <th className="whitespace-nowrap py-3 pl-2 pr-3 text-right font-medium sm:px-5"><span className="sr-only sm:not-sr-only">Thao tác</span></th>}</tr></thead>
+      <div className="px-5">{statusFilter}</div></>}
+      {(error || (reports && !showCharts && problem)) && <p role="alert" className={`${dense ? 'mx-4' : 'mx-5'} mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700`}>{error ?? problem}</p>}
+      <div className={`${dense ? 'mt-3' : 'mt-4'} overflow-x-auto border-t border-zinc-200`}><table className={`agrisage-flat-table ${dense ? 'agrisage-flat-table--dense' : ''} w-full text-left text-sm sm:min-w-[650px]`}>
+        <thead className="border-b border-zinc-200 text-zinc-700"><tr><th className="py-3 pl-4 pr-2 font-medium sm:px-5">Mã đơn</th><th className="px-2 py-3 font-medium sm:px-4">Khách hàng</th><th className="hidden px-4 py-3 font-medium sm:table-cell">Trạng thái</th><th className="hidden px-4 py-3 font-medium sm:table-cell">Ngày tạo</th><th className="hidden px-4 py-3 text-right font-medium sm:table-cell">Giá trị đơn</th>{ordersPath && <th className="whitespace-nowrap py-3 pl-2 pr-3 text-right font-medium sm:px-5"><span className="sr-only sm:not-sr-only sm:whitespace-nowrap!">Thao tác</span></th>}</tr></thead>
         <tbody className="divide-y divide-zinc-100">
           {items.map(order => <tr key={order.id} className="hover:bg-zinc-50">
             <td className="whitespace-nowrap py-3.5 pl-4 pr-2 font-semibold text-primary sm:px-5">{ordersPath ? <Link className="hover:underline" to={`${ordersPath}?open=${encodeURIComponent(order.id)}`}>{order.orderNumber}</Link> : order.orderNumber}<div className="mt-1 text-xs font-normal text-zinc-500 sm:hidden">{formatDateTime(order.createdAt)}</div><div className="mt-1.5 sm:hidden"><StatusBadge label={STATUS_LABELS[order.status]} /></div></td>
-            <td className="px-2 py-3.5 text-zinc-800 sm:px-4">{order.customerName}<div className="mt-1 text-xs text-zinc-500">{order.customerPhone}</div><div className="mt-1.5 text-sm font-medium text-zinc-900 sm:hidden">{formatVnd(order.totalAmount)}</div></td>
+            <td className="px-2 py-3.5 text-zinc-800 sm:px-4">{order.customerName}<div className={`${dense ? 'mt-0.5' : 'mt-1'} text-xs text-zinc-500`}>{order.customerPhone}</div><div className="mt-1.5 text-sm font-medium text-zinc-900 sm:hidden">{formatVnd(order.totalAmount)}</div></td>
             <td className="hidden px-4 py-3.5 sm:table-cell"><StatusBadge size="xs" label={STATUS_LABELS[order.status]} /></td>
             <td className="hidden whitespace-nowrap px-4 py-3.5 text-zinc-600 sm:table-cell">{formatDateTime(order.createdAt)}</td>
             <td className="hidden whitespace-nowrap px-4 py-3.5 text-right font-medium tabular-nums text-zinc-900 sm:table-cell">{formatVnd(order.totalAmount)}</td>
@@ -129,10 +127,32 @@ export default function OrderDashboard({ reports = false, ordersPath, area }: { 
           {!items.length && <EmptyTableRow colSpan={ordersPath ? 6 : 5} message={loading ? 'Đang tải đơn hàng...' : error ? 'Không tải được đơn hàng.' : 'Không có đơn hàng phù hợp.'} />}
         </tbody>
       </table></div>
-      {data && data.totalCount > 0 && <div className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-200 px-5 py-3 text-sm text-zinc-500">
+      {!dense && data && data.totalCount > 0 && <div className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-200 px-5 py-3 text-sm text-zinc-500">
         <span>Đang xem {items.length.toLocaleString('vi-VN')} trên {data.totalCount.toLocaleString('vi-VN')} đơn</span>
         {ordersPath && data.totalCount > items.length && <Link to={ordersPath} className="font-medium text-green-800 hover:underline">Xem tất cả đơn hàng</Link>}
       </div>}
-    </section> : <p role="status" className="rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-600">Chưa được cấp quyền xem đơn hàng.</p>}
+    </section> : <p role="status" className="rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-600">Chưa được cấp quyền xem đơn hàng.</p>
+
+  return <div className={`agrisage-dashboard max-w-[1440px] min-w-0 mx-auto flex flex-col ${manager ? 'gap-4' : 'gap-6'}`}>
+    {manager ? <AttentionBar><SeasonalSuggestionNotice variant="row" productsPath="/agent/products" /></AttentionBar> : area && <>
+      <AttentionTiles area={area} />
+      <SeasonalSuggestionNotice variant="banner" productsPath="/sales/products" />
+    </>}
+    {showCharts ? <section aria-label="Kết quả kinh doanh" className={`flex flex-col ${manager ? 'gap-3' : 'gap-4'}`}>
+      <PeriodFilter title="Kết quả kinh doanh" note={periodNote} fromDate={fromDate} toDate={toDate} onChange={setPeriod} onRefresh={refreshAll} compact={manager} />
+      {problem && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{problem}</p>}
+      <Suspense fallback={<div aria-hidden="true" className="h-96 animate-pulse rounded-xl bg-zinc-50" />}>
+        <DashboardCharts fromDate={fromDate} toDate={toDate} links={manager ? AGENT_LINKS : undefined} manager={manager} overview={ordersInOverview ? recentOrders : undefined} />
+      </Suspense>
+    </section> : reports ? <BusinessReportCards kind="sales" fromDate={fromDate} toDate={toDate} onFromDateChange={setFromDate} onToDateChange={setToDate} /> :
+      <>
+        <CounterSalesReportCards variant="strip" />
+        <section aria-label="Kết quả của tôi" className="flex flex-col gap-4">
+          <PeriodFilter title="Kết quả của tôi" fromDate={fromDate} toDate={toDate} onChange={setPeriod} onRefresh={refreshAll} />
+          {problem && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{problem}</p>}
+          <MySalesSummary fromDate={fromDate} toDate={toDate} problem={problem} />
+        </section>
+      </>}
+    {!ordersInOverview && recentOrders}
   </div>
 }
