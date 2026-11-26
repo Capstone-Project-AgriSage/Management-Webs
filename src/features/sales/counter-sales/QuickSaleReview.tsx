@@ -1,6 +1,7 @@
 import { Loader2 } from 'lucide-react'
 import { formatVnd } from '@/utils/money'
 import type { CounterSalePreviewResponse } from '@/api/types'
+import { usePermission } from '@/context/PermissionContext'
 
 interface QuickSaleReviewProps {
   preview: CounterSalePreviewResponse
@@ -14,6 +15,8 @@ interface QuickSaleReviewProps {
 /** FE_GUIDE_FLOW_1 §M7: before a quick sale the staff sees each line, its price and the lots that will leave stock. */
 export default function QuickSaleReview({ preview, selling, printInvoice, onPrintInvoiceChange, onBack, onSell }: QuickSaleReviewProps) {
   const short = preview.items.some((i) => i.shortageBaseQuantity > 0)
+  const { has } = usePermission()
+  const canPrint = has('INVOICES.READ') && has('INVOICES.CREATE')
   return (
     <div className="flex flex-col h-full z-10">
       <div className="p-4 border-b border-outline-variant flex justify-between items-center">
@@ -68,10 +71,10 @@ export default function QuickSaleReview({ preview, selling, printInvoice, onPrin
             Không in hóa đơn
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
-            <input type="radio" name="invoice-print" checked={printInvoice} onChange={() => onPrintInvoiceChange(true)} className="accent-emerald-600" />
+            <input type="radio" name="invoice-print" checked={printInvoice} disabled={!canPrint} onChange={() => onPrintInvoiceChange(true)} className="accent-emerald-600" />
             In hóa đơn sau thanh toán
           </label>
-          <p className="text-xs text-on-surface-variant">Có thể xem và in lại hóa đơn sau khi bán hàng.</p>
+          <p className="text-xs text-on-surface-variant">{canPrint ? 'Hóa đơn vẫn được lưu khi không in. Có thể xem và tải lại sau khi bán hàng.' : 'Cần quyền tạo và xem hóa đơn để in sau thanh toán.'}</p>
         </fieldset>
         <div className="flex justify-between items-end mb-6">
           <span className="font-bold text-on-surface-variant uppercase text-sm tracking-wider">Khách phải trả</span>

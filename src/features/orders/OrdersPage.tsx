@@ -7,7 +7,7 @@ import ModalLayout from '@/components/ui/ModalLayout'
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Receipt, Clock, PackageCheck, CheckCircle, Phone, StickyNote, Pencil, ArrowRight } from 'lucide-react';
+import { Plus, Receipt, Clock, PackageCheck, CheckCircle, Phone, StickyNote, Pencil, ArrowRight, ArrowLeftRight } from 'lucide-react';
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { useToast } from '@/context/ToastContext';
 import RowActionsMenu from '@/components/ui/RowActionsMenu'
@@ -99,7 +99,7 @@ export default function OrdersPage() {
 
   // Payment state
   const [paymentSummary, setPaymentSummary] = useState<OrderPaymentsSummary | null>(null)
-  const [invoice, setInvoice] = useState<{ order: OrderResponse; payments: OrderPaymentsSummary } | null>(null)
+  const [invoice, setInvoice] = useState<string | null>(null)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [paymentAmount, setPaymentAmount] = useState('')
   const [isPaying, setIsPaying] = useState(false)
@@ -214,6 +214,7 @@ export default function OrdersPage() {
 
   const buildActions = (order: OrderResponse): RowAction[] => {
     const actions: RowAction[] = [{ label: 'Xem chi tiết', icon: 'visibility', onClick: () => handleOpenDetail(order) }]
+    if (order.status === 'COMPLETED') actions.push({ label: 'Yêu cầu đổi hàng', icon: 'swap_horiz', permissionCodes: ['EXCHANGES.CREATE'], onClick: () => navigate(`${base}/exchanges/new?orderId=${order.id}`) })
     return actions
   }
 
@@ -517,14 +518,22 @@ export default function OrdersPage() {
             </div>
           </div>} footer={<div className="order-detail-actions">
             <div className="order-detail-secondary-actions">
-              {isCounterOrder(selectedOrder) && selectedOrder.status === 'COMPLETED' && (
-                <button type="button"
+              {selectedOrder.status === 'COMPLETED' && (
+                <PermissionAction codes={['EXCHANGES.CREATE']}><button type="button"
+                  className="order-detail-button border border-primary/20 bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isPaying || isCancelling || isCreatingDelivery || stepping}
+                  onClick={() => navigate(`${base}/exchanges/new?orderId=${selectedOrder.id}`)}
+                >
+                  <ArrowLeftRight size={16} aria-hidden="true" /> Đổi hàng
+                </button></PermissionAction>
+              )}
+              {selectedOrder.status === 'COMPLETED' && (
+                <PermissionAction codes={['INVOICES.READ']}><button type="button"
                   className="order-detail-button border border-outline-variant text-on-surface hover:bg-surface-container disabled:opacity-50"
-                  disabled={!paymentSummary || !selectedOrder.items?.length}
-                  onClick={() => { if (paymentSummary) setInvoice({ order: selectedOrder, payments: paymentSummary }) }}
+                  onClick={() => setInvoice(selectedOrder.id)}
                 >
                   <Receipt size={16} /> Xem / In hóa đơn
-                </button>
+                </button></PermissionAction>
               )}
               {selectedOrder.status === 'PENDING_CONFIRMATION' && selectedOrder.items && (
                 <PermissionAction codes={['ORDERS.UPDATE']}><button
@@ -756,7 +765,7 @@ export default function OrdersPage() {
         ) : null}
       </DetailModal>
 
-      {invoice && <OrderInvoiceModal order={invoice.order} payments={invoice.payments} onClose={() => setInvoice(null)} />}
+      {invoice && <OrderInvoiceModal key={invoice} orderId={invoice} onClose={() => setInvoice(null)} />}
 
       {/* Payment Modal */}
       {isPaymentModalOpen && paymentSummary && selectedOrder && (

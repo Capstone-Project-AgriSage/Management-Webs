@@ -1,8 +1,8 @@
 import { useCallback, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { Area, AreaChart, CartesianGrid, ReferenceDot, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, ReferenceDot, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import {
-  ArrowDownRight, ArrowUpRight, Banknote, ChevronDown, CircleDollarSign, Clock, Coins, Globe, Landmark, Minus, PackageCheck, QrCode, Receipt,
+  ArrowUpRight, Banknote, ChevronDown, CircleDollarSign, Clock, Coins, Globe, Landmark, Minus, PackageCheck, QrCode, Receipt,
   ShieldCheck, Smartphone, Store, TriangleAlert, Undo2, Wallet, type LucideIcon,
 } from 'lucide-react'
 import { businessReportsApi, type AdvisoryDiagnosisReport, type CreditExposureReport, type OrderMetrics, type PaymentMetrics, type PaymentTotals, type PeriodReport, type PurchaseMetrics, type RevenueReport, type RevenueSummary, type SalesMetrics } from '@/api/businessReportsApi'
@@ -23,10 +23,11 @@ export interface DashboardLinks {
   inventory?: string; purchases?: string; advisory?: string; diagnosis?: string
 }
 
-// One accent (the project's green) for every single-series mark, slate for the quiet parts, and a status red only where the
-// color means "overdue", always next to an icon and a label. Checked with the dataviz palette validator: green/red as a pair
-// (deutan ΔE 10), and the funnel's four greens as an ordinal ramp (lightest step 2.28:1 on white).
-const C = { accent: '#16a34a', track: '#dcfce7', quiet: '#cbd5e1', grid: '#e2e8f0', axis: '#61746c', overdue: '#be123c' }
+// The project's green for every single-series mark (the user's rule: green is the main color), light zinc for context and
+// tracks in the template's layout, and a status red only where the color means "overdue", always next to an icon and a
+// label. Checked with the dataviz palette validator: green/red as a pair (deutan ΔE 10), and the funnel's four greens as an
+// ordinal ramp (lightest step 2.28:1 on white).
+const C = { accent: '#16a34a', track: '#dcfce7', quiet: '#d4d4d8', grid: '#e4e4e7', axis: '#71717a', overdue: '#be123c' }
 const FUNNEL_RAMP = ['#22c55e', '#16a34a', '#15803d', '#166534']
 
 // The database behind the API allows few connections at once, and the tiles and the order list ask in parallel too,
@@ -67,37 +68,35 @@ function shortVnd(value: number): string {
 
 /** What a headline shows without data: a pulse while the report loads, a dash when it failed (never a pulse that never ends). */
 const placeholder = (report: { loading: boolean }, width: string) => (report.loading ? <Skeleton className={`h-7 ${width}`} /> : '—')
-const Skeleton = ({ className }: { className: string }) => <span aria-hidden="true" className={`inline-block animate-pulse rounded bg-slate-100 align-middle ${className}`} />
+const Skeleton = ({ className }: { className: string }) => <span aria-hidden="true" className={`inline-block animate-pulse rounded bg-zinc-100 align-middle ${className}`} />
 
+/** The change as colored text, like "+15,8% so với kỳ trước": green when it goes the good way, red otherwise. */
 function Delta({ value, upIsGood = true }: { value: number; upIsGood?: boolean }) {
-  if (Math.abs(value) < 0.05) return <span className="inline-flex items-center gap-0.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-semibold text-slate-600"><Minus size={12} aria-hidden="true" />0%</span>
+  if (Math.abs(value) < 0.05) return <span className="inline-flex items-center gap-0.5 font-medium text-zinc-600"><Minus size={12} aria-hidden="true" />0%</span>
   const up = value > 0
-  const Icon = up ? ArrowUpRight : ArrowDownRight
-  return <span className={`inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-xs font-semibold ${up === upIsGood ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'}`}>
-    <Icon size={12} aria-hidden="true" />{up ? '+' : '−'}{percent(Math.abs(value))}
-  </span>
+  return <span className={`font-medium tabular-nums ${up === upIsGood ? 'text-green-700' : 'text-rose-700'}`}>{up ? '+' : '−'}{percent(Math.abs(value))}</span>
 }
 
 /** The change against the period just before; left out when that period had nothing, so empty history adds no text. */
 function Versus({ current, previous, upIsGood, extra }: { current: number; previous: number; upIsGood?: boolean; extra?: ReactNode }) {
   if (previous <= 0 && !extra) return null
-  return <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-slate-500">
+  return <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13px] text-zinc-500">
     {previous > 0 && <><Delta value={(current - previous) / previous * 100} upIsGood={upIsGood} /><span>so với kỳ trước</span></>}
     {extra && <span>{previous > 0 && '· '}{extra}</span>}
   </p>
 }
 
-/** A card in the style of the dashboard: a quiet label, one headline that tells the story, then the chart. */
+/** A card in the style of the template: a quiet label, one headline that tells the story, then the chart; the arrow opens the full page. */
 function Panel({ label, to, headline, sub, aside, className = '', children }: { label: string; to?: string; headline?: ReactNode; sub?: ReactNode; aside?: ReactNode; className?: string; children: ReactNode }) {
-  return <section aria-label={label} className={`flex min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ${className}`}>
+  return <section aria-label={label} className={`flex min-w-0 flex-col rounded-xl border border-zinc-200 bg-white p-5 ${className}`}>
     <header className="flex items-start justify-between gap-3">
       <div className="min-w-0">
-        <h3 className="text-sm font-medium text-slate-500">{label}</h3>
-        {headline !== undefined && <p className="mt-1 flex flex-wrap items-baseline gap-x-2 text-2xl font-semibold leading-8 text-slate-900">{headline}{sub && <span className="text-sm font-normal text-slate-500">{sub}</span>}</p>}
+        <h3 className="text-sm text-zinc-500">{label}</h3>
+        {headline !== undefined && <p className="mt-1 flex flex-wrap items-baseline gap-x-2 text-2xl font-medium leading-8 tracking-tight text-zinc-900">{headline}{sub && <span className="text-sm font-normal tracking-normal text-zinc-500">{sub}</span>}</p>}
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {aside}
-        {to && <Link to={to} aria-label={`Xem chi tiết: ${label}`} title="Xem chi tiết" className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900"><ArrowUpRight size={18} /></Link>}
+        {to && <Link to={to} aria-label={`Xem chi tiết: ${label}`} title="Xem chi tiết" className="grid h-8 w-8 place-items-center rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"><ArrowUpRight size={17} /></Link>}
       </div>
     </header>
     {children}
@@ -111,9 +110,9 @@ const friendly = (message: string) => (/failed to fetch|networkerror|load failed
 function Body<T>({ state, empty, emptyText = 'Chưa có dữ liệu trong kỳ này.', skeleton = 'h-40', children }: { state: Report<T>; empty?: (data: T) => boolean; emptyText?: string; skeleton?: string; children: (data: T) => ReactNode }) {
   if (!state.data) {
     if (state.error) return <p role="alert" className="mt-4 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{friendly(state.error)}</p>
-    return state.loading ? <div aria-hidden="true" className={`mt-4 animate-pulse rounded-xl bg-slate-50 ${skeleton}`} /> : null
+    return state.loading ? <div aria-hidden="true" className={`mt-4 animate-pulse rounded-xl bg-zinc-50 ${skeleton}`} /> : null
   }
-  if (empty?.(state.data)) return <p role="status" className="mt-4 rounded-xl bg-slate-50 px-3 py-6 text-center text-sm text-slate-500">{emptyText}</p>
+  if (empty?.(state.data)) return <p role="status" className="mt-4 rounded-xl bg-zinc-50 px-3 py-6 text-center text-sm text-zinc-500">{emptyText}</p>
   return <div aria-busy={state.loading} className={`flex flex-1 flex-col transition-opacity ${state.stale ? 'opacity-60' : ''}`}>{children(state.data)}</div>
 }
 
@@ -127,50 +126,28 @@ function StatGrid({ summary, sales, payments }: { summary: Report<RevenueSummary
   const stats: { label: string; icon: LucideIcon; value: ReactNode; foot: ReactNode }[] = [
     { label: 'Doanh thu thuần', icon: CircleDollarSign, value: cur && formatVnd(cur.netSales), foot: cur && prev && <Versus current={cur.netSales} previous={prev.netSales} /> },
     { label: 'Lãi gộp', icon: Coins, value: sale ? formatVnd(sale.grossProfit) : placeholder(sales, 'w-28'), foot: sale ? <div className="space-y-1">
-      <p className="text-xs text-slate-500">Giá vốn {formatVnd(sale.costOfGoods)}</p>
       {prev && <Versus current={sale.grossProfit} previous={prev.grossProfit} />}
-      <p className="text-xs text-slate-500">Trước trả hàng, chưa trừ chi phí vận hành.</p>
+      <p className="text-[13px] text-zinc-500">Giá vốn {formatVnd(sale.costOfGoods)}</p>
+      <p className="text-xs text-zinc-500">Trước trả hàng, chưa trừ chi phí vận hành.</p>
     </div> : sales.error ? <p role="alert" className="text-xs text-rose-700">{friendly(sales.error)}</p> : null },
     { label: 'Đơn giao thành công', icon: PackageCheck, value: cur && `${num(cur.orderCount)} đơn`, foot: cur && prev && <Versus current={cur.orderCount} previous={prev.orderCount} /> },
     { label: 'Giá trị đơn trung bình', icon: Receipt, value: cur && formatVnd(cur.averageOrderValue), foot: cur && prev && <Versus current={cur.averageOrderValue} previous={prev.averageOrderValue} /> },
-    { label: 'Tiền thực thu', icon: Wallet, value: payments.data && formatVnd(payments.data.totals.netReceivedAmount), foot: payments.data && <p className="text-xs text-slate-500">Gồm thu nợ {formatVnd(payments.data.totals.debtRepaymentAmount)}</p> },
+    { label: 'Tiền thực thu', icon: Wallet, value: payments.data && formatVnd(payments.data.totals.netReceivedAmount), foot: payments.data ? <p className="text-[13px] text-zinc-500">Gồm thu nợ {formatVnd(payments.data.totals.debtRepaymentAmount)}</p> : payments.error ? <p role="alert" className="text-xs text-rose-700">{friendly(payments.error)}</p> : null },
     { label: 'Hàng trả lại', icon: Undo2, value: cur && formatVnd(cur.returnValue), foot: cur && prev && <Versus current={cur.returnValue} previous={prev.returnValue} upIsGood={false} /> },
   ]
   const failed = (summary.error && !s) || (payments.error && !payments.data)
-  return <section aria-label="Chỉ số kinh doanh trong kỳ" title={s?.previousFromDate && s.previousToDate ? `So với kỳ trước: ${dayMonthYear(s.previousFromDate)} → ${dayMonthYear(s.previousToDate)}` : undefined} className={`grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 shadow-sm transition-opacity ${summary.stale ? 'opacity-60' : ''}`}>
+  // Six joined cells with hairline borders (two columns, three rows), like the template's figures next to its sales chart.
+  return <section aria-label="Chỉ số kinh doanh trong kỳ" title={s?.previousFromDate && s.previousToDate ? `So với kỳ trước: ${dayMonthYear(s.previousFromDate)} → ${dayMonthYear(s.previousToDate)}` : undefined} className={`grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 transition-opacity ${summary.stale ? 'opacity-60' : ''}`}>
     {stats.map(stat => {
       const Icon = stat.icon
-      return <div key={stat.label} aria-busy={stat.label === 'Lãi gộp' ? sales.loading : undefined} className={`flex min-w-0 flex-col gap-2 bg-[#fff] p-4 sm:p-5 ${stat.label === 'Lãi gộp' && sales.stale ? 'opacity-60' : ''}`}>
-        <div className="flex items-start justify-between gap-2">
-          <span className="text-sm text-slate-500">{stat.label}</span>
-          <span className="hidden h-8 w-8 shrink-0 place-items-center rounded-lg bg-green-50 text-green-700 sm:grid"><Icon size={16} aria-hidden="true" /></span>
-        </div>
-        <span className="text-lg font-semibold leading-7 text-slate-900 [overflow-wrap:anywhere] sm:text-2xl sm:leading-8">{stat.value ?? (failed ? '—' : <Skeleton className="h-7 w-28" />)}</span>
-        <div className="min-h-6">{stat.foot}</div>
+      // The label is the cell's heading and the cell holds everything about it, so "heading → parent" reads the whole figure.
+      return <div key={stat.label} aria-busy={stat.label === 'Lãi gộp' ? sales.loading : undefined} className={`relative flex min-w-0 flex-col gap-1.5 bg-[#fff] p-4 sm:p-5 ${stat.label === 'Lãi gộp' && sales.stale ? 'opacity-60' : ''}`}>
+        <h3 className="pr-9 text-sm text-zinc-700">{stat.label}</h3>
+        <span aria-hidden="true" className="absolute right-4 top-4 hidden h-7 w-7 place-items-center rounded-md bg-green-50 text-green-700 sm:grid sm:right-5 sm:top-5"><Icon size={15} /></span>
+        <span className="text-xl font-medium leading-8 tracking-tight tabular-nums text-zinc-900 [overflow-wrap:anywhere] sm:text-[28px] sm:leading-9">{stat.value ?? (failed ? '—' : <Skeleton className="h-8 w-28" />)}</span>
+        <div className="mt-auto min-h-6 pt-1">{stat.foot}</div>
       </div>
     })}
-  </section>
-}
-
-/** The manager's first scan: sales, profit, cash and fulfilled orders each answer a different question. */
-function ManagerStats({ summary, sales, payments }: { summary: Report<RevenueSummary>; sales: Report<PeriodReport<SalesMetrics>>; payments: Report<PeriodReport<PaymentMetrics, PaymentTotals>> }) {
-  const current = summary.data?.current
-  const previous = summary.data?.previous
-  const paid = payments.data?.totals
-  const profit = sales.data?.totals
-  const stats = [
-    { label: 'Doanh thu thuần', state: summary, value: current && formatVnd(current.netSales), note: 'Giá trị đã giao, trừ hàng trả', change: current && previous && <Versus current={current.netSales} previous={previous.netSales} /> },
-    { label: 'Lãi gộp', state: sales, value: profit && formatVnd(profit.grossProfit), note: profit ? `Giá vốn ${formatVnd(profit.costOfGoods)}` : 'Trước trả hàng và chi phí vận hành', change: profit && <><p className="mb-2 text-xs leading-5 text-slate-500">Trước trả hàng, chưa trừ chi phí vận hành.</p>{previous && <Versus current={profit.grossProfit} previous={previous.grossProfit} />}</> },
-    { label: 'Tiền thực thu', state: payments, value: paid && formatVnd(paid.netReceivedAmount), note: 'Tiền đã nhận, trừ tiền đã hoàn', change: paid && <p className="text-xs text-slate-500">Gồm thu nợ {formatVnd(paid.debtRepaymentAmount)}</p> },
-    { label: 'Đơn giao thành công', state: summary, value: current && `${num(current.orderCount)} đơn`, note: 'Có ghi nhận giao hàng trong kỳ', change: current && previous && <Versus current={current.orderCount} previous={previous.orderCount} /> },
-  ]
-  return <section aria-label="Chỉ số kinh doanh trong kỳ" className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 xl:grid-cols-4">
-    {stats.map(stat => <div key={stat.label} aria-busy={stat.state.loading} className={`min-w-0 bg-white p-4 sm:p-5 ${stat.state.stale ? 'opacity-60' : ''}`}>
-      <h3 className="text-sm font-medium text-slate-600">{stat.label}</h3>
-      <p className="mt-2 text-lg font-semibold leading-8 tabular-nums text-slate-900 [overflow-wrap:anywhere] sm:text-2xl">{stat.value ?? placeholder(stat.state, 'w-20')}</p>
-      <p className="mt-1 text-xs leading-5 text-slate-500">{stat.note}</p>
-      <div className="mt-3">{stat.state.error ? <p role="alert" className="text-xs text-rose-700">{friendly(stat.state.error)}</p> : stat.change}</div>
-    </div>)}
   </section>
 }
 
@@ -185,44 +162,84 @@ const titleOf = (g: Granularity, key: string) => (g === 'MONTH' ? `Tháng ${Numb
 
 interface TrendPoint { key: string; tick: string; title: string; netSales: number; orders: number }
 
-function TrendTooltip({ active, payload }: { active?: boolean; payload?: ReadonlyArray<{ payload?: TrendPoint }> }) {
+function TrendTooltip({ active, payload, measure }: { active?: boolean; payload?: ReadonlyArray<{ payload?: TrendPoint }>; measure: 'sales' | 'orders' }) {
   const point = payload?.[0]?.payload
   if (!active || !point) return null
-  return <div className="rounded-xl border border-slate-200 bg-[#fff] px-3 py-2 text-xs shadow-lg">
-    <p className="text-slate-500">{point.title}</p>
-    <p className="mt-1 flex items-center gap-2"><span aria-hidden="true" className="h-0.5 w-3 rounded-full" style={{ backgroundColor: C.accent }} /><strong className="text-sm font-semibold text-slate-900">{formatVnd(point.netSales)}</strong></p>
-    <p className="mt-0.5 pl-5 text-slate-500">{num(point.orders)} đơn giao</p>
+  const sales = <strong className="text-sm font-semibold text-zinc-900">{formatVnd(point.netSales)}</strong>
+  const orders = <span>{num(point.orders)} đơn giao</span>
+  return <div className="rounded-lg border border-zinc-200 bg-[#fff] px-3 py-2 text-xs shadow-lg">
+    <p className="text-zinc-500">{point.title}</p>
+    <p className="mt-1 text-sm font-semibold text-zinc-900">{measure === 'sales' ? sales : <strong>{orders}</strong>}</p>
+    <p className="mt-0.5 text-zinc-500">{measure === 'sales' ? orders : <>Doanh thu {formatVnd(point.netSales)}</>}</p>
   </div>
 }
 
+const pointsOf = (trend: Report<RevenueReport>, granularity: Granularity): TrendPoint[] =>
+  (trend.data?.rows ?? []).map(row => ({ key: row.key, tick: tickOf(granularity, row.key), title: titleOf(granularity, row.key), netSales: row.netSales, orders: row.orderCount }))
+
+/** Net sales over the period: one series on one scale (the delivered orders have their own chart below). */
 function TrendPanel({ trend, requested }: { trend: Report<RevenueReport>; requested: Granularity }) {
   // Label by what the shown rows were grouped by: while the next period loads, the previous rows stay on screen.
   const granularity = (trend.data?.groupBy as Granularity | undefined) ?? requested
-  const points: TrendPoint[] = (trend.data?.rows ?? []).map(row => ({ key: row.key, tick: tickOf(granularity, row.key), title: titleOf(granularity, row.key), netSales: row.netSales, orders: row.orderCount }))
+  const points = pointsOf(trend, granularity)
   const best = points.reduce<TrendPoint | null>((top, point) => (!top || point.netSales > top.netSales ? point : top), null)
   const label = `Doanh thu thuần theo ${UNIT[granularity]}`
-  return <Panel label={label} aside={best && best.netSales > 0 ? <span className="text-xs text-slate-500">Cao nhất <strong className="font-semibold text-slate-700">{best.tick}</strong> · {shortVnd(best.netSales)}</span> : undefined}>
+  return <Panel label={label} aside={best && best.netSales > 0 ? <span className="hidden text-xs text-zinc-500 sm:inline">Cao nhất <strong className="font-semibold text-zinc-700">{best.tick}</strong> · {shortVnd(best.netSales)}</span> : undefined}>
     <Body state={trend} skeleton="h-72" empty={data => !data.rows.some(row => row.netSales !== 0)} emptyText="Chưa có doanh thu ghi nhận trong kỳ này.">
       {() => <>
-        <div className="mt-4 h-72 w-full min-w-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={points} margin={{ top: 12, right: 12, bottom: 0, left: 0 }}>
+        {/* At least 18rem tall; beside the figures it grows with the row. The chart fills the box, so its height is always definite. */}
+        <div className="relative mt-4 min-h-72 w-full min-w-0 flex-1">
+          <div className="absolute inset-0"><ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={points} margin={{ top: 12, right: 8, bottom: 0, left: 0 }}>
               <CartesianGrid vertical={false} stroke={C.grid} />
-              <XAxis dataKey="key" tickFormatter={key => tickOf(granularity, String(key))} tick={{ fontSize: 12, fill: C.axis }} tickLine={false} axisLine={{ stroke: C.grid }} minTickGap={24} />
+              <XAxis dataKey="key" tickFormatter={key => tickOf(granularity, String(key))} tick={{ fontSize: 12, fill: C.axis }} tickLine={false} axisLine={false} minTickGap={24} />
               <YAxis tickFormatter={value => shortVnd(Number(value))} tick={{ fontSize: 12, fill: C.axis }} tickLine={false} axisLine={false} width={56} />
-              <Tooltip cursor={{ stroke: C.axis, strokeWidth: 1 }} content={<TrendTooltip />} />
-              <Area type="monotone" dataKey="netSales" stroke={C.accent} strokeWidth={2} fill={C.accent} fillOpacity={0.1} isAnimationActive={false}
+              <Tooltip cursor={{ stroke: C.axis, strokeWidth: 1 }} content={<TrendTooltip measure="sales" />} />
+              <Area type="linear" dataKey="netSales" stroke={C.accent} strokeWidth={2} fill={C.accent} fillOpacity={0.06} isAnimationActive={false}
                 dot={points.length === 1 ? { r: 4, fill: C.accent, stroke: '#fff', strokeWidth: 2 } : false} activeDot={{ r: 5, fill: C.accent, stroke: '#fff', strokeWidth: 2 }} />
               {best && best.netSales > 0 && points.length > 1 && <ReferenceDot x={best.key} y={best.netSales} r={4} fill={C.accent} stroke="#fff" strokeWidth={2} />}
             </AreaChart>
-          </ResponsiveContainer>
+          </ResponsiveContainer></div>
         </div>
         <table className="sr-only">
           <caption>{label}</caption>
           <thead><tr><th scope="col">Thời gian</th><th scope="col">Doanh thu thuần</th><th scope="col">Đơn giao</th></tr></thead>
           <tbody>{points.map(point => <tr key={point.key}><th scope="row">{point.title}</th><td>{formatVnd(point.netSales)}</td><td>{num(point.orders)}</td></tr>)}</tbody>
         </table>
-        <p className="mt-auto pt-3 text-xs text-slate-500">Ghi nhận khi giao hàng, đã trừ hàng trả. Lãi gộp tính trước trả hàng và chưa trừ chi phí vận hành.</p>
+        <p className="mt-auto pt-3 text-xs text-zinc-500">Ghi nhận khi giao hàng, đã trừ hàng trả. Lãi gộp tính trước trả hàng và chưa trừ chi phí vận hành.</p>
+      </>}
+    </Body>
+  </Panel>
+}
+
+/** Delivered orders per day, week or month: columns from the same revenue report, one hue, the busiest period called out. */
+function OrdersTrendPanel({ trend, requested, to }: { trend: Report<RevenueReport>; requested: Granularity; to?: string }) {
+  const granularity = (trend.data?.groupBy as Granularity | undefined) ?? requested
+  const points = pointsOf(trend, granularity)
+  const total = points.reduce((sum, point) => sum + point.orders, 0)
+  const busiest = points.reduce<TrendPoint | null>((top, point) => (!top || point.orders > top.orders ? point : top), null)
+  const label = `Đơn giao theo ${UNIT[granularity]}`
+  return <Panel label={label} to={to} headline={trend.data ? `${num(total)} đơn` : placeholder(trend, 'w-20')}
+    sub={trend.data ? (busiest && busiest.orders > 0 ? <>nhiều nhất <strong className="font-medium text-zinc-700">{busiest.tick}</strong> ({num(busiest.orders)} đơn)</> : 'giao trong kỳ') : undefined}>
+    <Body state={trend} skeleton="h-48" empty={() => total <= 0} emptyText="Chưa giao đơn nào trong kỳ này.">
+      {() => <>
+        <div className="relative mt-4 h-48 w-full min-w-0">
+          <div className="absolute inset-0"><ResponsiveContainer width="100%" height="100%">
+            <BarChart data={points} margin={{ top: 8, right: 4, bottom: 0, left: 0 }} barCategoryGap="20%">
+              <CartesianGrid vertical={false} stroke={C.grid} />
+              <XAxis dataKey="key" tickFormatter={key => tickOf(granularity, String(key))} tick={{ fontSize: 11, fill: C.axis }} tickLine={false} axisLine={false} minTickGap={16} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: C.axis }} tickLine={false} axisLine={false} width={28} />
+              <Tooltip cursor={{ fill: C.track }} content={<TrendTooltip measure="orders" />} />
+              <Bar dataKey="orders" fill={C.accent} radius={[4, 4, 0, 0]} maxBarSize={18} isAnimationActive={false} />
+            </BarChart>
+          </ResponsiveContainer></div>
+        </div>
+        <table className="sr-only">
+          <caption>{label}</caption>
+          <thead><tr><th scope="col">Thời gian</th><th scope="col">Đơn giao</th></tr></thead>
+          <tbody>{points.map(point => <tr key={point.key}><th scope="row">{point.title}</th><td>{num(point.orders)}</td></tr>)}</tbody>
+        </table>
+        <p className="mt-auto pt-3 text-xs text-zinc-500">Đơn có ghi nhận giao hàng trong kỳ.</p>
       </>}
     </Body>
   </Panel>
@@ -237,23 +254,23 @@ function CategoryPanel({ report, to }: { report: Report<RevenueReport>; to?: str
   const top = rows[0]
   const rest = total - rows.reduce((sum, row) => sum + row.netSales, 0)
   const segments = [...rows.map(row => ({ key: row.key, name: row.label, value: row.netSales })), ...(rest > 0 ? [{ key: 'rest', name: 'Nhóm khác', value: rest }] : [])]
-  return <Panel label="Nhóm sản phẩm bán chạy" to={to} headline={top && total > 0 ? percent(top.netSales / total * 100) : data ? undefined : placeholder(report, "w-20")} sub={top && total > 0 ? <>doanh thu từ <strong className="font-medium text-slate-700">{top.label}</strong></> : undefined}>
+  return <Panel label="Nhóm sản phẩm bán chạy" to={to} headline={top && total > 0 ? percent(top.netSales / total * 100) : data ? undefined : placeholder(report, "w-20")} sub={top && total > 0 ? <>doanh thu từ <strong className="font-medium text-zinc-700">{top.label}</strong></> : undefined}>
     <Body state={report} empty={() => !top || total <= 0} emptyText="Chưa có doanh thu theo nhóm trong kỳ này.">
       {() => top && <>
         <div className="mt-4 flex h-2.5 w-full gap-0.5" role="img" aria-label={`Tỷ trọng doanh thu: ${segments.map(segment => `${segment.name} ${percent(segment.value / total * 100)}`).join(', ')}`}>
           {segments.map((segment, index) => <span key={segment.key} title={`${segment.name}: ${percent(segment.value / total * 100)}`} className="h-full rounded-full" style={{ flexGrow: segment.value, flexBasis: 0, minWidth: 4, backgroundColor: index === 0 ? C.accent : C.quiet }} />)}
         </div>
-        <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
+        <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-600">
           <li className="flex items-center gap-1.5"><span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: C.accent }} />{top.label}</li>
           {segments.length > 1 && <li className="flex items-center gap-1.5"><span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: C.quiet }} />Các nhóm khác</li>}
         </ul>
-        <div className="mt-4 border-t border-slate-100 pt-3">
-          <div aria-hidden="true" className="grid grid-cols-[minmax(0,1fr)_3rem_4.5rem] gap-x-3 pb-2 text-xs text-slate-500"><span>Nhóm</span><span className="text-right">Tỷ trọng</span><span className="text-right">Doanh thu</span></div>
+        <div className="mt-4 border-t border-zinc-100 pt-3">
+          <div aria-hidden="true" className="grid grid-cols-[minmax(0,1fr)_3rem_4.5rem] gap-x-3 pb-2 text-xs text-zinc-500"><span>Nhóm</span><span className="text-right">Tỷ trọng</span><span className="text-right">Doanh thu</span></div>
           <ul className="space-y-2.5">
             {rows.slice(0, 4).map(row => <li key={row.key} className="grid grid-cols-[minmax(0,1fr)_3rem_4.5rem] items-center gap-x-3 text-sm">
-              <span className="min-w-0"><span title={row.label} className="block truncate font-medium text-slate-900">{row.label}</span><span className="block text-xs text-slate-500">{num(row.orderCount)} đơn</span></span>
-              <span className="text-right tabular-nums text-slate-600">{percent(row.netSales / total * 100)}</span>
-              <span title={formatVnd(row.netSales)} className="text-right font-semibold tabular-nums text-slate-900">{shortVnd(row.netSales)}</span>
+              <span className="min-w-0"><span title={row.label} className="block truncate font-medium text-zinc-900">{row.label}</span><span className="block text-xs text-zinc-500">{num(row.orderCount)} đơn</span></span>
+              <span className="text-right tabular-nums text-zinc-600">{percent(row.netSales / total * 100)}</span>
+              <span title={formatVnd(row.netSales)} className="text-right font-semibold tabular-nums text-zinc-900">{shortVnd(row.netSales)}</span>
             </li>)}
           </ul>
         </div>
@@ -272,16 +289,16 @@ function ShareBars({ rows }: { rows: ShareRow[] }) {
       const Icon = row.icon
       const share = total ? row.value / total * 100 : 0
       return <li key={row.key} className="flex items-center gap-3">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-green-50 text-green-700"><Icon size={18} aria-hidden="true" /></span>
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-green-50 text-green-700"><Icon size={17} aria-hidden="true" /></span>
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2 text-sm">
-            <span className="truncate font-medium text-slate-900">{row.name}</span>
-            <span className="shrink-0 tabular-nums"><strong className="font-semibold text-slate-900">{num(row.value)}</strong> <span className="text-xs text-slate-500">{row.unit} · {percent(share)}</span></span>
+            <span className="truncate font-medium text-zinc-900">{row.name}</span>
+            <span className="shrink-0 tabular-nums"><strong className="font-semibold text-zinc-900">{num(row.value)}</strong> <span className="text-xs text-zinc-500">{row.unit} · {percent(share)}</span></span>
           </div>
           <div className="mt-1.5 h-2 w-full rounded-full" style={{ backgroundColor: C.track }}>
             <div className="h-full rounded-full" style={{ width: `${row.value ? Math.max(share, 1.5) : 0}%`, backgroundColor: C.accent }} />
           </div>
-          {row.detail && <p className="mt-1 text-xs text-slate-500">{row.detail}</p>}
+          {row.detail && <p className="mt-1 text-xs text-zinc-500">{row.detail}</p>}
         </div>
       </li>
     })}
@@ -350,15 +367,15 @@ function FunnelPanel({ report, to }: { report: Report<PeriodReport<OrderMetrics>
             const top = width(stage.value)
             const bottom = index + 1 < stages.length ? width(stages[index + 1].value) : top * 0.8
             return <li key={stage.name} className="grid grid-cols-[3rem_minmax(0,1fr)_7rem] items-center gap-3">
-              <span className="text-right text-sm font-semibold tabular-nums text-slate-900">{num(stage.value)}</span>
+              <span className="text-right text-sm font-semibold tabular-nums text-zinc-900">{num(stage.value)}</span>
               <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="block h-10 w-full" aria-hidden="true">
                 <polygon points={`${50 - top / 2},0 ${50 + top / 2},0 ${50 + bottom / 2},40 ${50 - bottom / 2},40`} fill={FUNNEL_RAMP[index]} />
               </svg>
-              <span className="min-w-0 text-sm"><span className="block truncate text-slate-700">{stage.name}</span><span className="block text-xs text-slate-500">{percent(created ? stage.value / created * 100 : 0)}</span></span>
+              <span className="min-w-0 text-sm"><span className="block truncate text-zinc-700">{stage.name}</span><span className="block text-xs text-zinc-500">{percent(created ? stage.value / created * 100 : 0)}</span></span>
             </li>
           })}
         </ol>
-        <p className="mt-auto flex flex-wrap gap-x-3 border-t border-slate-100 pt-3 text-xs text-slate-500">
+        <p className="mt-auto flex flex-wrap gap-x-3 border-t border-zinc-100 pt-3 text-xs text-zinc-500">
           <span>{num(byKey.get('CANCELLED') ?? 0)} đơn bị hủy</span>
           <span>{num(byKey.get('PENDING_CONFIRMATION') ?? 0)} đơn chờ xác nhận</span>
         </p>
@@ -380,6 +397,27 @@ function Gauge({ share }: { share: number }) {
   </svg>
 }
 
+/** Receivables by age as columns (the template's traffic chart): not yet due in the project green, overdue buckets in the overdue red. */
+function AgingBars({ totals }: { totals: DebtAgingReport['totals'] }) {
+  const buckets = [
+    { key: 'due', label: 'Trong hạn', value: totals.notDue, overdue: false },
+    { key: '30', label: '1–30 ngày', value: totals.days1To30, overdue: true },
+    { key: '60', label: '31–60', value: totals.days31To60, overdue: true },
+    { key: '90', label: '61–90', value: totals.days61To90, overdue: true },
+    { key: 'over', label: '> 90', value: totals.over90, overdue: true },
+  ]
+  const max = Math.max(...buckets.map(bucket => bucket.value), 1)
+  return <div className="mt-4" role="img" aria-label={`Công nợ theo tuổi: ${buckets.map(bucket => `${bucket.label} ${formatVnd(bucket.value)}`).join(', ')}`}>
+    <div className="flex h-28 items-end gap-2 border-b border-zinc-200">
+      {buckets.map(bucket => <div key={bucket.key} title={`${bucket.label}: ${formatVnd(bucket.value)}`} className="flex h-full min-w-0 flex-1 flex-col justify-end">
+        <span className="mb-1 block truncate text-center text-[11px] tabular-nums text-zinc-500">{bucket.value > 0 ? shortVnd(bucket.value) : ''}</span>
+        <span className="block w-full rounded-t-[3px]" style={{ height: `${bucket.value > 0 ? Math.max(bucket.value / max * 100, 4) : 0}%`, backgroundColor: bucket.overdue ? C.overdue : C.accent }} />
+      </div>)}
+    </div>
+    <div aria-hidden="true" className="mt-1.5 flex gap-2">{buckets.map(bucket => <span key={bucket.key} className="min-w-0 flex-1 truncate text-center text-[11px] text-zinc-500">{bucket.label}</span>)}</div>
+  </div>
+}
+
 function DebtPanel({ report, to, focusOverdue = false }: { report: Report<DebtAgingReport>; to?: string; focusOverdue?: boolean }) {
   const data = report.data
   const totals = data?.totals
@@ -394,24 +432,25 @@ function DebtPanel({ report, to, focusOverdue = false }: { report: Report<DebtAg
   return <Panel label="Công nợ phải thu" to={to} headline={data ? <span className={focusOverdue && overdue > 0 ? 'text-rose-700' : undefined}>{formatVnd(focusOverdue ? overdue : total)}</span> : placeholder(report, "w-32")} sub={data ? focusOverdue ? 'đã quá hạn' : 'tính đến hôm nay' : undefined}>
     <Body state={report} empty={() => total <= 0} emptyText="Không có khoản nợ nào.">
       {() => <>
-        {focusOverdue ? <div className="mt-4 space-y-3">
-          <p className="text-xs text-slate-500">Hiện tại · {data?.asOf ? dayMonthYear(data.asOf) : 'Hôm nay'} · Không theo kỳ báo cáo</p>
-          <div className="flex items-baseline justify-between gap-2 border-b border-slate-100 pb-3 text-sm"><span className="text-slate-600">Tổng phải thu</span><strong className="font-semibold tabular-nums text-slate-900">{formatVnd(total)}</strong></div>
+        {focusOverdue ? <div className="mt-2 space-y-3">
+          <p className="text-xs text-zinc-500">Hiện tại · {data?.asOf ? dayMonthYear(data.asOf) : 'Hôm nay'} · Không theo kỳ báo cáo</p>
+          {totals && <AgingBars totals={totals} />}
+          <div className="flex items-baseline justify-between gap-2 border-b border-zinc-100 pb-3 text-sm"><span className="text-zinc-600">Tổng phải thu</span><strong className="font-semibold tabular-nums text-zinc-900">{formatVnd(total)}</strong></div>
           <p className={`flex items-start gap-2 text-sm ${overdue > 0 ? 'text-rose-700' : 'text-green-700'}`}>{overdue > 0 ? <TriangleAlert size={16} className="mt-0.5 shrink-0" aria-hidden="true" /> : <ShieldCheck size={16} className="mt-0.5 shrink-0" aria-hidden="true" />}{overdue > 0 ? 'Ưu tiên liên hệ khách có nợ quá hạn để thu hồi.' : 'Chưa có khoản nợ quá hạn.'}</p>
         </div> : <div className="relative mx-auto mt-4 w-full max-w-[260px]">
           <Gauge share={share} />
           <div className="absolute inset-x-0 bottom-0 text-center">
-            <p className="text-3xl font-semibold leading-9 text-slate-900">{percent(share * 100)}</p>
-            <p className="text-xs text-slate-500">nợ còn trong hạn</p>
+            <p className="text-3xl font-semibold leading-9 text-zinc-900">{percent(share * 100)}</p>
+            <p className="text-xs text-zinc-500">nợ còn trong hạn</p>
           </div>
         </div>}
-        <dl className="mt-auto grid grid-cols-3 divide-x divide-slate-100 border-t border-slate-100 pt-4 text-center">
+        <dl className="mt-auto grid grid-cols-3 divide-x divide-zinc-100 border-t border-zinc-100 pt-4 text-center">
           {stats.map(stat => {
             const Icon = stat.icon
             return <div key={stat.detail} className="flex min-w-0 flex-col items-center gap-1 px-2">
               <span className={`grid h-7 w-7 place-items-center rounded-lg ${stat.good ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'}`}><Icon size={14} aria-hidden="true" /></span>
-              <dt className="text-xs leading-4 text-slate-500"><span className="block font-medium text-slate-700">{stat.label}</span>{stat.detail}</dt>
-              <dd title={formatVnd(stat.value)} className="text-sm font-semibold text-slate-900">{shortVnd(stat.value)}</dd>
+              <dt className="text-xs leading-4 text-zinc-500"><span className="block font-medium text-zinc-700">{stat.label}</span>{stat.detail}</dt>
+              <dd title={formatVnd(stat.value)} className="text-sm font-semibold text-zinc-900">{shortVnd(stat.value)}</dd>
             </div>
           })}
         </dl>
@@ -431,14 +470,14 @@ function DebtGroupsPanel({ report, to }: { report: Report<DebtByGroupReport>; to
           const share = total ? group.outstanding / total * 100 : 0
           return <li key={group.customerGroup?.id ?? 'none'}>
             <div className="flex items-baseline justify-between gap-2 text-sm">
-              <span className="min-w-0 truncate font-medium text-slate-900">{group.customerGroup?.name ?? 'Chưa phân nhóm'}</span>
-              <span className="shrink-0 font-semibold tabular-nums text-slate-900">{formatVnd(group.outstanding)}</span>
+              <span className="min-w-0 truncate font-medium text-zinc-900">{group.customerGroup?.name ?? 'Chưa phân nhóm'}</span>
+              <span className="shrink-0 font-semibold tabular-nums text-zinc-900">{formatVnd(group.outstanding)}</span>
             </div>
             <div className="mt-1.5 flex items-center gap-3">
               <div className="h-2 flex-1 rounded-full" style={{ backgroundColor: C.track }}><div className="h-full rounded-full" style={{ width: `${Math.max(share, 1.5)}%`, backgroundColor: C.accent }} /></div>
-              <span className="w-10 shrink-0 text-right text-xs tabular-nums text-slate-500">{percent(share)}</span>
+              <span className="w-10 shrink-0 text-right text-xs tabular-nums text-zinc-500">{percent(share)}</span>
             </div>
-            <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-zinc-500">
               <span>{num(group.customersWithDebt)} khách</span>
               {group.overdueAmount > 0 && <span className="inline-flex items-center gap-1 font-medium text-rose-700"><TriangleAlert size={12} aria-hidden="true" />Quá hạn {shortVnd(group.overdueAmount)}</span>}
             </p>
@@ -461,33 +500,35 @@ function StockBadge({ item }: { item?: VelocityItem }) {
   return null
 }
 
-function TopProductsPanel({ report, velocity, to, limit = 10 }: { report: Report<RevenueReport>; velocity: Report<VelocityPage>; to?: string; limit?: number }) {
+function TopProductsPanel({ report, velocity, to, limit = 10, className }: { report: Report<RevenueReport>; velocity: Report<VelocityPage>; to?: string; limit?: number; className?: string }) {
   const rows = (report.data?.rows ?? []).filter(row => row.netSales > 0)
   const top = rows[0]
   const pace = new Map((velocity.data?.items ?? []).map(item => [item.storeProductId, item]))
   const lowCount = rows.filter(row => { const item = pace.get(row.key); return item && (item.sellableBaseQuantity <= 0 || (item.daysOfStock !== null && item.daysOfStock < LOW_STOCK_DAYS)) }).length
-  return <Panel label="Sản phẩm bán chạy" to={to} className="xl:col-span-2"
+  return <Panel label="Sản phẩm bán chạy" to={to} className={className}
     headline={limit === 5 ? undefined : top ? <span className="min-w-0 truncate" title={top.label}>{top.label}</span> : report.data ? undefined : placeholder(report, 'w-48')}
     sub={limit !== 5 && top ? <>dẫn đầu, {shortVnd(top.netSales)}</> : undefined}
     aside={lowCount > 0 ? <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800"><Clock size={12} aria-hidden="true" />{num(lowCount)} sắp hết hàng</span> : undefined}>
     <Body state={report} empty={() => !top} emptyText="Chưa có sản phẩm bán ra trong kỳ này.">
       {() => <div className="mt-4">
-        <div aria-hidden="true" className="grid grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_4.5rem] gap-x-3 border-b border-slate-100 pb-2 text-xs text-slate-500"><span>#</span><span>Sản phẩm</span><span className="text-right">Đã bán</span><span className="text-right">Doanh thu</span></div>
-        <ol className="divide-y divide-slate-50">
+        <div aria-hidden="true" className="grid grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_4.5rem] gap-x-3 border-b border-zinc-100 pb-2 text-xs text-zinc-500"><span>#</span><span>Sản phẩm</span><span className="text-right">Đã bán</span><span className="text-right">Doanh thu</span></div>
+        <ol className="divide-y divide-zinc-50">
           {rows.slice(0, limit).map((row, index) => {
             const item = pace.get(row.key)
             return <li key={row.key} className="grid grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_4.5rem] items-center gap-x-3 py-2 text-sm">
-              <span className="tabular-nums text-slate-400">{index + 1}</span>
+              <span className="tabular-nums text-zinc-400">{index + 1}</span>
               <span className="min-w-0">
-                <span className="flex min-w-0 flex-col items-start gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2"><span title={row.label} className="max-w-full font-medium text-slate-900 [overflow-wrap:anywhere]">{row.label}</span><StockBadge item={item} /></span>
-                <span className="block text-xs text-slate-500">{num(row.orderCount)} đơn</span>
+                <span className="flex min-w-0 flex-col items-start gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2"><span title={row.label} className="max-w-full font-medium text-zinc-900 [overflow-wrap:anywhere]">{row.label}</span><StockBadge item={item} /></span>
+                <span className="block text-xs text-zinc-500">{num(row.orderCount)} đơn</span>
+                {/* Revenue against the leader, so the ranking reads at a glance; the figure stays in the last column. */}
+                <span aria-hidden="true" className="mt-1.5 block h-1.5 w-full max-w-64 rounded-full" style={{ backgroundColor: C.track }}><span className="block h-full rounded-full" style={{ width: `${Math.max(row.netSales / top.netSales * 100, 2)}%`, backgroundColor: C.accent }} /></span>
               </span>
-              <span className="text-right text-xs tabular-nums text-slate-600">{item ? formatQtyUnit(item.soldBaseQuantity, item.baseUnit) : '—'}</span>
-              <span title={formatVnd(row.netSales)} className="text-right font-semibold tabular-nums text-slate-900">{shortVnd(row.netSales)}</span>
+              <span className="text-right text-xs tabular-nums text-zinc-600">{item ? formatQtyUnit(item.soldBaseQuantity, item.baseUnit) : '—'}</span>
+              <span title={formatVnd(row.netSales)} className="text-right font-semibold tabular-nums text-zinc-900">{shortVnd(row.netSales)}</span>
             </li>
           })}
         </ol>
-        <p className="mt-2 text-xs text-slate-500">Doanh thu theo kỳ đã chọn. Số lượng bán và cảnh báo "sắp hết" tính theo tốc độ bán của {velocity.data ? `${num(rangeDays(velocity.data.fromDate, velocity.data.toDate))} ngày gần nhất` : 'các ngày gần nhất'}.</p>
+        <p className="mt-2 text-xs text-zinc-500">Doanh thu theo kỳ đã chọn. Số lượng bán và cảnh báo "sắp hết" tính theo tốc độ bán của {velocity.data ? `${num(rangeDays(velocity.data.fromDate, velocity.data.toDate))} ngày gần nhất` : 'các ngày gần nhất'}.</p>
       </div>}
     </Body>
   </Panel>
@@ -504,16 +545,16 @@ function ExpiryPanel({ report, to }: { report: Report<ExpiryRiskPage>; to?: stri
   return <Panel label={`Lô sắp hết hạn (${EXPIRY_WINDOW_DAYS} ngày tới)`} to={to}
     headline={data ? (lots ? `${num(lots)} lô` : undefined) : placeholder(report, 'w-20')}
     sub={data && lots ? (data.summary.knownRiskValue > 0 ? <>có thể không bán kịp <strong className="font-medium text-rose-700">{shortVnd(data.summary.knownRiskValue)}</strong></> : 'cần kiểm tra hạn dùng') : undefined}>
-    <p className="mt-2 text-xs text-slate-500">Hiện tại · Không theo kỳ báo cáo</p>
+    <p className="mt-2 text-xs text-zinc-500">Hiện tại · Không theo kỳ báo cáo</p>
     <Body state={report} empty={() => !lots} emptyText={`Không có lô nào hết hạn trong ${EXPIRY_WINDOW_DAYS} ngày tới.`}>
       {page => <ul className="mt-4 space-y-3">
         {page.items.slice(0, 3).map(lot => {
           const left = daysUntil(lot.expiryDate)
           return <li key={lot.inventoryLotId} className="text-sm">
-            <span title={lot.productName} className="block truncate font-medium text-slate-900">{lot.productName}</span>
+            <span title={lot.productName} className="block truncate font-medium text-zinc-900">{lot.productName}</span>
             <span className="mt-0.5 flex items-center justify-between gap-2 text-xs">
-              <span className="min-w-0 truncate text-slate-500" title={`Lô ${lot.lotNumber ?? '—'}, còn ${formatQtyUnit(lot.onHandBaseQuantity, lot.baseUnit)}`}>Lô {lot.lotNumber ?? '—'} · {formatQtyUnit(lot.onHandBaseQuantity, lot.baseUnit)}</span>
-              <span className={`shrink-0 rounded-md px-1.5 py-0.5 font-medium tabular-nums ${left < 0 ? 'bg-rose-50 text-rose-700' : left <= 7 ? 'bg-amber-50 text-amber-800' : 'bg-slate-100 text-slate-700'}`} title={`Hạn dùng ${formatDay(lot.expiryDate)}`}>
+              <span className="min-w-0 truncate text-zinc-500" title={`Lô ${lot.lotNumber ?? '—'}, còn ${formatQtyUnit(lot.onHandBaseQuantity, lot.baseUnit)}`}>Lô {lot.lotNumber ?? '—'} · {formatQtyUnit(lot.onHandBaseQuantity, lot.baseUnit)}</span>
+              <span className={`shrink-0 rounded-md px-1.5 py-0.5 font-medium tabular-nums ${left < 0 ? 'bg-rose-50 text-rose-700' : left <= 7 ? 'bg-amber-50 text-amber-800' : 'bg-zinc-100 text-zinc-700'}`} title={`Hạn dùng ${formatDay(lot.expiryDate)}`}>
                 {left < 0 ? `Hết hạn ${formatDay(lot.expiryDate).slice(0, 5)}` : left === 0 ? 'Hết hạn hôm nay' : `còn ${num(left)} ngày`}
               </span>
             </span>
@@ -522,7 +563,7 @@ function ExpiryPanel({ report, to }: { report: Report<ExpiryRiskPage>; to?: stri
       </ul>}
     </Body>
     {(data?.summary.unknownRiskLots ?? 0) > 0 && <p className="mt-3 text-xs text-amber-800">{num(data!.summary.unknownRiskLots)} lô chưa đủ dữ liệu ước tính giá trị rủi ro.</p>}
-    {!!lots && <p className="mt-auto pt-4 text-xs leading-5 text-slate-500">Tách riêng lô đã hết hạn; ưu tiên xuất lô còn hạn gần nhất.</p>}
+    {!!lots && <p className="mt-auto pt-4 text-xs leading-5 text-zinc-500">Tách riêng lô đã hết hạn; ưu tiên xuất lô còn hạn gần nhất.</p>}
   </Panel>
 }
 
@@ -534,19 +575,19 @@ function TopCustomersPanel({ report, to }: { report: Report<RevenueReport>; to?:
   const topName = top?.key === 'WALK_IN' ? 'khách lẻ' : top?.label
   return <Panel label="Khách hàng mua nhiều" to={to}
     headline={top && total > 0 ? percent(top.netSales / total * 100) : data ? undefined : placeholder(report, 'w-20')}
-    sub={top && total > 0 ? <>doanh thu từ <strong className="font-medium text-slate-700">{topName}</strong></> : undefined}>
+    sub={top && total > 0 ? <>doanh thu từ <strong className="font-medium text-zinc-700">{topName}</strong></> : undefined}>
     <Body state={report} empty={() => !top} emptyText="Chưa có khách mua trong kỳ này.">
       {() => <ul className="mt-4 space-y-3">
         {rows.slice(0, 5).map(row => {
           const share = total ? row.netSales / total * 100 : 0
           return <li key={row.key}>
             <div className="flex items-baseline justify-between gap-2 text-sm">
-              <span title={row.label} className="min-w-0 truncate font-medium text-slate-900">{row.key === 'WALK_IN' ? 'Khách lẻ (không đăng ký)' : row.label}</span>
-              <span title={formatVnd(row.netSales)} className="shrink-0 font-semibold tabular-nums text-slate-900">{shortVnd(row.netSales)}</span>
+              <span title={row.label} className="min-w-0 truncate font-medium text-zinc-900">{row.key === 'WALK_IN' ? 'Khách lẻ (không đăng ký)' : row.label}</span>
+              <span title={formatVnd(row.netSales)} className="shrink-0 font-semibold tabular-nums text-zinc-900">{shortVnd(row.netSales)}</span>
             </div>
             <div className="mt-1.5 flex items-center gap-3">
               <div className="h-2 flex-1 rounded-full" style={{ backgroundColor: C.track }}><div className="h-full rounded-full" style={{ width: `${Math.max(share, 1.5)}%`, backgroundColor: C.accent }} /></div>
-              <span className="w-16 shrink-0 text-right text-xs tabular-nums text-slate-500">{num(row.orderCount)} đơn</span>
+              <span className="w-16 shrink-0 text-right text-xs tabular-nums text-zinc-500">{num(row.orderCount)} đơn</span>
             </div>
           </li>
         })}
@@ -557,14 +598,6 @@ function TopCustomersPanel({ report, to }: { report: Report<RevenueReport>; to?:
 
 // ---- Where the money sits and what the advice brings (manager view, 2026-11-23) -------------------------------------------
 
-/** A section title of the manager view, with the page that holds the full figures. */
-function SectionHeading({ title, note, to, linkLabel }: { title: string; note: string; to?: string; linkLabel?: string }) {
-  return <div className="flex items-end justify-between gap-3 pt-2">
-    <div><h2 className="text-base font-semibold text-slate-900">{title}</h2><p className="mt-1 text-xs text-slate-500">{note}</p></div>
-    {to && linkLabel && <Link to={to} className="shrink-0 text-sm font-medium text-green-800 hover:underline">{linkLabel} <ArrowUpRight size={14} aria-hidden="true" className="inline" /></Link>}
-  </div>
-}
-
 const NOW_NOTE = 'Hiện tại · Không theo kỳ báo cáo'
 
 /** One bar per entry, labelled with its amount and its share of the total, so the bars need no color legend. */
@@ -574,14 +607,14 @@ function AmountBars({ rows, total }: { rows: { key: string; name: string; value:
       const share = total > 0 ? row.value / total * 100 : 0
       return <li key={row.key}>
         <div className="flex items-baseline justify-between gap-2 text-sm">
-          <span title={row.name} className="min-w-0 truncate font-medium text-slate-900">{row.name}</span>
-          <span title={formatVnd(row.value)} className="shrink-0 font-semibold tabular-nums text-slate-900">{shortVnd(row.value)}</span>
+          <span title={row.name} className="min-w-0 truncate font-medium text-zinc-900">{row.name}</span>
+          <span title={formatVnd(row.value)} className="shrink-0 font-semibold tabular-nums text-zinc-900">{shortVnd(row.value)}</span>
         </div>
         <div className="mt-1.5 flex items-center gap-3">
           <div className="h-2 flex-1 rounded-full" style={{ backgroundColor: C.track }}><div className="h-full rounded-full" style={{ width: `${row.value > 0 ? Math.max(share, 1.5) : 0}%`, backgroundColor: C.accent }} /></div>
-          <span className="w-10 shrink-0 text-right text-xs tabular-nums text-slate-500">{percent(share)}</span>
+          <span className="w-10 shrink-0 text-right text-xs tabular-nums text-zinc-500">{percent(share)}</span>
         </div>
-        {row.detail && <p className="mt-1 text-xs text-slate-500">{row.detail}</p>}
+        {row.detail && <p className="mt-1 text-xs text-zinc-500">{row.detail}</p>}
       </li>
     })}
   </ul>
@@ -593,12 +626,12 @@ function InventoryValuePanel({ report, to }: { report: Report<InventoryValuation
   const expired = data?.totals.expiredValue ?? 0
   const groups = (data?.byCategory ?? []).filter(group => group.stockValue > 0).sort((a, b) => b.stockValue - a.stockValue)
   return <Panel label="Giá trị tồn kho" to={to} headline={data ? formatVnd(total) : placeholder(report, 'w-32')} sub={data ? 'theo giá vốn bình quân' : undefined}>
-    <p className="mt-2 text-xs text-slate-500">{NOW_NOTE}</p>
+    <p className="mt-2 text-xs text-zinc-500">{NOW_NOTE}</p>
     <Body state={report} empty={() => total <= 0} emptyText="Kho chưa có hàng.">
       {() => <>
         {expired > 0 && <p className="mt-3 flex items-center gap-1.5 text-sm font-medium text-rose-700"><TriangleAlert size={14} aria-hidden="true" />Trong đó đã hết hạn {formatVnd(expired)}</p>}
         <AmountBars total={total} rows={groups.slice(0, 5).map(group => ({ key: group.categoryId, name: group.name, value: group.stockValue }))} />
-        {groups.length > 5 && <p className="mt-3 text-xs text-slate-500">và {num(groups.length - 5)} nhóm hàng khác</p>}
+        {groups.length > 5 && <p className="mt-3 text-xs text-zinc-500">và {num(groups.length - 5)} nhóm hàng khác</p>}
       </>}
     </Body>
   </Panel>
@@ -613,8 +646,8 @@ function PurchasesPanel({ report, summary, to }: { report: Report<PeriodReport<P
     <Body state={report} empty={() => total <= 0} emptyText="Chưa nhập hàng trong kỳ này.">
       {() => <>
         <AmountBars total={total} rows={suppliers.slice(0, 5).map(row => ({ key: row.key, name: row.label, value: row.purchaseAmount, detail: `${num(row.receiptCount)} phiếu` }))} />
-        {suppliers.length > 5 && <p className="mt-3 text-xs text-slate-500">và {num(suppliers.length - 5)} nhà cung cấp khác</p>}
-        {netSales > 0 && <p className="mt-auto pt-3 text-xs text-slate-500">Tiền nhập bằng {percent(total / netSales * 100)} doanh thu thuần cùng kỳ.</p>}
+        {suppliers.length > 5 && <p className="mt-3 text-xs text-zinc-500">và {num(suppliers.length - 5)} nhà cung cấp khác</p>}
+        {netSales > 0 && <p className="mt-auto pt-3 text-xs text-zinc-500">Tiền nhập bằng {percent(total / netSales * 100)} doanh thu thuần cùng kỳ.</p>}
       </>}
     </Body>
   </Panel>
@@ -629,30 +662,30 @@ function CreditPanel({ exposure, debt, to }: { exposure: Report<CreditExposureRe
   const alertCount = debt.data?.creditLimitAlertCount ?? alerts.length
   const dueSoon = debt.data?.dueSoonAmount ?? 0
   return <Panel label="Hạn mức tín dụng" to={to} headline={totals ? (share !== null ? percent(share) : formatVnd(totals.exposure)) : placeholder(exposure, 'w-20')} sub={totals ? (share !== null ? 'tổng hạn mức đang dùng' : 'đang dùng tín dụng') : undefined}>
-    <p className="mt-2 text-xs text-slate-500">{NOW_NOTE}</p>
+    <p className="mt-2 text-xs text-zinc-500">{NOW_NOTE}</p>
     <Body state={exposure} empty={() => limit <= 0 && (totals?.exposure ?? 0) <= 0} emptyText="Chưa có khách nào được cấp hạn mức.">
       {() => totals && <>
-        <div className="mt-4 flex h-2.5 w-full overflow-hidden rounded-full bg-slate-100" role="img"
+        <div className="mt-4 flex h-2.5 w-full overflow-hidden rounded-full bg-zinc-100" role="img"
           aria-label={`Đã dùng ${formatVnd(totals.exposure)} trên tổng hạn mức ${formatVnd(limit)}: dư nợ ${formatVnd(totals.outstanding)}, giữ chỗ ${formatVnd(totals.reservedCredit)}`}>
           <span className="h-full" style={{ width: `${width(totals.outstanding)}%`, backgroundColor: C.accent }} />
           <span className="h-full" style={{ width: `${width(totals.reservedCredit)}%`, backgroundColor: FUNNEL_RAMP[3] }} />
         </div>
         <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-          <div><dt className="flex items-center gap-1.5 text-xs text-slate-500"><span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: C.accent }} />Dư nợ</dt><dd className="mt-0.5 font-semibold tabular-nums text-slate-900">{formatVnd(totals.outstanding)}</dd></div>
-          <div><dt className="flex items-center gap-1.5 text-xs text-slate-500"><span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: FUNNEL_RAMP[3] }} />Giữ chỗ cho đơn chưa giao</dt><dd className="mt-0.5 font-semibold tabular-nums text-slate-900">{formatVnd(totals.reservedCredit)}</dd></div>
-          <div><dt className="text-xs text-slate-500">Còn được mua chịu</dt><dd className="mt-0.5 font-semibold tabular-nums text-slate-900">{formatVnd(totals.availableCredit)}</dd></div>
-          <div><dt className="text-xs text-slate-500">Tổng hạn mức</dt><dd className="mt-0.5 font-semibold tabular-nums text-slate-900">{formatVnd(limit)}</dd></div>
+          <div><dt className="flex items-center gap-1.5 text-xs text-zinc-500"><span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: C.accent }} />Dư nợ</dt><dd className="mt-0.5 font-semibold tabular-nums text-zinc-900">{formatVnd(totals.outstanding)}</dd></div>
+          <div><dt className="flex items-center gap-1.5 text-xs text-zinc-500"><span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: FUNNEL_RAMP[3] }} />Giữ chỗ cho đơn chưa giao</dt><dd className="mt-0.5 font-semibold tabular-nums text-zinc-900">{formatVnd(totals.reservedCredit)}</dd></div>
+          <div><dt className="text-xs text-zinc-500">Còn được mua chịu</dt><dd className="mt-0.5 font-semibold tabular-nums text-zinc-900">{formatVnd(totals.availableCredit)}</dd></div>
+          <div><dt className="text-xs text-zinc-500">Tổng hạn mức</dt><dd className="mt-0.5 font-semibold tabular-nums text-zinc-900">{formatVnd(limit)}</dd></div>
         </dl>
-        {alertCount > 0 && <div className="mt-4 border-t border-slate-100 pt-3">
+        {alertCount > 0 && <div className="mt-4 border-t border-zinc-100 pt-3">
           <p className="flex items-center gap-1.5 text-sm font-medium text-amber-800"><TriangleAlert size={14} aria-hidden="true" />{num(alertCount)} khách gần hoặc chạm hạn mức</p>
           <ul className="mt-2 space-y-1.5 text-sm">
             {alerts.slice(0, 3).map(alert => <li key={alert.farmerProfileId} className="flex items-baseline justify-between gap-2">
-              <span title={alert.fullName} className="min-w-0 truncate text-slate-700">{alert.fullName}</span>
-              <span className="shrink-0 text-xs text-slate-500">{alert.state === 'AT_LIMIT' ? 'Chạm hạn mức' : 'Gần hạn mức'} · còn {shortVnd(alert.availableCredit)}</span>
+              <span title={alert.fullName} className="min-w-0 truncate text-zinc-700">{alert.fullName}</span>
+              <span className="shrink-0 text-xs text-zinc-500">{alert.state === 'AT_LIMIT' ? 'Chạm hạn mức' : 'Gần hạn mức'} · còn {shortVnd(alert.availableCredit)}</span>
             </li>)}
           </ul>
         </div>}
-        {dueSoon > 0 && <p className="mt-auto pt-3 text-xs text-slate-500">Sắp đến hạn thu <strong className="font-semibold text-slate-700">{formatVnd(dueSoon)}</strong></p>}
+        {dueSoon > 0 && <p className="mt-auto pt-3 text-xs text-zinc-500">Sắp đến hạn thu <strong className="font-semibold text-zinc-700">{formatVnd(dueSoon)}</strong></p>}
       </>}
     </Body>
   </Panel>
@@ -666,7 +699,7 @@ function CollectionsPanel({ report, debt, to }: { report: Report<DebtCollectionR
   })
   return <Panel label="Thu nợ trong kỳ" to={to} headline={data ? formatVnd(data.totals.collectedAmount) : placeholder(report, 'w-32')} sub={data ? `${num(data.totals.paymentCount)} lần thu` : undefined}>
     <Body state={report} empty={d => !d.totals.paymentCount} emptyText="Chưa thu nợ khoản nào trong kỳ này.">{() => <ShareBars rows={rows} />}</Body>
-    {typeof debt.data?.collectedToday === 'number' && <p className="mt-auto flex flex-wrap gap-x-3 border-t border-slate-100 pt-3 text-xs text-slate-500">
+    {typeof debt.data?.collectedToday === 'number' && <p className="mt-auto flex flex-wrap gap-x-3 border-t border-zinc-100 pt-3 text-xs text-zinc-500">
       <span>Hôm nay thu {formatVnd(debt.data!.collectedToday)}</span><span>Tháng này {formatVnd(debt.data!.collectedThisMonth)}</span>
     </p>}
   </Panel>
@@ -723,36 +756,37 @@ function AdvisoryPanel({ report, to }: { report: Report<AdvisoryDiagnosisReport>
             <ol className="space-y-3">
               {stages.map((stage, index) => <li key={stage.name}>
                 <div className="flex items-baseline justify-between gap-2 text-sm">
-                  <span className="min-w-0 text-slate-700">{stage.name}</span>
-                  <span className="shrink-0 tabular-nums"><strong className="font-semibold text-slate-900">{num(stage.value)}</strong> <span className="text-xs text-slate-500">· {stage.detail}</span></span>
+                  <span className="min-w-0 text-zinc-700">{stage.name}</span>
+                  <span className="shrink-0 tabular-nums"><strong className="font-semibold text-zinc-900">{num(stage.value)}</strong> <span className="text-xs text-zinc-500">· {stage.detail}</span></span>
                 </div>
                 <div className="mt-1.5 h-2 w-full rounded-full" style={{ backgroundColor: C.track }}>
                   <div className="h-full rounded-full" style={{ width: `${max ? Math.max(stage.value / max * 100, stage.value ? 1.5 : 0) : 0}%`, backgroundColor: FUNNEL_RAMP[index + 1] }} />
                 </div>
               </li>)}
             </ol>
-            <p className="mt-3 text-xs text-slate-500">Gõ tìm {num(d.advisory.textSessionCount)} lượt · Từ ảnh chẩn đoán {num(d.advisory.diagnosisSessionCount)} lượt</p>
+            <p className="mt-3 text-xs text-zinc-500">Gõ tìm {num(d.advisory.textSessionCount)} lượt · Từ ảnh chẩn đoán {num(d.advisory.diagnosisSessionCount)} lượt</p>
           </div>
           <div>
-            <h4 className="text-xs font-medium text-slate-500">Vấn đề được hỏi nhiều</h4>
+            <h4 className="text-xs font-medium text-zinc-500">Vấn đề được hỏi nhiều</h4>
             <ol className="mt-2 space-y-2">
               {(d.topProblems ?? []).map((item, index) => <li key={item.diseaseId} className="grid grid-cols-[1.25rem_minmax(0,1fr)_auto] items-baseline gap-x-2 text-sm">
-                <span className="tabular-nums text-slate-400">{index + 1}</span>
-                <span className="min-w-0"><span title={item.name} className="block truncate font-medium text-slate-900">{item.name}</span><span className="block text-xs text-slate-500">{cropLabel(item.cropType)}</span></span>
-                <span className="text-xs tabular-nums text-slate-600">{num(item.sessionCount)} lượt</span>
+                <span className="tabular-nums text-zinc-400">{index + 1}</span>
+                <span className="min-w-0"><span title={item.name} className="block truncate font-medium text-zinc-900">{item.name}</span><span className="block text-xs text-zinc-500">{cropLabel(item.cropType)}</span></span>
+                <span className="text-xs tabular-nums text-zinc-600">{num(item.sessionCount)} lượt</span>
               </li>)}
             </ol>
           </div>
         </div>
-        <p className="mt-auto pt-4 text-xs leading-5 text-slate-500">"Ra đơn": cùng nông dân đặt đơn không bị hủy có sản phẩm đã gợi ý, trong {num(days)} ngày sau lượt tư vấn. Đây là cách ước tính: đơn hàng không ghi lại lượt tư vấn nào dẫn tới nó.</p>
+        <p className="mt-auto pt-4 text-xs leading-5 text-zinc-500">"Ra đơn": cùng nông dân đặt đơn không bị hủy có sản phẩm đã gợi ý, trong {num(days)} ngày sau lượt tư vấn. Đây là cách ước tính: đơn hàng không ghi lại lượt tư vấn nào dẫn tới nó.</p>
       </>}
     </Body>
   </Panel>
 }
 
+// AI certainty is a state, so it takes the fixed status steps (good, warning) and grey for no result; the legend names each.
 const CERTAINTY_SEGMENTS = [
-  { key: 'sure', name: 'Chắc chắn', color: C.accent },
-  { key: 'unsure', name: 'Chưa chắc', color: '#d97706' },
+  { key: 'sure', name: 'Chắc chắn', color: '#0aac23' },
+  { key: 'unsure', name: 'Chưa chắc', color: '#fbb315' },
   { key: 'none', name: 'Chưa có kết quả', color: C.quiet },
 ] as const
 
@@ -761,7 +795,7 @@ function DiagnosisPanel({ report, to }: { report: Report<AdvisoryDiagnosisReport
   return <Panel label="Chẩn đoán ảnh theo cây" to={to} headline={diagnosis ? `${num(diagnosis.caseCount)} ca` : placeholder(report, 'w-20')} sub={diagnosis ? 'gửi trong kỳ' : undefined}>
     <Body state={report} empty={d => !d.diagnosis?.caseCount} emptyText="Chưa có ca chẩn đoán ảnh nào trong kỳ này.">
       {d => <>
-        <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
+        <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-600">
           {CERTAINTY_SEGMENTS.map(segment => <li key={segment.key} className="flex items-center gap-1.5"><span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: segment.color }} />{segment.name}</li>)}
         </ul>
         <ul className="mt-4 space-y-3">
@@ -770,8 +804,8 @@ function DiagnosisPanel({ report, to }: { report: Report<AdvisoryDiagnosisReport
             const label = CERTAINTY_SEGMENTS.map(segment => `${segment.name} ${num(values[segment.key])}`).join(', ')
             return <li key={crop.cropType}>
               <div className="flex items-baseline justify-between gap-2 text-sm">
-                <span className="min-w-0 truncate font-medium text-slate-900">{crop.cropName}</span>
-                <span className="shrink-0 text-xs tabular-nums text-slate-600">{num(crop.caseCount)} ca · {num(values.sure)} chắc chắn</span>
+                <span className="min-w-0 truncate font-medium text-zinc-900">{crop.cropName}</span>
+                <span className="shrink-0 text-xs tabular-nums text-zinc-600">{num(crop.caseCount)} ca · {num(values.sure)} chắc chắn</span>
               </div>
               <div className="mt-1.5 flex h-2 w-full gap-0.5" role="img" aria-label={`${crop.cropName}: ${label}`}>
                 {CERTAINTY_SEGMENTS.filter(segment => values[segment.key] > 0).map(segment => <span key={segment.key} title={`${segment.name}: ${num(values[segment.key])}`} className="h-full rounded-full" style={{ flexGrow: values[segment.key], flexBasis: 0, minWidth: 4, backgroundColor: segment.color }} />)}
@@ -779,7 +813,7 @@ function DiagnosisPanel({ report, to }: { report: Report<AdvisoryDiagnosisReport
             </li>
           })}
         </ul>
-        <p className="mt-auto pt-4 text-xs leading-5 text-slate-500">Theo kết quả AI nông dân thấy. "Chưa có kết quả": đang xử lý, lỗi hoặc đã hủy.</p>
+        <p className="mt-auto pt-4 text-xs leading-5 text-zinc-500">Theo kết quả AI nông dân thấy. "Chưa có kết quả": đang xử lý, lỗi hoặc đã hủy.</p>
       </>}
     </Body>
   </Panel>
@@ -818,51 +852,46 @@ export default function DashboardCharts({ fromDate, toDate, links = {}, manager 
   const debtGroups = useReport(useCallback((signal: AbortSignal) => reportsApi.getDebtByGroup(signal), []))
   const topCustomers = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenue({ fromDate, toDate, groupBy: 'CUSTOMER', page: 1, pageSize: 5 }, signal), [fromDate, toDate]), problem)
 
+  // The owner's view in the template's order: figures beside the sales chart; how orders flow and where they come from;
+  // what needs money or stock attention now; the sales mix; stock, purchases and credit; advice. Two breakdowns stay folded.
   if (manager) return <div className="flex flex-col gap-5">
-    <p className="text-xs text-slate-500">{dayMonthYear(fromDate)} – {dayMonthYear(toDate)} · So sánh với khoảng thời gian liền trước có cùng số ngày.</p>
-    <ManagerStats summary={summary} sales={sales} payments={payments} />
-    <div className="grid gap-5 xl:grid-cols-3">
-      <div className="min-w-0 xl:col-span-2 [&>section]:h-full"><TrendPanel trend={trend} requested={granularity} /></div>
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+      <StatGrid summary={summary} sales={sales} payments={payments} />
+      <TrendPanel trend={trend} requested={granularity} />
+    </div>
+    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+      <OrdersTrendPanel trend={trend} requested={granularity} to={links.orders} />
+      <FunnelPanel report={statuses} to={links.orders} />
+      <SourcesPanel report={sources} to={links.orders} />
+    </div>
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
       <DebtPanel report={aging} to={links.debts} focusOverdue />
-    </div>
-    <div className="flex items-end justify-between gap-3 pt-2">
-      <div><h2 className="text-base font-semibold text-slate-900">Hàng hóa cần theo dõi</h2><p className="mt-1 text-xs text-slate-500">Sản phẩm tạo doanh thu và các lô có rủi ro tồn đọng.</p></div>
-      {links.planning && <Link to={links.planning} className="shrink-0 text-sm font-medium text-green-800 hover:underline">Kế hoạch nhập hàng <ArrowUpRight size={14} aria-hidden="true" className="inline" /></Link>}
-    </div>
-    <div className="grid gap-5 xl:grid-cols-3">
       <TopProductsPanel report={topProducts} velocity={velocity} to={links.planning} limit={5} />
+    </div>
+    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+      <CategoryPanel report={categories} to={links.products} />
+      <MethodsPanel report={payments} to={links.payments} />
       <ExpiryPanel report={expiry} to={links.expiry} />
     </div>
-    <SectionHeading title="Tồn kho & nhập hàng" note="Vốn đang nằm trong kho và tiền nhập hàng của kỳ." to={links.purchases} linkLabel="Phiếu nhập" />
     <div className="grid gap-5 md:grid-cols-2">
       <InventoryValuePanel report={valuation} to={links.inventory} />
       <PurchasesPanel report={purchases} summary={summary} to={links.purchases} />
     </div>
-    <SectionHeading title="Tín dụng & thu nợ" note="Khách đang dùng bao nhiêu hạn mức, tiền nợ thu về trong kỳ và việc nhắc khách quá hạn." to={links.debts} linkLabel="Công nợ" />
     <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
       <CreditPanel exposure={exposure} debt={debtDashboard} to={links.debts} />
       <CollectionsPanel report={collections} debt={debtDashboard} to={links.debts} />
       <FollowUpPanel debt={debtDashboard} to={links.debts} />
     </div>
-    <SectionHeading title="Tư vấn & chẩn đoán AI" note="Lượt tư vấn sản phẩm, đơn đặt sau tư vấn và kết quả chẩn đoán ảnh của kỳ." to={links.advisory} linkLabel="Lượt tư vấn" />
     <div className="grid gap-5 xl:grid-cols-3">
       <AdvisoryPanel report={advice} to={links.advisory} />
       <DiagnosisPanel report={advice} to={links.diagnosis} />
     </div>
-    <details className="group border-y border-slate-200 py-4">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg p-1 focus-visible:outline-2 focus-visible:outline-green-700 [&::-webkit-details-marker]:hidden">
-        <span><span className="block text-base font-semibold text-slate-900">Phân tích chi tiết</span><span className="mt-1 block text-xs text-slate-500">Kênh bán, thanh toán, tiến độ đơn và nhóm khách hàng</span></span>
-        <ChevronDown size={20} aria-hidden="true" className="shrink-0 text-slate-500 transition-transform group-open:rotate-180" />
+    <details className="group rounded-xl border border-zinc-200 bg-white">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-5 py-4 hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-green-700 [&::-webkit-details-marker]:hidden">
+        <span><span className="block text-base font-medium text-zinc-900">Phân tích chi tiết</span><span className="mt-1 block text-xs text-zinc-500">Công nợ theo nhóm khách và khách hàng mua nhiều</span></span>
+        <ChevronDown size={20} aria-hidden="true" className="shrink-0 text-zinc-500 transition-transform group-open:rotate-180" />
       </summary>
-      <dl className="mt-5 flex flex-wrap gap-x-12 gap-y-4 px-1">
-        <div><dt className="text-sm text-slate-500">Giá trị đơn trung bình</dt><dd className="mt-1 font-semibold tabular-nums text-slate-900">{summary.data ? formatVnd(summary.data.current.averageOrderValue) : '—'}</dd></div>
-        <div><dt className="text-sm text-slate-500">Hàng trả lại trong kỳ</dt><dd className="mt-1 font-semibold tabular-nums text-slate-900">{summary.data ? formatVnd(summary.data.current.returnValue) : '—'}</dd></div>
-      </dl>
-      <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        <FunnelPanel report={statuses} to={links.orders} />
-        <SourcesPanel report={sources} to={links.orders} />
-        <MethodsPanel report={payments} to={links.payments} />
-        <CategoryPanel report={categories} to={links.products} />
+      <div className="grid gap-5 border-t border-zinc-200 p-5 md:grid-cols-2">
         <DebtGroupsPanel report={debtGroups} to={links.debts} />
         <TopCustomersPanel report={topCustomers} to={links.customers} />
       </div>
@@ -885,7 +914,7 @@ export default function DashboardCharts({ fromDate, toDate, links = {}, manager 
       <DebtGroupsPanel report={debtGroups} to={links.debts} />
     </div>
     <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-      <TopProductsPanel report={topProducts} velocity={velocity} to={links.planning} />
+      <TopProductsPanel report={topProducts} velocity={velocity} to={links.planning} className="xl:col-span-2" />
       <ExpiryPanel report={expiry} to={links.expiry} />
       <TopCustomersPanel report={topCustomers} to={links.customers} />
     </div>
