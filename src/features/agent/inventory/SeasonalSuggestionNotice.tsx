@@ -27,9 +27,10 @@ const CONFIDENCE_TONE: Record<SuggestionItem['confidence'], string> = {
 /**
  * `productsPath`: a link to the product page (the dashboard shows one; the product page itself does not).
  * `variant`: "card" lists the products (product page); "banner" is one line per season with the list in a dialog, so the
- * dashboard keeps its management figures at the top.
+ * dashboard keeps its management figures at the top; "row" is the same lines without a box of their own, for the bottom of
+ * the owner's "needs doing now" card.
  */
-interface Props { productsPath?: string; variant?: 'card' | 'banner' }
+interface Props { productsPath?: string; variant?: 'card' | 'banner' | 'row' }
 
 /** Opens the seasonal-rule form filled in from one season's suggestion; null without SEASONAL_RULES.MANAGE. */
 type CreateRule = ((suggestion: SeasonalSuggestion) => void) | null
@@ -96,7 +97,7 @@ function Season({ suggestion, preview, action }: { suggestion: SeasonalSuggestio
 }
 
 /** The dashboard's reminder: one line per season (what, how many products, by when), the full list in a dialog. */
-function Banner({ seasons, productsPath, createRule, creating }: { seasons: SeasonalSuggestion[]; productsPath?: string; createRule: CreateRule; creating: string | null }) {
+function Banner({ seasons, productsPath, createRule, creating, embedded = false }: { seasons: SeasonalSuggestion[]; productsPath?: string; createRule: CreateRule; creating: string | null; embedded?: boolean }) {
   const [open, setOpen] = useState<SeasonalSuggestion | null>(null)
   const today = todayVn()
   const footer = open && (productsPath || createRule)
@@ -106,12 +107,12 @@ function Banner({ seasons, productsPath, createRule, creating }: { seasons: Seas
       {createRule && <CreateRuleButton primary suggestion={open} busy={creating === open.id} onCreate={s => { setOpen(null); createRule(s) }} />}
     </div>
     : undefined
-  return <section aria-label="Sắp tới mùa vụ" className="rounded-xl border border-amber-200 bg-amber-50/60">
+  return <section aria-label="Sắp tới mùa vụ" className={embedded ? 'border-t border-amber-100 bg-amber-50/50' : 'rounded-xl border border-amber-200 bg-amber-50/60'}>
     <ul className="divide-y divide-amber-100">
       {seasons.map(season => {
         const orderBy = orderByOf(season)
         const urgent = !!orderBy && orderBy <= today
-        return <li key={season.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5 sm:flex-nowrap">
+        return <li key={season.id} className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-4 sm:flex-nowrap ${embedded ? 'py-2 sm:px-5' : 'py-2.5'}`}>
           <span aria-hidden="true" className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-white text-amber-700 ring-1 ring-amber-200"><CalendarClock size={16} /></span>
           <p className="min-w-0 flex-1 text-sm leading-5 text-zinc-700">
             <strong className="font-medium text-zinc-900">Sắp tới vụ {season.cropName}</strong> ({formatDate(season.startsOn)} – {formatDate(season.endsOn)})
@@ -193,8 +194,8 @@ export default function SeasonalSuggestionNotice({ productsPath, variant = 'card
   }} />
 
   if (!allowed || seasons.length === 0) return form || null
-  if (variant === 'banner') return <>
-    <Banner seasons={seasons} productsPath={productsPath} createRule={createRule} creating={creating} />
+  if (variant !== 'card') return <>
+    <Banner seasons={seasons} productsPath={productsPath} createRule={createRule} creating={creating} embedded={variant === 'row'} />
     {form}
   </>
   return <>

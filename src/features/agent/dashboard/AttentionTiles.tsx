@@ -1,6 +1,6 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowUpRight, ClipboardList, HandCoins, Microscope, PackageX, RefreshCw, Truck, type LucideIcon } from 'lucide-react'
+import { ArrowUpRight, CircleCheck, ClipboardList, HandCoins, Microscope, PackageX, RefreshCw, Truck, type LucideIcon } from 'lucide-react'
 import { ordersApi } from '@/api/ordersApi'
 import { deliveriesApi } from '@/api/deliveriesApi'
 import { diagnosisApi } from '@/api/diagnosisApi'
@@ -66,12 +66,59 @@ function weekAgo(): string {
   return new Date(Date.parse(`${todayVn()}T00:00:00Z`) - 6 * 86_400_000).toISOString().slice(0, 10)
 }
 
-/** What needs doing now, one tile per queue the signed-in person may open. A tile that cannot load shows a dash and leaves the others alone. */
-export default function AttentionTiles({ area }: { area: Area }) {
+/** Each queue the signed-in person may open, with its count (null when it could not be read). */
+function useAttention(area: Area) {
   const { has } = usePermission()
   const tiles = useMemo(() => tilesFor(area).filter(tile => has(tile.permission)), [area, has])
   const load = useCallback((signal: AbortSignal) => Promise.all(tiles.map(tile => tile.load(signal).catch(() => null))), [tiles])
-  const { data, loading, refresh } = useReportData(load, tiles.length ? null : 'Không có mục nào để hiển thị.')
+  return { tiles, ...useReportData(load, tiles.length ? null : 'Không có mục nào để hiển thị.') }
+}
+
+const show = (tile: Tile, value: number | null) => (value === null ? '—' : tile.money ? formatVnd(value) : value.toLocaleString('vi-VN'))
+
+/**
+ * The owner's "needs doing now" as one line, as the large admin consoles do: only the queues with something waiting (or
+ * that could not be read, since a dash is not a zero), each a link to its list; nothing else when every queue is clear.
+ * `children` adds rows under it (the upcoming-season reminder), so everything to act on sits in one place.
+ */
+export function AttentionBar({ children }: { children?: ReactNode }) {
+  const { tiles, data, loading, refresh } = useAttention('agent')
+  if (!tiles.length) return <>{children}</>
+  const waiting = tiles.map((tile, index) => ({ tile, value: data?.[index] ?? null })).filter(({ value }) => !data || value === null || value > 0)
+  const unavailable = data?.some(value => value === null)
+  return <section aria-label="Việc cần xử lý" className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 sm:px-5">
+      <div className="min-w-0 flex-1 sm:flex-none">
+        <h2 className="text-base font-medium text-zinc-900">Việc cần xử lý</h2>
+        <p className="text-xs text-zinc-500">Hiện tại · không theo kỳ báo cáo</p>
+      </div>
+      {/* On a phone the queues take their own line under the heading; from sm up they sit between it and the refresh. */}
+      <ul aria-busy={loading} className="order-last flex w-full min-w-0 flex-wrap items-center gap-2 sm:order-none sm:w-auto sm:flex-1">
+        {loading && !data ? [0, 1, 2].map(key => <li key={key} aria-hidden="true" className="h-9 w-40 animate-pulse rounded-lg bg-zinc-100" />)
+          : waiting.length ? waiting.map(({ tile, value }) => {
+            const Icon = tile.icon
+            const known = value !== null
+            return <li key={tile.key}>
+              <Link to={tile.to} title={tile.note} aria-label={`${tile.title}: ${value === null ? 'chưa tải được' : show(tile, value)}. Mở danh sách`}
+                className={`group inline-flex h-9 max-w-full items-center gap-2 rounded-lg border px-3 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-green-700 ${known ? 'border-amber-200 bg-amber-50/70 text-zinc-800 hover:bg-amber-50' : 'border-zinc-200 bg-zinc-50 text-zinc-600 hover:bg-zinc-100'}`}>
+                <Icon size={15} aria-hidden="true" className={known ? 'shrink-0 text-amber-700' : 'shrink-0 text-zinc-500'} />
+                <span className="truncate">{tile.title}</span>
+                <strong className={`font-semibold tabular-nums ${known ? tile.money ? 'text-rose-700' : 'text-amber-800' : 'text-zinc-600'}`}>{show(tile, value)}</strong>
+                <ArrowUpRight size={14} aria-hidden="true" className="shrink-0 text-zinc-400 group-hover:text-zinc-700" />
+              </Link>
+            </li>
+          }) : <li className="flex items-center gap-2 text-sm text-green-800"><CircleCheck size={16} aria-hidden="true" />Không có đơn, chuyến giao, cảnh báo kho hay nợ quá hạn nào đang chờ.</li>}
+      </ul>
+      <button type="button" aria-label="Làm mới việc cần xử lý" title="Làm mới việc cần xử lý" onClick={refresh} disabled={loading} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-zinc-200 bg-[#fff] text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 disabled:opacity-50"><RefreshCw size={15} className={loading ? 'animate-spin' : ''} /></button>
+    </div>
+    {unavailable && <p role="status" className="border-t border-zinc-100 px-4 py-2 text-xs text-zinc-600 sm:px-5">Một số mục chưa tải được. Dấu — không có nghĩa là không có việc cần xử lý.</p>}
+    {children}
+  </section>
+}
+
+/** What needs doing now, one tile per queue the signed-in person may open. A tile that cannot load shows a dash and leaves the others alone. */
+export default function AttentionTiles({ area }: { area: Area }) {
+  const { tiles, data, loading, refresh } = useAttention(area)
   if (!tiles.length) return null
   const actionable = tiles.filter((_, index) => (data?.[index] ?? 0) > 0).length
   const unavailable = data?.some(value => value === null)

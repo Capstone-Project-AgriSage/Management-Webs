@@ -360,10 +360,20 @@ try {
       return route.fallback()
     })
   }
-  const dashboardReady = async page => {
-    await page.getByText('Đơn hàng gần đây', { exact: true }).first().waitFor()
+  const settledPanels = async page => {
     await page.waitForLoadState('networkidle')
     await page.waitForFunction(() => !document.querySelector('main .animate-pulse') && [...document.querySelectorAll('main [aria-busy]')].every(element => element.getAttribute('aria-busy') !== 'true'))
+  }
+  const dashboardReady = async page => {
+    await page.getByText('Đơn hàng gần đây', { exact: true }).first().waitFor()
+    await settledPanels(page)
+  }
+  // The owner's panels sit in tabs by topic; a tab loads its reports the first time it opens.
+  const openTab = async (page, name) => {
+    await page.getByRole('tab', { name, exact: true }).click()
+    // The router applies the new ?tab= in a transition, so the tab is selected a moment after the click.
+    await page.waitForFunction(label => [...document.querySelectorAll('[role="tab"]')].some(tab => tab.textContent === label && tab.getAttribute('aria-selected') === 'true'), name, { timeout: 5000 })
+    await settledPanels(page)
   }
 
   const panels = await makeSession()
@@ -371,23 +381,32 @@ try {
     await withReportData(panels)
     await panels.page.goto(base + '/agent')
     await dashboardReady(panels.page)
-    await panels.page.locator('summary').filter({ hasText: 'Phân tích chi tiết' }).click()
     const main = panels.page.locator('main')
     const text = async () => (await main.innerText()).replace(/\s+/g, ' ')
     let content = await text()
     assert.match(content, /Doanh thu thuần\s*1\.000\.000 đ/, 'The headline figure comes from the revenue summary')
     assert.match(content, /\+25%\s*so với kỳ trước/, 'The change against the previous period is shown with its direction')
+    assert.match(content, /Nợ phải thu\s*Hiện tại\s*1\.000\.000 đ\s*Quá hạn 300\.000 đ/, 'Receivables today sit among the four figures, with the overdue part')
+    assert.equal(await panels.page.locator('main .recharts-surface').count(), 1, 'One chart on one scale: the trend shows revenue or delivered orders')
+    assert.equal(await main.locator('.sr-only > table').count(), 1, 'The chart has a table twin for screen readers')
+    // The twin is clipped: it must not stretch the page below the last panel (a table ignores sr-only's 1px height).
+    assert.equal(await main.evaluate(element => [...element.querySelectorAll('.sr-only')].filter(hidden => getComputedStyle(hidden).position === 'absolute' && hidden.getBoundingClientRect().height > 1).length), 0, 'Screen-reader text takes no room')
+    await openTab(panels.page, 'Bán hàng')
+    content = await text()
     assert.match(content, /60%\s*doanh thu từ\s*Phân bón/, 'The top product group is led by its true share of net sales')
     assert.match(content, /10 đơn\s*tạo trong kỳ/, 'Channel total comes from the order report')
     assert.match(content, /10 lần thu/, 'Payment count comes from the payment report')
     assert.match(content, /40%\s*đơn tạo trong kỳ đã hoàn thành/, 'Funnel: 4 of 10 orders completed')
-    assert.match(content, /300\.000 đ\s*đã quá hạn/, 'Overdue debt is the manager headline')
+    await openTab(panels.page, 'Công nợ')
+    content = await text()
+    assert.match(content, /300\.000 đ\s*đã quá hạn/, 'Overdue debt is the debt tab headline')
     assert.match(content, /Tổng phải thu\s*1\.000\.000 đ/, 'Total receivables remain available beside the overdue amount')
     assert.match(content, /3 khách đang nợ/, 'Debt by group adds the customers across groups')
     assert.match(content, /Chưa phân nhóm/, 'Customers without a group are named, not dropped')
-    assert.equal(await panels.page.locator('main .recharts-surface').count(), 2, 'Two charts on one scale each: the revenue trend and the delivered orders')
-    assert.equal(await main.locator('table.sr-only').count(), 2, 'Each chart has a table twin for screen readers')
+    for (const name of ['Kho hàng', 'Tư vấn & AI']) await openTab(panels.page, name)
+    // Every tab opened stays mounted, so the links of all of them can be read here.
     assert.equal(await main.locator('a[title="Xem chi tiết"]').evaluateAll(links => [...new Set(links.map(link => link.getAttribute('href')))].sort().join(',')), '/agent/advisory-sessions,/agent/ai-recommendations,/agent/debts,/agent/farmers,/agent/inventory/reports,/agent/inventory/reports/planning,/agent/inventory/reports/planning?tab=expiry,/agent/orders,/agent/payments,/agent/products,/agent/purchases/receipts', 'Panels link to the pages that hold the detail')
+    await openTab(panels.page, 'Tổng quan')
 
     // Period filter: a preset moves both dates and every report follows; the trend regroups with the length of the period.
     const today = todayVn()
@@ -417,17 +436,19 @@ try {
     console.log('PASS Dashboard panels read their reports, follow the period filter and regroup the trend')
   } finally { await panels.context.close() }
 
-  for (const failing of ['/api/reports/debt-aging', '/api/reports/orders']) {
+  for (const [failing, tab] of [['/api/reports/debt-aging', 'Công nợ'], ['/api/reports/orders', 'Bán hàng']]) {
     const broken = await makeSession()
     try {
       await withReportData(broken, { failing })
       await broken.page.goto(base + '/agent')
       await dashboardReady(broken.page)
-      await broken.page.locator('summary').filter({ hasText: 'Phân tích chi tiết' }).click()
+      await openTab(broken.page, tab)
       const content = (await broken.page.locator('main').innerText()).replace(/\s+/g, ' ')
       assert.match(content, /Báo cáo tạm thời không có/, `A failing ${failing} explains itself in its own panel`)
-      assert.match(content, /Doanh thu thuần\s*1\.000\.000 đ/, 'The other reports are unaffected')
-      assert.match(content, /Đơn hàng gần đây/)
+      await openTab(broken.page, 'Tổng quan')
+      const overview = (await broken.page.locator('main').innerText()).replace(/\s+/g, ' ')
+      assert.match(overview, /Doanh thu thuần\s*1\.000\.000 đ/, 'The other reports are unaffected')
+      assert.match(overview, /Đơn hàng gần đây/)
       assert.equal(await broken.page.locator('main .animate-pulse').count(), 0, 'A failed report must not leave a placeholder pulsing')
       assert.deepEqual(broken.errors, [])
     } finally { await broken.context.close() }
@@ -438,7 +459,7 @@ try {
     await offline.context.route('**/api/reports/debt-by-customer-group', route => route.abort('connectionrefused'))
     await offline.page.goto(base + '/agent')
     await dashboardReady(offline.page)
-    await offline.page.locator('summary').filter({ hasText: 'Phân tích chi tiết' }).click()
+    await openTab(offline.page, 'Công nợ')
     assert.match(await offline.page.locator('main').innerText(), /Không kết nối được máy chủ/, 'A network failure is said in Vietnamese')
     assert.deepEqual(offline.errors, [])
   } finally { await offline.context.close() }

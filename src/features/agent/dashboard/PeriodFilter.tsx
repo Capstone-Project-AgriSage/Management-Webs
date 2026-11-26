@@ -18,14 +18,15 @@ const PRESETS: { label: string; range: (today: string) => [string, string] }[] =
 
 /**
  * The heading of everything the period scopes, as in the template: the title and what it covers on the left, the quick ranges,
- * the exact dates and a refresh for every figure on the right.
+ * the exact dates and a refresh for every figure on the right. `compact` (the owner's dashboard) sets the title and what it
+ * covers on one smaller line.
  */
-export default function PeriodFilter({ title, note, fromDate, toDate, onChange, onRefresh }: { title: string; note?: string; fromDate: string; toDate: string; onChange: (from: string, to: string) => void; onRefresh: () => void }) {
+export default function PeriodFilter({ title, note, fromDate, toDate, onChange, onRefresh, compact = false }: { title: string; note?: string; fromDate: string; toDate: string; onChange: (from: string, to: string) => void; onRefresh: () => void; compact?: boolean }) {
   const today = todayVn()
-  return <div className="flex flex-wrap items-end justify-between gap-3">
-    <div className="min-w-0">
-      <h2 className="text-xl font-medium tracking-tight text-zinc-900 sm:text-2xl">{title}</h2>
-      {note && <p className="mt-1 text-sm text-zinc-500">{note}</p>}
+  return <div className={`flex flex-wrap ${compact ? 'items-center gap-x-3 gap-y-2' : 'items-end gap-3'} justify-between`}>
+    <div className={compact ? 'flex min-w-0 flex-wrap items-baseline gap-x-2' : 'min-w-0'}>
+      <h2 className={compact ? 'text-lg font-medium tracking-tight text-zinc-900' : 'text-xl font-medium tracking-tight text-zinc-900 sm:text-2xl'}>{title}</h2>
+      {note && <p className={compact ? 'text-sm text-zinc-500' : 'mt-1 text-sm text-zinc-500'}>{note}</p>}
     </div>
     <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
       <div role="group" aria-label="Chọn nhanh khoảng thời gian" className="grid w-full grid-cols-5 gap-0.5 rounded-lg border border-zinc-200 bg-zinc-50 p-0.5 sm:inline-flex sm:w-auto">

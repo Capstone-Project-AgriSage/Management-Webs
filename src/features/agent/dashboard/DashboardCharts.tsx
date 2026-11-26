@@ -1,11 +1,11 @@
-import { useCallback, useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ReferenceDot, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import {
-  ArrowUpRight, Banknote, ChevronDown, CircleDollarSign, Clock, Coins, Globe, Landmark, Minus, PackageCheck, QrCode, Receipt,
-  ShieldCheck, Smartphone, Store, TriangleAlert, Undo2, Wallet, type LucideIcon,
+  ArrowUpRight, Banknote, CircleDollarSign, Clock, Coins, Globe, HandCoins, Landmark, LayoutDashboard, Minus, Package, PackageCheck,
+  QrCode, Receipt, ShieldCheck, ShoppingCart, Smartphone, Sparkles, Store, TriangleAlert, Undo2, Wallet, type LucideIcon,
 } from 'lucide-react'
-import { businessReportsApi, type AdvisoryDiagnosisReport, type CreditExposureReport, type OrderMetrics, type PaymentMetrics, type PaymentTotals, type PeriodReport, type PurchaseMetrics, type RevenueReport, type RevenueSummary, type SalesMetrics } from '@/api/businessReportsApi'
+import { businessReportsApi, type AdvisoryDiagnosisReport, type CreditExposureReport, type OrderMetrics, type PaymentMetrics, type PaymentTotals, type PeriodReport, type PurchaseMetrics, type RevenueMetrics, type RevenueReport, type RevenueSummary, type SalesMetrics } from '@/api/businessReportsApi'
 import { reportsApi, type DebtAgingReport, type DebtByGroupReport, type DebtCollectionReport } from '@/api/reportsApi'
 import { debtApi, type DebtDashboard } from '@/api/debtApi'
 import { inventoryReportsApi, type InventoryValuationReport } from '@/api/inventoryReportsApi'
@@ -88,7 +88,9 @@ function Versus({ current, previous, upIsGood, extra }: { current: number; previ
 
 /** A card in the style of the template: a quiet label, one headline that tells the story, then the chart; the arrow opens the full page. */
 function Panel({ label, to, headline, sub, aside, className = '', children }: { label: string; to?: string; headline?: ReactNode; sub?: ReactNode; aside?: ReactNode; className?: string; children: ReactNode }) {
-  return <section aria-label={label} className={`flex min-w-0 flex-col rounded-xl border border-zinc-200 bg-white p-5 ${className}`}>
+  // A panel whose body is the one-line "nothing here" (Body's role="status") keeps its own height instead of stretching to
+  // its neighbour's, so an empty panel never holds a large blank box.
+  return <section aria-label={label} className={`flex min-w-0 flex-col rounded-xl border border-zinc-200 bg-white p-4 has-[>[role=status]]:self-start ${className}`}>
     <header className="flex items-start justify-between gap-3">
       <div className="min-w-0">
         <h3 className="text-sm text-zinc-500">{label}</h3>
@@ -112,43 +114,81 @@ function Body<T>({ state, empty, emptyText = 'Chưa có dữ liệu trong kỳ n
     if (state.error) return <p role="alert" className="mt-4 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{friendly(state.error)}</p>
     return state.loading ? <div aria-hidden="true" className={`mt-4 animate-pulse rounded-xl bg-zinc-50 ${skeleton}`} /> : null
   }
-  if (empty?.(state.data)) return <p role="status" className="mt-4 rounded-xl bg-zinc-50 px-3 py-6 text-center text-sm text-zinc-500">{emptyText}</p>
+  // One short line, so a panel with nothing to show stays small instead of holding an empty box.
+  if (empty?.(state.data)) return <p role="status" className="mt-3 rounded-lg bg-zinc-50 px-3 py-2.5 text-sm text-zinc-500">{emptyText}</p>
   return <div aria-busy={state.loading} className={`flex flex-1 flex-col transition-opacity ${state.stale ? 'opacity-60' : ''}`}>{children(state.data)}</div>
 }
 
 // ---- Overview: the period's figures next to the revenue curve ------------------------------------------------------------
 
-function StatGrid({ summary, sales, payments }: { summary: Report<RevenueSummary>; sales: Report<PeriodReport<SalesMetrics>>; payments: Report<PeriodReport<PaymentMetrics, PaymentTotals>> }) {
-  const s = summary.data
-  const cur = s?.current
-  const prev = s?.previous
+interface Figure { label: string; icon: LucideIcon; value: ReactNode; foot: ReactNode; report: Report<unknown>; tag?: string }
+
+/** A report's own error under its figure (a dash alone would not say why). */
+const failure = (report: Report<unknown>) => (report.error && !report.data ? <p role="alert" className="text-xs text-rose-700">{friendly(report.error)}</p> : null)
+
+/** Every headline figure of the period, so each row picks the ones it shows without computing them twice. */
+function periodFigures(summary: Report<RevenueSummary>, sales: Report<PeriodReport<SalesMetrics>>, payments: Report<PeriodReport<PaymentMetrics, PaymentTotals>>) {
+  const cur = summary.data?.current
+  const prev = summary.data?.previous
   const sale = sales.data?.totals
-  const stats: { label: string; icon: LucideIcon; value: ReactNode; foot: ReactNode }[] = [
-    { label: 'Doanh thu thuần', icon: CircleDollarSign, value: cur && formatVnd(cur.netSales), foot: cur && prev && <Versus current={cur.netSales} previous={prev.netSales} /> },
-    { label: 'Lãi gộp', icon: Coins, value: sale ? formatVnd(sale.grossProfit) : placeholder(sales, 'w-28'), foot: sale ? <div className="space-y-1">
+  const paid = payments.data?.totals
+  const fromSummary = (label: string, icon: LucideIcon, value: (m: RevenueMetrics) => number, show: (n: number) => string, upIsGood = true): Figure => ({
+    label, icon, report: summary, value: cur ? show(value(cur)) : placeholder(summary, 'w-28'),
+    foot: cur && prev ? <Versus current={value(cur)} previous={value(prev)} upIsGood={upIsGood} /> : failure(summary),
+  })
+  return {
+    netSales: fromSummary('Doanh thu thuần', CircleDollarSign, m => m.netSales, formatVnd),
+    grossProfit: { label: 'Lãi gộp', icon: Coins, report: sales, value: sale ? formatVnd(sale.grossProfit) : placeholder(sales, 'w-28'), foot: sale ? <div className="space-y-1">
       {prev && <Versus current={sale.grossProfit} previous={prev.grossProfit} />}
       <p className="text-[13px] text-zinc-500">Giá vốn {formatVnd(sale.costOfGoods)}</p>
       <p className="text-xs text-zinc-500">Trước trả hàng, chưa trừ chi phí vận hành.</p>
-    </div> : sales.error ? <p role="alert" className="text-xs text-rose-700">{friendly(sales.error)}</p> : null },
-    { label: 'Đơn giao thành công', icon: PackageCheck, value: cur && `${num(cur.orderCount)} đơn`, foot: cur && prev && <Versus current={cur.orderCount} previous={prev.orderCount} /> },
-    { label: 'Giá trị đơn trung bình', icon: Receipt, value: cur && formatVnd(cur.averageOrderValue), foot: cur && prev && <Versus current={cur.averageOrderValue} previous={prev.averageOrderValue} /> },
-    { label: 'Tiền thực thu', icon: Wallet, value: payments.data && formatVnd(payments.data.totals.netReceivedAmount), foot: payments.data ? <p className="text-[13px] text-zinc-500">Gồm thu nợ {formatVnd(payments.data.totals.debtRepaymentAmount)}</p> : payments.error ? <p role="alert" className="text-xs text-rose-700">{friendly(payments.error)}</p> : null },
-    { label: 'Hàng trả lại', icon: Undo2, value: cur && formatVnd(cur.returnValue), foot: cur && prev && <Versus current={cur.returnValue} previous={prev.returnValue} upIsGood={false} /> },
-  ]
-  const failed = (summary.error && !s) || (payments.error && !payments.data)
-  // Six joined cells with hairline borders (two columns, three rows), like the template's figures next to its sales chart.
-  return <section aria-label="Chỉ số kinh doanh trong kỳ" title={s?.previousFromDate && s.previousToDate ? `So với kỳ trước: ${dayMonthYear(s.previousFromDate)} → ${dayMonthYear(s.previousToDate)}` : undefined} className={`grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 transition-opacity ${summary.stale ? 'opacity-60' : ''}`}>
-    {stats.map(stat => {
-      const Icon = stat.icon
+    </div> : failure(sales) } satisfies Figure,
+    orders: fromSummary('Đơn giao thành công', PackageCheck, m => m.orderCount, n => `${num(n)} đơn`),
+    averageOrder: fromSummary('Giá trị đơn trung bình', Receipt, m => m.averageOrderValue, formatVnd),
+    received: { label: 'Tiền thực thu', icon: Wallet, report: payments, value: paid ? formatVnd(paid.netReceivedAmount) : placeholder(payments, 'w-28'),
+      foot: paid ? <p className="text-[13px] text-zinc-500">Gồm thu nợ {formatVnd(paid.debtRepaymentAmount)}</p> : failure(payments) } satisfies Figure,
+    returns: fromSummary('Hàng trả lại', Undo2, m => m.returnValue, formatVnd, false),
+  }
+}
+
+/** Receivables today, with the overdue part beside them: the one current figure among the owner's four. */
+function receivablesFigure(aging: Report<DebtAgingReport>): Figure {
+  const totals = aging.data?.totals
+  const overdue = totals ? Math.max(0, totals.total - totals.notDue) : 0
+  return {
+    label: 'Nợ phải thu', tag: 'Hiện tại', icon: HandCoins, report: aging, value: totals ? formatVnd(totals.total) : placeholder(aging, 'w-28'),
+    foot: !totals ? failure(aging) : overdue > 0
+      ? <p className="flex items-center gap-1 text-[13px] font-medium text-rose-700"><TriangleAlert size={13} aria-hidden="true" className="shrink-0" />Quá hạn {formatVnd(overdue)}</p>
+      : <p className="flex items-center gap-1 text-[13px] text-green-700"><ShieldCheck size={13} aria-hidden="true" className="shrink-0" />Không có nợ quá hạn</p>,
+  }
+}
+
+/** Joined cells with hairline borders, read left to right; each dims or pulses with its own report. */
+function Figures({ label, figures, className, title }: { label: string; figures: Figure[]; className: string; title?: string }) {
+  return <section aria-label={label} title={title} className={`grid gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 ${className}`}>
+    {figures.map(figure => {
+      const Icon = figure.icon
       // The label is the cell's heading and the cell holds everything about it, so "heading → parent" reads the whole figure.
-      return <div key={stat.label} aria-busy={stat.label === 'Lãi gộp' ? sales.loading : undefined} className={`relative flex min-w-0 flex-col gap-1.5 bg-[#fff] p-4 sm:p-5 ${stat.label === 'Lãi gộp' && sales.stale ? 'opacity-60' : ''}`}>
-        <h3 className="pr-9 text-sm text-zinc-700">{stat.label}</h3>
-        <span aria-hidden="true" className="absolute right-4 top-4 hidden h-7 w-7 place-items-center rounded-md bg-green-50 text-green-700 sm:grid sm:right-5 sm:top-5"><Icon size={15} /></span>
-        <span className="text-xl font-medium leading-8 tracking-tight tabular-nums text-zinc-900 [overflow-wrap:anywhere] sm:text-[28px] sm:leading-9">{stat.value ?? (failed ? '—' : <Skeleton className="h-8 w-28" />)}</span>
-        <div className="mt-auto min-h-6 pt-1">{stat.foot}</div>
+      return <div key={figure.label} aria-busy={figure.report.loading} className={`relative flex min-w-0 flex-col gap-1 bg-[#fff] p-4 transition-opacity ${figure.report.stale ? 'opacity-60' : ''}`}>
+        <h3 className="flex flex-wrap items-center gap-x-2 gap-y-1 pr-9 text-sm text-zinc-700">{figure.label}{figure.tag && <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] font-medium text-zinc-600">{figure.tag}</span>}</h3>
+        <span aria-hidden="true" className="absolute right-4 top-4 hidden h-7 w-7 place-items-center rounded-md bg-green-50 text-green-700 sm:grid"><Icon size={15} /></span>
+        <span className="text-xl font-medium leading-8 tracking-tight tabular-nums text-zinc-900 [overflow-wrap:anywhere] sm:text-2xl">{figure.value}</span>
+        {/* Right under the figure, so the change reads with its number even when a neighbour has more to say. */}
+        <div className="min-h-6">{figure.foot}</div>
       </div>
     })}
   </section>
+}
+
+const comparedWith = (summary: Report<RevenueSummary>) => {
+  const s = summary.data
+  return s?.previousFromDate && s.previousToDate ? `So với kỳ trước: ${dayMonthYear(s.previousFromDate)} → ${dayMonthYear(s.previousToDate)}` : undefined
+}
+
+/** The admin's six figures beside the sales chart (two columns, three rows). */
+function StatGrid({ summary, sales, payments }: { summary: Report<RevenueSummary>; sales: Report<PeriodReport<SalesMetrics>>; payments: Report<PeriodReport<PaymentMetrics, PaymentTotals>> }) {
+  const f = periodFigures(summary, sales, payments)
+  return <Figures label="Chỉ số kinh doanh trong kỳ" title={comparedWith(summary)} className="grid-cols-2" figures={[f.netSales, f.grossProfit, f.orders, f.averageOrder, f.received, f.returns]} />
 }
 
 type Granularity = 'DAY' | 'WEEK' | 'MONTH'
@@ -177,69 +217,61 @@ function TrendTooltip({ active, payload, measure }: { active?: boolean; payload?
 const pointsOf = (trend: Report<RevenueReport>, granularity: Granularity): TrendPoint[] =>
   (trend.data?.rows ?? []).map(row => ({ key: row.key, tick: tickOf(granularity, row.key), title: titleOf(granularity, row.key), netSales: row.netSales, orders: row.orderCount }))
 
-/** Net sales over the period: one series on one scale (the delivered orders have their own chart below). */
-function TrendPanel({ trend, requested }: { trend: Report<RevenueReport>; requested: Granularity }) {
+type Measure = 'sales' | 'orders'
+const MEASURES: [Measure, string][] = [['sales', 'Doanh thu'], ['orders', 'Số đơn']]
+
+/**
+ * Net sales or delivered orders over the period, from the same report: one series on one scale at a time (never two axes),
+ * and a switch instead of a second chart for the same days. `ordersTo` links the orders view to the order list. `idle`: its
+ * tab is hidden, so the chart is not drawn (it would measure 0 × 0); it draws again when the tab is shown.
+ */
+function TrendPanel({ trend, requested, ordersTo, idle = false }: { trend: Report<RevenueReport>; requested: Granularity; ordersTo?: string; idle?: boolean }) {
+  const [measure, setMeasure] = useState<Measure>('sales')
   // Label by what the shown rows were grouped by: while the next period loads, the previous rows stay on screen.
   const granularity = (trend.data?.groupBy as Granularity | undefined) ?? requested
   const points = pointsOf(trend, granularity)
-  const best = points.reduce<TrendPoint | null>((top, point) => (!top || point.netSales > top.netSales ? point : top), null)
-  const label = `Doanh thu thuần theo ${UNIT[granularity]}`
-  return <Panel label={label} aside={best && best.netSales > 0 ? <span className="hidden text-xs text-zinc-500 sm:inline">Cao nhất <strong className="font-semibold text-zinc-700">{best.tick}</strong> · {shortVnd(best.netSales)}</span> : undefined}>
-    <Body state={trend} skeleton="h-72" empty={data => !data.rows.some(row => row.netSales !== 0)} emptyText="Chưa có doanh thu ghi nhận trong kỳ này.">
+  const value = (point: TrendPoint) => (measure === 'sales' ? point.netSales : point.orders)
+  const best = points.reduce<TrendPoint | null>((top, point) => (!top || value(point) > value(top) ? point : top), null)
+  const label = `${measure === 'sales' ? 'Doanh thu thuần' : 'Đơn giao'} theo ${UNIT[granularity]}`
+  const aside = <>
+    {best && value(best) > 0 && <span className="hidden text-xs text-zinc-500 lg:inline">Cao nhất <strong className="font-semibold text-zinc-700">{best.tick}</strong> · {measure === 'sales' ? shortVnd(best.netSales) : `${num(best.orders)} đơn`}</span>}
+    <div role="group" aria-label="Số liệu trên biểu đồ" className="inline-flex rounded-lg border border-zinc-200 bg-zinc-50 p-0.5">
+      {MEASURES.map(([key, name]) => <button key={key} type="button" aria-pressed={measure === key} onClick={() => setMeasure(key)}
+        className={`whitespace-nowrap rounded-md px-2.5 py-1 text-[13px] font-medium transition-colors ${measure === key ? 'bg-[#fff] text-green-800 shadow-sm ring-1 ring-green-200' : 'text-zinc-500 hover:text-zinc-900'}`}>{name}</button>)}
+    </div>
+  </>
+  const axis = { tick: { fontSize: 12, fill: C.axis }, tickLine: false, axisLine: false }
+  return <Panel label={label} to={measure === 'orders' ? ordersTo : undefined} aside={aside}>
+    <Body state={trend} skeleton="h-72" empty={data => !data.rows.some(row => (measure === 'sales' ? row.netSales !== 0 : row.orderCount > 0))}
+      emptyText={measure === 'sales' ? 'Chưa có doanh thu ghi nhận trong kỳ này.' : 'Chưa giao đơn nào trong kỳ này.'}>
       {() => <>
-        {/* At least 18rem tall; beside the figures it grows with the row. The chart fills the box, so its height is always definite. */}
-        <div className="relative mt-4 min-h-72 w-full min-w-0 flex-1">
-          <div className="absolute inset-0"><ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={points} margin={{ top: 12, right: 8, bottom: 0, left: 0 }}>
+        {/* At least 15rem tall; beside other panels it grows with the row. The chart fills the box, so its height is always definite. */}
+        <div className="relative mt-3 min-h-60 w-full min-w-0 flex-1">
+          {!idle && <div className="absolute inset-0"><ResponsiveContainer width="100%" height="100%">
+            {measure === 'sales' ? <AreaChart data={points} margin={{ top: 12, right: 8, bottom: 0, left: 0 }}>
               <CartesianGrid vertical={false} stroke={C.grid} />
-              <XAxis dataKey="key" tickFormatter={key => tickOf(granularity, String(key))} tick={{ fontSize: 12, fill: C.axis }} tickLine={false} axisLine={false} minTickGap={24} />
-              <YAxis tickFormatter={value => shortVnd(Number(value))} tick={{ fontSize: 12, fill: C.axis }} tickLine={false} axisLine={false} width={56} />
+              <XAxis dataKey="key" tickFormatter={key => tickOf(granularity, String(key))} {...axis} minTickGap={24} />
+              <YAxis tickFormatter={value => shortVnd(Number(value))} {...axis} width={56} />
               <Tooltip cursor={{ stroke: C.axis, strokeWidth: 1 }} content={<TrendTooltip measure="sales" />} />
               <Area type="linear" dataKey="netSales" stroke={C.accent} strokeWidth={2} fill={C.accent} fillOpacity={0.06} isAnimationActive={false}
                 dot={points.length === 1 ? { r: 4, fill: C.accent, stroke: '#fff', strokeWidth: 2 } : false} activeDot={{ r: 5, fill: C.accent, stroke: '#fff', strokeWidth: 2 }} />
               {best && best.netSales > 0 && points.length > 1 && <ReferenceDot x={best.key} y={best.netSales} r={4} fill={C.accent} stroke="#fff" strokeWidth={2} />}
-            </AreaChart>
-          </ResponsiveContainer></div>
+            </AreaChart> : <BarChart data={points} margin={{ top: 12, right: 8, bottom: 0, left: 0 }} barCategoryGap="20%">
+              <CartesianGrid vertical={false} stroke={C.grid} />
+              <XAxis dataKey="key" tickFormatter={key => tickOf(granularity, String(key))} {...axis} minTickGap={24} />
+              <YAxis allowDecimals={false} {...axis} width={56} />
+              <Tooltip cursor={{ fill: C.track }} content={<TrendTooltip measure="orders" />} />
+              <Bar dataKey="orders" fill={C.accent} radius={[4, 4, 0, 0]} maxBarSize={18} isAnimationActive={false} />
+            </BarChart>}
+          </ResponsiveContainer></div>}
         </div>
-        <table className="sr-only">
+        {/* The screen-reader twin sits in a clipped div: a table ignores sr-only's 1px height and would stretch the page by a row per day. */}
+        <div className="sr-only"><table>
           <caption>{label}</caption>
           <thead><tr><th scope="col">Thời gian</th><th scope="col">Doanh thu thuần</th><th scope="col">Đơn giao</th></tr></thead>
           <tbody>{points.map(point => <tr key={point.key}><th scope="row">{point.title}</th><td>{formatVnd(point.netSales)}</td><td>{num(point.orders)}</td></tr>)}</tbody>
-        </table>
-        <p className="mt-auto pt-3 text-xs text-zinc-500">Ghi nhận khi giao hàng, đã trừ hàng trả. Lãi gộp tính trước trả hàng và chưa trừ chi phí vận hành.</p>
-      </>}
-    </Body>
-  </Panel>
-}
-
-/** Delivered orders per day, week or month: columns from the same revenue report, one hue, the busiest period called out. */
-function OrdersTrendPanel({ trend, requested, to }: { trend: Report<RevenueReport>; requested: Granularity; to?: string }) {
-  const granularity = (trend.data?.groupBy as Granularity | undefined) ?? requested
-  const points = pointsOf(trend, granularity)
-  const total = points.reduce((sum, point) => sum + point.orders, 0)
-  const busiest = points.reduce<TrendPoint | null>((top, point) => (!top || point.orders > top.orders ? point : top), null)
-  const label = `Đơn giao theo ${UNIT[granularity]}`
-  return <Panel label={label} to={to} headline={trend.data ? `${num(total)} đơn` : placeholder(trend, 'w-20')}
-    sub={trend.data ? (busiest && busiest.orders > 0 ? <>nhiều nhất <strong className="font-medium text-zinc-700">{busiest.tick}</strong> ({num(busiest.orders)} đơn)</> : 'giao trong kỳ') : undefined}>
-    <Body state={trend} skeleton="h-48" empty={() => total <= 0} emptyText="Chưa giao đơn nào trong kỳ này.">
-      {() => <>
-        <div className="relative mt-4 h-48 w-full min-w-0">
-          <div className="absolute inset-0"><ResponsiveContainer width="100%" height="100%">
-            <BarChart data={points} margin={{ top: 8, right: 4, bottom: 0, left: 0 }} barCategoryGap="20%">
-              <CartesianGrid vertical={false} stroke={C.grid} />
-              <XAxis dataKey="key" tickFormatter={key => tickOf(granularity, String(key))} tick={{ fontSize: 11, fill: C.axis }} tickLine={false} axisLine={false} minTickGap={16} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: C.axis }} tickLine={false} axisLine={false} width={28} />
-              <Tooltip cursor={{ fill: C.track }} content={<TrendTooltip measure="orders" />} />
-              <Bar dataKey="orders" fill={C.accent} radius={[4, 4, 0, 0]} maxBarSize={18} isAnimationActive={false} />
-            </BarChart>
-          </ResponsiveContainer></div>
-        </div>
-        <table className="sr-only">
-          <caption>{label}</caption>
-          <thead><tr><th scope="col">Thời gian</th><th scope="col">Đơn giao</th></tr></thead>
-          <tbody>{points.map(point => <tr key={point.key}><th scope="row">{point.title}</th><td>{num(point.orders)}</td></tr>)}</tbody>
-        </table>
-        <p className="mt-auto pt-3 text-xs text-zinc-500">Đơn có ghi nhận giao hàng trong kỳ.</p>
+        </table></div>
+        <p className="mt-auto pt-3 text-xs text-zinc-500">{measure === 'sales' ? 'Ghi nhận khi giao hàng, đã trừ hàng trả. Lãi gộp tính trước trả hàng và chưa trừ chi phí vận hành.' : 'Đơn có ghi nhận giao hàng trong kỳ.'}</p>
       </>}
     </Body>
   </Panel>
@@ -819,84 +851,170 @@ function DiagnosisPanel({ report, to }: { report: Report<AdvisoryDiagnosisReport
   </Panel>
 }
 
-/** The owner's and the admin's dashboard below the period filter: every panel reads a report API for the same period. */
-export default function DashboardCharts({ fromDate, toDate, links = {}, manager = false }: { fromDate: string; toDate: string; links?: DashboardLinks; manager?: boolean }) {
+// ---- The owner's tabs ------------------------------------------------------------------------------------------------------
+
+type TabId = 'overview' | 'sales' | 'debt' | 'stock' | 'advice'
+const TABS: { id: TabId; label: string; icon: LucideIcon }[] = [
+  { id: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
+  { id: 'sales', label: 'Bán hàng', icon: ShoppingCart },
+  { id: 'debt', label: 'Công nợ', icon: HandCoins },
+  { id: 'stock', label: 'Kho hàng', icon: Package },
+  { id: 'advice', label: 'Tư vấn & AI', icon: Sparkles },
+]
+const isTab = (value: string | null): value is TabId => TABS.some(tab => tab.id === value)
+
+/**
+ * The topics as a tinted bar of tabs, each with its icon; the open one is filled with the project green so it reads at a
+ * glance (green-700 keeps white text above 4.5:1). Arrow keys, Home and End move between them (WAI-ARIA tabs pattern).
+ */
+function TabBar({ tab, mounted, onChange }: { tab: TabId; mounted: ReadonlySet<TabId>; onChange: (tab: TabId) => void }) {
+  const keys = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    const last = TABS.length - 1
+    const next = { ArrowRight: index === last ? 0 : index + 1, ArrowLeft: index === 0 ? last : index - 1, Home: 0, End: last }[event.key]
+    if (next === undefined) return
+    event.preventDefault()
+    onChange(TABS[next].id)
+    document.getElementById(`dashboard-tab-${TABS[next].id}`)?.focus()
+  }
+  return <div className="overflow-x-auto">
+    <div role="tablist" aria-label="Nhóm số liệu" className="flex min-w-max gap-1 rounded-xl border border-zinc-200 bg-zinc-100/80 p-1">
+      {TABS.map((item, index) => {
+        const selected = item.id === tab
+        const Icon = item.icon
+        return <button key={item.id} id={`dashboard-tab-${item.id}`} type="button" role="tab" aria-selected={selected} aria-controls={mounted.has(item.id) ? `dashboard-panel-${item.id}` : undefined} tabIndex={selected ? 0 : -1}
+          onClick={() => onChange(item.id)} onKeyDown={event => keys(event, index)}
+          className={`inline-flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-[15px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700 ${selected ? 'bg-green-700 text-white shadow-sm' : 'text-zinc-700 hover:bg-white hover:text-zinc-900'}`}>
+          <Icon size={17} aria-hidden="true" className={selected ? 'text-white' : 'text-green-700'} />{item.label}
+        </button>
+      })}
+    </div>
+  </div>
+}
+
+/** Where a tab mixes figures of the chosen period with figures as of today, each kind sits under its own heading. */
+function Scope({ title, note, children }: { title: string; note: string; children: ReactNode }) {
+  return <section aria-label={title} className="flex flex-col gap-3">
+    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+      <h3 className="text-sm font-medium text-zinc-900">{title}</h3>
+      <p className="text-xs text-zinc-500">{note}</p>
+    </div>
+    {children}
+  </section>
+}
+
+/**
+ * The owner's and the admin's dashboard below the period filter: every panel reads a report API for the same period.
+ * The owner's view is split into tabs: "Tổng quan" fits one screen (four figures, the trend beside the best sellers, then
+ * `overview`, the recent orders); the other panels sit in a tab by topic. A tab's reports load the first time it opens and
+ * stay loaded, so arriving asks for the overview only. The open tab is kept in `?tab=`.
+ */
+export default function DashboardCharts({ fromDate, toDate, links = {}, manager = false, overview }: { fromDate: string; toDate: string; links?: DashboardLinks; manager?: boolean; overview?: ReactNode }) {
   const { has } = usePermission()
   const problem = periodProblem(fromDate, toDate)
   const granularity = granularityFor(rangeDays(fromDate, toDate))
+  const [params, setParams] = useSearchParams()
+  const asked = params.get('tab')
+  const tab: TabId = manager && isTab(asked) ? asked : 'overview'
+  const [visited, setVisited] = useState<ReadonlySet<TabId>>(() => new Set([tab]))
+  if (!visited.has(tab)) setVisited(new Set([...visited, tab]))
+  const choose = (next: TabId) => setParams(current => {
+    const query = new URLSearchParams(current)
+    if (next === 'overview') query.delete('tab')
+    else query.set('tab', next)
+    return query
+  }, { replace: true })
+  // A report is asked for once a tab that shows it has been opened (the admin's single page shows all of them).
+  const opened = (...tabs: TabId[]) => (!manager || tabs.some(item => visited.has(item)) ? null : 'Mục này chưa được mở.')
+  const inPeriod = (...tabs: TabId[]) => problem ?? opened(...tabs)
 
   // Fetch the headline figures and current risks before secondary breakdowns.
-  const summary = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenueSummary({ fromDate, toDate }, signal), [fromDate, toDate]), problem)
-  const sales = useReport(useCallback((signal: AbortSignal) => businessReportsApi.sales({ fromDate, toDate, groupBy: 'DAY' }, signal), [fromDate, toDate]), problem)
-  const trend = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenue({ fromDate, toDate, groupBy: granularity, page: 1, pageSize: 100 }, signal), [fromDate, toDate, granularity]), problem)
-  const payments = useReport(useCallback((signal: AbortSignal) => businessReportsApi.payments({ fromDate, toDate, groupBy: 'METHOD' }, signal), [fromDate, toDate]), problem)
-  const aging = useReport(useCallback((signal: AbortSignal) => reportsApi.getDebtAging({}, signal), []))
-  const expiry = useReport(useCallback((signal: AbortSignal) => replenishmentApi.expiryRisk({ withinDays: EXPIRY_WINDOW_DAYS, page: 1, pageSize: 3 }, signal), []))
-  const topProducts = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenue({ fromDate, toDate, groupBy: 'PRODUCT', page: 1, pageSize: 10 }, signal), [fromDate, toDate]), problem)
+  const summary = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenueSummary({ fromDate, toDate }, signal), [fromDate, toDate]), inPeriod('overview', 'sales', 'stock'))
+  const sales = useReport(useCallback((signal: AbortSignal) => businessReportsApi.sales({ fromDate, toDate, groupBy: 'DAY' }, signal), [fromDate, toDate]), inPeriod('overview'))
+  const trend = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenue({ fromDate, toDate, groupBy: granularity, page: 1, pageSize: 100 }, signal), [fromDate, toDate, granularity]), inPeriod('overview'))
+  const payments = useReport(useCallback((signal: AbortSignal) => businessReportsApi.payments({ fromDate, toDate, groupBy: 'METHOD' }, signal), [fromDate, toDate]), inPeriod('overview', 'sales'))
+  const aging = useReport(useCallback((signal: AbortSignal) => reportsApi.getDebtAging({}, signal), []), opened('overview', 'debt'))
+  const expiry = useReport(useCallback((signal: AbortSignal) => replenishmentApi.expiryRisk({ withinDays: EXPIRY_WINDOW_DAYS, page: 1, pageSize: 3 }, signal), []), opened('stock'))
+  const topProducts = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenue({ fromDate, toDate, groupBy: 'PRODUCT', page: 1, pageSize: 10 }, signal), [fromDate, toDate]), inPeriod('overview'))
   // Sales pace over the period's length (the API takes 14 to 365 days, counted back from today), for the units sold and the
   // days of stock left next to each best seller.
   const paceDays = Math.min(365, Math.max(14, rangeDays(fromDate, toDate)))
-  const velocity = useReport(useCallback((signal: AbortSignal) => replenishmentApi.velocity({ historyDays: paceDays, page: 1, pageSize: 100 }, signal), [paceDays]), problem)
-  // The manager view's money and advice rows (2026-11-23). The admin dashboard does not show them, so it does not ask.
+  const velocity = useReport(useCallback((signal: AbortSignal) => replenishmentApi.velocity({ historyDays: paceDays, page: 1, pageSize: 100 }, signal), [paceDays]), inPeriod('overview'))
+  // The manager view's money and advice panels (2026-11-23). The admin dashboard does not show them, so it does not ask.
   const managerOnly = manager ? null : 'Chỉ có ở dashboard chủ cửa hàng.'
-  const managerPeriod = managerOnly ?? problem
-  const valuation = useReport(useCallback((signal: AbortSignal) => inventoryReportsApi.getValuation({}, signal), []), managerOnly)
-  const purchases = useReport(useCallback((signal: AbortSignal) => businessReportsApi.purchases({ fromDate, toDate, groupBy: 'SUPPLIER' }, signal), [fromDate, toDate]), managerPeriod)
-  const exposure = useReport(useCallback((signal: AbortSignal) => businessReportsApi.creditExposure(signal), []), managerOnly)
-  const debtDashboard = useReport(useCallback((signal: AbortSignal) => debtApi.getDashboard(signal), []), managerOnly ?? (has('DEBT.READ_DASHBOARD') ? null : 'Cần quyền xem tổng quan công nợ.'))
-  const collections = useReport(useCallback((signal: AbortSignal) => reportsApi.getDebtCollections({ fromDate, toDate, groupBy: 'METHOD' }, signal), [fromDate, toDate]), managerPeriod)
-  const advice = useReport(useCallback((signal: AbortSignal) => businessReportsApi.advisoryDiagnosis({ fromDate, toDate }, signal), [fromDate, toDate]), managerPeriod)
-  const categories = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenue({ fromDate, toDate, groupBy: 'CATEGORY', page: 1, pageSize: 5 }, signal), [fromDate, toDate]), problem)
-  const sources = useReport(useCallback((signal: AbortSignal) => businessReportsApi.orders({ fromDate, toDate, groupBy: 'SOURCE' }, signal), [fromDate, toDate]), problem)
-  const statuses = useReport(useCallback((signal: AbortSignal) => businessReportsApi.orders({ fromDate, toDate, groupBy: 'STATUS' }, signal), [fromDate, toDate]), problem)
-  const debtGroups = useReport(useCallback((signal: AbortSignal) => reportsApi.getDebtByGroup(signal), []))
-  const topCustomers = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenue({ fromDate, toDate, groupBy: 'CUSTOMER', page: 1, pageSize: 5 }, signal), [fromDate, toDate]), problem)
+  const valuation = useReport(useCallback((signal: AbortSignal) => inventoryReportsApi.getValuation({}, signal), []), managerOnly ?? opened('stock'))
+  const purchases = useReport(useCallback((signal: AbortSignal) => businessReportsApi.purchases({ fromDate, toDate, groupBy: 'SUPPLIER' }, signal), [fromDate, toDate]), managerOnly ?? inPeriod('stock'))
+  const exposure = useReport(useCallback((signal: AbortSignal) => businessReportsApi.creditExposure(signal), []), managerOnly ?? opened('debt'))
+  const debtDashboard = useReport(useCallback((signal: AbortSignal) => debtApi.getDashboard(signal), []), managerOnly ?? (has('DEBT.READ_DASHBOARD') ? opened('debt') : 'Cần quyền xem tổng quan công nợ.'))
+  const collections = useReport(useCallback((signal: AbortSignal) => reportsApi.getDebtCollections({ fromDate, toDate, groupBy: 'METHOD' }, signal), [fromDate, toDate]), managerOnly ?? inPeriod('debt'))
+  const advice = useReport(useCallback((signal: AbortSignal) => businessReportsApi.advisoryDiagnosis({ fromDate, toDate }, signal), [fromDate, toDate]), managerOnly ?? inPeriod('advice'))
+  const categories = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenue({ fromDate, toDate, groupBy: 'CATEGORY', page: 1, pageSize: 5 }, signal), [fromDate, toDate]), inPeriod('sales'))
+  const sources = useReport(useCallback((signal: AbortSignal) => businessReportsApi.orders({ fromDate, toDate, groupBy: 'SOURCE' }, signal), [fromDate, toDate]), inPeriod('sales'))
+  const statuses = useReport(useCallback((signal: AbortSignal) => businessReportsApi.orders({ fromDate, toDate, groupBy: 'STATUS' }, signal), [fromDate, toDate]), inPeriod('sales'))
+  const debtGroups = useReport(useCallback((signal: AbortSignal) => reportsApi.getDebtByGroup(signal), []), opened('debt'))
+  const topCustomers = useReport(useCallback((signal: AbortSignal) => businessReportsApi.revenue({ fromDate, toDate, groupBy: 'CUSTOMER', page: 1, pageSize: 5 }, signal), [fromDate, toDate]), inPeriod('sales'))
 
-  // The owner's view in the template's order: figures beside the sales chart; how orders flow and where they come from;
-  // what needs money or stock attention now; the sales mix; stock, purchases and credit; advice. Two breakdowns stay folded.
-  if (manager) return <div className="flex flex-col gap-5">
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-      <StatGrid summary={summary} sales={sales} payments={payments} />
-      <TrendPanel trend={trend} requested={granularity} />
+  if (manager) {
+    const figures = periodFigures(summary, sales, payments)
+    const now = 'Tính đến hôm nay, không theo kỳ báo cáo'
+    const period = `${formatDay(fromDate)} – ${formatDay(toDate)}`
+    const content: Record<TabId, () => ReactNode> = {
+      // Read left to right: the four figures, then the trend beside what sells, then the latest orders.
+      overview: () => <>
+        <Figures label="Chỉ số chính" title={comparedWith(summary)} className="grid-cols-2 xl:grid-cols-4" figures={[figures.netSales, figures.grossProfit, figures.received, receivablesFigure(aging)]} />
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+          <TrendPanel trend={trend} requested={granularity} ordersTo={links.orders} idle={tab !== 'overview'} />
+          <TopProductsPanel report={topProducts} velocity={velocity} to={links.planning} limit={5} />
+        </div>
+        {overview}
+      </>,
+      sales: () => <>
+        <Figures label="Đơn hàng trong kỳ" title={comparedWith(summary)} className="grid-cols-1 sm:grid-cols-3" figures={[figures.orders, figures.averageOrder, figures.returns]} />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <SourcesPanel report={sources} to={links.orders} />
+          <MethodsPanel report={payments} to={links.payments} />
+          <FunnelPanel report={statuses} to={links.orders} />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <CategoryPanel report={categories} to={links.products} />
+          <TopCustomersPanel report={topCustomers} to={links.customers} />
+        </div>
+      </>,
+      debt: () => <>
+        <Scope title="Hiện tại" note={now}>
+          <div className="grid gap-4 md:grid-cols-2">
+            <DebtPanel report={aging} to={links.debts} focusOverdue />
+            <CreditPanel exposure={exposure} debt={debtDashboard} to={links.debts} />
+            <FollowUpPanel debt={debtDashboard} to={links.debts} />
+            <DebtGroupsPanel report={debtGroups} to={links.debts} />
+          </div>
+        </Scope>
+        <Scope title="Trong kỳ" note={period}>
+          <div className="grid gap-4 md:grid-cols-2"><CollectionsPanel report={collections} debt={debtDashboard} to={links.debts} /></div>
+        </Scope>
+      </>,
+      stock: () => <>
+        <Scope title="Hiện tại" note={now}>
+          <div className="grid gap-4 md:grid-cols-2">
+            <InventoryValuePanel report={valuation} to={links.inventory} />
+            <ExpiryPanel report={expiry} to={links.expiry} />
+          </div>
+        </Scope>
+        <Scope title="Trong kỳ" note={period}>
+          <div className="grid gap-4 md:grid-cols-2"><PurchasesPanel report={purchases} summary={summary} to={links.purchases} /></div>
+        </Scope>
+      </>,
+      advice: () => <div className="grid gap-4 xl:grid-cols-3">
+        <AdvisoryPanel report={advice} to={links.advisory} />
+        <DiagnosisPanel report={advice} to={links.diagnosis} />
+      </div>,
+    }
+    return <div className="flex flex-col gap-4">
+      <TabBar tab={tab} mounted={visited} onChange={choose} />
+      {/* Tabs opened once stay mounted, hidden, so going back shows them at once without asking again. */}
+      {TABS.filter(item => visited.has(item.id)).map(item => <div key={item.id} id={`dashboard-panel-${item.id}`} role="tabpanel" aria-labelledby={`dashboard-tab-${item.id}`}
+        hidden={item.id !== tab} className={item.id === tab ? 'flex flex-col gap-4' : 'hidden'}>{content[item.id]()}</div>)}
     </div>
-    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-      <OrdersTrendPanel trend={trend} requested={granularity} to={links.orders} />
-      <FunnelPanel report={statuses} to={links.orders} />
-      <SourcesPanel report={sources} to={links.orders} />
-    </div>
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-      <DebtPanel report={aging} to={links.debts} focusOverdue />
-      <TopProductsPanel report={topProducts} velocity={velocity} to={links.planning} limit={5} />
-    </div>
-    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-      <CategoryPanel report={categories} to={links.products} />
-      <MethodsPanel report={payments} to={links.payments} />
-      <ExpiryPanel report={expiry} to={links.expiry} />
-    </div>
-    <div className="grid gap-5 md:grid-cols-2">
-      <InventoryValuePanel report={valuation} to={links.inventory} />
-      <PurchasesPanel report={purchases} summary={summary} to={links.purchases} />
-    </div>
-    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-      <CreditPanel exposure={exposure} debt={debtDashboard} to={links.debts} />
-      <CollectionsPanel report={collections} debt={debtDashboard} to={links.debts} />
-      <FollowUpPanel debt={debtDashboard} to={links.debts} />
-    </div>
-    <div className="grid gap-5 xl:grid-cols-3">
-      <AdvisoryPanel report={advice} to={links.advisory} />
-      <DiagnosisPanel report={advice} to={links.diagnosis} />
-    </div>
-    <details className="group rounded-xl border border-zinc-200 bg-white">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-5 py-4 hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-green-700 [&::-webkit-details-marker]:hidden">
-        <span><span className="block text-base font-medium text-zinc-900">Phân tích chi tiết</span><span className="mt-1 block text-xs text-zinc-500">Công nợ theo nhóm khách và khách hàng mua nhiều</span></span>
-        <ChevronDown size={20} aria-hidden="true" className="shrink-0 text-zinc-500 transition-transform group-open:rotate-180" />
-      </summary>
-      <div className="grid gap-5 border-t border-zinc-200 p-5 md:grid-cols-2">
-        <DebtGroupsPanel report={debtGroups} to={links.debts} />
-        <TopCustomersPanel report={topCustomers} to={links.customers} />
-      </div>
-    </details>
-  </div>
+  }
 
   return <div className="flex flex-col gap-5">
     <div className="grid gap-5 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">

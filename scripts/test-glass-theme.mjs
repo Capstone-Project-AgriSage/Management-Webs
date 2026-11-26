@@ -97,9 +97,19 @@ try {
   const { page, state } = desktop
   await page.goto(base + '/agent')
   await settled(page, 'dashboard')
-  await page.locator('summary').filter({ hasText: 'Phân tích chi tiết' }).click()
   assert.equal(await page.locator('.agrisage-kpi-card').count(), 0, 'The dashboard draws its own strip and panels, not the list summary cards')
-  for (const name of ['Việc cần xử lý', 'Kết quả kinh doanh', 'Doanh thu thuần theo ngày', 'Nhóm sản phẩm bán chạy', 'Kênh bán hàng', 'Phương thức thanh toán', 'Tỷ lệ hoàn thành đơn', 'Công nợ phải thu', 'Công nợ theo nhóm khách', 'Đơn hàng gần đây']) await page.getByText(name, { exact: true }).first().waitFor()
+  // The owner's panels sit in tabs by topic; each tab loads its reports the first time it opens.
+  const byTab = {
+    'Tổng quan': ['Việc cần xử lý', 'Kết quả kinh doanh', 'Doanh thu thuần theo ngày', 'Đơn hàng gần đây'],
+    'Bán hàng': ['Nhóm sản phẩm bán chạy', 'Kênh bán hàng', 'Phương thức thanh toán', 'Tỷ lệ hoàn thành đơn'],
+    'Công nợ': ['Công nợ phải thu', 'Công nợ theo nhóm khách'],
+  }
+  for (const [tab, names] of Object.entries(byTab)) {
+    await page.getByRole('tab', { name: tab, exact: true }).click()
+    for (const name of names) await page.getByText(name, { exact: true }).first().waitFor()
+  }
+  await page.getByRole('tab', { name: 'Tổng quan', exact: true }).click()
+  await settled(page, 'dashboard')
   assert((await page.locator('main .recharts-surface').count()) >= 1, 'The revenue chart is drawn')
   const reportCalls = state.requests.filter(request => request.path.startsWith('/api/reports/')).map(request => request.path + ':' + (request.query.groupBy ?? ''))
   for (const expected of ['/api/reports/revenue-summary:', '/api/reports/revenue:DAY', '/api/reports/revenue:CATEGORY', '/api/reports/payments:METHOD', '/api/reports/orders:SOURCE', '/api/reports/orders:STATUS', '/api/reports/revenue:PRODUCT', '/api/reports/revenue:CUSTOMER', '/api/reports/inventory-turnover:', '/api/reports/debt-aging:', '/api/reports/debt-by-customer-group:']) assert(reportCalls.includes(expected), `The dashboard must read ${expected}`)
