@@ -4,6 +4,12 @@ import { vnDateTime } from './date'
 /** A last position older than this is shown as a lost signal (FLOW_2 §9a). */
 export const STALE_AFTER_MS = 3 * 60 * 1000
 
+// The store's region: the Mekong Delta and Ho Chi Minh City, with Phu Quoc and Con Dao (south-west, north-east corners).
+// Maps never leave it and never zoom out past a province, so the open sea and the islands (whose OpenStreetMap labels
+// are disputed) are never shown; tiles outside it are not even loaded.
+export const STORE_REGION: [[number, number], [number, number]] = [[8.3, 103.8], [11.8, 107.2]]
+export const MIN_MAP_ZOOM = 9
+
 /** How often the map pages read positions again. */
 export const LOCATION_POLL_MS = 15_000
 

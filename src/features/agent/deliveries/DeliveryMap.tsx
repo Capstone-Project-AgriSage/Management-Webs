@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { CircleMarker, MapContainer, Polyline, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import type { LatLngTuple } from 'leaflet'
 import type { GeoPoint, LocationPoint } from '@/api/deliveriesApi'
+import { MIN_MAP_ZOOM, STORE_REGION } from '@/utils/deliveryLocation'
 
 export type MapMarkerKind = 'driver' | 'driver-stale' | 'destination'
 
@@ -58,8 +59,18 @@ export default function DeliveryMap({ markers, trail = [], height = 280, classNa
   return (
     // `isolate` keeps Leaflet's panes (z-index 400-1000) inside the map, so a modal opened over the page stays on top.
     <div className={`relative isolate overflow-hidden rounded-lg border border-slate-200 ${className}`} style={{ height }} data-testid="delivery-map">
-      <MapContainer center={DEFAULT_CENTER} zoom={12} scrollWheelZoom className="h-full w-full">
+      <MapContainer
+        center={DEFAULT_CENTER}
+        zoom={12}
+        minZoom={MIN_MAP_ZOOM}
+        maxBounds={STORE_REGION}
+        maxBoundsViscosity={1}
+        scrollWheelZoom
+        className="h-full w-full"
+      >
         <TileLayer
+          bounds={STORE_REGION}
+          noWrap
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
