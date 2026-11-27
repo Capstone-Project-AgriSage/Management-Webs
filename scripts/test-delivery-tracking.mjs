@@ -34,6 +34,30 @@ const attempt = (id, number, status, over = {}) => ({ id, attemptNumber: number,
   completedAt: status === 'IN_PROGRESS' ? null : ago(190 - number * 50), receiverName: null, proofImageUrl: null,
   failureReasonCode: status === 'FAILED' ? 'CUSTOMER_ABSENT' : null, note: null, saleStockMovementId: null, items: [], ...over })
 
+// The store's region (Mekong Delta + Ho Chi Minh City). Every tile a map loads must lie in it, at province zoom or closer.
+const REGION = { south: 8.3, west: 103.8, north: 11.8, east: 107.2 }
+const lon2x = (lon, z) => Math.floor(((lon + 180) / 360) * 2 ** z)
+const lat2y = (lat, z) => Math.floor(((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * 2 ** z)
+const inRegion = ({ z, x, y }) => z >= 9 && x >= lon2x(REGION.west, z) && x <= lon2x(REGION.east, z) && y >= lat2y(REGION.north, z) && y <= lat2y(REGION.south, z)
+const tileOf = (url) => { const [z, x, y] = new URL(url).pathname.replace('.png', '').split('/').filter(Boolean).map(Number); return { z, x, y } }
+
+/** Zooms out as far as the map allows and drags it towards the sea; the map must stop at the store's region. */
+async function tryToLeaveRegion(page, mapLocator) {
+  const zoomOut = mapLocator.locator('.leaflet-control-zoom-out')
+  for (let i = 0; i < 10 && !(await zoomOut.evaluate((e) => e.classList.contains('leaflet-disabled'))); i++) {
+    await zoomOut.click()
+    await page.waitForTimeout(350)
+  }
+  const stopped = await zoomOut.evaluate((e) => e.classList.contains('leaflet-disabled'))
+  const box = await mapLocator.boundingBox()
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(box.x + 5, box.y + 5, { steps: 12 })
+  await page.mouse.up()
+  await page.waitForTimeout(900)
+  return stopped
+}
+
 const DETAIL = {
   id: 'd-1', deliveryNumber: 'DL-20261127-0001', orderId: 'o-1', orderNumber: 'OD-20261127-0001', status: 'OUT_FOR_DELIVERY',
   assignedTo: driver, deliveryAddress: { recipientName: 'Nguyễn Văn An', recipientPhone: '0901234567', addressLine: 'Ấp 3', ward: null,
@@ -52,9 +76,10 @@ const ROUTES = {
 async function session({ role = 'STORE_OWNER', live = LIVE, viewport = { width: 1440, height: 1000 } } = {}) {
   const context = await browser.newContext({ viewport })
   await context.addInitScript(() => localStorage.setItem('agrisage_token', 'delivery-tracking'))
-  const state = { requests: [], tiles: 0 }
+  const state = { requests: [], tiles: 0, tileList: [] }
   await context.route('https://tile.openstreetmap.org/**', route => {
     state.tiles++
+    state.tileList.push(tileOf(route.request().url()))
     return route.fulfill({ status: 200, contentType: 'image/png', body: TILE })
   })
   await context.route('**/api/**', async route => {
@@ -111,6 +136,11 @@ try {
   assert.ok(await noSideScroll(owner.page))
   await shot(owner.page, 'delivery-map-page')
   pass('The map draws the drivers and the destinations on OpenStreetMap without side scroll')
+
+  // The map cannot leave the store's region: zoom out stops at a province and no tile of the open sea is loaded.
+  assert.ok(await tryToLeaveRegion(owner.page, owner.page.locator('[data-testid="delivery-map"]').first()), 'zoom out stops at province level')
+  assert.deepEqual(owner.state.tileList.filter((tile) => !inRegion(tile)), [], 'no tile outside the store region')
+  pass("The map stays in the store's region (no open sea, no islands)")
 
   // A trip opens its delivery: the running attempt's position, read from its route.
   await rows.nth(0).click()
