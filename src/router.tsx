@@ -86,6 +86,8 @@ import DeliveryDetailPage from '@/features/delivery/deliveries/DeliveryDetailPag
 
 // Load chart libraries only when a detailed report is opened.
 const AgentDeliveryReportsPage = lazy(() => import('@/features/agent/deliveries/DeliveryReportsPage'))
+const DeliveryMapPage = lazy(() => import('@/features/agent/deliveries/DeliveryMapPage'))
+const mapFallback = <p role="status" className="p-5 text-sm text-slate-500">Đang tải bản đồ...</p>
 const ReplenishmentPage = lazy(() => import('@/features/agent/inventory/ReplenishmentPage'))
 const SeasonalRulesPage = lazy(() => import('@/features/agent/inventory/SeasonalRulesPage'))
 const InventoryPlanningReportsPage = lazy(() => import('@/features/agent/inventory/InventoryPlanningReportsPage'))
@@ -290,6 +292,10 @@ export const router = createBrowserRouter([
             element: <RequireRole role={["agent", "sales_staff"]}><AgentDeliveriesPage /></RequireRole>,
           },
           {
+            path: 'agent/deliveries/map',
+            element: <RequireRole role={["agent", "sales_staff"]}><Suspense fallback={mapFallback}><DeliveryMapPage /></Suspense></RequireRole>,
+          },
+          {
             path: 'agent/deliveries/reports',
             element: <RequireRole role={["admin", "agent", "sales_staff"]}><Suspense fallback={reportFallback}><AgentDeliveryReportsPage /></Suspense></RequireRole>,
           },
@@ -359,6 +365,10 @@ export const router = createBrowserRouter([
           {
             path: 'sales/deliveries',
             element: <RequireRole role="sales_staff"><AgentDeliveriesPage /></RequireRole>,
+          },
+          {
+            path: 'sales/deliveries/map',
+            element: <RequireRole role="sales_staff"><Suspense fallback={mapFallback}><DeliveryMapPage /></Suspense></RequireRole>,
           },
           {
             path: 'sales/counter-sales',

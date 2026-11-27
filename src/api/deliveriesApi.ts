@@ -169,6 +169,37 @@ export interface CreateIncidentRequest {
   evidenceImageUrl?: string
 }
 
+/** One position of the driver's phone (FLOW_2 §9a). */
+export interface LocationPoint {
+  latitude: number
+  longitude: number
+  accuracyMeters: number | null
+  recordedAt: string
+}
+
+export interface GeoPoint {
+  latitude: number
+  longitude: number
+}
+
+/** One delivery attempt running now, for the store's map (GET /api/deliveries/live). */
+export interface LiveDelivery {
+  deliveryId: Uuid
+  deliveryNumber: string
+  orderId: Uuid
+  orderNumber: string
+  recipientName: string
+  addressLine: string
+  /** The delivery address; null when it has no coordinates. */
+  destination: GeoPoint | null
+  attemptId: Uuid
+  attemptNumber: number
+  startedAt: string
+  driver: StaffRef | null
+  /** null until the driver's phone has sent a first position. */
+  lastPoint: LocationPoint | null
+}
+
 export interface ResolveIncidentRequest {
   resolutionType: ResolutionType
   resolutionNote?: string
@@ -204,6 +235,16 @@ export const deliveriesApi = {
 
   getDeliveryDetail: (id: string) => {
     return api<DeliveryResponse>(`/api/deliveries/${id}`)
+  },
+
+  /** F2.8: every delivery attempt running now, with the driver's last position (polled every 15 s by the map). */
+  getLiveDeliveries: (signal?: AbortSignal) => {
+    return api<LiveDelivery[]>('/api/deliveries/live', { signal })
+  },
+
+  /** F2.8: the route of one attempt, oldest point first (at most the latest 2000). */
+  getAttemptLocations: (deliveryId: string, attemptId: string, signal?: AbortSignal) => {
+    return api<LocationPoint[]>(`/api/deliveries/${deliveryId}/attempts/${attemptId}/locations`, { signal })
   },
 
   cancelDelivery: (id: string, data: { reason: string }) => {

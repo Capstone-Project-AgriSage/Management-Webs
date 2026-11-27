@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import BusinessReportCards from '@/features/agent/reports/BusinessReportCards'
-import { useSearchParams } from 'react-router-dom';
-import { MapPin, UserCircle } from 'lucide-react';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { Map as MapIcon, MapPin, UserCircle } from 'lucide-react';
 import { usePageHeader } from '@/context/PageHeaderContext';
 import { deliveriesApi, type DeliveryListItem, type DeliveryStatus } from '@/api/deliveriesApi';
 import { useToast } from '@/context/ToastContext';
@@ -28,6 +28,7 @@ const STATUS_OPTIONS: { value: DeliveryStatus | 'ALL'; label: string }[] = [
 export default function DeliveriesPage() {
   usePageHeader({ title: 'Quản lý giao hàng', subtitle: 'Theo dõi lộ trình và kết quả giao nhận' })
   const { showToast } = useToast()
+  const { pathname } = useLocation()
   // Shared by Đại lý (/agent) and Bán hàng (/sales) — FE_GUIDE_FLOW_2 §4.
 
   const [deliveries, setDeliveries] = useState<DeliveryListItem[]>([])
@@ -78,6 +79,11 @@ export default function DeliveriesPage() {
     <div className="max-w-[1600px] mx-auto flex flex-col gap-space-lg p-space-md">
 
       <BusinessReportCards kind="deliveries" />
+      <div className="flex justify-end -mb-2">
+        <Link to={`${pathname.replace(/\/$/, '')}/map`} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-primary hover:bg-slate-50">
+          <MapIcon size={16} /> Bản đồ giao hàng
+        </Link>
+      </div>
       <ListToolbar search={{ value: search, onChange: value => { setSearch(value); setPage(1) }, placeholder: 'Tìm mã phiếu, mã đơn, tên hoặc SĐT người nhận...' }} onClear={() => { setSearch(''); setStatusFilter(ALL_STATUSES); setPage(1) }}>
         <FilterSelect label="Lọc trạng thái" value={statusFilter} onChange={value => { setStatusFilter(value); setPage(1) }} options={STATUS_OPTIONS.map(option => option.label)} />
       </ListToolbar>
