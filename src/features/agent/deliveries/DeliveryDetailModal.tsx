@@ -1,8 +1,8 @@
 import Select from '@/components/ui/Select'
 import PermissionAction from '@/components/auth/PermissionAction'
 import ModalLayout from '@/components/ui/ModalLayout'
-import { useEffect, useState } from 'react'
-import { MapPin, Package, Truck, UserCircle, CheckCircle, XCircle, AlertTriangle, Image as ImageIcon } from 'lucide-react'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { MapPin, Package, Truck, UserCircle, CheckCircle, XCircle, AlertTriangle, Image as ImageIcon, Route } from 'lucide-react'
 import DetailModal from '@/components/ui/DetailModal'
 import StatusBadge from '@/components/ui/StatusBadge'
 import { useToast } from '@/context/ToastContext'
@@ -12,6 +12,7 @@ import {
   type DeliveryIncident,
   type DeliveryItem,
   type DeliveryResponse,
+  type GeoPoint,
   type ResolutionType,
 } from '@/api/deliveriesApi'
 import { ordersApi } from '@/api/ordersApi'
@@ -31,6 +32,9 @@ import {
   openAllocationQuantity,
 } from '@/utils/deliveryLabels'
 import EditDeliveryLotsModal from './EditDeliveryLotsModal'
+
+// Leaflet is loaded only when a position is shown (F2.8).
+const AttemptLocation = lazy(() => import('./AttemptLocation'))
 
 interface DeliveryDetailModalProps {
   deliveryId: string | null
@@ -60,6 +64,8 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
   const [resolvingIncident, setResolvingIncident] = useState<DeliveryIncident | null>(null)
   const [resolutionType, setResolutionType] = useState<ResolutionType>('RETRY_DELIVERY')
   const [resolutionNote, setResolutionNote] = useState('')
+  // Finished attempts whose route is shown (F2.8).
+  const [shownRoutes, setShownRoutes] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     staffApi
@@ -351,12 +357,26 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
                   </div>
                 ))}
               </div>
-            </div>{delivery.attempts.length > 0 && (
+            </div>{activeAttempt && (
+              <div className="p-4 border-b border-slate-200" data-testid="driver-location">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Vị trí tài xế</span>
+                <Suspense fallback={<div className="text-xs text-slate-500">Đang tải bản đồ…</div>}>
+                  <AttemptLocation
+                    deliveryId={delivery.id}
+                    attemptId={activeAttempt.id}
+                    live
+                    destination={destinationOf(delivery)}
+                    driverName={activeAttempt.attemptedBy?.fullName}
+                  />
+                </Suspense>
+              </div>
+            )}{delivery.attempts.length > 0 && (
               <div className="p-4 border-b border-slate-200">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Các lần giao</span>
                 <ul className="space-y-2">
                   {delivery.attempts.map((a) => (
-                    <li key={a.id} className="text-xs bg-slate-50 border border-slate-100 rounded-lg p-2.5 flex justify-between gap-3">
+                    <li key={a.id} className="text-xs bg-slate-50 border border-slate-100 rounded-lg p-2.5">
+                    <div className="flex justify-between gap-3">
                       <div className="space-y-0.5">
                         <div className="font-semibold text-slate-800">
                           Lần {a.attemptNumber} · {labelOf(ATTEMPT_STATUS_LABEL, a.status)}
@@ -371,11 +391,30 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
                         )}
                         {a.note && <div className="italic text-slate-500">"{a.note}"</div>}
                       </div>
-                      {a.proofImageUrl && (
-                        <a href={a.proofImageUrl} target="_blank" rel="noreferrer" className="shrink-0 text-primary flex items-center gap-1 hover:underline">
-                          <ImageIcon size={14} /> Ảnh
-                        </a>
-                      )}
+                      <div className="shrink-0 flex flex-col items-end gap-1">
+                        {a.proofImageUrl && (
+                          <a href={a.proofImageUrl} target="_blank" rel="noreferrer" className="text-primary flex items-center gap-1 hover:underline">
+                            <ImageIcon size={14} /> Ảnh
+                          </a>
+                        )}
+                        {a.status !== 'IN_PROGRESS' && (
+                          <button
+                            type="button"
+                            className="text-primary flex items-center gap-1 hover:underline"
+                            onClick={() => setShownRoutes((shown) => ({ ...shown, [a.id]: !shown[a.id] }))}
+                          >
+                            <Route size={14} /> {shownRoutes[a.id] ? 'Ẩn đường đi' : 'Xem đường đi'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {shownRoutes[a.id] && (
+                      <div className="mt-2">
+                        <Suspense fallback={<div className="text-xs text-slate-500">Đang tải bản đồ…</div>}>
+                          <AttemptLocation deliveryId={delivery.id} attemptId={a.id} live={false} destination={destinationOf(delivery)} />
+                        </Suspense>
+                      </div>
+                    )}
                     </li>
                   ))}
                 </ul>
@@ -524,4 +563,10 @@ export default function DeliveryDetailModal({ deliveryId, onClose, onChanged }: 
       )}
     </>
   )
+}
+
+/** The delivery address on the map; null when it has no coordinates. */
+function destinationOf(delivery: DeliveryResponse): GeoPoint | null {
+  const { latitude, longitude } = delivery.deliveryAddress
+  return latitude != null && longitude != null ? { latitude, longitude } : null
 }

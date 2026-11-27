@@ -92,6 +92,7 @@ function useNavConfig() {
           { label: 'Thẻ kho', to: '/agent/inventory/stock-card', icon: 'menu_book' },
           { label: 'Kiểm kê', to: '/agent/inventory/stocktake', icon: 'fact_check' },
           { label: 'Giao hàng', to: '/agent/deliveries', icon: 'local_shipping' },
+          { label: 'Bản đồ giao hàng', to: '/agent/deliveries/map', icon: 'map' },
         ]
       },
       {
@@ -131,6 +132,7 @@ function useNavConfig() {
       { label: 'Đơn hàng', to: '/sales/orders', icon: 'receipt_long' },
       { label: 'Hóa đơn bán hàng', to: '/sales/invoices', icon: 'receipt' },
       { label: 'Giao hàng', to: '/sales/deliveries', icon: 'local_shipping' },
+      { label: 'Bản đồ giao hàng', to: '/sales/deliveries/map', icon: 'map' },
       { label: 'Thanh toán', to: '/sales/payments', icon: 'payments' },
       { label: 'Trả hàng', to: '/sales/returns', icon: 'assignment_return' },
       { label: 'Đổi hàng', to: '/sales/exchanges', icon: 'swap_horiz' },
