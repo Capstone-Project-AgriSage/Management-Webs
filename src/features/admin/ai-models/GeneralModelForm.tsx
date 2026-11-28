@@ -73,7 +73,7 @@ export default function GeneralModelForm({ busy, onSubmit }: { busy: boolean; on
     name: name.trim() ? '' : 'Nhập tên mô hình.',
     version: MODEL_ID.test(version.trim()) ? '' : `Nhập mã model ${info.model}, ví dụ ${provider === 'GOOGLE' ? 'gemini-3.6-flash' : 'claude-opus-5-5'}.`,
     crops: diseaseCount > 0 ? '' : 'Chọn ít nhất một cây trồng có bệnh.',
-    healthy: diseases && !healthy ? 'Chưa có lớp "Lá khỏe" (HEALTHY) đang hoạt động.' : '',
+    healthy: diseases && !healthy ? 'Chưa có lớp "Cây khỏe" (HEALTHY) đang hoạt động.' : '',
   }
   const invalid = Object.values(errors).some(Boolean) || !diseases
   const mismatch = configured && version.trim() && version.trim() !== configured.modelId
