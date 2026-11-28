@@ -13,6 +13,8 @@ export interface AiModelRow {
   metrics: Record<string, unknown> | null
   status: string
   createdAt: string
+  /** The crop a crop model answers (AI_DIAGNOSIS.md D19); null for a general model (Claude/Gemini), which answers every crop. */
+  cropType?: string | null
 }
 export interface AiModelInput {
   name: string

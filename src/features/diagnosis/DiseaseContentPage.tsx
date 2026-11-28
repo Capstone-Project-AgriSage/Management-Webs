@@ -335,7 +335,7 @@ export default function DiseaseContentPage() {
               {pagination.paginated.map(d => <tr key={d.id} className="hover:bg-slate-50">
                 <td className="px-4 py-4"><button id={`problem-view-${d.id}`} type="button" className="text-left font-semibold text-primary-dark hover:underline focus-visible:outline-2 focus-visible:outline-primary" aria-label={`Xem chi tiết ${diseaseLabel(d.code, d.name)}`} onClick={() => setSelectedId(d.id)}>{diseaseLabel(d.code, d.name)}</button><p className="mt-1 text-xs text-slate-500 break-all">{d.code}</p>{d.name !== diseaseLabel(d.code, d.name) && <p className="mt-1 text-xs text-slate-500">{d.name}</p>}</td>
                 <td className="px-4 py-4 text-slate-700">{cropText(d)}</td>
-                <td className="px-4 py-4 text-slate-700">{d.isHealthyClass ? 'Lá khỏe' : PROBLEM_TYPE_LABEL[d.problemType ?? 'DISEASE']}</td>
+                <td className="px-4 py-4 text-slate-700">{d.isHealthyClass ? 'Cây khỏe' : PROBLEM_TYPE_LABEL[d.problemType ?? 'DISEASE']}</td>
                 <td className="px-4 py-4"><StatusBadge label={!d.symptoms?.trim() && !d.prevention?.trim() ? 'Cần bổ sung' : 'Đã có nội dung'} className={!d.symptoms?.trim() && !d.prevention?.trim() ? 'text-amber-700' : 'text-emerald-700'} /></td>
                 <td className="px-4 py-4 text-right tabular-nums"><span className="font-semibold">{d.treatments.filter(t => t.isActive).length}</span><p className="mt-1 text-xs text-slate-500">đang dùng</p></td>
                 <td className="px-4 py-4"><StatusBadge label={d.isActive ? 'Đang hoạt động' : 'Đã ngừng'} /></td>
@@ -367,7 +367,7 @@ export default function DiseaseContentPage() {
                   {d.name !== diseaseLabel(d.code, d.name) && <> · {d.name}</>}
                   <span className="ml-2 px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold">{cropText(d)}</span>
                   <span className="ml-2 px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold">{PROBLEM_TYPE_LABEL[d.problemType ?? 'DISEASE']}</span>
-                  {d.isHealthyClass && <span className="ml-2 px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-semibold">Lá khỏe</span>}
+                  {d.isHealthyClass && <span className="ml-2 px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-semibold">Cây khỏe</span>}
                 </p>
                 <div className="mt-3"><StatusBadge label={d.isActive ? 'Đang hoạt động' : 'Đã ngừng'} /></div>
               </div>
@@ -415,7 +415,7 @@ export default function DiseaseContentPage() {
                 )}
               </div>
               {d.isHealthyClass && (
-                <p className="text-xs text-slate-500">Lá khỏe chỉ nhận hướng dẫn chăm sóc, không gợi ý sản phẩm.</p>
+                <p className="text-xs text-slate-500">Cây khỏe chỉ nhận hướng dẫn chăm sóc, không gợi ý sản phẩm.</p>
               )}
               {treatments.length === 0 ? (
                 <p className="text-sm text-slate-600">Chưa có cách xử lý nào.</p>

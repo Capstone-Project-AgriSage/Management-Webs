@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { pathToFileURL } from 'node:url'
 
-// AI_DIAGNOSIS.md 2.2 §15, admin side: the provider page with one tab per provider (Claude, Gemini; write-only API key,
+// AI_DIAGNOSIS.md 2.2 §15 and 2.4 §16 (crop model next to the general model), admin side: the provider page with one tab per provider (Claude, Gemini; write-only API key,
 // on/off, connection check), the crop of each problem, and registering a general model (Claude or Gemini) by crop. Every
 // /api request is intercepted; no backend is called.
 const { chromium } = await import(process.env.UI_PLAYWRIGHT_MODULE ? pathToFileURL(process.env.UI_PLAYWRIGHT_MODULE).href : 'playwright')
@@ -43,6 +43,7 @@ async function session(permissions, options = {}) {
     requests: [],
     settings: { ANTHROPIC: settingOf('ANTHROPIC', options.anthropic), GOOGLE: settingOf('GOOGLE', options.google) },
     conflictOnce: !!options.conflictOnce,
+    models: options.models ?? [],
   }
   await context.route('**/api/**', async route => {
     const request = route.request()
@@ -78,7 +79,13 @@ async function session(permissions, options = {}) {
     if (path === '/api/diseases' && method === 'GET') return json(url.searchParams.get('isActive') === 'true' ? diseases.filter(d => d.isActive) : diseases)
     if (path === '/api/diseases' && method === 'POST') return json(disease('d-new', body.code, body.name, body.cropType ?? 'RICE'), 201)
     if (path === '/api/active-ingredients') return json(paged([]))
-    if (path === '/api/ai-models' && method === 'GET') return json(paged([]))
+    if (path === '/api/ai-models' && method === 'GET') return json(paged(state.models))
+    const activate = path.match(/^\/api\/ai-models\/([^/]+)\/activate$/)
+    if (activate && method === 'POST') {
+      const target = state.models.find(m => m.id === activate[1])
+      target.status = 'ACTIVE'
+      return json(target)
+    }
     if (path === '/api/ai-models' && method === 'POST') return json({ id: 'm1', ...body, architecture: null, metrics: null, status: 'DRAFT', createdAt: '2026-11-21T03:00:00Z' }, 201)
     failures.push(`Unhandled mock API ${method} ${path}`)
     return json({ title: 'Unexpected test request' }, 500)
@@ -288,12 +295,42 @@ const model = (page) => page.getByLabel('Model', { exact: true })
   })
   await check('the JSON manifest still registers a fixed-class model', async () => {
     await page.getByRole('button', { name: '+ Đăng ký mô hình' }).click()
-    await page.getByRole('button', { name: 'Manifest JSON (PyTorch)' }).click()
+    await page.getByRole('button', { name: 'Mô hình riêng một cây (manifest JSON)' }).click()
+    await page.getByText('ví dụ thanh long: HEALTHY, DRAGONFRUIT_STEM_CANKER', { exact: false }).waitFor()
     await page.getByRole('textbox', { name: 'Manifest mô hình (JSON)' }).fill(JSON.stringify({ name: 'rice', version: '0.3.0', framework: 'PyTorch', modelStorageUrl: 'https://example.test/m', classLabels: ['LEAF_BLAST', 'BACTERIAL_LEAF_BLIGHT', 'BROWN_SPOT', 'SHEATH_BLIGHT', 'HEALTHY'] }))
     await page.getByRole('button', { name: 'Đăng ký', exact: true }).click()
     await page.waitForFunction(() => document.querySelectorAll('[role="dialog"]').length === 0)
     assert.equal(posts().length, 3)
     assert.equal(posts()[2].framework, 'PyTorch')
+  })
+  await context.close()
+}
+
+{
+  const models = [
+    { id: 'g1', name: 'Gemini chẩn đoán', version: 'gemini-3.8-flash', framework: 'GOOGLE', architecture: null,
+      modelStorageUrl: 'https://generativelanguage.googleapis.com', classLabels: ['LEAF_BLAST', 'HEALTHY'], metrics: null,
+      status: 'ACTIVE', createdAt: '2026-11-22T03:00:00Z', cropType: null },
+    { id: 'df1', name: 'agrisage-dragonfruit-stem-classifier', version: '0.1.0', framework: 'pytorch',
+      architecture: 'vit_base_patch16_224', modelStorageUrl: 'https://example.test/weights',
+      classLabels: ['HEALTHY', 'DRAGONFRUIT_STEM_CANKER'], metrics: null, status: 'DRAFT', createdAt: '2026-11-28T03:00:00Z',
+      cropType: 'DRAGON_FRUIT' },
+  ]
+  const { context, page, state } = await session(admin, { models })
+  const activations = () => state.requests.filter(r => r.path.endsWith('/activate')).map(r => r.path)
+  await check('each model shows the crop it answers; activating the dragon fruit model says the general model stays', async () => {
+    await page.goto(`${base}/admin/ai/models`)
+    await page.getByRole('row', { name: /Gemini chẩn đoán/ }).getByText('Mọi cây', { exact: true }).waitFor()
+    const dragon = page.getByRole('row', { name: /agrisage-dragonfruit-stem-classifier/ })
+    await dragon.getByText('Thanh long', { exact: true }).waitFor()
+    await dragon.getByRole('button', { name: 'Thao tác mô hình agrisage-dragonfruit-stem-classifier' }).click()
+    await page.getByRole('menuitem', { name: 'Kích hoạt' }).click()
+    const dialog = page.getByRole('dialog')
+    await dialog.getByText('mô hình chung Claude/Gemini vẫn giữ cho các cây khác', { exact: false }).waitFor()
+    assert.deepEqual(activations(), [], 'nothing is activated before the confirmation')
+    await dialog.getByRole('button', { name: 'Kích hoạt', exact: true }).click()
+    await page.waitForFunction(() => document.querySelectorAll('[role="dialog"]').length === 0)
+    assert.deepEqual(activations(), ['/api/ai-models/df1/activate'])
   })
   await context.close()
 }
